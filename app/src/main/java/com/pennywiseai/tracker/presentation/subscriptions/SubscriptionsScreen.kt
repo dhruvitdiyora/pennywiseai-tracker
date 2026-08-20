@@ -80,8 +80,7 @@ fun SubscriptionsScreen(
     }
 
     // Scroll behaviors for collapsible TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
 
@@ -139,13 +138,12 @@ fun SubscriptionsScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "Subscriptions",
                 hazeState = hazeState
             )

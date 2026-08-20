@@ -49,8 +49,7 @@ fun LoanDetailScreen(
     viewModel: LoanDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     LaunchedEffect(uiState.isDeleted) {
@@ -60,12 +59,11 @@ fun LoanDetailScreen(
     val loan = uiState.loan
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = loan?.personName ?: "Loan",
                 hasBackButton = true,
                 hasActionButton = true,

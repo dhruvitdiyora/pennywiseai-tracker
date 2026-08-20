@@ -66,17 +66,15 @@ fun ManageAccountsScreen(
     var showSupportDialog by remember { mutableStateOf(false) }
     val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsState()
 
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "Accounts",
                 hasBackButton = true,
                 hasActionButton = true,

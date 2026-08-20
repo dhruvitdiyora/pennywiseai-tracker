@@ -52,20 +52,18 @@ fun RulesScreen(
     var showBatchApplyDialog by remember { mutableStateOf(false) }
     var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
 
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     // Reset dialog state needs to be outside the lambda
     var showResetDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "Smart Rules",
                 hasBackButton = true,
                 hasActionButton = true,

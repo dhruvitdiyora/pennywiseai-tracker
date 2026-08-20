@@ -155,7 +155,6 @@ fun MainScreen(
                         HomeScreen(
                             viewModel = homeViewModel,
                             navController = rootNavController ?: navController,
-                            coverStyle = themeState.coverStyle,
                             blurEffects = themeState.blurEffectsEnabled,
                             onNavigateToSettings = {
                                 navController.navigate("settings") {
@@ -221,9 +220,6 @@ fun MainScreen(
                                 navController.navigate(route) {
                                     launchSingleTop = true
                                 }
-                            },
-                            onFabPositioned = { position ->
-                                spotlightViewModel.updateFabPosition(position)
                             }
                         )
                     }
@@ -409,6 +405,75 @@ fun MainScreen(
                     }
                 )
 
+                // The More hub (D4). Lives in the inner graph so it keeps the bottom nav;
+                // tiles that open full-screen destinations push onto the root graph.
+                composable(
+                    route = "home_panels",
+                    content = { _: NavBackStackEntry ->
+                        com.pennywiseai.tracker.presentation.panels.HomePanelsScreen(
+                            onNavigateBack = { navController.safePopBackStack() }
+                        )
+                    }
+                )
+
+                composable(
+                    route = "more",
+                    content = { _: NavBackStackEntry ->
+                        val root = rootNavController ?: navController
+                        com.pennywiseai.tracker.presentation.more.MoreScreen(
+                            onNavigateToSettings = {
+                                navController.navigate("settings") { launchSingleTop = true }
+                            },
+                            onNavigateToHomePanels = {
+                                navController.navigate("home_panels") { launchSingleTop = true }
+                            },
+                            onNavigateToChat = {
+                                navController.navigate("chat") { launchSingleTop = true }
+                            },
+                            onNavigateToSubscriptions = {
+                                navController.navigate("subscriptions") { launchSingleTop = true }
+                            },
+                            onNavigateToAccounts = {
+                                navController.navigate("manage_accounts") { launchSingleTop = true }
+                            },
+                            onNavigateToLoans = {
+                                root.navigate(com.pennywiseai.tracker.navigation.Loans) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToBudgets = {
+                                root.navigate(com.pennywiseai.tracker.navigation.BudgetGroups) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToCategories = {
+                                navController.navigate("categories") { launchSingleTop = true }
+                            },
+                            onNavigateToRules = {
+                                root.navigate(com.pennywiseai.tracker.navigation.Rules) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToGroups = {
+                                root.navigate(com.pennywiseai.tracker.navigation.TransactionGroups) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToUnrecognizedSms = {
+                                navController.navigate("unrecognized_sms") { launchSingleTop = true }
+                            },
+                            onNavigateToImportStatement = {
+                                navController.navigate("import_statement") { launchSingleTop = true }
+                            },
+                            onNavigateToExchangeRates = {
+                                root.navigate(com.pennywiseai.tracker.navigation.ExchangeRates) {
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
+                )
+
                 composable(
                     route = "settings",
                     content = { _: NavBackStackEntry ->
@@ -588,8 +653,12 @@ fun MainScreen(
                 )
             }
 
-            // Bottom navigation OVERLAID on content
-            if (baseRoute in listOf("home", "analytics", "chat")) {
+            // Bottom navigation OVERLAID on content.
+            // "chat" and "transactions" keep the bar even though neither is a tab. Analytics
+            // stays charts-only (D4a), so Transactions is reached from Home's "View All" and
+            // from chart drill-downs — without the bar it was a back-button-only dead end,
+            // which was the actual complaint the Analytics merge was meant to solve.
+            if (baseRoute in listOf("home", "analytics", "more", "chat", "transactions")) {
                 PennyWiseBottomNavigation(
                     navController = navController,
                     currentDestination = navBackStackEntry?.destination,
@@ -600,23 +669,10 @@ fun MainScreen(
                 )
             }
 
-            // Spotlight Tutorial overlay - outside Scaffold to overlay everything
-            if (baseRoute == "home" && spotlightState.showTutorial && spotlightState.fabPosition != null) {
-                val homeViewModel: com.pennywiseai.tracker.presentation.home.HomeViewModel? =
-                    navController.currentBackStackEntry?.let { hiltViewModel(it) }
-
-                SpotlightTutorial(
-                    isVisible = true,
-                    targetPosition = spotlightState.fabPosition,
-                    message = "Tap here to scan your SMS messages for transactions",
-                    onDismiss = {
-                        spotlightViewModel.dismissTutorial()
-                    },
-                    onTargetClick = {
-                        homeViewModel?.scanSmsMessages()
-                    }
-                )
-            }
+            // The spotlight tutorial pointed at the sync FAB ("Tap here to scan your SMS
+            // messages"). That FAB is gone — scanning is pull-to-refresh now — so the
+            // overlay has no target. The empty state's "Scan Now" button already covers
+            // first-run discovery, which is when this tutorial fired.
         }
     }
 }

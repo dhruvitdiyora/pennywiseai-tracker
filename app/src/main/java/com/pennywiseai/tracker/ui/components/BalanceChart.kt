@@ -38,12 +38,43 @@ data class BalancePoint(
     val currency: String = "INR"
 )
 
+/**
+ * How many x-axis ticks a phone-width chart can show at -45° without crowding.
+ */
+private const val MAX_X_AXIS_LABELS = 6
+
+/**
+ * Samples at most [max] evenly-spaced labels, always including the first and last.
+ *
+ * `HorizontalLabels` lays the list out in a `Row` with `SpaceBetween` — labels are spread
+ * evenly across the axis rather than pinned to their data point's x position. So handing it
+ * one label per point doesn't produce one tick per point; it produces a row of labels crushed
+ * together, and the rotated ones at the right get pushed past the edge. That's why a 16-day
+ * month appeared to stop at "10 Aug". Sampling evenly keeps the positions honest, because
+ * evenly-sampled labels land at evenly-spaced x positions.
+ *
+ * This must **filter**, never blank. The library derives every label's width from
+ * `labelWidths.min()`, so a single empty string measures 0 and collapses the whole row to
+ * zero width — which renders no axis at all.
+ */
+private fun thinLabels(labels: List<String>, max: Int): List<String> {
+    if (labels.size <= max) return labels
+    val lastIndex = labels.lastIndex
+    return (0 until max).map { labels[it * lastIndex / (max - 1)] }
+}
+
 @Composable
 fun BalanceChart(
     primaryCurrency: String,
     balanceHistory: List<BalancePoint>,
     modifier: Modifier = Modifier,
-    height: Int = 200
+    height: Int = 200,
+    /**
+     * Legend label for the plotted series. Defaults to the account-balance case this chart
+     * was written for; Analytics plots spending through the same component, where a legend
+     * reading "Balance Trend" under an Expense filter contradicts the screen.
+     */
+    seriesLabel: String = "Balance Trend"
 ) {
     if (balanceHistory.isEmpty()) return
 
@@ -71,7 +102,7 @@ fun BalanceChart(
             smoothedHistory.first().timestamp.year != smoothedHistory.last().timestamp.year
         } else false
 
-        smoothedHistory.map {
+        val formatted = smoothedHistory.map {
             val date = it.timestamp
             when {
                 isYearly -> date.format(DateTimeFormatter.ofPattern("yyyy"))
@@ -80,6 +111,7 @@ fun BalanceChart(
                 else -> date.format(DateTimeFormatter.ofPattern("dd MMM"))
             }
         }
+        thinLabels(formatted, MAX_X_AXIS_LABELS)
     }
 
     LineChart(
@@ -89,7 +121,7 @@ fun BalanceChart(
             .padding(horizontal = Spacing.sm, vertical = Spacing.md),
         data = listOf(
             Line(
-                label = "Balance Trend",
+                label = seriesLabel,
                 values = chartValues,
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),

@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.horizontalScrollFade
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
@@ -128,17 +129,15 @@ fun AnalyticsScreen(
             hasCurrencyFilter
 
     // Scroll behaviors for collapsible TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "Analytics",
                 hazeState = hazeState
             )
@@ -368,7 +367,14 @@ fun AnalyticsScreen(
                             ChartType.LINE -> BalanceChart(
                                 primaryCurrency = selectedCurrency,
                                 balanceHistory = uiState.spendingTrend,
-                                height = 220
+                                height = 220,
+                                // Name the series after the filter that produced it, so the
+                                // legend can't say "Balance Trend" while the page is
+                                // filtered to Expense.
+                                seriesLabel = when (transactionTypeFilter) {
+                                    TransactionTypeFilter.ALL -> "Net Trend"
+                                    else -> "${transactionTypeFilter.label} Trend"
+                                }
                             )
                             ChartType.BAR -> SpendingBarChart(
                                 primaryCurrency = selectedCurrency,
@@ -676,8 +682,12 @@ private fun AnalyticsFilterBar(
     onResetFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val filterRowState = rememberLazyListState()
     LazyRow(
-        modifier = modifier.fillMaxWidth(),
+        state = filterRowState,
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScrollFade(atStart = filterRowState.canScrollBackward),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         if (hasActiveFilter) {

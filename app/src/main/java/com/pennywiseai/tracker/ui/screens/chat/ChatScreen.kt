@@ -76,8 +76,7 @@ fun ChatScreen(
     }
 
     // Scroll behaviors for TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = scrollBehaviorSmall
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
@@ -85,8 +84,7 @@ fun ChatScreen(
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "PennyWise AI",
                 hazeState = hazeState
             )

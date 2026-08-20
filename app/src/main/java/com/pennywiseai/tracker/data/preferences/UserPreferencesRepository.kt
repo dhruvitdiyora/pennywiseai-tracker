@@ -127,8 +127,12 @@ class UserPreferencesRepository @Inject constructor(
         // Analytics Chart Type
         val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
 
-        // Cover Style
-        val COVER_STYLE = stringPreferencesKey("cover_style")
+        // Home panel layout — ordered "PANEL_NAME:0|1" pairs, see HomePanelLayout
+        val HOME_PANEL_LAYOUT = stringPreferencesKey("home_panel_layout")
+
+        // NOTE: "cover_style" was written here until the Home cover banner was retired.
+        // Nothing reads it now. Existing installs keep an orphaned string in DataStore,
+        // which is harmless — Preferences ignores keys no one asks for. Don't reuse the name.
 
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
@@ -182,9 +186,6 @@ class UserPreferencesRepository @Inject constructor(
                 navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
                     try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
                 } ?: NavBarStyle.FLOATING,
-                coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
-                    try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
-                } ?: CoverStyle.AURORA,
                 userName = preferences[PreferencesKeys.USER_NAME] ?: "User",
                 profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI]
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
@@ -780,10 +781,25 @@ class UserPreferencesRepository @Inject constructor(
     fun getAnalyticsChartType(): Flow<String?> = context.dataStore.data
         .map { preferences -> preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] }
 
-    // Cover Style
-    suspend fun updateCoverStyle(style: CoverStyle) {
+    // Home panel layout
+    /**
+     * The user's Home panel order and on/off state. Emits [HomePanelLayout.DEFAULT] until
+     * they change something, and reconciles against the current [HomePanel] entries on every
+     * read so panels added or removed by an app update are handled without a migration.
+     */
+    val homePanelLayout: Flow<List<HomePanelState>> = context.dataStore.data
+        .map { preferences -> HomePanelLayout.decode(preferences[PreferencesKeys.HOME_PANEL_LAYOUT]) }
+
+    suspend fun updateHomePanelLayout(states: List<HomePanelState>) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.COVER_STYLE] = style.name
+            preferences[PreferencesKeys.HOME_PANEL_LAYOUT] = HomePanelLayout.encode(states)
+        }
+    }
+
+    /** Drops the stored layout so Home returns to [HomePanelLayout.DEFAULT]. */
+    suspend fun resetHomePanelLayout() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.HOME_PANEL_LAYOUT)
         }
     }
 
@@ -885,7 +901,6 @@ data class UserPreferences(
     val displayCurrency: String = "INR",
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
-    val coverStyle: CoverStyle = CoverStyle.AURORA,
     val userName: String = "User",
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,

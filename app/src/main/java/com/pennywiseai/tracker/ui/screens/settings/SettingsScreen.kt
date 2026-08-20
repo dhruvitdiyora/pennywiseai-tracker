@@ -208,8 +208,7 @@ fun SettingsScreen(
     }
 
     // Scroll behaviors for collapsible TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = scrollBehaviorSmall
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
@@ -217,8 +216,7 @@ fun SettingsScreen(
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "Settings",
                 hasBackButton = true,
                 hasActionButton = true,

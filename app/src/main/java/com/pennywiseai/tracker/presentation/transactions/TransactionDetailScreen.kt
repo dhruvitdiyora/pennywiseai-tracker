@@ -194,12 +194,11 @@ fun TransactionDetailScreen(
     val context = LocalContext.current
     var showActionsMenu by remember { mutableStateOf(false) }
 
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         // Transaction actions (delete / group / duplicate / report) live in the
@@ -208,8 +207,7 @@ fun TransactionDetailScreen(
         floatingActionButton = {},
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = if (isEditMode) "Edit Transaction" else "Transaction Details",
                 hasBackButton = true,
                 hasActionButton = true,

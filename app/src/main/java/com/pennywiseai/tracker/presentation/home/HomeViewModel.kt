@@ -45,6 +45,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -91,6 +93,20 @@ class HomeViewModel @Inject constructor(
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    /**
+     * Which panels Home renders, and in what order. Starts at
+     * [com.pennywiseai.tracker.data.preferences.HomePanelLayout.DEFAULT], whose declaration
+     * order is the order Home used before it became panel-driven — so a user who never opens
+     * the panel settings sees exactly what they saw before.
+     */
+    val homePanels: StateFlow<List<com.pennywiseai.tracker.data.preferences.HomePanelState>> =
+        userPreferencesRepository.homePanelLayout
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                com.pennywiseai.tracker.data.preferences.HomePanelLayout.DEFAULT
+            )
     
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
     val deletedTransaction: StateFlow<TransactionEntity?> = _deletedTransaction.asStateFlow()

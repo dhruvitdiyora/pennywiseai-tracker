@@ -59,6 +59,14 @@ fun GreetingCard(
     onProfileSelected: (Long?) -> Unit = {},
     isProEntitled: Boolean = false,
     onUpgradeClick: () -> Unit = {},
+    /**
+     * Whether to draw the profile-filter and overflow buttons on the right.
+     *
+     * False when this row is the title of a compact app bar: the bar supplies its own actions
+     * (Pro chip, profile filter, accounts, overflow), and drawing these too gives the user two
+     * profile buttons and two overflow buttons in the same row.
+     */
+    showTrailingActions: Boolean = true,
     // The last day of the user's current budget cycle. When null, the
     // subtitle falls back to the calendar month's end. The "X days left in
     // <month>" line then tracks the cycle (e.g. "4 days left in October" on
@@ -193,7 +201,7 @@ fun GreetingCard(
         }
 
         // Profile filter button
-        if (profiles.isNotEmpty()) {
+        if (showTrailingActions && profiles.isNotEmpty()) {
             var showProfileMenu by remember { mutableStateOf(false) }
             Box {
                 IconButton(
@@ -217,15 +225,17 @@ fun GreetingCard(
         }
 
         // Menu button — plain IconButton, no circular background
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreHoriz,
-                contentDescription = "More options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        if (showTrailingActions) {
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreHoriz,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

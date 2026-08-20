@@ -52,8 +52,7 @@ fun UnrecognizedSmsScreen(
     var selectedMessage by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
 
@@ -70,12 +69,11 @@ fun UnrecognizedSmsScreen(
     }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 title = "Unrecognized SMS",
                 hasBackButton = true,
                 hasActionButton = true,

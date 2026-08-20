@@ -5,6 +5,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -21,8 +23,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.pennywiseai.tracker.ui.effects.horizontalScrollFade
 import androidx.compose.foundation.text.BasicTextField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberFabVisible
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.activity.compose.BackHandler
@@ -273,22 +277,20 @@ fun TransactionsScreen(
     }
 
     // Scroll behaviors for collapsible TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             if (selectionMode) {
                 // Contextual top bar for bulk-edit (#369): close left, count as title,
                 // Change Category + Delete on the right.
                 CustomTitleTopAppBar(
-                    scrollBehaviorSmall = scrollBehaviorSmall,
-                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    scrollBehavior = scrollBehavior,
                     title = "${selectedIds.size} selected",
                     hasBackButton = true,
                     hasActionButton = true,
@@ -334,10 +336,10 @@ fun TransactionsScreen(
                 )
             } else {
                 CustomTitleTopAppBar(
-                    scrollBehaviorSmall = scrollBehaviorSmall,
-                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    scrollBehavior = scrollBehavior,
                     title = "Transactions",
                     hasBackButton = true,
+                    hasActionButton = uiState.transactions.isNotEmpty(),
                     navigationContent = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
@@ -346,34 +348,38 @@ fun TransactionsScreen(
                             )
                         }
                     },
+                    actionContent = {
+                        // Export lives here rather than as a second FAB: stacked FABs
+                        // covered the trailing amount of the rows they floated over, and
+                        // exporting is a rare action that doesn't warrant that real estate.
+                        if (uiState.transactions.isNotEmpty()) {
+                            IconButton(onClick = { showExportDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.FileDownload,
+                                    contentDescription = "Export to CSV"
+                                )
+                            }
+                        }
+                    },
                     hazeState = hazeState
                 )
             }
         },
         floatingActionButton = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            // One FAB, matching Home's — same shape, size, colour role and hide-on-scroll
+            // behaviour, so "add" looks and acts like the same affordance on both screens.
+            val fabVisible by rememberFabVisible(listState)
+            AnimatedVisibility(
+                visible = fabVisible,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut(),
+                modifier = Modifier.padding(bottom = Dimensions.Component.bottomBarHeight)
             ) {
-                // Export FAB (only show if transactions exist)
-                if (uiState.transactions.isNotEmpty()) {
-                    SmallFloatingActionButton(
-                        onClick = { showExportDialog = true },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FileDownload,
-                            contentDescription = "Export to CSV",
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                    }
-                }
-                
-                // Add Transaction FAB (consistent with Home screen)
-                SmallFloatingActionButton(
+                FloatingActionButton(
                     onClick = onAddTransactionClick,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(Dimensions.Component.fab)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -486,7 +492,11 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding()
+                        // Clears the overlaid bottom nav and the Add FAB above it — the
+                        // Scaffold's own padding knows about neither.
+                        bottom = paddingValues.calculateBottomPadding() +
+                            Dimensions.Component.bottomBarHeight +
+                            Dimensions.Component.fabScrollClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
@@ -523,7 +533,11 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding()
+                        // Clears the overlaid bottom nav and the Add FAB above it — the
+                        // Scaffold's own padding knows about neither.
+                        bottom = paddingValues.calculateBottomPadding() +
+                            Dimensions.Component.bottomBarHeight +
+                            Dimensions.Component.fabScrollClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }
@@ -1122,8 +1136,12 @@ private fun TransactionFilterHeader(
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
         ) {
+            val filterRowState = rememberLazyListState()
             LazyRow(
-                modifier = Modifier.fillMaxWidth(),
+                state = filterRowState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScrollFade(atStart = filterRowState.canScrollBackward),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 item {

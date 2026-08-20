@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.AppFont
-import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -34,7 +33,6 @@ class ThemeViewModel @Inject constructor(
                 hasSkippedSmsPermission = preferences.hasSkippedSmsPermission,
                 blurEffectsEnabled = preferences.blurEffectsEnabled,
                 navBarStyle = preferences.navBarStyle,
-                coverStyle = preferences.coverStyle,
                 hasCompletedOnboarding = preferences.hasCompletedOnboarding,
                 userName = preferences.userName,
                 profileImageUri = preferences.profileImageUri,
@@ -95,12 +93,6 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
-    fun updateCoverStyle(style: CoverStyle) {
-        viewModelScope.launch {
-            userPreferencesRepository.updateCoverStyle(style)
-        }
-    }
-
     fun markOnboardingCompleted() {
         viewModelScope.launch {
             userPreferencesRepository.updateHasCompletedOnboarding(true)
@@ -119,7 +111,6 @@ data class ThemeUiState(
     val hasSkippedSmsPermission: Boolean = false,
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,
-    val coverStyle: CoverStyle = CoverStyle.AURORA,
     val hasCompletedOnboarding: Boolean = false,
     val userName: String = "User",
     val profileImageUri: String? = null,

@@ -1,9 +1,8 @@
 package com.pennywiseai.tracker.presentation.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -24,9 +23,15 @@ sealed class BottomNavItem(
         icon = Icons.Default.Analytics
     )
     
-    data object Chat : BottomNavItem(
-        route = "chat",
-        title = "Chat",
-        icon = Icons.AutoMirrored.Filled.Chat
+    /**
+     * Replaced the Chat tab (D4). Chat was a third of the navigation while being unusable
+     * until a model download, and everything else the app can do — Subscriptions, Loans,
+     * Budgets, Categories, Rules, Groups, Import, Exchange Rates, Settings — had no home in
+     * the nav at all. Chat now lives inside More.
+     */
+    data object More : BottomNavItem(
+        route = "more",
+        title = "More",
+        icon = Icons.Default.GridView
     )
 }

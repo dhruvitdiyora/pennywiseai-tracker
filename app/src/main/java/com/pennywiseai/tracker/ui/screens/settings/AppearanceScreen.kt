@@ -62,7 +62,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.AppFont
-import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -71,7 +70,6 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.getCoverGradientColors
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -161,17 +159,15 @@ fun AppearanceScreen(
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
 
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CustomTitleTopAppBar(
                 title = "Appearance",
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehavior = scrollBehavior,
                 hazeState = hazeState,
                 hasBackButton = true,
                 hasActionButton = true,
@@ -290,17 +286,6 @@ fun AppearanceScreen(
                 NavBarStyleSelector(
                     currentStyle = themeUiState.navBarStyle,
                     onStyleSelected = { themeViewModel.updateNavBarStyle(it) }
-                )
-
-                // Cover Style Section
-                SectionHeaderV2(
-                    title = "Cover Style",
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
-                )
-                CoverStyleSelector(
-                    currentStyle = themeUiState.coverStyle,
-                    isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme(),
-                    onStyleSelected = { themeViewModel.updateCoverStyle(it) }
                 )
 
                 // Font Selection Section
@@ -678,67 +663,6 @@ private fun NavBarStyleSelector(
                         color = if (currentStyle == NavBarStyle.NORMAL)
                             MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                         else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-// --- Cover Style Selector ---
-
-@Composable
-private fun CoverStyleSelector(
-    currentStyle: CoverStyle,
-    isDark: Boolean,
-    onStyleSelected: (CoverStyle) -> Unit
-) {
-    LazyRow(
-        modifier = Modifier.padding(horizontal = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(vertical = Spacing.xs)
-    ) {
-        items(CoverStyle.entries.toList()) { style ->
-            val isSelected = currentStyle == style
-
-            Box(
-                modifier = Modifier
-                    .size(width = 80.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .then(
-                        if (style == CoverStyle.NONE) {
-                            Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        } else {
-                            Modifier.background(
-                                Brush.verticalGradient(
-                                    colors = getCoverGradientColors(style, isDark, forPreview = true)
-                                )
-                            )
-                        }
-                    )
-                    .then(
-                        if (isSelected) Modifier.border(
-                            width = 3.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
-                        ) else Modifier
-                    )
-                    .clickable { onStyleSelected(style) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (style == CoverStyle.NONE) {
-                    Text(
-                        text = "None",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isSelected) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = Color.White,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 }
             }

@@ -40,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
@@ -63,12 +63,30 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 
+/**
+ * The app's one top bar: a single compact row, on every screen.
+ *
+ * This used to be two stacked bars — a `LargeTopAppBar` at `expandedHeight = 150.dp` (Home) or
+ * `110.dp` (elsewhere) that collapsed into a regular one as you scrolled. It cost about 25% of
+ * the screen before any content: the greeting sat pinned to the bottom of that 150dp with the
+ * space above it empty by construction, and secondary screens spent a whole 250px line on a
+ * headline-sized title. Retiring the cover banner didn't recover any of it, because the banner
+ * was painted *behind* this, not under it.
+ *
+ * Now there is one ~56dp row. Home puts [extraInfoCard] (the greeting: avatar with its Pro
+ * ring, name, and the cycle-aware subtitle) in the title slot; every other screen gets back
+ * button, `titleLarge` title, and actions.
+ *
+ * Pass a [TopAppBarDefaults.pinnedScrollBehavior] as [scrollBehavior] and attach the same one
+ * to the screen's `nestedScroll`. A pinned bar consumes no scroll delta; the
+ * `exitUntilCollapsedScrollBehavior` these screens used to pass would eat the first 150dp of
+ * every scroll on behalf of a bar that no longer exists.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun CustomTitleTopAppBar(
     modifier: Modifier = Modifier,
-    scrollBehaviorSmall: TopAppBarScrollBehavior,
-    scrollBehaviorLarge: TopAppBarScrollBehavior,
+    scrollBehavior: TopAppBarScrollBehavior,
     title: String,
     isHomeScreen: Boolean = false,
     hasBackButton: Boolean = false,
@@ -82,38 +100,18 @@ fun CustomTitleTopAppBar(
     hazeState: HazeState = HazeState(),
     blurEffects: Boolean = LocalBlurEffects.current
 ) {
-    val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
-
-    // LargeTopAppBar — only when we have a separate large behavior
-    if (scrollBehaviorLarge != scrollBehaviorSmall) {
-        LargerTopAppBar(
-            scrollBehaviorLarge = scrollBehaviorLarge,
-            title = title,
-            isHomeScreen = isHomeScreen,
-            hasBackButton = hasBackButton,
-            collapsedFraction = collapsedFraction,
-            actionContent = actionContent,
-            navigationContent = navigationContent,
-            extraInfoCard = extraInfoCard,
-            hazeState = hazeState,
-            blurEffects = blurEffects,
-            themeColors = MaterialTheme.colorScheme
-        )
-    }
-
-    // Regular TopAppBar — fades in as LargeTopAppBar collapses
     RegularTopAppBar(
-        scrollBehaviorSmall = scrollBehaviorSmall,
+        scrollBehavior = scrollBehavior,
         title = title,
         isHomeScreen = isHomeScreen,
         hasBackButton = hasBackButton,
         hasActionButton = hasActionButton,
         actionContent = actionContent,
         navigationContent = navigationContent,
+        extraInfoCard = extraInfoCard,
         userName = userName,
         profileImageUri = profileImageUri,
         profileBackgroundColor = profileBackgroundColor,
-        collapsedFraction = if (scrollBehaviorLarge != scrollBehaviorSmall) collapsedFraction else 1f,
         modifier = modifier,
         hazeState = hazeState,
         blurEffects = blurEffects
@@ -163,28 +161,41 @@ private fun Modifier.animatedOffsetModifier(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
-private fun LargerTopAppBar(
+private fun RegularTopAppBar(
     modifier: Modifier = Modifier,
-    scrollBehaviorLarge: TopAppBarScrollBehavior,
+    scrollBehavior: TopAppBarScrollBehavior,
     title: String,
     isHomeScreen: Boolean,
     hasBackButton: Boolean = false,
-    collapsedFraction: Float,
-    extraInfoCard: @Composable () -> Unit = {},
+    hasActionButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
+    extraInfoCard: @Composable () -> Unit = {},
+    userName: String = "",
+    profileImageUri: String? = null,
+    profileBackgroundColor: Int = 0,
     hazeState: HazeState,
-    blurEffects: Boolean = true,
-    themeColors: ColorScheme,
+    blurEffects: Boolean = true
 ) {
-    LargeTopAppBar(
+    TopAppBar(
         title = {
-            TitleForLargeTopAppBar(
-                title = title,
-                isHomeScreen = isHomeScreen,
-                modifier = modifier,
-                extraInfoCard = extraInfoCard,
-            )
+            if (isHomeScreen) {
+                // The greeting row *is* the bar. It already carries the avatar with its
+                // Pro ring, the name, and the cycle-aware subtitle ("4 days left in
+                // August") — none of which the old collapsed bar showed.
+                extraInfoCard()
+            } else {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.animatedOffsetModifier(
+                        hasBackButton = hasBackButton,
+                        hasActionButton = hasActionButton,
+                        isHomeScreen = isHomeScreen,
+                    )
+                )
+            }
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
@@ -192,7 +203,7 @@ private fun LargerTopAppBar(
         ),
         navigationIcon = {
             BlurredAnimatedVisibility(
-                visible = hasBackButton && !isHomeScreen,
+                visible = hasBackButton,
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
@@ -200,219 +211,30 @@ private fun LargerTopAppBar(
             }
         },
         actions = {
-            BlurredAnimatedVisibility(
-                visible = !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                // Lay multiple actions (e.g. Edit + overflow) out horizontally. The
-                // visibility wrapper renders into a Box, not a RowScope, so without
-                // this Row the icons stack on top of each other in the expanded bar.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    actionContent()
-                }
-            }
+            actionContent()
         },
-        collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,
-        expandedHeight = if (isHomeScreen) 150.dp else 110.dp,
+        scrollBehavior = scrollBehavior,
         windowInsets = WindowInsets(0.dp),
-        scrollBehavior = scrollBehaviorLarge,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            tint = tint(backgroundColor),
-                            blurRadius = 10.dp,
-                            noiseFactor = -1f,
-                        )
-                        progressive =
-                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                    }
-                ) else Modifier
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        themeColors.background,
-                        Color.Transparent
-                    )
-                )
-            )
+            // Opaque, with a shadow rather than a fade — see APP_BAR_ELEVATION.
+            .shadow(elevation = APP_BAR_ELEVATION)
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .alpha(1f - collapsedFraction)
     )
 }
 
-@Composable
-private fun TitleForLargeTopAppBar(
-    modifier: Modifier = Modifier,
-    title: String,
-    isHomeScreen: Boolean,
-    extraInfoCard: @Composable () -> Unit = {},
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        BlurredAnimatedVisibility(
-            visible = !isHomeScreen,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut()
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Start,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(start = Spacing.smd)
-            )
-        }
-        extraInfoCard()
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
-@Composable
-private fun RegularTopAppBar(
-    modifier: Modifier = Modifier,
-    scrollBehaviorSmall: TopAppBarScrollBehavior,
-    title: String,
-    isHomeScreen: Boolean,
-    hasBackButton: Boolean = false,
-    hasActionButton: Boolean = false,
-    actionContent: @Composable () -> Unit = {},
-    navigationContent: @Composable () -> Unit = {},
-    userName: String = "",
-    profileImageUri: String? = null,
-    profileBackgroundColor: Int = 0,
-    collapsedFraction: Float,
-    hazeState: HazeState,
-    blurEffects: Boolean = true
-) {
-    BlurredAnimatedVisibility(
-        visible = collapsedFraction > 0.01f,
-        enter = fadeIn(),
-        exit = fadeOut()
-    ) {
-        TopAppBar(
-            title = {
-                if (isHomeScreen) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = Spacing.xs)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(Dimensions.Icon.large)
-                                .clip(CircleShape)
-                                .background(
-                                    if (profileBackgroundColor != 0) Color(profileBackgroundColor)
-                                    else MaterialTheme.colorScheme.primaryContainer
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
-                            if (avatarResId != null) {
-                                Image(
-                                    painter = painterResource(id = avatarResId),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else if (profileImageUri != null) {
-                                AsyncImage(
-                                    model = profileImageUri,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                val initials = remember(userName) {
-                                    val parts = userName.trim().split("\\s+".toRegex())
-                                    if (parts.size >= 2) {
-                                        "${parts.first().first()}${parts.last().first()}".uppercase()
-                                    } else {
-                                        userName.trim().take(2).uppercase()
-                                    }
-                                }
-                                Text(
-                                    text = initials,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(Spacing.smd))
-                        Text(
-                            text = userName.ifBlank { "PennyWise" },
-                            style = MaterialTheme.typography.titleLarge,
-                            textAlign = TextAlign.Start,
-                        )
-                    }
-                } else {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.animatedOffsetModifier(
-                            hasBackButton = hasBackButton,
-                            hasActionButton = hasActionButton,
-                            isHomeScreen = isHomeScreen,
-                        )
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent
-            ),
-            navigationIcon = {
-                BlurredAnimatedVisibility(
-                    visible = hasBackButton,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
-                ) {
-                    navigationContent()
-                }
-            },
-            actions = {
-                actionContent()
-            },
-            scrollBehavior = scrollBehaviorSmall,
-            windowInsets = WindowInsets(0.dp),
-            modifier = modifier
-                .fillMaxWidth()
-                .then(
-                    if (blurEffects) Modifier.hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                blurRadius = 10.dp,
-                                noiseFactor = -1f,
-                            )
-                            progressive =
-                                HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                        }
-                    ) else Modifier
-                )
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            Color.Transparent
-                        )
-                    )
-                )
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .alpha(collapsedFraction)
-        )
-    }
-}
+/**
+ * Elevation of the app bar, which content scrolls underneath.
+ *
+ * The bar originally faded from `background` to fully transparent across its height, so the
+ * band where the title sits had no scrim and rows read straight through it. Confining the fade
+ * to the bottom 20% fixed legibility but still ghosted — a half-visible section header hovering
+ * behind the title, which reads as a glitch. So the bar is opaque and separates from the
+ * content with a shadow instead of by dissolving into it.
+ *
+ * Note this makes the bar's own haze blur redundant: an opaque background paints over it. The
+ * navigation bar's blur is unaffected.
+ */
+private val APP_BAR_ELEVATION = Dimensions.Elevation.bottomBar
