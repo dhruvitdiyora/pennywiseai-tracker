@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.BasicTextField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
@@ -47,19 +46,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -370,7 +369,10 @@ fun TransactionsScreen(
                 // Export FAB (only show if transactions exist)
                 if (uiState.transactions.isNotEmpty()) {
                     SmallFloatingActionButton(
-                        onClick = { showExportDialog = true },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            showExportDialog = true
+                        },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ) {
@@ -384,7 +386,10 @@ fun TransactionsScreen(
                 
                 // Add Transaction FAB (consistent with Home screen)
                 SmallFloatingActionButton(
-                    onClick = onAddTransactionClick,
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onAddTransactionClick()
+                    },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ) {
@@ -456,6 +461,9 @@ fun TransactionsScreen(
             onMoreFiltersClick = { showMoreFiltersMenu = true },
             onMoreFiltersDismiss = { showMoreFiltersMenu = false },
             onCategorySelected = { category ->
+                // Its four sibling filter callbacks all fired CONFIRM and this
+                // one did not — the exact ad-hoc drift doc 24 exists to stop.
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 if (category == null) {
                     viewModel.clearCategoryFilter()
                 } else {
@@ -637,8 +645,9 @@ fun TransactionsScreen(
                                 // which cooperates with the parent SwipeToDismissBox
                                 // — fixes bulk-edit not firing in nested gesture
                                 // contexts.
+                                // LONG_PRESS now fires in PennyWiseCardV2, which
+                                // owns this gesture surface (doc 24).
                                 val longPressToggle = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                     viewModel.toggleSelection(transaction.id)
                                 }
                                 if (selectionMode) {
@@ -1071,17 +1080,25 @@ private fun TransactionFilterHeader(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TransactionSearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange,
-                categoryFilter = categoryFilter,
+            SearchBarBox(
+                searchQuery = searchQuery,
+                onSearchQueryChange = onSearchQueryChange,
+                label = {
+                    SearchBarPlaceholder(
+                        text = if (categoryFilter != null) {
+                            stringResource(R.string.search_in_format, categoryFilter)
+                        } else {
+                            stringResource(R.string.search_transactions)
+                        }
+                    )
+                },
                 focusRequester = focusRequester,
                 trailingContent = {
                     Box {
                         IconButton(onClick = onSortClick) {
                             Icon(
                                 imageVector = Icons.Rounded.MoreHoriz,
-                                contentDescription = "More options",
+                                contentDescription = stringResource(R.string.more_options_desc),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -1401,75 +1418,6 @@ private fun moreFiltersLabel(
         else -> "Filters"
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TransactionSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    categoryFilter: String? = null,
-    focusRequester: FocusRequester? = null,
-    trailingContent: @Composable (() -> Unit)? = null,
-    modifier: Modifier = Modifier
-) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    Surface(
-        modifier = modifier.height(Dimensions.Component.minTouchTarget),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = Spacing.md, end = Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimensions.Icon.medium)
-            )
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                modifier = Modifier
-                    .weight(1f)
-                    .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier),
-                decorationBox = { innerTextField ->
-                    Box(contentAlignment = Alignment.CenterStart) {
-                        if (query.isEmpty()) {
-                            Text(
-                                text = if (categoryFilter != null) "Search in $categoryFilter..."
-                                else "Search transactions...",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        innerTextField()
-                    }
-                }
-            )
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            trailingContent?.invoke()
-        }
-    }
-}
-
 
 @Composable
 private fun EmptyTransactionsState(

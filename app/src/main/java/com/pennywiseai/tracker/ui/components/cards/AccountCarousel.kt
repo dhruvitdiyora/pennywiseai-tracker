@@ -32,11 +32,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
+import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
+import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -154,8 +159,26 @@ private fun AccountCarouselCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            // Shared element into AccountDetail. The key carries the account's
+            // full identity: a LazyRow keeps off-screen items composed, so a key
+            // that is merely unique on screen can still collide and crash with
+            // "Duplicate shared element key" (doc 24 part 2 step 2).
+            val sharedTransitionScope = LocalSharedTransitionScope.current
+            val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
+            val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                with(sharedTransitionScope) {
+                    sharedElementIcon(
+                        key = "account_icon_${account.bankName}_${account.accountLast4}",
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                }
+            } else {
+                Modifier
+            }
+
             BrandIcon(
                 merchantName = account.bankName,
+                modifier = iconModifier,
                 size = 40.dp,
                 showBackground = true
             )
@@ -186,7 +209,11 @@ private fun AccountCarouselCard(
                 color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
-                    text = if (isCreditCard) "Credit" else "Savings",
+                    text = if (isCreditCard) {
+                        stringResource(R.string.transaction_type_credit)
+                    } else {
+                        stringResource(R.string.savings)
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     fontWeight = FontWeight.Medium,
@@ -205,9 +232,9 @@ private fun AccountCarouselCard(
         ) {
             Text(
                 text = when {
-                    isLowBalance -> "Low balance"
-                    isCreditCard -> "Outstanding"
-                    else -> "Balance"
+                    isLowBalance -> stringResource(R.string.account_carousel_low_balance)
+                    isCreditCard -> stringResource(R.string.account_carousel_outstanding)
+                    else -> stringResource(R.string.balance)
                 },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (isLowBalance) FontWeight.Medium else null,
@@ -247,7 +274,11 @@ private fun AccountCarouselCard(
                     Icon(
                         imageVector = if (isAmountHidden) Icons.Default.VisibilityOff
                                       else Icons.Default.Visibility,
-                        contentDescription = if (isAmountHidden) "Show balance" else "Hide balance",
+                        contentDescription = if (isAmountHidden) {
+                            stringResource(R.string.show_balance_desc)
+                        } else {
+                            stringResource(R.string.hide_balance_desc)
+                        },
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )

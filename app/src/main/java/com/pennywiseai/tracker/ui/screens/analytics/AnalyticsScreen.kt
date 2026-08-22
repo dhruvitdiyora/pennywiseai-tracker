@@ -50,6 +50,15 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.filterIcon
 import com.pennywiseai.tracker.ui.components.shortLabel
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
+import com.pennywiseai.tracker.ui.icons.iconsax.Calendar
+import com.pennywiseai.tracker.ui.icons.iconsax.Category2
+import com.pennywiseai.tracker.ui.icons.iconsax.Chart2
+import com.pennywiseai.tracker.ui.icons.iconsax.Convertshape2
+import com.pennywiseai.tracker.ui.icons.iconsax.Graph
+import com.pennywiseai.tracker.ui.icons.iconsax.Grid2
+import com.pennywiseai.tracker.ui.icons.iconsax.Padlock
+import com.pennywiseai.tracker.ui.icons.iconsax.Wallet3
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
@@ -275,9 +284,9 @@ fun AnalyticsScreen(
                             ) {
                                 Icon(
                                     imageVector = when (chartType) {
-                                        ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                        ChartType.BAR -> Icons.Default.BarChart
-                                        ChartType.HEATMAP -> Icons.Default.GridView
+                                        ChartType.LINE -> Iconsax.Graph
+                                        ChartType.BAR -> Iconsax.Chart2
+                                        ChartType.HEATMAP -> Iconsax.Grid2
                                     },
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small)
@@ -325,9 +334,9 @@ fun AnalyticsScreen(
                                     ) {
                                         Icon(
                                             imageVector = when (type) {
-                                                ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                                ChartType.BAR -> Icons.Default.BarChart
-                                                ChartType.HEATMAP -> Icons.Default.GridView
+                                                ChartType.LINE -> Iconsax.Graph
+                                                ChartType.BAR -> Iconsax.Chart2
+                                                ChartType.HEATMAP -> Iconsax.Grid2
                                             },
                                             contentDescription = null,
                                             tint = if (chartType == type)
@@ -605,7 +614,7 @@ private fun TagBreakdownLockedCard(onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Icon(
-                imageVector = Icons.Default.Lock,
+                imageVector = Iconsax.Padlock,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -737,7 +746,7 @@ private fun AnalyticsFilterBar(
                     } else {
                         selectedPeriod.label
                     },
-                    icon = Icons.Default.CalendarMonth,
+                    icon = Iconsax.Calendar,
                     onClick = onPeriodClick
                 )
 
@@ -806,7 +815,7 @@ private fun AnalyticsFilterBar(
                         ),
                         selected = selectedCurrency != availableCurrencies.firstOrNull(),
                         text = selectedCurrency.ifBlank { "Currency" },
-                        icon = Icons.Default.CurrencyExchange,
+                        icon = Iconsax.Convertshape2,
                         onClick = onCurrencyClick
                     )
 
@@ -839,7 +848,7 @@ private fun AnalyticsFilterBar(
                         border = analyticsFilterChipBorder(selected = categoryFilter != null),
                         selected = categoryFilter != null,
                         text = categoryFilter ?: "Category",
-                        icon = Icons.Default.Category,
+                        icon = Iconsax.Category2,
                         onClick = onCategoryClick
                     )
 
@@ -854,7 +863,7 @@ private fun AnalyticsFilterBar(
                                 if (categoryFilter == null) {
                                     Icon(Icons.Default.Check, contentDescription = null)
                                 } else {
-                                    Icon(Icons.Default.Category, contentDescription = null)
+                                    Icon(Iconsax.Category2, contentDescription = null)
                                 }
                             },
                             onClick = { onCategorySelected(null) }
@@ -897,7 +906,7 @@ private fun AnalyticsFilterBar(
                         border = analyticsFilterChipBorder(selected = accountFilter != null),
                         selected = accountFilter != null,
                         text = selectedAccountLabel ?: "Account",
-                        icon = Icons.Default.AccountBalanceWallet,
+                        icon = Iconsax.Wallet3,
                         onClick = onAccountClick
                     )
 
@@ -912,7 +921,7 @@ private fun AnalyticsFilterBar(
                                 if (accountFilter == null) {
                                     Icon(Icons.Default.Check, contentDescription = null)
                                 } else {
-                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
+                                    Icon(Iconsax.Wallet3, contentDescription = null)
                                 }
                             },
                             onClick = { onAccountSelected(null) }
@@ -930,7 +939,7 @@ private fun AnalyticsFilterBar(
                                     if (accountFilter == option.key) {
                                         Icon(Icons.Default.Check, contentDescription = null)
                                     } else {
-                                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
+                                        Icon(Iconsax.Wallet3, contentDescription = null)
                                     }
                                 },
                                 onClick = { onAccountSelected(option.key) }
@@ -1046,7 +1055,7 @@ private fun AccountBreakdownListItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.AccountBalanceWallet,
+                    imageVector = Iconsax.Wallet3,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1078,7 +1087,7 @@ private fun EmptyAnalyticsState(
         contentAlignment = Alignment.Center
     ) {
         PennyWiseEmptyState(
-            icon = Icons.AutoMirrored.Filled.ShowChart,
+            icon = Iconsax.Graph,
             headline = "Not enough data yet",
             description = "Your spending insights will appear here after your first week of tracking",
             actionLabel = "Scan SMS",

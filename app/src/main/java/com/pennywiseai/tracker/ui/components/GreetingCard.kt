@@ -35,9 +35,12 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
@@ -46,10 +49,13 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 
+/** Raw inputs for the greeting subtitle, memoized separately from string resolution. */
+private data class GreetingSubtitleInfo(val daysLeft: Long, val monthName: String, val hour: Int)
+
 @Composable
 fun GreetingCard(
     modifier: Modifier = Modifier,
-    userName: String = "User",
+    userName: String = stringResource(R.string.default_user_name),
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
@@ -66,7 +72,11 @@ fun GreetingCard(
     cycleEnd: LocalDate? = null
 ) {
     val today = LocalDate.now()
-    val subtitle = remember(today, cycleEnd) {
+    // Raw values only — stringResource()/pluralStringResource() are @Composable and
+    // can't be called from remember{}'s calculation lambda, so resolution happens
+    // below, outside remember, while the underlying values stay memoized on
+    // (today, cycleEnd) exactly as before.
+    val greetingInfo = remember(today, cycleEnd) {
         val now = today
         // Prefer the cycle's end over the calendar month's end so the
         // "X days left" hint lines up with the budget / spending windows.
@@ -74,19 +84,21 @@ fun GreetingCard(
         val daysLeft = ChronoUnit.DAYS.between(now, lastDay)
         val rawMonth = now.month.name.lowercase()
         val monthName = if (rawMonth.isEmpty()) rawMonth else rawMonth.substring(0, 1).uppercase() + rawMonth.substring(1)
-
-        when {
-            daysLeft == 0L -> "Last day of $monthName"
-            daysLeft <= 7 -> "$daysLeft days left in $monthName"
-            else -> {
-                val hour = LocalTime.now().hour
-                when (hour) {
-                    in 5..11 -> "Good morning"
-                    in 12..16 -> "Good afternoon"
-                    in 17..21 -> "Good evening"
-                    else -> "Good night"
-                }
-            }
+        GreetingSubtitleInfo(daysLeft = daysLeft, monthName = monthName, hour = LocalTime.now().hour)
+    }
+    val subtitle = when {
+        greetingInfo.daysLeft == 0L -> stringResource(R.string.month_status_last_day, greetingInfo.monthName)
+        greetingInfo.daysLeft <= 7 -> pluralStringResource(
+            R.plurals.month_status_days_left_format,
+            greetingInfo.daysLeft.toInt(),
+            greetingInfo.daysLeft.toInt(),
+            greetingInfo.monthName
+        )
+        else -> when (greetingInfo.hour) {
+            in 5..11 -> stringResource(R.string.greeting_morning)
+            in 12..16 -> stringResource(R.string.greeting_afternoon)
+            in 17..21 -> stringResource(R.string.greeting_evening)
+            else -> stringResource(R.string.greeting_night)
         }
     }
 
@@ -177,7 +189,7 @@ fun GreetingCard(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = userName.ifBlank { "User" },
+                text = userName.ifBlank { stringResource(R.string.default_user_name) },
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
@@ -202,7 +214,7 @@ fun GreetingCard(
                 ) {
                     Icon(
                         imageVector = profileFilterIcon(profiles, selectedProfileId),
-                        contentDescription = "Profile filter",
+                        contentDescription = stringResource(R.string.greeting_card_profile_filter),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -223,7 +235,7 @@ fun GreetingCard(
         ) {
             Icon(
                 imageVector = Icons.Default.MoreHoriz,
-                contentDescription = "More options",
+                contentDescription = stringResource(R.string.more_options_desc),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

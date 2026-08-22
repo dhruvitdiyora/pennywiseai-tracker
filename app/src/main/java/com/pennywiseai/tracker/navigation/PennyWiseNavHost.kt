@@ -304,14 +304,20 @@ fun PennyWiseNavHost(
             popEnterTransition = { fadeIn(tween(300)) },
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
         ) {
-            com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
-                onNavigateBack = { navController.safePopBackStack() },
-                onTransactionClick = { id ->
-                    navController.navigate(TransactionDetail(id)) {
-                        launchSingleTop = true
+            // Without this provider the destination has no AnimatedVisibilityScope,
+            // so `sharedElementIcon` finds nothing and the transition silently does
+            // not run — no crash, no warning, just a hard cut. Only Home and
+            // TransactionDetail had it before (doc 24 part 2).
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
+                com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onTransactionClick = { id ->
+                        navController.navigate(TransactionDetail(id)) {
+                            launchSingleTop = true
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         composable<BudgetGroups>(

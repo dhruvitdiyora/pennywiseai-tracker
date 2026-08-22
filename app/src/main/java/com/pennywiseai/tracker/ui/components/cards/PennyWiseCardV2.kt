@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -14,6 +15,7 @@ import androidx.compose.material3.CardElevation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 
@@ -62,6 +64,16 @@ fun PennyWiseCardV2(
     contentPadding: Dp = Dimensions.Padding.card,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // Touch feedback lives here rather than at each call site: this and
+    // [ListItemCardV2] (which delegates to it) own the tap surface for nearly
+    // every card and list row in the app, so one place covers all of them and
+    // they cannot drift apart again (ui-revamp doc 24).
+    //
+    // `performHapticFeedback` already honours Settings → Sound → Touch
+    // vibration and no-ops when it is off, so there is nothing to check and no
+    // app-level toggle to add. Never pass FLAG_IGNORE_GLOBAL_SETTING.
+    val view = LocalView.current
+
     val effectiveBorder = border ?: if (isSystemInDarkTheme()) {
         BorderStroke(
             width = Dimensions.Component.hairline,
@@ -83,8 +95,14 @@ fun PennyWiseCardV2(
             }
             Card(
                 modifier = modifier.combinedClickable(
-                    onClick = tap,
-                    onLongClick = onLongClick
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        tap()
+                    },
+                    onLongClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onLongClick()
+                    }
                 ),
                 colors = colors,
                 shape = shape,
@@ -97,7 +115,10 @@ fun PennyWiseCardV2(
         onClick != null -> {
             Card(
                 modifier = modifier,
-                onClick = onClick,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    onClick()
+                },
                 colors = colors,
                 shape = shape,
                 elevation = elevation,

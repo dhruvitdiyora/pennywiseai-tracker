@@ -36,6 +36,9 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
+import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
+import com.pennywiseai.tracker.ui.icons.iconsax.Magicpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -341,7 +344,7 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
             )
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = Iconsax.ArrowLeft02,
                 contentDescription = "Back",
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
@@ -369,7 +372,7 @@ private fun ThemeModeSelector(
         )
 
         val options = listOf(
-            ModeOption("System", Icons.Default.AutoAwesome, null, 16, 4, 16, 4),
+            ModeOption("System", Iconsax.Magicpen, null, 16, 4, 16, 4),
             ModeOption("Light", Icons.Default.LightMode, false, 4, 4, 4, 4),
             ModeOption("Dark", Icons.Default.DarkMode, true, 4, 16, 4, 16)
         )

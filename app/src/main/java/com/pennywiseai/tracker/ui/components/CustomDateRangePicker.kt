@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,12 +50,12 @@ fun CustomDateRangePickerDialog(
                 enabled = dateRangePickerState.selectedStartDateMillis != null &&
                          dateRangePickerState.selectedEndDateMillis != null
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         },
         modifier = modifier
@@ -63,7 +65,7 @@ fun CustomDateRangePickerDialog(
             modifier = Modifier,
             title = {
                 Text(
-                    text = "Select Date Range",
+                    text = stringResource(R.string.select_date_range),
                     modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
                 )
             },

@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -78,9 +80,9 @@ fun ShareCard(
         // someone who has never heard of PennyWise, and the only line explaining what was
         // tracked is the smallest text on the image. The zero stays: the effort that
         // wasn't spent is the surprising half, and it still reads at thumbnail size.
-        ShareHero.TRANSACTIONS -> "bank texts tracked. 0 typed."
+        ShareHero.TRANSACTIONS -> stringResource(R.string.share_card_caption_transactions)
         ShareHero.SUBSCRIPTIONS ->
-            if (value == 1) "subscription I forgot" else "subscriptions I forgot"
+            pluralStringResource(R.plurals.share_card_caption_subscriptions, value)
     }
 
     Column(
@@ -112,7 +114,7 @@ fun ShareCard(
                 )
                 Spacer(Modifier.width(9.dp))
                 Text(
-                    text = "PENNYWISE",
+                    text = stringResource(R.string.share_card_wordmark),
                     style = TextStyle(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -169,7 +171,7 @@ fun ShareCard(
         Spacer(Modifier.height(18.dp))
 
         Text(
-            text = "Read from my bank SMS. Nothing left my phone.",
+            text = stringResource(R.string.share_card_privacy_tagline),
             style = TextStyle(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,

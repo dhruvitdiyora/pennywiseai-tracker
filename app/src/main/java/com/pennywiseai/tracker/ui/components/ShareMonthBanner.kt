@@ -19,7 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.LocalDate
@@ -73,18 +75,18 @@ fun ShareMonthBanner(
                     .padding(horizontal = Spacing.md),
             ) {
                 Text(
-                    text = "$month, summed up",
+                    text = stringResource(R.string.share_month_banner_title, month),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "See what PennyWise tracked for you",
+                    text = stringResource(R.string.share_month_banner_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(R.string.dismiss),
                     modifier = Modifier.size(Dimensions.Icon.small),
                 )
             }

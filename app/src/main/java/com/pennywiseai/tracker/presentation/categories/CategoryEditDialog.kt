@@ -22,13 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.isLightColor
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-
-private fun isLightColor(color: Color): Boolean {
-    val luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue)
-    return luminance > 0.5
-}
 
 // Preset colors for categories
 private val presetColors = listOf(

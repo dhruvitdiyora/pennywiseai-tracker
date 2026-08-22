@@ -273,6 +273,16 @@ object IconProvider {
 sealed class IconResource {
     data class DrawableResource(val resId: Int) : IconResource()
     data class VectorIcon(val icon: ImageVector, val tint: Color) : IconResource()
+
+    /**
+     * A category icon from the `type_*` drawable library (see `IconCatalog`), meant
+     * to render tinted with the category's color -- unlike [DrawableResource], which
+     * is a brand logo rendered at its own colours.
+     *
+     * Actually applying [tint] is doc 18's job; for now this renders identically to
+     * [DrawableResource] (`tint = Color.Unspecified`) -- see `ui/components/BrandIcon.kt`.
+     */
+    data class TintedResIcon(val resId: Int, val tint: Color) : IconResource()
 }
 
 /**

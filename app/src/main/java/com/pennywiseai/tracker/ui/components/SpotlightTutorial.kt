@@ -19,8 +19,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -130,7 +132,7 @@ fun SpotlightTutorial(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Tap anywhere to dismiss",
+                        text = stringResource(R.string.spotlight_tutorial_dismiss_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Black.copy(alpha = 0.6f)
                     )

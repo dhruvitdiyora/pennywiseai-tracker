@@ -32,6 +32,18 @@ import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
+import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
+import com.pennywiseai.tracker.ui.icons.iconsax.Calendar
+import com.pennywiseai.tracker.ui.icons.iconsax.Card
+import com.pennywiseai.tracker.ui.icons.iconsax.Danger
+import com.pennywiseai.tracker.ui.icons.iconsax.Edit2
+import com.pennywiseai.tracker.ui.icons.iconsax.Eye
+import com.pennywiseai.tracker.ui.icons.iconsax.EyeSlash
+import com.pennywiseai.tracker.ui.icons.iconsax.History
+import com.pennywiseai.tracker.ui.icons.iconsax.NotificationBing
+import com.pennywiseai.tracker.ui.icons.iconsax.Padlock
+import com.pennywiseai.tracker.ui.icons.iconsax.Wallet3
 import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,7 +94,7 @@ fun ManageAccountsScreen(
                 hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Iconsax.ArrowLeft02, contentDescription = "Back")
                     }
                 },
                 actionContent = {
@@ -120,7 +132,7 @@ fun ManageAccountsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 PennyWiseEmptyState(
-                    icon = Icons.Default.AccountBalance,
+                    icon = Iconsax.Wallet3,
                     headline = "No Accounts",
                     description = "Add your first bank account to start tracking."
                 )
@@ -197,7 +209,7 @@ fun ManageAccountsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Error,
+                                    Iconsax.Danger,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -359,7 +371,7 @@ fun ManageAccountsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                 ) {
                                     Icon(
-                                        Icons.Default.VisibilityOff,
+                                        Iconsax.EyeSlash,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -652,7 +664,7 @@ private fun CreditCardItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CreditCard,
+                        imageVector = Iconsax.Card,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -671,7 +683,7 @@ private fun CreditCardItem(
                             )
                             if (isHidden) {
                                 Icon(
-                                    Icons.Default.VisibilityOff,
+                                    Iconsax.EyeSlash,
                                     contentDescription = "Hidden",
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -776,7 +788,7 @@ private fun CreditCardItem(
                     onClick = if (isManualAccount) onEditAccount else onUpdateBalance
                 ) {
                     Icon(
-                        Icons.Default.Edit,
+                        Iconsax.Edit2,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
@@ -804,7 +816,7 @@ private fun CreditCardItem(
                             },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.History,
+                                    Iconsax.History,
                                     contentDescription = null
                                 )
                             }
@@ -817,7 +829,7 @@ private fun CreditCardItem(
                             },
                             leadingIcon = {
                                 Icon(
-                                    if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    if (isHidden) Iconsax.Eye else Iconsax.EyeSlash,
                                     contentDescription = null
                                 )
                             }
@@ -835,7 +847,7 @@ private fun CreditCardItem(
                             },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.CalendarMonth,
+                                    Iconsax.Calendar,
                                     contentDescription = null
                                 )
                             }
@@ -1178,7 +1190,7 @@ private fun AccountItem(
                     onClick = if (isManualAccount) onEditAccount else onUpdateBalance
                 ) {
                     Icon(
-                        Icons.Default.Edit,
+                        Iconsax.Edit2,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
@@ -1206,7 +1218,7 @@ private fun AccountItem(
                             },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.History,
+                                    Iconsax.History,
                                     contentDescription = null
                                 )
                             }
@@ -1219,7 +1231,7 @@ private fun AccountItem(
                             },
                             leadingIcon = {
                                 Icon(
-                                    if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    if (isHidden) Iconsax.Eye else Iconsax.EyeSlash,
                                     contentDescription = null
                                 )
                             }
@@ -1264,7 +1276,7 @@ private fun AccountItem(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.NotificationsActive,
+                                        Iconsax.NotificationBing,
                                         contentDescription = null
                                     )
                                 }
@@ -1756,7 +1768,7 @@ private fun OrphanedCardItem(
                     onClick = { showEditDialog = true }
                 ) {
                     Icon(
-                        Icons.Default.Edit,
+                        Iconsax.Edit2,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
@@ -2002,7 +2014,7 @@ private fun DeleteAccountConfirmDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                Icons.Default.Warning,
+                Iconsax.Danger,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error
             )

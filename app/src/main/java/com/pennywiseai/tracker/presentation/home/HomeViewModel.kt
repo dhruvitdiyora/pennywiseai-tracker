@@ -668,7 +668,6 @@ class HomeViewModel @Inject constructor(
 
                     _uiState.value = _uiState.value.copy(
                         spendingHistory = cumulativeList,
-                        balanceHistory = cumulativeList,
                         lastMonthSpendingHistory = lastMonthCumulative
                     )
                     calculateMonthlyChange()
@@ -1613,7 +1612,6 @@ data class HomeUiState(
     val availableCurrencies: List<String> = emptyList(),
     val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val spendingHistory: List<BigDecimal> = emptyList(),
-    val balanceHistory: List<BigDecimal> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
     val showBreakdownDialog: Boolean = false,

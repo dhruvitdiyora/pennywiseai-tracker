@@ -38,6 +38,17 @@ import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
+import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
+import com.pennywiseai.tracker.ui.icons.iconsax.Card
+import com.pennywiseai.tracker.ui.icons.iconsax.Graph
+import com.pennywiseai.tracker.ui.icons.iconsax.ReceiptItem
+import com.pennywiseai.tracker.ui.icons.iconsax.Wallet3
+import com.pennywiseai.tracker.ui.icons.iconsax.WalletMoney
+import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
+import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
+import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -71,7 +82,7 @@ fun AccountDetailScreen(
                 hasActionButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Iconsax.ArrowLeft02, contentDescription = "Back")
                     }
                 },
                 hazeState = hazeState
@@ -150,7 +161,7 @@ fun AccountDetailScreen(
             if (uiState.transactions.isEmpty() && !uiState.isLoading) {
                 item {
                     PennyWiseEmptyState(
-                        icon = Icons.Outlined.Receipt,
+                        icon = Iconsax.ReceiptItem,
                         headline = "No transactions",
                         description = "Transactions for this account will appear here"
                     )
@@ -213,7 +224,7 @@ private fun ExpandableBalanceChart(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                            imageVector = Iconsax.Graph,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
@@ -281,6 +292,30 @@ private fun CurrentBalanceCard(
                 .padding(Dimensions.Padding.content),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // The landing point for the carousel card's icon. This screen had no
+            // brand icon of its own, so there was nothing for the shared element
+            // to become — the transition needs an element that genuinely exists
+            // on BOTH screens, not a plausible-looking substitute.
+            val sharedTransitionScope = LocalSharedTransitionScope.current
+            val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
+            val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                with(sharedTransitionScope) {
+                    sharedElementIcon(
+                        key = "account_icon_${bankName}_${accountLast4}",
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                }
+            } else {
+                Modifier
+            }
+            BrandIcon(
+                merchantName = bankName,
+                modifier = iconModifier,
+                size = 48.dp,
+                showBackground = true
+            )
+            Spacer(modifier = Modifier.height(Spacing.smd))
+
             if (isCreditCard) {
                 // Credit card layout
                 Text(
@@ -361,7 +396,7 @@ private fun CurrentBalanceCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = if (isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
+                    imageVector = if (isCreditCard) Iconsax.Card else Iconsax.Wallet3,
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.small),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -419,7 +454,7 @@ private fun SummaryStatistics(
                 StatisticItem(
                     label = "Net",
                     value = formatWithEstimatedDisplay(netBalance, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.Default.AccountBalanceWallet,
+                    icon = Iconsax.WalletMoney,
                     color = if (netBalance >= BigDecimal.ZERO) {
                         if (!isSystemInDarkTheme()) income_light else income_dark
                     } else {
@@ -591,7 +626,7 @@ private fun AccountTransactionItem(
                 // Transaction type indicator
                 when (transaction.transactionType) {
                     TransactionType.CREDIT -> Icon(
-                        Icons.Default.CreditCard,
+                        Iconsax.Card,
                         contentDescription = "Credit",
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor
@@ -603,7 +638,7 @@ private fun AccountTransactionItem(
                         tint = amountColor
                     )
                     TransactionType.INVESTMENT -> Icon(
-                        Icons.AutoMirrored.Filled.ShowChart,
+                        Iconsax.Graph,
                         contentDescription = "Investment",
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor

@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -135,8 +136,8 @@ fun HomeScreen(
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
     onLoanClick: (Long) -> Unit = {},
-    onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
+    onNavigateToAddScreen: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
@@ -398,6 +399,17 @@ fun HomeScreen(
             )
         }
 
+        // Measured height of the floating button stack, so the list can be
+        // padded to clear it instead of guessing at it.
+        //
+        // A constant was always going to be wrong for somebody: the stack is
+        // two buttons plus, for users with no transactions yet, a "Hold for
+        // full resync" caption underneath. The old numbers were 192dp of
+        // padding against a stack whose top edge sits ~204dp up — so the last
+        // row stayed under the buttons even at full scroll.
+        val density = LocalDensity.current
+        var fabStackHeight by remember { mutableStateOf(0.dp) }
+
         // LazyColumn scrolls over the banner
         LazyColumn(
             state = lazyListState,
@@ -408,9 +420,13 @@ fun HomeScreen(
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                // Clears the nav bar plus the Add + Sync FAB stack above it.
-                bottom = Dimensions.Component.bottomBarHeight +
-                    Dimensions.Component.fabScrollClearance
+                // Whichever obstruction is taller — the nav bar, or the FAB
+                // stack sitting `fabBottomInset` above the bottom edge — plus
+                // a gap so the last row clears it rather than touching it.
+                bottom = maxOf(
+                    Dimensions.Component.bottomBarHeight,
+                    Dimensions.Component.fabBottomInset + fabStackHeight
+                ) + Spacing.md
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -445,7 +461,6 @@ fun HomeScreen(
                             currentMonthExpenses = uiState.currentMonthExpenses,
                             currentMonthLent = uiState.currentMonthLent,
                             currentMonthTotal = uiState.currentMonthTotal,
-                            balanceHistory = uiState.balanceHistory,
                             spendingHistory = uiState.spendingHistory,
                             lastMonthSpendingHistory = uiState.lastMonthSpendingHistory,
                             lastMonthSpending = uiState.lastMonthExpenses,
@@ -454,15 +469,9 @@ fun HomeScreen(
                             isApproximate = uiState.isApproximateBalance,
                             isBalanceHidden = uiState.isBalanceHidden,
                             onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                            onCurrencyClick = {
-                                // Cycle through currencies when tapped
-                                val currencies = uiState.availableCurrencies
-                                if (currencies.size > 1) {
-                                    val currentIdx = currencies.indexOf(uiState.selectedCurrency)
-                                    val nextIdx = (currentIdx + 1) % currencies.size
-                                    viewModel.selectCurrency(currencies[nextIdx])
-                                }
-                            },
+                            // Cycling vs. menu is decided inside the chip by how
+                            // many currencies there are (CurrencyPickerMenu).
+                            onCurrencySelected = { viewModel.selectCurrency(it) },
                             onShowBreakdown = { viewModel.showBreakdownDialog() },
                             accountBalances = uiState.accountBalances,
                             creditCards = uiState.creditCards,
@@ -778,7 +787,6 @@ fun HomeScreen(
                                         transaction = item.transaction,
                                         convertedAmount = item.convertedAmount,
                                         displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                        showTypeLabel = false,
                                         profileAccountKeys = profileAccountKeys,
                                         onClick = { onTransactionClick(item.transaction.id) }
                                     )
@@ -953,13 +961,23 @@ fun HomeScreen(
                 .padding(
                     end = Dimensions.Padding.content,
                     bottom = Dimensions.Component.fabBottomInset
-                ),
+                )
+                // Reported size is the stack's own content, excluding the
+                // padding above (the padding modifier wraps this node), so the
+                // list adds `fabBottomInset` back itself.
+                .onGloballyPositioned { coords ->
+                    val measured = with(density) { coords.size.height.toDp() }
+                    if (measured != fabStackHeight) fabStackHeight = measured
+                },
             verticalArrangement = Arrangement.spacedBy(Spacing.smd),
             horizontalAlignment = Alignment.End
         ) {
             // Add FAB (top, small)
             SmallFloatingActionButton(
-                onClick = onNavigateToAddScreen,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    onNavigateToAddScreen()
+                },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             ) {
@@ -981,7 +999,10 @@ fun HomeScreen(
                         .size(Dimensions.Component.fab)
                         .pointerInput(Unit) {
                             detectTapGestures(
-                                onTap = { viewModel.scanSmsMessages() },
+                                onTap = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    viewModel.scanSmsMessages()
+                                },
                                 onLongPress = {
                                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                     showFullResyncDialog = true

@@ -25,8 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -68,14 +70,14 @@ fun BudgetCarousel(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Set a budget to track your spending",
+                        stringResource(R.string.budget_carousel_empty_prompt),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(Spacing.xs))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "Create Budget",
+                            stringResource(R.string.create_budget),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )

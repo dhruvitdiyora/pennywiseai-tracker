@@ -105,6 +105,12 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Generates the en-XA / ar-XB pseudolocales. Switching the device to
+            // en-XA renders every *extracted* string accented and ~30% longer, so
+            // anything still in plain English was missed and anything that clips
+            // will clip in German or Tamil too. Debug only — see
+            // docs/ui-revamp/03-strings.md.
+            isPseudoLocalesEnabled = true
         }
         release {
             isMinifyEnabled = true

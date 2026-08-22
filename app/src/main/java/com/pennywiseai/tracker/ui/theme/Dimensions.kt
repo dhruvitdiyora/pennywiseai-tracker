@@ -163,13 +163,6 @@ object Dimensions {
 
         /** How far a FAB stack sits above the bottom edge, clearing the nav bar. */
         val fabBottomInset = 96.dp
-
-        /**
-         * Extra bottom padding a scrolling list needs so its last row can be
-         * scrolled clear of a FAB stack. Add to [bottomBarHeight] on screens
-         * that also have a bottom nav bar.
-         */
-        val fabScrollClearance = 112.dp
     }
 
     // ── Motion ────────────────────────────────────────────────────────────

@@ -14,9 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -38,7 +36,6 @@ fun GroupCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val view = LocalView.current
     val isDark = isSystemInDarkTheme()
 
     val total = remember(transactions, convertedAmounts, displayCurrency) {
@@ -74,10 +71,8 @@ fun GroupCard(
         subtitle = subtitle,
         amount = formattedAmount,
         amountColor = amountColor,
-        onClick = {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            onClick()
-        },
+        // Haptic comes from PennyWiseCardV2 (doc 24).
+        onClick = onClick,
         modifier = modifier,
         leadingContent = {
             Box(

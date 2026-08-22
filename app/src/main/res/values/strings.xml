@@ -24,4 +24,230 @@
     <string name="support_copied_toast">UPI ID copied</string>
     <string name="support_no_upi_app">No UPI app found. Copy the UPI ID instead.</string>
     <string name="support_nudge_body">Enjoying PennyWise? Support development 💛</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_chat">Chat</string>
+
+    <!-- ============================================================
+         Stage 1 (ui-revamp doc 03): ui/components/** extraction.
+         Where a string also exists in Cashiro, the name is reused
+         verbatim so a future shared-translation import lines up.
+         ============================================================ -->
+
+    <!-- Common / reused across multiple components (names match Cashiro) -->
+    <string name="all">All</string>
+    <string name="income">Income</string>
+    <string name="expense">Expense</string>
+    <string name="expenses">Expenses</string>
+    <string name="savings">Savings</string>
+    <string name="accounts">Accounts</string>
+    <string name="total">Total</string>
+    <string name="balance">Balance</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="section_credit_cards">Credit Cards</string>
+    <string name="all_accounts">All Accounts</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="close">Close</string>
+    <string name="retry">Retry</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="select_date_range">Select Date Range</string>
+    <string name="no_transactions_yet">No transactions yet</string>
+    <string name="more_options_desc">More options</string>
+    <!-- SearchBarBox (ui-revamp doc 22). `search` doubles as the field's
+         accessible name: a placeholder is not a label, it vanishes as soon as
+         there is text. -->
+    <string name="search">Search</string>
+    <string name="clear_search">Clear search</string>
+    <string name="search_transactions">Search transactions…</string>
+    <string name="search_in_format">Search in %1$s…</string>
+    <string name="more_filters">More Filters</string>
+    <string name="more_filters_active_format">More Filters (%1$d active)</string>
+    <string name="type_transfer">Transfer</string>
+    <string name="transaction_type_credit">Credit</string>
+    <string name="transaction_type_invest">Invest</string>
+    <string name="recurring">Recurring</string>
+    <string name="business">Business</string>
+    <string name="excluded">Excluded</string>
+    <string name="balance_after_format">Bal: %1$s</string>
+    <!-- Transaction-type glyph beside the amount (ui-revamp doc 21). These are
+         content descriptions only: once the text label is gone the glyph is the
+         sole carrier of type for a screen reader, so they are phrased as speech,
+         not as chip labels. -->
+    <string name="cd_transaction_type_credit">Credit card transaction</string>
+    <string name="cd_transaction_type_transfer">Transfer</string>
+    <string name="cd_transaction_type_investment">Investment</string>
+    <string name="create_budget">Create Budget</string>
+    <string name="default_user_name">User</string>
+    <string name="show_balance_desc">Show balance</string>
+    <string name="hide_balance_desc">Hide balance</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Good night</string>
+    <string name="month_status_last_day">Last day of %1$s</string>
+    <plurals name="month_status_days_left_format">
+        <item quantity="one">%1$d day left in %2$s</item>
+        <item quantity="other">%1$d days left in %2$s</item>
+    </plurals>
+
+    <!-- SMS scanning dialog (SmsParsingProgressDialog) -->
+    <string name="scanning_sms_messages_title">Scanning SMS Messages</string>
+    <string name="cancel_scan">Cancel Scan</string>
+    <string name="all_messages_processed">All messages processed!</string>
+    <string name="processed_messages_format">Processed %1$d of %2$d messages</string>
+    <plurals name="transactions_parsed_format">
+        <item quantity="one">%1$d transaction parsed</item>
+        <item quantity="other">%1$d transactions parsed</item>
+    </plurals>
+    <plurals name="saved_transactions_format">
+        <item quantity="one">%1$d saved</item>
+        <item quantity="other">%1$d saved</item>
+    </plurals>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
+    <string name="duration_seconds">%1$ds</string>
+    <string name="time_left_format">~%1$s left</string>
+    <string name="batch_progress_format">Batch %1$d of %2$d</string>
+    <string name="status_processing">Processing...</string>
+    <string name="scan_completed_success">Scan completed successfully!</string>
+    <string name="scan_failed_error">Scan failed. Please try again.</string>
+    <string name="scan_cancelled">Scan cancelled</string>
+    <string name="starting_scan">Starting scan...</string>
+    <string name="scanning_sms_format">Scanning SMS: %1$d/%2$d</string>
+
+    <!-- Balance chart -->
+    <string name="balance_chart_legend_label">Balance Trend</string>
+
+    <!-- Balance card -->
+    <string name="balance_card_change_more">%1$d%% more vs last month</string>
+    <string name="balance_card_change_less">%1$d%% less vs last month</string>
+    <string name="balance_card_balance_masked">Balance: ••••••</string>
+    <string name="balance_card_balance_amount">Balance: %1$s</string>
+    <plurals name="balance_card_accounts_count">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
+    <string name="balance_card_last_month_masked">Last month: ••••</string>
+    <string name="balance_card_last_month_amount">Last month: %1$s</string>
+    <string name="balance_card_this_month">This month</string>
+    <string name="balance_card_last_month">Last month</string>
+    <string name="balance_card_lent">Lent</string>
+    <string name="balance_card_saved">Saved</string>
+    <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
+    <string name="balance_card_spent_this_month">Spent this month</string>
+    <string name="balance_card_change_currency">Change currency</string>
+
+    <!-- Account carousel -->
+    <string name="account_carousel_low_balance">Low balance</string>
+    <string name="account_carousel_outstanding">Outstanding</string>
+
+    <!-- Budget card -->
+    <string name="budget_card_over_budget_amount">%1$s over budget</string>
+    <string name="budget_card_remaining_amount">%1$s remaining</string>
+    <string name="budget_card_finished">Finished</string>
+    <string name="budget_card_tracking_all_expenses">Tracking all expenses</string>
+    <string name="budget_card_resets_today_weekday">Resets today · %1$s renew</string>
+    <plurals name="budget_card_resets_in_days_weekday">
+        <item quantity="one">Resets in %1$d day · %2$s renew</item>
+        <item quantity="other">Resets in %1$d days · %2$s renew</item>
+    </plurals>
+    <string name="budget_card_resets_today_day">Resets today · day %1$d</string>
+    <plurals name="budget_card_resets_in_days_day">
+        <item quantity="one">Resets in %1$d day · day %2$d</item>
+        <item quantity="other">Resets in %1$d days · day %2$d</item>
+    </plurals>
+    <string name="budget_card_over_by">Over by %1$s</string>
+    <plurals name="budget_card_runs_range_days_remaining">
+        <item quantity="one">Runs %1$s · %2$d day remaining</item>
+        <item quantity="other">Runs %1$s · %2$d days remaining</item>
+    </plurals>
+    <plurals name="budget_card_days_remaining">
+        <item quantity="one">%1$d day remaining</item>
+        <item quantity="other">%1$d days remaining</item>
+    </plurals>
+    <string name="budget_card_spent_of">Spent %1$s of %2$s</string>
+    <string name="budget_card_cadence_weekly">Weekly</string>
+    <string name="budget_card_cadence_monthly">Monthly</string>
+    <string name="budget_card_cadence_onetime">One-time</string>
+
+    <!-- Budget carousel -->
+    <string name="budget_carousel_empty_prompt">Set a budget to track your spending</string>
+
+    <!-- Cash flow card -->
+    <string name="cash_flow_card_title">Money in motion</string>
+    <string name="cash_flow_card_subtitle">Channels outside your net cash flow this month</string>
+    <string name="cash_flow_card_invested">Invested</string>
+    <string name="cash_flow_card_transferred">Transferred</string>
+
+    <!-- Home group card -->
+    <plurals name="home_group_card_item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+
+    <!-- Category / tag breakdown cards -->
+    <string name="category_breakdown_title">Spending by Category</string>
+    <string name="tag_breakdown_title">Spending by Tag</string>
+
+    <!-- Greeting card -->
+    <string name="greeting_card_profile_filter">Profile filter</string>
+
+    <!-- Quick category picker -->
+    <string name="quick_category_picker_title">Change category</string>
+
+    <!-- Share card -->
+    <string name="share_card_wordmark" translatable="false">PENNYWISE</string>
+    <string name="share_card_privacy_tagline">Read from my bank SMS. Nothing left my phone.</string>
+    <string name="share_card_caption_transactions">bank texts tracked. 0 typed.</string>
+    <plurals name="share_card_caption_subscriptions">
+        <item quantity="one">subscription I forgot</item>
+        <item quantity="other">subscriptions I forgot</item>
+    </plurals>
+
+    <!-- Share month banner -->
+    <string name="share_month_banner_title">%1$s, summed up</string>
+    <string name="share_month_banner_subtitle">See what PennyWise tracked for you</string>
+
+    <!-- Split editor -->
+    <string name="split_editor_title">Split Categories</string>
+    <string name="split_editor_remove_splits">Remove Splits</string>
+    <string name="split_editor_add_split">Add Split</string>
+    <string name="split_editor_balanced">Balanced</string>
+    <string name="split_editor_not_balanced">Not balanced</string>
+    <string name="split_editor_total_label">Total:</string>
+    <string name="split_editor_amount_remaining">%1$s remaining</string>
+    <string name="split_editor_amount_over">%1$s over</string>
+    <string name="split_editor_remove_split">Remove split</string>
+    <string name="split_editor_category_breakdown">Category Breakdown</string>
+
+    <!-- Spotlight tutorial -->
+    <string name="spotlight_tutorial_dismiss_hint">Tap anywhere to dismiss</string>
+
+    <!-- Tag input field -->
+    <string name="tag_input_remove_tag">Remove %1$s</string>
+    <string name="tag_input_add_tag">Add tag</string>
+
+    <!-- Unified accounts card -->
+    <string name="unified_accounts_card_title">Accounts Overview</string>
+    <string name="unified_accounts_card_bank_balance">Bank Balance</string>
+    <string name="unified_accounts_card_bank_balance_count">Bank Balance • %1$d</string>
+    <string name="unified_accounts_card_available_credit">Available Credit</string>
+    <string name="unified_accounts_card_available_credit_count">Available Credit • %1$d</string>
+    <string name="unified_accounts_card_used_amount">Used: %1$s (%2$d%%)</string>
+    <string name="unified_accounts_card_available_limit">Available Limit</string>
+    <string name="unified_accounts_card_show_less">Show Less</string>
+    <string name="unified_accounts_card_view_all">View All %1$d Accounts</string>
+
+    <!-- What's new dialog -->
+    <string name="whats_new_got_it">Got it</string>
+
+    <!-- Expandable list -->
+    <string name="expandable_list_view_less">View Less</string>
+    <string name="expandable_list_view_all_more">View All (%1$d more)</string>
 </resources>

@@ -47,6 +47,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -351,7 +352,7 @@ private fun RegularTopAppBar(
                         }
                         Spacer(modifier = Modifier.width(Spacing.smd))
                         Text(
-                            text = userName.ifBlank { "PennyWise" },
+                            text = userName.ifBlank { stringResource(R.string.support_payee_name) },
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Start,
                         )

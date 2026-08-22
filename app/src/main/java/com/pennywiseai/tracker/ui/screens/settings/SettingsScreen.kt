@@ -23,6 +23,31 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
+import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
+import com.pennywiseai.tracker.ui.icons.iconsax.Calendar
+import com.pennywiseai.tracker.ui.icons.iconsax.Category2
+import com.pennywiseai.tracker.ui.icons.iconsax.Clock
+import com.pennywiseai.tracker.ui.icons.iconsax.CloseCircle
+import com.pennywiseai.tracker.ui.icons.iconsax.CodeCircle
+import com.pennywiseai.tracker.ui.icons.iconsax.Convertshape2
+import com.pennywiseai.tracker.ui.icons.iconsax.Danger
+import com.pennywiseai.tracker.ui.icons.iconsax.DocumentText2
+import com.pennywiseai.tracker.ui.icons.iconsax.DollarCircle
+import com.pennywiseai.tracker.ui.icons.iconsax.DriverRefresh
+import com.pennywiseai.tracker.ui.icons.iconsax.ExportArrow01
+import com.pennywiseai.tracker.ui.icons.iconsax.ExportArrow02
+import com.pennywiseai.tracker.ui.icons.iconsax.Folder2
+import com.pennywiseai.tracker.ui.icons.iconsax.ImportArrow01
+import com.pennywiseai.tracker.ui.icons.iconsax.Magicpen
+import com.pennywiseai.tracker.ui.icons.iconsax.MedalStar
+import com.pennywiseai.tracker.ui.icons.iconsax.MessageQuestion
+import com.pennywiseai.tracker.ui.icons.iconsax.Notification
+import com.pennywiseai.tracker.ui.icons.iconsax.Padlock
+import com.pennywiseai.tracker.ui.icons.iconsax.Share
+import com.pennywiseai.tracker.ui.icons.iconsax.Sync
+import com.pennywiseai.tracker.ui.icons.iconsax.Wallet3
+import com.pennywiseai.tracker.ui.icons.iconsax.WalletMoney
 import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.*
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -263,7 +288,7 @@ fun SettingsScreen(
                 SectionHeaderV2(title = "PennyWise Pro")
                 SettingsGroup {
                     SettingsNavItem(
-                        icon = Icons.Default.AutoAwesome,
+                        icon = Iconsax.MedalStar,
                         iconBgColor = yellow_light,
                         iconTint = yellow_dark,
                         title = if (isProEntitled) "PennyWise Pro" else "Upgrade to PennyWise Pro",
@@ -296,7 +321,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Currency")
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Default.CurrencyExchange,
+                    icon = Iconsax.Convertshape2,
                     iconBgColor = green_light,
                     iconTint = green_dark,
                     title = "Unified Currency Mode",
@@ -307,7 +332,7 @@ fun SettingsScreen(
                 )
                 AnimatedVisibility(visible = unifiedCurrencyMode) {
                     SettingsNavItem(
-                        icon = Icons.Default.AttachMoney,
+                        icon = Iconsax.DollarCircle,
                         iconBgColor = teal_light,
                         iconTint = teal_dark,
                         title = "Display Currency",
@@ -365,7 +390,7 @@ fun SettingsScreen(
                         "${it.bankName}_${it.accountLast4}" == mainAccountKey
                     }
                     SettingsDropdownItem(
-                        icon = Icons.Default.AccountBalanceWallet,
+                        icon = Iconsax.Wallet3,
                         iconBgColor = purple_light,
                         iconTint = purple_dark,
                         title = "Main Account",
@@ -422,7 +447,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Budget")
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.DateRange,
+                    icon = Iconsax.Calendar,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
                     title = "Budget Cycle Start Day",
@@ -467,7 +492,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Security")
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Default.Lock,
+                    icon = Iconsax.Padlock,
                     iconBgColor = red_light,
                     iconTint = red_dark,
                     title = "App Lock",
@@ -483,7 +508,7 @@ fun SettingsScreen(
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(
-                        icon = Icons.Default.Timer,
+                        icon = Iconsax.Clock,
                         iconBgColor = pink_light,
                         iconTint = pink_dark,
                         title = "Lock Timeout",
@@ -502,7 +527,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Data Management")
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.AccountBalance,
+                    icon = Iconsax.Wallet3,
                     iconBgColor = red_light,
                     iconTint = red_dark,
                     title = "Manage Accounts",
@@ -511,7 +536,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Top
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Category,
+                    icon = Iconsax.Category2,
                     iconBgColor = purple_light,
                     iconTint = purple_dark,
                     title = "Categories",
@@ -520,7 +545,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.AutoAwesome,
+                    icon = Iconsax.Magicpen,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
                     title = "Smart Rules",
@@ -529,7 +554,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.AccountBalanceWallet,
+                    icon = Iconsax.WalletMoney,
                     iconBgColor = green_light,
                     iconTint = green_dark,
                     title = "Budgets",
@@ -547,7 +572,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Folder,
+                    icon = Iconsax.Folder2,
                     iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
                     iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                     title = "Transaction Groups",
@@ -556,7 +581,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Upload,
+                    icon = Iconsax.ExportArrow02,
                     iconBgColor = blue_light,
                     iconTint = blue_dark,
                     title = "Export Data",
@@ -565,7 +590,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsSwitchRow(
-                    icon = Icons.Default.Backup,
+                    icon = Iconsax.Sync,
                     iconBgColor = purple_light,
                     iconTint = purple_dark,
                     title = "Automatic Folder Backup",
@@ -591,7 +616,7 @@ fun SettingsScreen(
                 )
                 if (scheduledFolderBackupEnabled) {
                     SettingsNavItem(
-                        icon = Icons.Default.SaveAlt,
+                        icon = Iconsax.ExportArrow02,
                         iconBgColor = green_light,
                         iconTint = green_dark,
                         title = "Back Up Now",
@@ -605,7 +630,7 @@ fun SettingsScreen(
                         position = ListItemPosition.Middle
                     )
                     SettingsNavItem(
-                        icon = Icons.Default.FolderOpen,
+                        icon = Iconsax.Folder2,
                         iconBgColor = amber_light,
                         iconTint = amber_dark,
                         title = "Change Backup Folder",
@@ -615,7 +640,7 @@ fun SettingsScreen(
                     )
                 }
                 SettingsNavItem(
-                    icon = Icons.Default.Download,
+                    icon = Iconsax.ImportArrow01,
                     iconBgColor = cyan_light,
                     iconTint = cyan_dark,
                     title = "Import Data",
@@ -624,7 +649,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Download,
+                    icon = Iconsax.ImportArrow01,
                     iconBgColor = cyan_light,
                     iconTint = cyan_dark,
                     title = "Import Transactions (CSV)",
@@ -633,7 +658,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Description,
+                    icon = Iconsax.DocumentText2,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
                     title = "Import Statement",
@@ -642,7 +667,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Sms,
+                    icon = Iconsax.Danger,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
                     title = "Unrecognized SMS",
@@ -651,7 +676,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.CalendarMonth,
+                    icon = Iconsax.Calendar,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
                     title = "SMS Scan Period",
@@ -681,7 +706,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Notifications")
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.Notifications,
+                    icon = Iconsax.Notification,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
                     title = "Bank Notification Access",
@@ -713,7 +738,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Developer")
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Default.Code,
+                    icon = Iconsax.CodeCircle,
                     iconBgColor = grey_light,
                     iconTint = grey_dark,
                     title = "Developer Mode",
@@ -728,7 +753,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Support & Community")
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.AutoMirrored.Filled.Help,
+                    icon = Iconsax.MessageQuestion,
                     iconBgColor = pink_light,
                     iconTint = pink_dark,
                     title = "Help & FAQ",
@@ -747,7 +772,7 @@ fun SettingsScreen(
                         context.startActivity(intent)
                     },
                     position = ListItemPosition.Bottom,
-                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                    trailingIcon = Iconsax.ExportArrow01
                 )
             }
 
@@ -1115,7 +1140,7 @@ fun SettingsScreen(
                             settingsViewModel.clearImportExportMessage()
                         }
                     ) {
-                        Icon(Icons.Default.SaveAlt, contentDescription = null)
+                        Icon(Iconsax.ExportArrow02, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Save to Files")
                     }
@@ -1127,7 +1152,7 @@ fun SettingsScreen(
                             settingsViewModel.clearImportExportMessage()
                         }
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null)
+                        Icon(Iconsax.Share, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Share")
                     }
@@ -1372,7 +1397,7 @@ private fun AiChatSettingsItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconTile(
-                icon = Icons.Default.AutoAwesome,
+                icon = Iconsax.Magicpen,
                 containerColor = yellow_light,
                 contentColor = yellow_dark
             )
@@ -1391,7 +1416,7 @@ private fun AiChatSettingsItem(
             when (downloadState) {
                 DownloadState.NOT_DOWNLOADED -> {
                     Button(onClick = onDownload) {
-                        Icon(Icons.Default.Download, contentDescription = null)
+                        Icon(Iconsax.ImportArrow01, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Download")
                     }
@@ -1406,7 +1431,7 @@ private fun AiChatSettingsItem(
                 }
                 DownloadState.PAUSED -> {
                     Button(onClick = onDownload) {
-                        Icon(Icons.Default.Download, contentDescription = null)
+                        Icon(Iconsax.ImportArrow01, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Retry")
                     }
@@ -1434,14 +1459,14 @@ private fun AiChatSettingsItem(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Icon(Iconsax.DriverRefresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Retry")
                     }
                 }
                 DownloadState.ERROR_INSUFFICIENT_SPACE -> {
                     Icon(
-                        Icons.Default.Error,
+                        Iconsax.Danger,
                         contentDescription = "Error",
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1476,7 +1501,7 @@ private fun AiChatSettingsItem(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Icon(Icons.Default.Cancel, contentDescription = null)
+                    Icon(Iconsax.CloseCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text("Cancel Download")
                 }
@@ -1518,7 +1543,7 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             )
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = Iconsax.ArrowLeft02,
                 contentDescription = "Back",
                 modifier = Modifier.size(Dimensions.Icon.inline)
             )

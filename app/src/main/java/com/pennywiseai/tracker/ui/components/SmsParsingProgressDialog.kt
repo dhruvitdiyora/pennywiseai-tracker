@@ -13,11 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -52,7 +55,7 @@ fun SmsParsingProgressDialog(
                 ) {
                     // Title
                     Text(
-                        text = "Scanning SMS Messages",
+                        text = stringResource(R.string.scanning_sms_messages_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -87,14 +90,14 @@ fun SmsParsingProgressDialog(
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
                             Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text("Cancel Scan")
+                            Text(stringResource(R.string.cancel_scan))
                         }
                     } else if (workInfo.state == WorkInfo.State.SUCCEEDED) {
                         TextButton(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Done")
+                            Text(stringResource(R.string.done))
                         }
                     } else if (workInfo.state == WorkInfo.State.FAILED) {
                         TextButton(
@@ -104,7 +107,7 @@ fun SmsParsingProgressDialog(
                                 contentColor = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("Close")
+                            Text(stringResource(R.string.close))
                         }
                     }
                 }
@@ -131,9 +134,9 @@ private fun ProgressDetails(workInfo: WorkInfo) {
         // Main progress text
         if (totalMessages > 0) {
             val progressText = if (processedMessages == totalMessages) {
-                "All messages processed!"
+                stringResource(R.string.all_messages_processed)
             } else {
-                "Processed $processedMessages of $totalMessages messages"
+                stringResource(R.string.processed_messages_format, processedMessages, totalMessages)
             }
 
             Text(
@@ -146,18 +149,24 @@ private fun ProgressDetails(workInfo: WorkInfo) {
 
         // Transaction details
         if (parsedTransactions > 0 || savedTransactions > 0) {
+            val parsedText = if (parsedTransactions > 0) {
+                pluralStringResource(R.plurals.transactions_parsed_format, parsedTransactions, parsedTransactions)
+            } else null
+            val savedText = if (savedTransactions > 0) {
+                pluralStringResource(R.plurals.saved_transactions_format, savedTransactions, savedTransactions)
+            } else null
             val detailsText = buildAnnotatedString {
-                if (parsedTransactions > 0) {
+                if (parsedText != null) {
                     withStyle(style = SpanStyle(fontWeight = FontWeight.Medium)) {
-                        append("$parsedTransactions transactions parsed")
+                        append(parsedText)
                     }
                 }
                 if (parsedTransactions > 0 && savedTransactions > 0) {
                     append(" • ")
                 }
-                if (savedTransactions > 0) {
+                if (savedText != null) {
                     withStyle(style = SpanStyle(fontWeight = FontWeight.Medium)) {
-                        append("$savedTransactions saved")
+                        append(savedText)
                     }
                 }
             }
@@ -186,7 +195,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                 // Estimated time remaining
                 if (estimatedTimeRemaining > 0 && workInfo.state == WorkInfo.State.RUNNING) {
                     Text(
-                        text = "~${formatDuration(estimatedTimeRemaining)} left",
+                        text = stringResource(R.string.time_left_format, formatDuration(estimatedTimeRemaining)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -197,7 +206,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
         // Batch information (for parallel processing)
         if (totalBatches > 1 && workInfo.state == WorkInfo.State.RUNNING) {
             Text(
-                text = "Batch $currentBatch of $totalBatches",
+                text = stringResource(R.string.batch_progress_format, currentBatch, totalBatches),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -215,7 +224,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         strokeWidth = 2.dp
                     )
                     Text(
-                        text = "Processing...",
+                        text = stringResource(R.string.status_processing),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -233,7 +242,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
-                        text = "Scan completed successfully!",
+                        text = stringResource(R.string.scan_completed_success),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -251,7 +260,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
-                        text = "Scan failed. Please try again.",
+                        text = stringResource(R.string.scan_failed_error),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -269,7 +278,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
-                        text = "Scan cancelled",
+                        text = stringResource(R.string.scan_cancelled),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -286,7 +295,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                         strokeWidth = 2.dp
                     )
                     Text(
-                        text = "Starting scan...",
+                        text = stringResource(R.string.starting_scan),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -296,15 +305,16 @@ private fun ProgressDetails(workInfo: WorkInfo) {
     }
 }
 
+@Composable
 private fun formatDuration(milliseconds: Long): String {
     val seconds = milliseconds / 1000
     val minutes = seconds / 60
     val hours = minutes / 60
 
     return when {
-        hours > 0 -> "${hours}h ${minutes % 60}m"
-        minutes > 0 -> "${minutes}m ${seconds % 60}s"
-        else -> "${seconds}s"
+        hours > 0 -> stringResource(R.string.duration_hours_minutes, hours, minutes % 60)
+        minutes > 0 -> stringResource(R.string.duration_minutes_seconds, minutes, seconds % 60)
+        else -> stringResource(R.string.duration_seconds, seconds)
     }
 }
 
@@ -332,7 +342,7 @@ fun SmsParsingProgressIndicator(
                 )
 
                 Text(
-                    text = "Scanning SMS: $processedMessages/$totalMessages",
+                    text = stringResource(R.string.scanning_sms_format, processedMessages, totalMessages),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

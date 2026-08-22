@@ -16,8 +16,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -53,9 +55,9 @@ fun CollapsibleFilterRow(
             
             Text(
                 text = if (activeFilterCount > 0) {
-                    "More Filters ($activeFilterCount active)"
+                    stringResource(R.string.more_filters_active_format, activeFilterCount)
                 } else {
-                    "More Filters"
+                    stringResource(R.string.more_filters)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (activeFilterCount > 0) {
@@ -69,7 +71,7 @@ fun CollapsibleFilterRow(
             
             Icon(
                 imageVector = Icons.Default.ExpandMore,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                 modifier = Modifier
                     .size(Dimensions.Icon.medium)
                     .rotate(rotationAngle),

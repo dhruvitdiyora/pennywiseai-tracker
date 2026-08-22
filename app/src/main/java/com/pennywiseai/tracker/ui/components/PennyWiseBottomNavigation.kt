@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -74,6 +77,7 @@ fun PennyWiseBottomNavigation(
         BottomNavItem.Chat
     )
     val containerColor = MaterialTheme.colorScheme.surface
+    val view = LocalView.current
 
     Box(modifier = modifier) {
         // NORMAL style NavigationBar
@@ -118,6 +122,7 @@ fun PennyWiseBottomNavigation(
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 navController.navigate(item.route) {
                                     popUpTo(navController.graph.startDestinationId) {
                                         saveState = true
@@ -129,7 +134,7 @@ fun PennyWiseBottomNavigation(
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
-                                    contentDescription = item.title,
+                                    contentDescription = stringResource(item.titleRes),
                                     tint = if (selected) {
                                         if (hidePill) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onPrimaryContainer
@@ -146,7 +151,7 @@ fun PennyWiseBottomNavigation(
                             label = if (hideLabels) null else {
                                 {
                                     Text(
-                                        text = item.title,
+                                        text = stringResource(item.titleRes),
                                         color = if (selected) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.labelMedium
@@ -224,6 +229,7 @@ fun PennyWiseBottomNavigation(
                         TonalToggleButton(
                             checked = selected,
                             onCheckedChange = {
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 navController.navigate(item.route) {
                                     popUpTo(navController.graph.startDestinationId) {
                                         saveState = true
@@ -246,14 +252,14 @@ fun PennyWiseBottomNavigation(
                             ),
                             modifier = Modifier.padding(horizontal = Spacing.xs)
                         ) {
-                            Icon(imageVector = item.icon, contentDescription = item.title)
+                            Icon(imageVector = item.icon, contentDescription = stringResource(item.titleRes))
                             AnimatedVisibility(
                                 visible = selected,
                                 enter = fadeIn() + expandHorizontally(MaterialTheme.motionScheme.fastSpatialSpec()),
                                 exit = fadeOut() + shrinkHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())
                             ) {
                                 Text(
-                                    text = item.title,
+                                    text = stringResource(item.titleRes),
                                     modifier = Modifier.padding(start = Spacing.sm)
                                 )
                             }

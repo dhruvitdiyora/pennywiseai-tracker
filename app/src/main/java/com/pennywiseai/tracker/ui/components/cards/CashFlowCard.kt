@@ -21,8 +21,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.credit
 import com.pennywiseai.tracker.ui.theme.investment
@@ -56,11 +58,16 @@ fun CashFlowCard(
     onToggleBalanceVisibility: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val channels = remember(creditCardSpend, investments, transfers) {
+    // Resolved outside remember{}: its calculation lambda disallows composable
+    // calls, so stringResource can't run inside it (see doc trap #1/#3).
+    val creditLabel = stringResource(R.string.transaction_type_credit)
+    val investedLabel = stringResource(R.string.cash_flow_card_invested)
+    val transferredLabel = stringResource(R.string.cash_flow_card_transferred)
+    val channels = remember(creditCardSpend, investments, transfers, creditLabel, investedLabel, transferredLabel) {
         listOf(
-            ChannelSlot("Credit", creditCardSpend),
-            ChannelSlot("Invested", investments),
-            ChannelSlot("Transferred", transfers)
+            ChannelSlot(ChannelType.CREDIT, creditLabel, creditCardSpend),
+            ChannelSlot(ChannelType.INVESTED, investedLabel, investments),
+            ChannelSlot(ChannelType.TRANSFERRED, transferredLabel, transfers)
         ).filter { it.amount.signum() != 0 }
     }
     if (channels.isEmpty()) return
@@ -75,13 +82,13 @@ fun CashFlowCard(
         onClick = onToggleBalanceVisibility
     ) {
         Text(
-            text = "Money in motion",
+            text = stringResource(R.string.cash_flow_card_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Channels outside your net cash flow this month",
+            text = stringResource(R.string.cash_flow_card_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -94,11 +101,10 @@ fun CashFlowCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             for (ch in channels) {
-                val dotColor = when (ch.label) {
-                    "Credit" -> MaterialTheme.colorScheme.credit
-                    "Invested" -> MaterialTheme.colorScheme.investment
-                    "Transferred" -> MaterialTheme.colorScheme.transfer
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                val dotColor = when (ch.type) {
+                    ChannelType.CREDIT -> MaterialTheme.colorScheme.credit
+                    ChannelType.INVESTED -> MaterialTheme.colorScheme.investment
+                    ChannelType.TRANSFERRED -> MaterialTheme.colorScheme.transfer
                 }
                 ChannelChip(
                     label = ch.label,
@@ -153,4 +159,6 @@ private fun ChannelChip(
     }
 }
 
-private data class ChannelSlot(val label: String, val amount: BigDecimal)
+private enum class ChannelType { CREDIT, INVESTED, TRANSFERRED }
+
+private data class ChannelSlot(val type: ChannelType, val label: String, val amount: BigDecimal)

@@ -8,7 +8,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
@@ -42,9 +44,9 @@ fun <T> ExpandableList(
             ) {
                 Text(
                     text = if (isExpanded) {
-                        "View Less"
+                        stringResource(R.string.expandable_list_view_less)
                     } else {
-                        "View All (${items.size - visibleItemCount} more)"
+                        stringResource(R.string.expandable_list_view_all_more, items.size - visibleItemCount)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,

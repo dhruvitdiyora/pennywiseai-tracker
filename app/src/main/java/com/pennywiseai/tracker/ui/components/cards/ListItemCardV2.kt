@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -88,6 +91,15 @@ fun ListItemCardV2(
     amountColor: Color = MaterialTheme.colorScheme.onSurface,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
+    /**
+     * Renders in place of [subtitle] when set, for rows whose supporting line is
+     * structured (e.g. the transaction row's tag chips) rather than plain text.
+     * [subtitle] is still required — it stays the accessibility text for the row:
+     * the rendered content's semantics are cleared and replaced with [subtitle]
+     * so TalkBack reads one sentence instead of a string of disconnected chip
+     * fragments.
+     */
+    subtitleContent: (@Composable () -> Unit)? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
     contentPadding: Dp = Dimensions.Padding.cardCompact,
     /** Overrides the card's container colour when set (e.g. for selected state). */
@@ -130,7 +142,14 @@ fun ListItemCardV2(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (subtitle.isNotBlank()) {
+                if (subtitleContent != null) {
+                    // The chip row's own semantics (icons, per-chip text) are
+                    // replaced wholesale with `subtitle` so TalkBack reads one
+                    // sentence rather than nine disconnected fragments.
+                    Box(modifier = Modifier.clearAndSetSemantics { contentDescription = subtitle }) {
+                        subtitleContent()
+                    }
+                } else if (subtitle.isNotBlank()) {
                     Text(
                         text = subtitle,
                         style = PennyWiseText.metadata,

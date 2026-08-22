@@ -72,6 +72,15 @@ fun BrandIcon(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+            is IconResource.TintedResIcon -> {
+                // Same body as DrawableResource for now -- applying the tint is
+                // doc 18's job (see IconResource.TintedResIcon kdoc).
+                Image(
+                    painter = painterResource(id = iconResource.resId),
+                    contentDescription = merchantName,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             is IconResource.VectorIcon -> {
                 // Category icon fallback
                 Icon(
@@ -134,27 +143,6 @@ fun CategoryIcon(
         tint = tint ?: categoryInfo.color,
         modifier = modifier.size(size)
     )
-}
-
-/**
- * Utility function to generate consistent colors from strings
- */
-private fun generateColorFromString(str: String): Color {
-    val colors = listOf(
-        Color(0xFF6750A4), // Material Purple
-        Color(0xFF0061A4), // Material Blue
-        Color(0xFF006D40), // Material Green
-        Color(0xFFB3261E), // Material Red
-        Color(0xFF9A4521), // Material Orange
-        Color(0xFF6D4C41), // Material Brown
-        Color(0xFF455A64), // Material Blue Grey
-        Color(0xFF5E35B1), // Deep Purple
-        Color(0xFF43A047), // Green
-        Color(0xFFE53935), // Red
-    )
-    
-    val hash = str.hashCode()
-    return colors[Math.abs(hash) % colors.size]
 }
 
 /**

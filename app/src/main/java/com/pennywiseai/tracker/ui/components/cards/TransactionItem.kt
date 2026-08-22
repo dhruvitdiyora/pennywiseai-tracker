@@ -3,15 +3,24 @@ package com.pennywiseai.tracker.ui.components.cards
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import android.view.HapticFeedbackConstants
+import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -20,11 +29,27 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.components.generateColorFromString
+import com.pennywiseai.tracker.ui.effects.horizontalScrollFade
+import com.pennywiseai.tracker.ui.icons.iconsax.Calendar
+import com.pennywiseai.tracker.ui.icons.iconsax.Card
+import com.pennywiseai.tracker.ui.icons.iconsax.Chart2
+import com.pennywiseai.tracker.ui.icons.iconsax.DocumentText2
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+
+/**
+ * Fixed tint for the "Recurring" chip. Deliberately not theme-generated (see
+ * [SubtitleTag] and ui-revamp doc 20 step 5) — recurring is a distinct concept
+ * from any category or transaction-type colour, so it gets its own constant
+ * rather than borrowing one of those palettes.
+ */
+private val RecurringTagColor = androidx.compose.ui.graphics.Color(0xFF5B54D6)
 
 @Composable
 fun TransactionItem(
@@ -32,7 +57,6 @@ fun TransactionItem(
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
-    showTypeLabel: Boolean = true,
     listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
@@ -42,7 +66,6 @@ fun TransactionItem(
     containerColor: androidx.compose.ui.graphics.Color? = null,
     modifier: Modifier = Modifier,
 ) {
-    val view = LocalView.current
     val isDark = isSystemInDarkTheme()
     val amountColor = remember(transaction.transactionType, isDark) {
         when (transaction.transactionType) {
@@ -79,36 +102,69 @@ fun TransactionItem(
     // tag below. (#383)
     val description = transaction.description?.takeIf { it.isNotBlank() }
 
-    val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
+    // Transaction type is an attribute *of the amount* - whether a payment left
+    // a credit card or moved between the user's own accounts - so it rides next
+    // to the amount as a small tinted glyph rather than spending width in the
+    // subtitle, which is the row's contended real estate (doc 21).
+    //
+    // INCOME and EXPENSE get no glyph: they are the common cases and are
+    // already carried non-visually by the +/- prefix, so a glyph on every row
+    // would be noise. The remaining three are the exceptions worth marking.
+    val typeIcon: ImageVector? = when (transaction.transactionType) {
+        TransactionType.CREDIT -> Iconsax.Card
+        TransactionType.TRANSFER -> Icons.Rounded.SwapHoriz
+        TransactionType.INVESTMENT -> Iconsax.Chart2
+        TransactionType.INCOME, TransactionType.EXPENSE -> null
+    }
+    // Reinforces the tint the amount already carries, so the signal survives
+    // for users who can't separate the two colours.
+    val typeTint = when (transaction.transactionType) {
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    // Never null when `typeIcon` is non-null: with the text label gone this is
+    // the only carrier of type for a screen reader.
+    val typeDescription = when (transaction.transactionType) {
+        TransactionType.CREDIT -> stringResource(R.string.cd_transaction_type_credit)
+        TransactionType.TRANSFER -> stringResource(R.string.cd_transaction_type_transfer)
+        TransactionType.INVESTMENT -> stringResource(R.string.cd_transaction_type_investment)
+        else -> null
+    }
+
+    val hasCategory = transaction.category.isNotBlank() &&
+        !transaction.category.equals("Uncategorized", ignoreCase = true)
+
+    val recurringLabel = stringResource(R.string.recurring)
+    val businessLabel = stringResource(R.string.business)
+    val excludedLabel = stringResource(R.string.excluded)
+    val balanceAfterText = transaction.balanceAfter?.let { balance ->
+        stringResource(
+            R.string.balance_after_format,
+            CurrencyFormatter.formatCurrency(balance, transaction.currency)
+        )
+    }
+
+    // Screen-reader text: chips are a visual grouping, so TalkBack still gets
+    // one plain sentence with everything in it (see ListItemCardV2's
+    // `subtitleContent` kdoc). Credit/Transfer/Investment are deliberately
+    // absent: they moved to the trailing glyph (doc 21), which carries its own
+    // contentDescription outside this box's `clearAndSetSemantics`.
+    val subtitle = remember(
+        transaction, dateTimeText, isEffectivelyBusiness, description,
+        recurringLabel, businessLabel, excludedLabel, balanceAfterText, hasCategory
+    ) {
         buildList {
             if (description != null) add(description)
             add(dateTimeText)
-            if (transaction.category.isNotBlank() &&
-                !transaction.category.equals("Uncategorized", ignoreCase = true)
-            ) {
-                add(transaction.category)
-            }
-
-            if (showTypeLabel) {
-                when (transaction.transactionType) {
-                    TransactionType.CREDIT -> add("Credit")
-                    TransactionType.TRANSFER -> {
-                        if (transferTitleOverride(transaction) == null) {
-                            add("Transfer")
-                        }
-                    }
-                    TransactionType.INVESTMENT -> add("Investment")
-                    else -> {}
-                }
-            }
-            if (transaction.isRecurring) add("Recurring")
-            if (isEffectivelyBusiness) add("Business")
+            if (hasCategory) add(transaction.category)
+            if (transaction.isRecurring) add(recurringLabel)
+            if (isEffectivelyBusiness) add(businessLabel)
             // Mark rows the user excluded from analytics so it's visible in the
             // list which ones are skipped by spending stats (#451).
-            if (transaction.excludedFromAnalytics) add("Excluded")
-            transaction.balanceAfter?.let { balance ->
-                add("Bal ${CurrencyFormatter.formatCurrency(balance, transaction.currency)}")
-            }
+            if (transaction.excludedFromAnalytics) add(excludedLabel)
+            balanceAfterText?.let { add(it) }
         }.joinToString(" \u00B7 ")
     }
 
@@ -139,14 +195,72 @@ fun TransactionItem(
     ListItemCardV2(
         title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
+        subtitleContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clipToBounds()
+                    .horizontalScrollFade(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Date · time — always present, one fixed colour (doc 20 step 5:
+                // deliberately NOT Cashiro's per-date hash, which implies a
+                // meaning that isn't there).
+                SubtitleTag(
+                    text = dateTimeText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    icon = {
+                        Icon(
+                            imageVector = Iconsax.Calendar,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
+                )
+                if (hasCategory) {
+                    // Colour comes from the same hash BrandIcon's fallback uses,
+                    // not a CategoryEntity lookup — that lookup doesn't exist
+                    // until doc 18. No icon on this chip until then either.
+                    SubtitleTag(
+                        text = transaction.category,
+                        color = generateColorFromString(transaction.category)
+                    )
+                }
+                if (transaction.isRecurring) {
+                    SubtitleTag(text = recurringLabel, color = RecurringTagColor)
+                }
+                if (isEffectivelyBusiness) {
+                    SubtitleTag(text = businessLabel, color = MaterialTheme.colorScheme.tertiary)
+                }
+                if (transaction.excludedFromAnalytics) {
+                    SubtitleTag(text = excludedLabel, color = MaterialTheme.colorScheme.outline)
+                }
+                balanceAfterText?.let {
+                    SubtitleTag(text = it, color = MaterialTheme.colorScheme.secondary)
+                }
+                if (description != null) {
+                    // Glyph-only: the note's content stays available to
+                    // TalkBack via `subtitle` above, it just doesn't spend
+                    // visual row width as leading text (#383).
+                    Icon(
+                        imageVector = Iconsax.DocumentText2,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        },
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.cardCompact,
-        onClick = {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            onClick()
-        },
+        // No haptic here: PennyWiseCardV2 fires it for every card tap
+        // (doc 24). A second call is a double buzz, which reads worse than
+        // none at all.
+        onClick = onClick,
         onLongClick = onLongClick,
         containerColor = containerColor,
         modifier = modifier,
@@ -170,34 +284,52 @@ fun TransactionItem(
             )
         },
         trailingContent = {
-            if (convertedAmount != null && displayCurrency != null) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
-                ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (typeIcon != null) {
+                    Icon(
+                        imageVector = typeIcon,
+                        contentDescription = typeDescription,
+                        tint = typeTint,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                }
+                if (convertedAmount != null && displayCurrency != null) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                    ) {
+                        Text(
+                            text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
+                            style = PennyWiseText.amountRow,
+                            color = amountColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        // No parentheses: brackets on a right-aligned numeric
+                        // column read as an accounting negative. The size and
+                        // colour difference already say "this is the original".
+                        // These are two renderings of ONE amount - never summed
+                        // (hard constraint 2).
+                        Text(
+                            text = transaction.formatAmount(),
+                            style = PennyWiseText.amountSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
                     Text(
-                        text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
+                        text = "$amountPrefix$formattedAmount",
                         style = PennyWiseText.amountRow,
                         color = amountColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "(${transaction.formatAmount()})",
-                        style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
-            } else {
-                Text(
-                    text = "$amountPrefix$formattedAmount",
-                    style = PennyWiseText.amountRow,
-                    color = amountColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     )
