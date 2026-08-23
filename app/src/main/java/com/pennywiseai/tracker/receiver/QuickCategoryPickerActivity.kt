@@ -125,7 +125,18 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                 onCategorySelected = { newCategory ->
                     if (newCategory != txn.category) {
                         appScope.launch {
-                            transactionRepository.updateCategory(txn.id, newCategory)
+                            // Writes both fields, clearing any subcategory. This
+                            // sheet cannot offer subcategories at all, so a
+                            // category-only update would leave the old child
+                            // attached under a parent it does not belong to
+                            // (ui-revamp doc 56). Nothing happens when the
+                            // category is unchanged, where the child is still
+                            // valid.
+                            transactionRepository.updateCategoryAndSubcategory(
+                                txn.id,
+                                newCategory,
+                                null
+                            )
                         }
                     }
                     if (activeNotificationId != -1) {
