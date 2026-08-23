@@ -5,10 +5,10 @@ import androidx.compose.ui.graphics.Color
 /**
  * Shared colour helpers used across the component layer.
  *
- * These used to be `private` copies duplicated in [BrandIcon.kt], `CategoryChip.kt`
- * and `CategoryEditDialog.kt`. Hoisted here (doc 20, ui-revamp) so there is exactly
- * one definition of each — a second colour-hash or contrast check drifting from
- * this one is exactly the inconsistency this file exists to prevent.
+ * These used to be private copies spread across brand, chip, and category-editing
+ * components. Hoisted here (doc 20, ui-revamp) so there is exactly one definition
+ * of each — a second colour-hash, parser, or contrast check drifting from this one
+ * is exactly the inconsistency this file exists to prevent.
  */
 
 /**

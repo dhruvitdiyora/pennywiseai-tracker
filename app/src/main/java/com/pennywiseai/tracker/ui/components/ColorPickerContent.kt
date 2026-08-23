@@ -46,7 +46,7 @@ import java.util.Locale
 /**
  * The app's established category hues.
  *
- * Moved here verbatim from `CategoryEditDialog`. **Do not replace these with
+ * Shared by the category and subcategory edit sheets. **Do not replace these with
  * Cashiro's list** — they are the colours every existing user's categories are
  * already using, and swapping them would recolour someone's whole taxonomy the
  * next time they opened an edit sheet.

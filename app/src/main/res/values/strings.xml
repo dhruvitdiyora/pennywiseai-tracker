@@ -200,7 +200,6 @@
     <string name="scanning_sms_format">Scanning SMS: %1$d/%2$d</string>
 
     <!-- Balance chart -->
-    <string name="balance_chart_legend_label">Balance Trend</string>
 
     <!-- Balance card -->
     <string name="balance_card_change_more">%1$d%% more vs last month</string>
@@ -217,7 +216,6 @@
     <string name="balance_card_last_month">Last month</string>
     <string name="balance_card_lent">Lent</string>
     <string name="balance_card_saved">Saved</string>
-    <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
     <string name="balance_card_spent_this_month">Spent this month</string>
     <string name="balance_card_change_currency">Change currency</string>
 
@@ -278,6 +276,21 @@
 
     <!-- Quick category picker -->
     <string name="quick_category_picker_title">Change category</string>
+    <string name="subcategory_picker_item">%1$s under %2$s</string>
+
+    <!-- Rules: subcategory action (ui-revamp doc 54). -->
+    <string name="rule_field_subcategory">Subcategory</string>
+    <string name="rule_action_set_subcategory">Set Subcategory</string>
+    <string name="rule_subcategory_placeholder">e.g., Tea &amp; Coffee</string>
+    <string name="rule_subcategory_choose">Choose subcategory</string>
+    <string name="rule_subcategory_custom">Enter custom subcategory</string>
+    <string name="rule_subcategory_custom_value">Custom subcategory</string>
+    <string name="rule_preview_set_subcategory">set subcategory to </string>
+    <string name="rule_preview_field_subcategory">subcategory</string>
+    <string name="rule_category_choose">Choose category</string>
+    <string name="rule_category_custom">Enter custom category</string>
+    <string name="rule_category_custom_value">Custom category</string>
+    <string name="rule_category_placeholder">e.g., Rent</string>
 
     <!-- Share card -->
     <string name="share_card_wordmark" translatable="false">PENNYWISE</string>

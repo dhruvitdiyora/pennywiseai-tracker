@@ -65,7 +65,7 @@ fun BrandIcon(
 
     val backgroundColor = when {
         iconResource is IconResource.DrawableResource -> {
-            BrandIcons.getBrandColor(merchantName)?.let { Color(it.toColorInt()) }
+            BrandIcons.getBrandColor(merchantName)?.let { parseColor(it, surfaceVariant) }
                 ?: surfaceVariant
         }
         // Same chain as the icon, so the circle and the glyph can never
@@ -83,7 +83,7 @@ fun BrandIcon(
             iconResource.tint
         }
         else -> {
-            BrandIcons.getBrandColor(merchantName)?.let { Color(it.toColorInt()) }
+            BrandIcons.getBrandColor(merchantName)?.let { parseColor(it, surfaceVariant) }
                 ?: surfaceVariant
         }
     }
@@ -155,9 +155,10 @@ fun LetterAvatar(
     size: Dp = 40.dp
 ) {
     val letter = merchantName.firstOrNull()?.uppercase() ?: "?"
-    val backgroundColor = BrandIcons.getBrandColor(merchantName)?.let { 
-        Color(it.toColorInt()) 
-    } ?: generateColorFromString(merchantName)
+    val generatedColor = generateColorFromString(merchantName)
+    val backgroundColor = BrandIcons.getBrandColor(merchantName)?.let {
+        parseColor(it, generatedColor)
+    } ?: generatedColor
     
     Box(
         modifier = modifier
@@ -194,13 +195,4 @@ fun CategoryIcon(
         tint = tint ?: categoryInfo.color,
         modifier = modifier.size(size)
     )
-}
-
-/**
- * Extension to convert hex string to Color Int
- */
-private fun String.toColorInt(): Int {
-    // Remove # if present and parse hex
-    val hex = this.removePrefix("#")
-    return android.graphics.Color.parseColor("#$hex")
 }
