@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -72,6 +73,15 @@ fun QuickCategoryPickerSheet(
      * speed matters most.
      */
     allowSubcategoryDrillIn: Boolean = true,
+    /**
+     * Optional "Add category" row at the top level.
+     *
+     * Null by default, so the notification picker and bulk edit stay a pure
+     * choose-from-what-exists list. Transaction detail passes it because that is
+     * the one flow where the category you want may not exist yet (ui-revamp
+     * doc 58) — before this the create path existed but nothing could reach it.
+     */
+    onCreateCategory: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -105,6 +115,22 @@ fun QuickCategoryPickerSheet(
         ) {
             val parent = drilledInto
             if (parent == null) {
+                if (onCreateCategory != null) item(key = "create_category") {
+                    // First, not last: the list is as long as the user's taxonomy
+                    // and a trailing row would sit below the fold on most devices.
+                    PickerRow(
+                        label = stringResource(R.string.add_category),
+                        selected = false,
+                        leading = {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        onClick = onCreateCategory
+                    )
+                }
                 items(categories, key = { it.id }) { category ->
                     val subs = subcategoriesByCategory[category.id].orEmpty()
                     val canDrillIn = allowSubcategoryDrillIn && subs.isNotEmpty()

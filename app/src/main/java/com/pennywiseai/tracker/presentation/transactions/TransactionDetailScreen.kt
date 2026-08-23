@@ -1718,6 +1718,14 @@ private fun CategoryDropdown(
                 onCategoryAndSubcategorySelected(name, subcategory)
                 showPicker = false
             },
+            // Reaches the EditCategorySheet below. That create path already
+            // existed but only the ExposedDropdownMenu could open it, and this
+            // caller bypasses the menu entirely — so inline create was
+            // unreachable here (ui-revamp doc 58).
+            onCreateCategory = {
+                showPicker = false
+                showAddDialog = true
+            },
             onDismiss = { showPicker = false }
         )
     }

@@ -23,7 +23,7 @@ class CreateRuleScreenTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `subcategory picker qualifies the parent and stores the bare child name`() {
+    fun subcategoryPicker_qualifiesParent_andStoresBareChildName() {
         val savedRule = mutableStateOf<TransactionRule?>(null)
         setScreen(savedRule)
 
@@ -38,7 +38,7 @@ class CreateRuleScreenTest {
     }
 
     @Test
-    fun `custom subcategory path retains a name outside the catalogue`() {
+    fun customSubcategoryPath_retainsNameOutsideCatalogue() {
         val savedRule = mutableStateOf<TransactionRule?>(null)
         setScreen(savedRule)
 
@@ -52,7 +52,7 @@ class CreateRuleScreenTest {
     }
 
     @Test
-    fun `category picker stores its parent after drilling into a child`() {
+    fun categoryPicker_storesParent_afterDrillingIntoChild() {
         val savedRule = mutableStateOf<TransactionRule?>(null)
         setScreen(savedRule)
 
@@ -66,7 +66,7 @@ class CreateRuleScreenTest {
     }
 
     @Test
-    fun `custom category path retains a name outside the catalogue`() {
+    fun customCategoryPath_retainsNameOutsideCatalogue() {
         val savedRule = mutableStateOf<TransactionRule?>(null)
         setScreen(savedRule)
 
