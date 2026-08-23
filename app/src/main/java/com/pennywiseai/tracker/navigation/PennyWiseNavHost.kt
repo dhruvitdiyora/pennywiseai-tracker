@@ -289,6 +289,9 @@ fun PennyWiseNavHost(
                 else -> null
             }
             val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
+            val categories by rulesViewModel.categories.collectAsStateWithLifecycle()
+            val subcategoriesByCategory by rulesViewModel.subcategoriesByCategory
+                .collectAsStateWithLifecycle()
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
@@ -305,7 +308,9 @@ fun PennyWiseNavHost(
                 },
                 existingRule = prefillRule,
                 isEditing = isEditing,
-                allAccounts = accounts
+                allAccounts = accounts,
+                categories = categories,
+                subcategoriesByCategory = subcategoriesByCategory
             )
         }
         

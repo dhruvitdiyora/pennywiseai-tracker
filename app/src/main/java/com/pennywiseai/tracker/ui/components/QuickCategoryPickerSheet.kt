@@ -56,6 +56,12 @@ fun QuickCategoryPickerSheet(
     currentSubcategory: String? = null,
     subcategoriesByCategory: Map<Long, List<SubcategoryEntity>> = emptyMap(),
     onSelected: ((category: String, subcategory: String?) -> Unit)? = null,
+    /** Optional title for consumers that select a subcategory rather than a category. */
+    title: String? = null,
+    /** Includes the parent in each child row's label when duplicate names need disambiguation. */
+    includeParentInSubcategoryLabel: Boolean = false,
+    /** Hides the parent-only row for consumers that require a child selection. */
+    allowParentOnlySelection: Boolean = true,
     /**
      * When false a category selects immediately and subcategories are never
      * offered.
@@ -81,7 +87,7 @@ fun QuickCategoryPickerSheet(
         sheetState = sheetState
     ) {
         Text(
-            text = stringResource(R.string.quick_category_picker_title),
+            text = title ?: stringResource(R.string.quick_category_picker_title),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(
                 start = Dimensions.Padding.content,
@@ -141,7 +147,7 @@ fun QuickCategoryPickerSheet(
                         onClick = { drilledInto = null }
                     )
                 }
-                item(key = "parent_only") {
+                if (allowParentOnlySelection) item(key = "parent_only") {
                     // Keeps the parent selectable in one tap once drilled in —
                     // otherwise entering a category to look at its subcategories
                     // would trap you into choosing one.
@@ -157,7 +163,11 @@ fun QuickCategoryPickerSheet(
                     key = { it.id }
                 ) { sub ->
                     PickerRow(
-                        label = sub.name,
+                        label = if (includeParentInSubcategoryLabel) {
+                            stringResource(R.string.subcategory_picker_item, sub.name, parent.name)
+                        } else {
+                            sub.name
+                        },
                         selected = currentCategory == parent.name && currentSubcategory == sub.name,
                         onClick = { emit(parent.name, sub.name) }
                     )

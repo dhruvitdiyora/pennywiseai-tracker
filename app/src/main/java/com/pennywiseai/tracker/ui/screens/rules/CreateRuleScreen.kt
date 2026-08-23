@@ -11,18 +11,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -125,7 +131,9 @@ fun CreateRuleScreen(
     // Defaults to false: a non-null prefill must NOT imply edit, or a duplicate that
     // omits this flag would overwrite its source. Callers state edit intent explicitly.
     isEditing: Boolean = false,
-    allAccounts: List<RulesViewModel.AccountInfo> = emptyList()
+    allAccounts: List<RulesViewModel.AccountInfo> = emptyList(),
+    categories: List<CategoryEntity> = emptyList(),
+    subcategoriesByCategory: Map<Long, List<SubcategoryEntity>> = emptyMap()
 ) {
     var ruleName by remember(existingRule) { mutableStateOf(existingRule?.name ?: "") }
     var description by remember(existingRule) { mutableStateOf(existingRule?.description ?: "") }
@@ -154,6 +162,16 @@ fun CreateRuleScreen(
                 )
         )
     }
+    // RuleAction is a value object, so it has no stable UI identity. Keep editor ids
+    // alongside it: removing one action must not transfer another editor's local picker state.
+    var actionEditorKeys by remember(existingRule) {
+        mutableStateOf(actions.map { UUID.randomUUID().toString() })
+    }
+
+    fun replaceActions(newActions: List<RuleAction>) {
+        actions = newActions
+        actionEditorKeys = newActions.map { UUID.randomUUID().toString() }
+    }
 
     // Holds a pending switch-to-BLOCK while we confirm discarding the other actions.
     var pendingBlockAction by remember { mutableStateOf<RuleAction?>(null) }
@@ -169,13 +187,13 @@ fun CreateRuleScreen(
                     value = "OTP"
                 )
             )
-            actions = listOf(
+            replaceActions(listOf(
                 RuleAction(
                     field = TransactionField.CATEGORY,
                     actionType = ActionType.BLOCK,
                     value = ""
                 )
-            )
+            ))
         },
         "Block Small Amounts" to {
             ruleName = "Block Small Transactions"
@@ -186,13 +204,13 @@ fun CreateRuleScreen(
                     value = "10"
                 )
             )
-            actions = listOf(
+            replaceActions(listOf(
                 RuleAction(
                     field = TransactionField.CATEGORY,
                     actionType = ActionType.BLOCK,
                     value = ""
                 )
-            )
+            ))
         },
         "Small amounts → Food" to {
             ruleName = "Small Food Payments"
@@ -203,13 +221,13 @@ fun CreateRuleScreen(
                     value = "200"
                 )
             )
-            actions = listOf(
+            replaceActions(listOf(
                 RuleAction(
                     field = TransactionField.CATEGORY,
                     actionType = ActionType.SET,
                     value = "Food & Dining"
                 )
-            )
+            ))
         },
         "Standardize Merchant" to {
             ruleName = "Standardize Merchant Name"
@@ -220,13 +238,13 @@ fun CreateRuleScreen(
                     value = "AMZN"
                 )
             )
-            actions = listOf(
+            replaceActions(listOf(
                 RuleAction(
                     field = TransactionField.MERCHANT,
                     actionType = ActionType.SET,
                     value = "Amazon"
                 )
-            )
+            ))
         },
         "Mark as Income" to {
             ruleName = "Mark Credits as Income"
@@ -237,13 +255,13 @@ fun CreateRuleScreen(
                     value = "credited"
                 )
             )
-            actions = listOf(
+            replaceActions(listOf(
                 RuleAction(
                     field = TransactionField.TYPE,
                     actionType = ActionType.SET,
                     value = "INCOME"
                 )
-            )
+            ))
         },
         "Daily Investment" to {
             ruleName = "Daily Investment"
@@ -259,19 +277,43 @@ fun CreateRuleScreen(
                     value = "09:30"
                 )
             )
-            actions = listOf(
+            replaceActions(listOf(
                 RuleAction(
                     field = TransactionField.CATEGORY,
                     actionType = ActionType.SET,
                     value = "Investments"
                 )
-            )
+            ))
         }
     )
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val canSave = ruleName.isNotBlank() &&
+        conditions.isNotEmpty() &&
+        conditions.all { it.validate() } &&
+        actions.isNotEmpty() &&
+        actions.all { it.validate() }
+
+    fun saveRule() {
+        if (!canSave) return
+
+        onSaveRule(
+            TransactionRule(
+                id = existingRule?.id ?: UUID.randomUUID().toString(),
+                name = ruleName,
+                description = description.takeIf { it.isNotBlank() },
+                priority = existingRule?.priority ?: 100,
+                conditions = conditions.toList(),
+                actions = actions,
+                isActive = existingRule?.isActive ?: true,
+                isSystemTemplate = existingRule?.isSystemTemplate ?: false,
+                createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -290,40 +332,35 @@ fun CreateRuleScreen(
                 },
                 actionContent = {
                     TextButton(
-                        onClick = {
-                            // Validate: rule name + all conditions have values + all actions are valid
-                            val areConditionsValid = conditions.isNotEmpty() &&
-                                conditions.all { it.validate() }
-                            val isActionValid = actions.isNotEmpty() && actions.all { it.validate() }
-                            val isValid = ruleName.isNotBlank() && areConditionsValid && isActionValid
-
-                            if (isValid) {
-                                val rule = TransactionRule(
-                                    id = existingRule?.id ?: UUID.randomUUID().toString(),
-                                    name = ruleName,
-                                    description = description.takeIf { it.isNotBlank() },
-                                    priority = existingRule?.priority ?: 100,
-                                    conditions = conditions.toList(),
-                                    actions = actions,
-                                    isActive = existingRule?.isActive ?: true,
-                                    isSystemTemplate = existingRule?.isSystemTemplate ?: false,
-                                    createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
-                                    updatedAt = System.currentTimeMillis()
-                                )
-                                onSaveRule(rule)
-                            }
-                        },
-                        enabled = ruleName.isNotBlank() &&
-                                 conditions.isNotEmpty() &&
-                                 conditions.all { it.validate() } &&
-                                 actions.isNotEmpty() &&
-                                 actions.all { it.validate() }
+                        onClick = ::saveRule,
+                        enabled = canSave
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 },
                 hazeState = hazeState
             )
+        },
+        bottomBar = {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shadowElevation = Dimensions.Elevation.bottomBar
+            ) {
+                Button(
+                    onClick = ::saveRule,
+                    enabled = canSave,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(
+                            horizontal = Dimensions.Padding.content,
+                            vertical = Spacing.sm
+                        )
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -333,7 +370,6 @@ fun CreateRuleScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
                 .padding(Dimensions.Padding.content)
-                .imePadding()
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
@@ -532,6 +568,7 @@ fun CreateRuleScreen(
                                         actionType = ActionType.SET,
                                         value = ""
                                     )
+                                    actionEditorKeys = actionEditorKeys + UUID.randomUUID().toString()
                                 }
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
@@ -543,6 +580,7 @@ fun CreateRuleScreen(
 
                     // Display all actions
                     actions.forEachIndexed { index, action ->
+                        key(actionEditorKeys[index]) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -568,6 +606,9 @@ fun CreateRuleScreen(
                                         IconButton(
                                             onClick = {
                                                 actions = actions.toMutableList().apply { removeAt(index) }
+                                                actionEditorKeys = actionEditorKeys.filterIndexed { keyIndex, _ ->
+                                                    keyIndex != index
+                                                }
                                             },
                                             modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                                         ) {
@@ -584,6 +625,8 @@ fun CreateRuleScreen(
                                 // Per-action editor
                                 ActionEditor(
                                     action = action,
+                                    categories = categories,
+                                    subcategoriesByCategory = subcategoriesByCategory,
                                     onActionChange = { updated ->
                                         // BLOCK is terminal — it drops the transaction, so the other
                                         // actions can't run. If the user switches to BLOCK while other
@@ -598,11 +641,14 @@ fun CreateRuleScreen(
                                 )
                             }
                         }
+                        }
                     }
                 }
             }
 
             // Preview
+            val subcategoryPreviewAction = stringResource(R.string.rule_preview_set_subcategory)
+            val subcategoryPreviewField = stringResource(R.string.rule_preview_field_subcategory)
             val showPreview = ruleName.isNotBlank() &&
                              conditions.isNotEmpty() &&
                              conditions.all { it.validate() } &&
@@ -632,7 +678,7 @@ fun CreateRuleScreen(
                                         TransactionField.AMOUNT -> "amount"
                                         TransactionField.TYPE -> "type"
                                         TransactionField.CATEGORY -> "category"
-                                        TransactionField.SUBCATEGORY -> "subcategory"
+                                        TransactionField.SUBCATEGORY -> subcategoryPreviewField
                                         TransactionField.MERCHANT -> "merchant"
                                         TransactionField.NARRATION -> "description"
                                         TransactionField.SMS_TEXT -> "SMS text"
@@ -688,7 +734,7 @@ fun CreateRuleScreen(
                                     } else {
                                         append(when(action.field) {
                                             TransactionField.CATEGORY -> "set category to "
-                                            TransactionField.SUBCATEGORY -> "set subcategory to "
+                                            TransactionField.SUBCATEGORY -> subcategoryPreviewAction
                                             TransactionField.MERCHANT -> "set merchant to "
                                             TransactionField.TYPE -> "set type to "
                                             TransactionField.NARRATION -> "set description to "
@@ -726,7 +772,7 @@ fun CreateRuleScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    actions = listOf(pendingBlockAction!!)
+                    replaceActions(listOf(pendingBlockAction!!))
                     pendingBlockAction = null
                 }) { Text("Block & remove") }
             },
@@ -755,7 +801,7 @@ private fun ConditionFieldSelector(
             TransactionField.AMOUNT to "Amount",
             TransactionField.TYPE to "Transaction Type",
             TransactionField.CATEGORY to "Category",
-            TransactionField.SUBCATEGORY to "Subcategory",
+            TransactionField.SUBCATEGORY to stringResource(R.string.rule_field_subcategory),
             TransactionField.MERCHANT to "Merchant",
             TransactionField.SMS_TEXT to "SMS Text",
             TransactionField.BANK_NAME to "Bank Name",
@@ -1048,7 +1094,7 @@ private fun ConditionFieldSelector(
                             TransactionField.MERCHANT -> "e.g., Swiggy"
                             TransactionField.SMS_TEXT -> "e.g., salary"
                             TransactionField.CATEGORY -> "e.g., Food & Dining"
-                            TransactionField.SUBCATEGORY -> "e.g., Tea & Coffee"
+                            TransactionField.SUBCATEGORY -> stringResource(R.string.rule_subcategory_placeholder)
                             TransactionField.BANK_NAME -> "e.g., HDFC Bank"
                             else -> "Enter value"
                         }
@@ -1095,10 +1141,23 @@ private fun LogicalOperatorToggle(
 @Composable
 private fun ActionEditor(
     action: RuleAction,
+    categories: List<CategoryEntity>,
+    subcategoriesByCategory: Map<Long, List<SubcategoryEntity>>,
     onActionChange: (RuleAction) -> Unit
 ) {
     var actionTypeDropdownExpanded by remember { mutableStateOf(false) }
     var actionFieldDropdownExpanded by remember { mutableStateOf(false) }
+    var showSubcategoryPicker by rememberSaveable { mutableStateOf(false) }
+    var useCustomSubcategory by rememberSaveable {
+        // The catalogue arrives asynchronously. Starting in custom mode while its initial
+        // snapshot is empty would strand an existing rule there after categories load.
+        mutableStateOf(false)
+    }
+    var selectedSubcategoryParent by rememberSaveable { mutableStateOf<String?>(null) }
+    var showCategoryPicker by rememberSaveable { mutableStateOf(false) }
+    var useCustomCategory by rememberSaveable {
+        mutableStateOf(false)
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
@@ -1187,7 +1246,7 @@ private fun ActionEditor(
                 TextField(
                     value = when(action.field) {
                         TransactionField.CATEGORY -> "Set Category"
-                        TransactionField.SUBCATEGORY -> "Set Subcategory"
+                        TransactionField.SUBCATEGORY -> stringResource(R.string.rule_action_set_subcategory)
                         TransactionField.MERCHANT -> "Set Merchant Name"
                         TransactionField.TYPE -> "Set Transaction Type"
                         TransactionField.NARRATION -> "Set Description"
@@ -1206,18 +1265,27 @@ private fun ActionEditor(
                 ) {
                     listOf(
                         TransactionField.CATEGORY to "Set Category",
-                        TransactionField.SUBCATEGORY to "Set Subcategory",
+                        TransactionField.SUBCATEGORY to stringResource(R.string.rule_action_set_subcategory),
                         TransactionField.MERCHANT to "Set Merchant Name",
                         TransactionField.TYPE to "Set Transaction Type",
                         TransactionField.NARRATION to "Set Description",
                         TransactionField.BANK_NAME to "Set Account"
                     ).forEach { (field, label) ->
                         DropdownMenuItem(
-                            text = { Text(label) },
-                            onClick = {
-                                onActionChange(action.copy(field = field, value = ""))
-                                actionFieldDropdownExpanded = false
+                        text = { Text(label) },
+                        onClick = {
+                            if (field == TransactionField.SUBCATEGORY) {
+                                useCustomSubcategory = false
+                                selectedSubcategoryParent = null
                             }
+                            showSubcategoryPicker = false
+                            if (field == TransactionField.CATEGORY) {
+                                useCustomCategory = false
+                            }
+                            showCategoryPicker = false
+                            onActionChange(action.copy(field = field, value = ""))
+                            actionFieldDropdownExpanded = false
+                        }
                         )
                     }
                 }
@@ -1225,36 +1293,118 @@ private fun ActionEditor(
 
             // Dynamic value input based on selected action field
             when (action.field) {
-                TransactionField.CATEGORY -> {
-                    // Category chips and input
-                    val commonCategories = listOf(
-                        "Food & Dining", "Transportation", "Shopping",
-                        "Bills & Utilities", "Entertainment", "Healthcare",
-                        "Investments", "Others"
-                    )
+                TransactionField.SUBCATEGORY -> {
+                    val categoryParents = categories.filter {
+                        subcategoriesByCategory[it.id].orEmpty().isNotEmpty()
+                    }
+                    val matchingParents = categories.filter { category ->
+                        subcategoriesByCategory[category.id].orEmpty().any { it.name == action.value }
+                    }
+                    val displayParent = selectedSubcategoryParent ?: matchingParents.singleOrNull()?.name
+                    val selectedValue = if (action.value.isBlank()) {
+                        stringResource(R.string.rule_subcategory_choose)
+                    } else if (displayParent != null) {
+                        stringResource(R.string.subcategory_picker_item, action.value, displayParent)
+                    } else {
+                        action.value
+                    }
 
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        commonCategories.forEach { category ->
-                            FilterChip(
-                                selected = action.value == category,
-                                onClick = { onActionChange(action.copy(value = category)) },
-                                label = { Text(category, style = MaterialTheme.typography.bodySmall) }
-                            )
+                    if (useCustomSubcategory) {
+                        TextField(
+                            value = action.value,
+                            onValueChange = { onActionChange(action.copy(value = it)) },
+                            label = { Text(stringResource(R.string.rule_subcategory_custom_value)) },
+                            placeholder = { Text(stringResource(R.string.rule_subcategory_placeholder)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        TextButton(onClick = { useCustomSubcategory = false }) {
+                            Text(stringResource(R.string.rule_subcategory_choose))
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { showSubcategoryPicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(selectedValue)
+                        }
+                        TextButton(onClick = { useCustomSubcategory = true }) {
+                            Text(stringResource(R.string.rule_subcategory_custom))
                         }
                     }
 
-                    TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
-                        label = { Text("Category Name") },
-                        placeholder = { Text("e.g., Rent") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    if (showSubcategoryPicker) {
+                        QuickCategoryPickerSheet(
+                            currentCategory = selectedSubcategoryParent ?: displayParent.orEmpty(),
+                            currentSubcategory = action.value.takeIf { it.isNotBlank() },
+                            categories = categoryParents,
+                            subcategoriesByCategory = subcategoriesByCategory,
+                            onCategorySelected = {},
+                            onSelected = { parent, subcategory ->
+                                // Rules deliberately store the bare child name, matching the
+                                // transaction and engine representation. The picker label keeps
+                                // its parent visible while the user makes that choice.
+                                if (subcategory != null) {
+                                    selectedSubcategoryParent = parent
+                                    useCustomSubcategory = false
+                                    onActionChange(action.copy(value = subcategory))
+                                    showSubcategoryPicker = false
+                                }
+                            },
+                            onDismiss = { showSubcategoryPicker = false },
+                            title = stringResource(R.string.rule_subcategory_choose),
+                            includeParentInSubcategoryLabel = true,
+                            allowParentOnlySelection = false
+                        )
+                    }
+                }
+
+                TransactionField.CATEGORY -> {
+                    if (useCustomCategory) {
+                        TextField(
+                            value = action.value,
+                            onValueChange = { onActionChange(action.copy(value = it)) },
+                            label = { Text(stringResource(R.string.rule_category_custom_value)) },
+                            placeholder = { Text(stringResource(R.string.rule_category_placeholder)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        TextButton(onClick = { useCustomCategory = false }) {
+                            Text(stringResource(R.string.rule_category_choose))
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { showCategoryPicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                action.value.ifBlank {
+                                    stringResource(R.string.rule_category_choose)
+                                }
+                            )
+                        }
+                        TextButton(onClick = { useCustomCategory = true }) {
+                            Text(stringResource(R.string.rule_category_custom))
+                        }
+                    }
+
+                    if (showCategoryPicker) {
+                        QuickCategoryPickerSheet(
+                            currentCategory = action.value,
+                            categories = categories,
+                            currentSubcategory = null,
+                            subcategoriesByCategory = subcategoriesByCategory,
+                            onCategorySelected = {},
+                            onSelected = { parent, _ ->
+                                // A CATEGORY rule stores the parent even when the sheet drills
+                                // into one of its children; a child name is never a category.
+                                onActionChange(action.copy(value = parent))
+                                useCustomCategory = false
+                                showCategoryPicker = false
+                            },
+                            onDismiss = { showCategoryPicker = false }
+                        )
+                    }
                 }
 
                 TransactionField.TYPE -> {

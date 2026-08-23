@@ -7,6 +7,10 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.billing.FreeTierLimits
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.SubcategoryRepository
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleTemplateService
@@ -28,6 +32,8 @@ class RulesViewModel @Inject constructor(
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
+    categoryRepository: CategoryRepository,
+    subcategoryRepository: SubcategoryRepository,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -99,6 +105,24 @@ class RulesViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    /** User taxonomy for rule actions. One observer per table, not one per action editor. */
+    val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategories()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    /** Subcategories grouped by their parent so duplicate names remain distinguishable in the UI. */
+    val subcategoriesByCategory: StateFlow<Map<Long, List<SubcategoryEntity>>> =
+        subcategoryRepository.getAllSubcategories()
+            .map { all -> all.groupBy { it.categoryId } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
 
     init {
         initializeRules()
