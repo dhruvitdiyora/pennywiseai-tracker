@@ -1,5 +1,12 @@
 package com.pennywiseai.tracker.ui.icons
 
+import android.content.Context
+import androidx.core.graphics.toColorInt
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
+import com.pennywiseai.tracker.ui.components.parseColor
+import com.pennywiseai.tracker.utils.IconResolutionUtils
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -264,6 +271,102 @@ object IconProvider {
             icon = categoryInfo.icon,
             tint = categoryInfo.color
         )
+    }
+
+    /**
+     * Icon for a transaction, honouring the icon the **user** chose for its
+     * category or subcategory (ui-revamp doc 18).
+     *
+     * Order: brand logo → the subcategory's own icon → the subcategory name
+     * against [CategoryMapping] → the category's own icon → the hardcoded
+     * category fallback → "Others".
+     *
+     * **The brand logo stays first on purpose.** A Swiggy row should show the
+     * Swiggy logo whatever icon the user gave Food & Dining: the more specific
+     * signal wins, and people read a brand mark faster than a category glyph.
+     *
+     * Every step is allowed to miss. A transaction can name a category that was
+     * deleted, renamed, or came from another install's backup; each lookup
+     * returns null and falls through. No crash, no blank circle, no log spam.
+     *
+     * An overload rather than a changed signature — [getTransactionIcon] has
+     * callers outside the transaction row.
+     */
+    fun getTransactionIcon(
+        context: Context,
+        merchantName: String,
+        category: String?,
+        subcategory: String? = null,
+        categoryEntity: CategoryEntity? = null,
+        subcategoryEntity: SubcategoryEntity? = null,
+    ): IconResource {
+        BrandIcons.getIconResource(merchantName)?.let { iconRes ->
+            return IconResource.DrawableResource(iconRes)
+        }
+
+        subcategoryEntity?.let { entity ->
+            resolveEntityIcon(context, entity.iconName, entity.iconResId, entity.color)
+                ?.let { return it }
+        }
+
+        // The subcategory *name* against the hardcoded map, before falling back
+        // to the parent — "Fuel" is more specific than "Transportation".
+        subcategory?.takeIf { it.isNotBlank() }?.let { name ->
+            CategoryMapping.categories[name]?.let { info ->
+                return IconResource.VectorIcon(info.icon, info.color)
+            }
+        }
+
+        categoryEntity?.let { entity ->
+            resolveEntityIcon(context, entity.iconName, entity.iconResId, entity.color)
+                ?.let { return it }
+        }
+
+        return getTransactionIcon(merchantName, category)
+    }
+
+    /**
+     * Circle background colour for the same chain, so the icon and its backdrop
+     * never disagree about which entity won.
+     */
+    fun getTransactionIconColor(
+        merchantName: String,
+        category: String?,
+        categoryEntity: CategoryEntity? = null,
+        subcategoryEntity: SubcategoryEntity? = null,
+        fallback: Color,
+    ): Color {
+        BrandIcons.getBrandColor(merchantName)?.let { return Color(it.toColorInt()) }
+        subcategoryEntity?.let { return parseColor(it.color, fallback) }
+        categoryEntity?.let { return parseColor(it.color, fallback) }
+
+        val effectiveCategory = if (category.isValidCategoryOverride()) category
+            else CategoryMapping.getCategory(merchantName)
+        return CategoryMapping.categories[effectiveCategory]?.color ?: fallback
+    }
+
+    /**
+     * `iconName` first, `iconResId` only as the legacy path (doc 10's rule):
+     * resource ids are renumbered between builds, names are not.
+     *
+     * Colour goes through the shared safe parser. Cashiro uses a bare
+     * `Color.parseColor`, which **throws on a malformed hex** — one bad row
+     * would take down the whole transaction list.
+     */
+    private fun resolveEntityIcon(
+        context: Context,
+        iconName: String,
+        iconResId: Int,
+        colorHex: String,
+    ): IconResource? {
+        val resId = iconName
+            .takeIf { it.isNotEmpty() }
+            ?.let { IconResolutionUtils.nameToResId(context, it) }
+            ?.takeIf { it != 0 }
+            ?: IconResolutionUtils.getSafeResId(context, iconResId, 0)
+
+        if (resId == 0) return null
+        return IconResource.TintedResIcon(resId, parseColor(colorHex, Color.Unspecified))
     }
 }
 

@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
@@ -34,6 +35,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddViewModel @Inject constructor(
+    private val subcategoryRepository: com.pennywiseai.tracker.data.repository.SubcategoryRepository,
     @ApplicationContext private val appContext: Context,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
@@ -257,10 +259,35 @@ class AddViewModel @Inject constructor(
         _transactionUiState.update { currentState ->
             currentState.copy(
                 category = category,
+                // A subcategory belongs to exactly one parent, so it cannot
+                // survive a category change. Cleared here in the ViewModel, not
+                // in the composable, so every caller gets the same guarantee.
+                subcategory = null,
                 categoryError = validateCategory(category)
             )
         }
     }
+
+    /** Sets both at once, from the two-level picker (ui-revamp doc 17). */
+    fun updateTransactionCategoryAndSubcategory(category: String, subcategory: String?) {
+        _transactionUiState.update { currentState ->
+            currentState.copy(
+                category = category,
+                subcategory = subcategory,
+                categoryError = validateCategory(category)
+            )
+        }
+    }
+
+    /** One grouped flow for the screen, never one per category (doc 15's trap). */
+    val subcategoriesByCategory: StateFlow<Map<Long, List<SubcategoryEntity>>> =
+        subcategoryRepository.getAllSubcategories()
+            .map { all -> all.groupBy { it.categoryId } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
     
     fun updateTransactionDate(dateMillis: Long) {
         val instant = Instant.ofEpochMilli(dateMillis)
@@ -377,6 +404,7 @@ class AddViewModel @Inject constructor(
                     amount = amount,
                     merchant = state.merchant.trim(),
                     category = state.category,
+                    subcategory = state.subcategory,
                     type = state.transactionType,
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
@@ -626,6 +654,7 @@ data class TransactionUiState(
     val merchant: String = "",
     val merchantError: String? = null,
     val category: String = "Others",
+    val subcategory: String? = null,
     val categoryError: String? = null,
     val date: LocalDateTime = LocalDateTime.now(),
     val notes: String = "",

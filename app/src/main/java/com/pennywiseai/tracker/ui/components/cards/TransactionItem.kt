@@ -29,7 +29,9 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.LocalCategoryIcons
 import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.components.parseColor
 import com.pennywiseai.tracker.ui.components.generateColorFromString
 import com.pennywiseai.tracker.ui.effects.horizontalScrollFade
 import com.pennywiseai.tracker.ui.icons.iconsax.Calendar
@@ -159,6 +161,7 @@ fun TransactionItem(
             if (description != null) add(description)
             add(dateTimeText)
             if (hasCategory) add(transaction.category)
+            transaction.subcategory?.takeIf { it.isNotBlank() }?.let { add(it) }
             if (transaction.isRecurring) add(recurringLabel)
             if (isEffectivelyBusiness) add(businessLabel)
             // Mark rows the user excluded from analytics so it's visible in the
@@ -220,13 +223,30 @@ fun TransactionItem(
                     }
                 )
                 if (hasCategory) {
-                    // Colour comes from the same hash BrandIcon's fallback uses,
-                    // not a CategoryEntity lookup — that lookup doesn't exist
-                    // until doc 18. No icon on this chip until then either.
-                    SubtitleTag(
-                        text = transaction.category,
-                        color = generateColorFromString(transaction.category)
-                    )
+                    // The user's chosen colour when the category resolves, and the
+                    // name hash only as a fallback (doc 18).
+                    //
+                    // The hash alone rendered "Income" in RED — sitting next to a
+                    // green +₹30. A hash cannot know that income should not look
+                    // like a loss; the entity's colour does.
+                    val categoryColor = LocalCategoryIcons.current
+                        .category(transaction.category)
+                        ?.let { parseColor(it.color, MaterialTheme.colorScheme.primary) }
+                        ?: generateColorFromString(transaction.category)
+
+                    SubtitleTag(text = transaction.category, color = categoryColor)
+                }
+                transaction.subcategory?.takeIf { it.isNotBlank() }?.let { sub ->
+                    // Sits after its parent so the pair reads as a hierarchy.
+                    // Resolution is allowed to miss (doc 12): a renamed or deleted
+                    // subcategory still shows its stored name, just in the
+                    // fallback colour.
+                    val subColor = LocalCategoryIcons.current
+                        .subcategory(transaction.category, sub)
+                        ?.let { parseColor(it.color, MaterialTheme.colorScheme.primary) }
+                        ?: generateColorFromString(sub)
+
+                    SubtitleTag(text = sub, color = subColor)
                 }
                 if (transaction.isRecurring) {
                     SubtitleTag(text = recurringLabel, color = RecurringTagColor)
@@ -280,7 +300,8 @@ fun TransactionItem(
                 modifier = iconModifier,
                 size = Dimensions.Icon.list,
                 showBackground = true,
-                category = transaction.category
+                category = transaction.category,
+                subcategory = transaction.subcategory
             )
         },
         trailingContent = {

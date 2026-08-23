@@ -49,8 +49,19 @@ fun PennyWiseNavHost(
     // Use a stable start destination
     val stableStartDestination = remember { startDestination }
 
+    // One lookup for every destination: transaction rows appear on Home, the
+    // transactions list, account detail, group detail and search, and each needs
+    // the same category/subcategory maps to reach the user's chosen icon.
+    // Provided here rather than per screen (ui-revamp doc 18 step 3).
+    val categoryIconViewModel: com.pennywiseai.tracker.ui.viewmodel.CategoryIconViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val categoryIcons by categoryIconViewModel.lookup.collectAsStateWithLifecycle()
+
     SharedTransitionLayout {
-    CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
+    CompositionLocalProvider(
+        LocalSharedTransitionScope provides this@SharedTransitionLayout,
+        com.pennywiseai.tracker.ui.components.LocalCategoryIcons provides categoryIcons
+    ) {
     NavHost(
         navController = navController,
         startDestination = stableStartDestination,

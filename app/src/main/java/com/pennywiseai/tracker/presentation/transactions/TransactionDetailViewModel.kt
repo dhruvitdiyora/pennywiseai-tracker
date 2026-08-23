@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -40,6 +41,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
+    private val subcategoryRepository: com.pennywiseai.tracker.data.repository.SubcategoryRepository,
     private val transactionRepository: TransactionRepository,
     private val merchantMappingRepository: MerchantMappingRepository,
     private val merchantAliasRepository: MerchantAliasRepository,
@@ -462,9 +464,34 @@ class TransactionDetailViewModel @Inject constructor(
     
     fun updateCategory(category: String) {
         _editableTransaction.update { current ->
-            current?.copy(category = category.ifEmpty { "Others" })
+            // A subcategory belongs to exactly one parent, so it cannot survive a
+            // category change — carrying it over would orphan it under a category
+            // that never had it. Same reasoning as doc 12's bulk path.
+            current?.copy(category = category.ifEmpty { "Others" }, subcategory = null)
         }
     }
+
+    /** Sets both at once, from the two-level picker (ui-revamp doc 17). */
+    fun updateCategoryAndSubcategory(category: String, subcategory: String?) {
+        _editableTransaction.update { current ->
+            current?.copy(
+                category = category.ifEmpty { "Others" },
+                subcategory = subcategory
+            )
+        }
+    }
+
+    /**
+     * Subcategories grouped by parent id — one flow, not one per category.
+     */
+    val subcategoriesByCategory: StateFlow<Map<Long, List<SubcategoryEntity>>> =
+        subcategoryRepository.getAllSubcategories()
+            .map { all -> all.groupBy { it.categoryId } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
 
     /**
      * Creates a category on the fly from the transaction edit flow (#584) and
@@ -484,7 +511,13 @@ class TransactionDetailViewModel @Inject constructor(
      * uses this to keep the add-category dialog open on failure so the user's typed
      * name/color aren't lost and they can correct them in place.
      */
-    fun createAndSelectCategory(name: String, color: String, onResult: (Boolean) -> Unit = {}) {
+    fun createAndSelectCategory(
+        name: String,
+        color: String,
+        iconName: String = "",
+        description: String = "",
+        onResult: (Boolean) -> Unit = {}
+    ) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) { onResult(false); return }
         val isIncome = (_editableTransaction.value ?: _transaction.value)
@@ -503,7 +536,16 @@ class TransactionDetailViewModel @Inject constructor(
                     return@launch
                 }
                 if (existing == null) {
-                    categoryRepository.createCategory(trimmed, color, isIncome)
+                    // Carry the icon and description through. The sheet lets the
+                    // user choose them, so dropping them here would silently
+                    // discard work they watched themselves do.
+                    categoryRepository.createCategory(
+                        name = trimmed,
+                        color = color,
+                        isIncome = isIncome,
+                        iconName = iconName,
+                        description = description
+                    )
                 }
                 updateCategory(trimmed)
                 onResult(true)

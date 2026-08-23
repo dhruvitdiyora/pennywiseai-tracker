@@ -168,6 +168,11 @@ class RuleEngine @Inject constructor() {
             TransactionField.AMOUNT -> transaction.amount.toString()
             TransactionField.TYPE -> transaction.transactionType.name
             TransactionField.CATEGORY -> transaction.category ?: ""
+            // "" rather than null: every other string field here normalises the
+            // same way and the operators assume non-null. It also makes
+            // `SUBCATEGORY EQUALS ""` mean "has no subcategory", which is a
+            // genuinely useful rule to be able to write.
+            TransactionField.SUBCATEGORY -> transaction.subcategory ?: ""
             TransactionField.MERCHANT -> transaction.merchantName
             TransactionField.NARRATION -> transaction.description ?: ""
             TransactionField.SMS_TEXT -> smsText ?: ""
@@ -242,6 +247,17 @@ class RuleEngine @Inject constructor() {
                     else -> transaction.category ?: ""
                 }
                 transaction.copy(category = newValue) to newValue
+            }
+            TransactionField.SUBCATEGORY -> {
+                val newValue = when (action.actionType) {
+                    ActionType.SET -> action.value
+                    ActionType.CLEAR -> ""
+                    else -> transaction.subcategory ?: ""
+                }
+                // Stored back as null when cleared: the column is nullable and
+                // "" would be a second way to spell "none" that every reader
+                // would then have to know about.
+                transaction.copy(subcategory = newValue.ifEmpty { null }) to newValue
             }
             TransactionField.MERCHANT -> {
                 val newValue = when (action.actionType) {

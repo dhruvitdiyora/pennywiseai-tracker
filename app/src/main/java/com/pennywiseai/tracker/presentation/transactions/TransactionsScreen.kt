@@ -115,6 +115,7 @@ fun TransactionsScreen(
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsState()
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val categoriesMap by viewModel.categories.collectAsState()
+    val subcategoriesByCategory by viewModel.subcategoriesByCategory.collectAsState()
     val filteredTotals by viewModel.filteredTotals.collectAsState()
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
@@ -739,8 +740,13 @@ fun TransactionsScreen(
             QuickCategoryPickerSheet(
                 transaction = transaction,
                 categories = categoriesMap.values.toList(),
+                subcategoriesByCategory = subcategoriesByCategory,
                 onCategorySelected = { name ->
                     viewModel.updateCategory(transaction, name)
+                    pendingCategoryEditId = null
+                },
+                onSelected = { name, subcategory ->
+                    viewModel.updateCategory(transaction, name, subcategory)
                     pendingCategoryEditId = null
                 },
                 onDismiss = { pendingCategoryEditId = null }
@@ -757,8 +763,13 @@ fun TransactionsScreen(
         QuickCategoryPickerSheet(
             currentCategory = commonCategory ?: "(multiple)",
             categories = categoriesMap.values.toList(),
+            subcategoriesByCategory = subcategoriesByCategory,
             onCategorySelected = { name ->
                 viewModel.bulkUpdateCategory(name)
+                showBulkCategorySheet = false
+            },
+            onSelected = { name, subcategory ->
+                viewModel.bulkUpdateCategory(name, subcategory)
                 showBulkCategorySheet = false
             },
             onDismiss = { showBulkCategorySheet = false }

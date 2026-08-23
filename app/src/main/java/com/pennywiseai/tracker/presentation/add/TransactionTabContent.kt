@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
@@ -35,7 +36,11 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.ui.components.CategoryChip
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.TagInputField
+import com.pennywiseai.tracker.ui.icons.iconsax.Category2
+import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -156,11 +161,20 @@ fun TransactionTabContent(
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val subcategoriesByCategory by viewModel.subcategoriesByCategory.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
+    val categoryInteractionSource = remember { MutableInteractionSource() }
+    LaunchedEffect(categoryInteractionSource) {
+        categoryInteractionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                showCategoryMenu = true
+            }
+        }
+    }
     // Which account picker is open (null = closed). For a TRANSFER this routes the
     // chosen account to either the FROM or TO card; for other types only FROM is used.
     var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
@@ -458,47 +472,60 @@ fun TransactionTabContent(
                         onClear = { viewModel.updateSelectedAccount(null) }
                     )
 
-                    // Category field
-                    ExposedDropdownMenuBox(
-                        expanded = showCategoryMenu,
-                        onExpandedChange = { showCategoryMenu = it },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        TextField(
-                            value = uiState.category,
-                            onValueChange = {},
-                            label = { Text("Category", fontWeight = FontWeight.SemiBold) },
-                            readOnly = true,
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            shape = bottomShape,
-                            leadingIcon = {
-                                Icon(Icons.Default.Category, contentDescription = null)
-                            },
-                            trailingIcon = {
-                                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
-                            },
-                            isError = uiState.categoryError != null,
-                            supportingText = uiState.categoryError?.let { { Text(it) } },
-                            colors = filledFieldColors()
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = showCategoryMenu,
-                            onDismissRequest = { showCategoryMenu = false }
-                        ) {
-                            categories.forEach { category ->
-                                DropdownMenuItem(
-                                    text = { Text(category.name) },
-                                    onClick = {
-                                        viewModel.updateTransactionCategory(category.name)
-                                        showCategoryMenu = false
-                                    }
+                    // Category field. A read-only field that opens the shared
+                    // two-level picker, not an ExposedDropdownMenu: that cannot
+                    // express a hierarchy, and its popup caps at a few rows on a
+                    // short screen — already awkward with 18 categories.
+                    // The existing categoryError wiring is untouched.
+                    val selectedCategoryEntity = categories.find { it.name == uiState.category }
+                    TextField(
+                        value = if (uiState.subcategory.isNullOrBlank()) uiState.category
+                                else "${uiState.category} · ${uiState.subcategory}",
+                        onValueChange = {},
+                        label = { Text("Category", fontWeight = FontWeight.SemiBold) },
+                        readOnly = true,
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        interactionSource = categoryInteractionSource,
+                        shape = bottomShape,
+                        leadingIcon = {
+                            // The chosen category's own icon, so the field shows
+                            // what the user picked rather than a generic glyph.
+                            if (selectedCategoryEntity != null) {
+                                CategoryChip(
+                                    category = selectedCategoryEntity,
+                                    showText = false,
+                                    modifier = Modifier.padding(start = Spacing.smd)
                                 )
+                            } else {
+                                Icon(Iconsax.Category2, contentDescription = null)
                             }
-                        }
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
+                        },
+                        isError = uiState.categoryError != null,
+                        supportingText = uiState.categoryError?.let { { Text(it) } },
+                        colors = filledFieldColors()
+                    )
+
+                    if (showCategoryMenu) {
+                        QuickCategoryPickerSheet(
+                            currentCategory = uiState.category,
+                            currentSubcategory = uiState.subcategory,
+                            categories = categories,
+                            subcategoriesByCategory = subcategoriesByCategory,
+                            onCategorySelected = { name ->
+                                viewModel.updateTransactionCategory(name)
+                                showCategoryMenu = false
+                            },
+                            onSelected = { name, subcategory ->
+                                viewModel.updateTransactionCategoryAndSubcategory(name, subcategory)
+                                showCategoryMenu = false
+                            },
+                            onDismiss = { showCategoryMenu = false }
+                        )
                     }
                 }
             }

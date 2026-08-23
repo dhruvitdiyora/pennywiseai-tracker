@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -47,6 +48,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class TransactionsViewModel @Inject constructor(
+    private val subcategoryRepository: com.pennywiseai.tracker.data.repository.SubcategoryRepository,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
@@ -345,7 +347,7 @@ class TransactionsViewModel @Inject constructor(
      * them; if a row had its category changed elsewhere in between, the undo
      * will overwrite that change too — acceptable for an explicit user action.
      */
-    fun bulkUpdateCategory(newCategory: String) {
+    fun bulkUpdateCategory(newCategory: String, newSubcategory: String? = null) {
         val ids = _selectedIds.value
         if (ids.isEmpty()) return
         viewModelScope.launch {
@@ -353,7 +355,9 @@ class TransactionsViewModel @Inject constructor(
                 .filter { it.id in ids }
                 .associate { it.id to it.category }
             previous.keys.forEach { id ->
-                transactionRepository.updateCategory(id, newCategory)
+                transactionRepository.updateCategoryAndSubcategory(
+                    id, newCategory, newSubcategory
+                )
             }
             refreshWidgets()
             clearSelection()
@@ -887,12 +891,34 @@ class TransactionsViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    fun updateCategory(transaction: TransactionEntity, newCategory: String) {
-        if (transaction.category == newCategory) return
+    fun updateCategory(
+        transaction: TransactionEntity,
+        newCategory: String,
+        newSubcategory: String? = null
+    ) {
+        if (transaction.category == newCategory && transaction.subcategory == newSubcategory) return
         viewModelScope.launch {
-            transactionRepository.updateCategory(transaction.id, newCategory)
+            // Always writes both. A subcategory belongs to exactly one parent, so
+            // leaving the old one attached across a category change would orphan
+            // it — the same reasoning as doc 12's bulk-recategorise path.
+            transactionRepository.updateCategoryAndSubcategory(
+                transaction.id, newCategory, newSubcategory
+            )
         }
     }
+
+    /**
+     * Subcategories grouped by parent id — one flow for the screen, never one
+     * per category (doc 15's trap).
+     */
+    val subcategoriesByCategory: StateFlow<Map<Long, List<SubcategoryEntity>>> =
+        subcategoryRepository.getAllSubcategories()
+            .map { all -> all.groupBy { it.categoryId } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
 
     fun selectPeriod(period: TimePeriod) {
         _selectedPeriod.value = period

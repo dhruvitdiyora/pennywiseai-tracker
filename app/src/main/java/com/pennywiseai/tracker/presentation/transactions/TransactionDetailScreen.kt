@@ -56,7 +56,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.presentation.categories.EditCategorySheet
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -1361,7 +1362,11 @@ private fun EditableExtractedInfoCard(
             if (!showSplitEditor) {
                 CategoryDropdown(
                     selectedCategory = transaction.category,
+                    selectedSubcategory = transaction.subcategory,
                     onCategorySelected = { viewModel.updateCategory(it) },
+                    onCategoryAndSubcategorySelected = { category, subcategory ->
+                        viewModel.updateCategoryAndSubcategory(category, subcategory)
+                    },
                     isIncomeTransaction = transaction.transactionType == TransactionType.INCOME,
                     viewModel = viewModel
                 )
@@ -1611,21 +1616,30 @@ private fun CategoryDropdown(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     isIncomeTransaction: Boolean,
-    viewModel: TransactionDetailViewModel
+    viewModel: TransactionDetailViewModel,
+    selectedSubcategory: String? = null,
+    onCategoryAndSubcategorySelected: ((String, String?) -> Unit)? = null,
 ) {
     val categories by viewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
+    val subcategoriesByCategory by viewModel.subcategoriesByCategory
+        .collectAsStateWithLifecycle()
     var expanded by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
+    // An ExposedDropdownMenu cannot express two levels, and its popup is capped
+    // at a few rows on a short screen — already awkward with 18 categories. The
+    // field stays; tapping it opens the shared picker instead (doc 17 step 2).
+    var showPicker by remember { mutableStateOf(false) }
 
     // Find the selected category entity for displaying with color
     val selectedCategoryEntity = categories.find { it.name == selectedCategory }
     
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = it }
+        onExpandedChange = { if (onCategoryAndSubcategorySelected != null) showPicker = true else expanded = it }
     ) {
         TextField(
-            value = selectedCategory,
+            value = if (selectedSubcategory.isNullOrBlank()) selectedCategory
+                    else "$selectedCategory · $selectedSubcategory",
             onValueChange = { },
             label = { Text("Category", fontWeight = FontWeight.SemiBold) },
             leadingIcon = {
@@ -1690,16 +1704,41 @@ private fun CategoryDropdown(
         }
     }
 
+    if (showPicker && onCategoryAndSubcategorySelected != null) {
+        QuickCategoryPickerSheet(
+            currentCategory = selectedCategory,
+            currentSubcategory = selectedSubcategory,
+            categories = categories,
+            subcategoriesByCategory = subcategoriesByCategory,
+            onCategorySelected = { name ->
+                onCategorySelected(name)
+                showPicker = false
+            },
+            onSelected = { name, subcategory ->
+                onCategoryAndSubcategorySelected(name, subcategory)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false }
+        )
+    }
+
     if (showAddDialog) {
-        CategoryEditDialog(
+        EditCategorySheet(
+            category = null,
             defaultIsIncome = isIncomeTransaction,
             lockType = true,
             onDismiss = { showAddDialog = false },
-            onSave = { name, color, _ ->
+            onSave = { name, iconName, color, description, _ ->
                 // Dismiss only once the category is actually created/selected, so a
-                // failure (e.g. same-name type conflict) keeps the dialog open with
+                // failure (e.g. same-name type conflict) keeps the sheet open with
                 // the user's input intact.
-                viewModel.createAndSelectCategory(name, color) { success ->
+                //
+                viewModel.createAndSelectCategory(
+                    name = name,
+                    color = color,
+                    iconName = iconName,
+                    description = description
+                ) { success ->
                     if (success) showAddDialog = false
                 }
             }

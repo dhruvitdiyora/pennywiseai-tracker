@@ -11,8 +11,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -32,20 +34,58 @@ import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 fun BrandIcon(
     merchantName: String,
     category: String? = null,
+    subcategory: String? = null,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     showBackground: Boolean = true
 ) {
-    val iconResource = IconProvider.getTransactionIcon(merchantName, category)
+    val context = LocalContext.current
+    // Every screen that has not been wired up yet supplies an empty lookup, so
+    // this resolves exactly as it always did (doc 18 step 3).
+    val lookup = LocalCategoryIcons.current
+    val categoryEntity = lookup.category(category)
+    val subcategoryEntity = lookup.subcategory(category, subcategory)
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
-    val backgroundColor = if (category.isValidCategoryOverride()
-        && iconResource !is IconResource.DrawableResource
+    // The whole chain, memoised. `nameToResId` is already cached, but the rest
+    // of the resolution would otherwise re-run on every recomposition of the
+    // hottest list in the app.
+    val iconResource = remember(
+        merchantName, category, subcategory, categoryEntity, subcategoryEntity
     ) {
-        (iconResource as IconResource.VectorIcon).tint
-    } else {
-        val brandColor = BrandIcons.getBrandColor(merchantName)
-        brandColor?.let { Color(it.toColorInt()) }
-            ?: MaterialTheme.colorScheme.surfaceVariant
+        IconProvider.getTransactionIcon(
+            context = context,
+            merchantName = merchantName,
+            category = category,
+            subcategory = subcategory,
+            categoryEntity = categoryEntity,
+            subcategoryEntity = subcategoryEntity
+        )
+    }
+
+    val backgroundColor = when {
+        iconResource is IconResource.DrawableResource -> {
+            BrandIcons.getBrandColor(merchantName)?.let { Color(it.toColorInt()) }
+                ?: surfaceVariant
+        }
+        // Same chain as the icon, so the circle and the glyph can never
+        // disagree about which entity won.
+        categoryEntity != null || subcategoryEntity != null -> {
+            IconProvider.getTransactionIconColor(
+                merchantName = merchantName,
+                category = category,
+                categoryEntity = categoryEntity,
+                subcategoryEntity = subcategoryEntity,
+                fallback = surfaceVariant
+            )
+        }
+        category.isValidCategoryOverride() && iconResource is IconResource.VectorIcon -> {
+            iconResource.tint
+        }
+        else -> {
+            BrandIcons.getBrandColor(merchantName)?.let { Color(it.toColorInt()) }
+                ?: surfaceVariant
+        }
     }
     
     Box(
@@ -56,7 +96,17 @@ fun BrandIcon(
                     Modifier
                         .clip(CircleShape)
                         .background(backgroundColor)
-                        .padding(8.dp)
+                        // No inner padding for drawable-backed icons: a brand
+                        // logo and a category asset are finished artwork with
+                        // their own margins, and 8dp more shrinks them visibly.
+                        // Vector fallbacks are bare glyphs and still want it.
+                        .then(
+                            if (iconResource is IconResource.VectorIcon) {
+                                Modifier.padding(8.dp)
+                            } else {
+                                Modifier
+                            }
+                        )
                 } else {
                     Modifier
                 }
@@ -73,8 +123,9 @@ fun BrandIcon(
                 )
             }
             is IconResource.TintedResIcon -> {
-                // Same body as DrawableResource for now -- applying the tint is
-                // doc 18's job (see IconResource.TintedResIcon kdoc).
+                // Rendered full-colour. These assets are multi-colour artwork —
+                // applying a tint would flatten each one to a silhouette, which
+                // is the opposite of why the user picked it.
                 Image(
                     painter = painterResource(id = iconResource.resId),
                     contentDescription = merchantName,

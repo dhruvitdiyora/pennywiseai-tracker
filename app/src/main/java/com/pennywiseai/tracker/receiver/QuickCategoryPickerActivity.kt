@@ -117,6 +117,11 @@ class QuickCategoryPickerActivity : ComponentActivity() {
             QuickCategoryPickerSheet(
                 currentCategory = txn.category,
                 categories = categories,
+                // Flat, one tap. This sheet exists so a notification can be
+                // dealt with in as few taps as possible from outside the app;
+                // a drill-in level would be a regression in exactly the flow
+                // where speed matters most (ui-revamp doc 17 step 1).
+                allowSubcategoryDrillIn = false,
                 onCategorySelected = { newCategory ->
                     if (newCategory != txn.category) {
                         appScope.launch {

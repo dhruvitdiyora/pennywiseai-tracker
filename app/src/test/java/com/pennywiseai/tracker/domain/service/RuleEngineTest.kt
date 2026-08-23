@@ -47,6 +47,106 @@ class RuleEngineTest {
         actions = listOf(action)
     )
 
+    // --- SUBCATEGORY (ui-revamp doc 19) ---
+
+    private fun txnWithSubcategory(subcategory: String?) = TransactionEntity(
+        amount = BigDecimal("100.00"),
+        merchantName = "Coffee Shop",
+        category = "Food & Dining",
+        subcategory = subcategory,
+        transactionType = TransactionType.EXPENSE,
+        dateTime = LocalDateTime.of(2026, 1, 1, 10, 0),
+        transactionHash = "hash-sub"
+    )
+
+    @Test
+    fun `SET subcategory action sets it`() {
+        val (result, applications) = engine.evaluateRules(
+            txnWithSubcategory(null),
+            smsText = null,
+            rules = listOf(
+                rule(RuleAction(TransactionField.SUBCATEGORY, ActionType.SET, "Tea & Coffee"))
+            )
+        )
+
+        assertEquals("Tea & Coffee", result.subcategory)
+        assertTrue(applications.isNotEmpty())
+    }
+
+    @Test
+    fun `CLEAR subcategory action nulls it rather than emptying it`() {
+        // The column is nullable, so "" would be a second spelling of "none"
+        // that every reader would then have to know about.
+        val (result, _) = engine.evaluateRules(
+            txnWithSubcategory("Tea & Coffee"),
+            smsText = null,
+            rules = listOf(
+                rule(RuleAction(TransactionField.SUBCATEGORY, ActionType.CLEAR, ""))
+            )
+        )
+
+        assertNull(result.subcategory)
+    }
+
+    @Test
+    fun `SUBCATEGORY condition matches on the value`() {
+        val matching = TransactionRule(
+            name = "rule",
+            conditions = listOf(
+                RuleCondition(TransactionField.SUBCATEGORY, ConditionOperator.CONTAINS, "Coffee")
+            ),
+            actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Matched"))
+        )
+
+        val (result, applications) = engine.evaluateRules(
+            txnWithSubcategory("Tea & Coffee"), smsText = null, rules = listOf(matching)
+        )
+
+        assertEquals("Matched", result.category)
+        assertTrue(applications.isNotEmpty())
+    }
+
+    @Test
+    fun `SUBCATEGORY EQUALS empty string matches a transaction with no subcategory`() {
+        // Reading a null subcategory as "" is what makes this rule expressible —
+        // "everything not yet filed under a subcategory" is a genuinely useful
+        // thing to automate.
+        val rule = TransactionRule(
+            name = "rule",
+            conditions = listOf(
+                RuleCondition(TransactionField.SUBCATEGORY, ConditionOperator.EQUALS, "")
+            ),
+            actions = listOf(
+                RuleAction(TransactionField.SUBCATEGORY, ActionType.SET, "Uncategorised")
+            )
+        )
+
+        val (result, applications) = engine.evaluateRules(
+            txnWithSubcategory(null), smsText = null, rules = listOf(rule)
+        )
+
+        assertEquals("Uncategorised", result.subcategory)
+        assertTrue(applications.isNotEmpty())
+    }
+
+    @Test
+    fun `SUBCATEGORY condition does not match a different value`() {
+        val rule = TransactionRule(
+            name = "rule",
+            conditions = listOf(
+                RuleCondition(TransactionField.SUBCATEGORY, ConditionOperator.EQUALS, "Fuel")
+            ),
+            actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Matched"))
+        )
+
+        val (result, applications) = engine.evaluateRules(
+            txnWithSubcategory("Tea & Coffee"), smsText = null, rules = listOf(rule)
+        )
+
+        assertEquals("Food & Dining", result.category)
+        assertTrue(applications.isEmpty())
+    }
+
     @Test
     fun `SET account action sets the bank name`() {
         val (result, applications) = engine.evaluateRules(

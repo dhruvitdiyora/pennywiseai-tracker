@@ -109,6 +109,7 @@ enum class TransactionField {
     AMOUNT,                  // Transaction amount
     TYPE,                    // A TransactionType name: INCOME, EXPENSE, CREDIT, TRANSFER, or INVESTMENT
     CATEGORY,                // Transaction category
+    SUBCATEGORY,             // Transaction subcategory; "" when unset
     MERCHANT,                // Merchant/vendor name
     NARRATION,               // Description/notes
     SMS_TEXT,                // Original SMS text

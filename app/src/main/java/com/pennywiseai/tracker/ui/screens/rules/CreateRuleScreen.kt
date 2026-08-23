@@ -632,6 +632,7 @@ fun CreateRuleScreen(
                                         TransactionField.AMOUNT -> "amount"
                                         TransactionField.TYPE -> "type"
                                         TransactionField.CATEGORY -> "category"
+                                        TransactionField.SUBCATEGORY -> "subcategory"
                                         TransactionField.MERCHANT -> "merchant"
                                         TransactionField.NARRATION -> "description"
                                         TransactionField.SMS_TEXT -> "SMS text"
@@ -687,6 +688,7 @@ fun CreateRuleScreen(
                                     } else {
                                         append(when(action.field) {
                                             TransactionField.CATEGORY -> "set category to "
+                                            TransactionField.SUBCATEGORY -> "set subcategory to "
                                             TransactionField.MERCHANT -> "set merchant to "
                                             TransactionField.TYPE -> "set type to "
                                             TransactionField.NARRATION -> "set description to "
@@ -753,6 +755,7 @@ private fun ConditionFieldSelector(
             TransactionField.AMOUNT to "Amount",
             TransactionField.TYPE to "Transaction Type",
             TransactionField.CATEGORY to "Category",
+            TransactionField.SUBCATEGORY to "Subcategory",
             TransactionField.MERCHANT to "Merchant",
             TransactionField.SMS_TEXT to "SMS Text",
             TransactionField.BANK_NAME to "Bank Name",
@@ -1045,6 +1048,7 @@ private fun ConditionFieldSelector(
                             TransactionField.MERCHANT -> "e.g., Swiggy"
                             TransactionField.SMS_TEXT -> "e.g., salary"
                             TransactionField.CATEGORY -> "e.g., Food & Dining"
+                            TransactionField.SUBCATEGORY -> "e.g., Tea & Coffee"
                             TransactionField.BANK_NAME -> "e.g., HDFC Bank"
                             else -> "Enter value"
                         }
@@ -1183,6 +1187,7 @@ private fun ActionEditor(
                 TextField(
                     value = when(action.field) {
                         TransactionField.CATEGORY -> "Set Category"
+                        TransactionField.SUBCATEGORY -> "Set Subcategory"
                         TransactionField.MERCHANT -> "Set Merchant Name"
                         TransactionField.TYPE -> "Set Transaction Type"
                         TransactionField.NARRATION -> "Set Description"
@@ -1201,6 +1206,7 @@ private fun ActionEditor(
                 ) {
                     listOf(
                         TransactionField.CATEGORY to "Set Category",
+                        TransactionField.SUBCATEGORY to "Set Subcategory",
                         TransactionField.MERCHANT to "Set Merchant Name",
                         TransactionField.TYPE to "Set Transaction Type",
                         TransactionField.NARRATION to "Set Description",
