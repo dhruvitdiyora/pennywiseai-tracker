@@ -441,23 +441,12 @@ class HomeViewModel @Inject constructor(
                 val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-                // regularAccounts/creditCards are already pre-converted by
-                // convertAccountEntities (currency == selectedCurrency for everything it
-                // could convert). So just sum their balances; anything still in a foreign
-                // currency is one we couldn't get a rate for — add its raw amount as a
-                // best-effort fallback and flag the total as approximate.
-                var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-                var hasApproximateBalance = false
-                for (account in regularAccounts) {
-                    totalBalanceInSelectedCurrency += account.balance
-                    if (account.currency != selectedCurrency) hasApproximateBalance = true
-                }
-
-                var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-                for (card in creditCards) {
-                    totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                    if (card.currency != selectedCurrency) hasApproximateBalance = true
-                }
+                val accountTotals = calculateAccountTotals(
+                    regularAccounts = regularAccounts,
+                    creditCards = creditCards,
+                    selectedCurrency = selectedCurrency,
+                    isUnifiedMode = isUnified
+                )
 
                 // Update available currencies to include account currencies
                 val currentAvailableCurrencies = _uiState.value.availableCurrencies.toSet()
@@ -471,17 +460,17 @@ class HomeViewModel @Inject constructor(
                     }
 
                 // Balance is ready as soon as we have account data.
-                // Conversion failures are non-blocking — convertAmount returns the
-                // original amount as fallback, so no account is silently dropped.
+                // Conversion failures are non-blocking. Their native-currency rows remain
+                // visible, but they cannot participate in a selected-currency total.
 
                 _uiState.value = _uiState.value.copy(
                     accountBalances = regularAccounts,  // Pre-converted in unified mode
                     creditCards = creditCards,           // Pre-converted in unified mode
-                    totalBalance = totalBalanceInSelectedCurrency,
-                    totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
+                    totalBalance = accountTotals.totalBalance,
+                    totalAvailableCredit = accountTotals.totalAvailableCredit,
                     availableCurrencies = updatedAvailableCurrencies,
                     isBalanceReady = true,
-                    isApproximateBalance = hasApproximateBalance
+                    isApproximateBalance = accountTotals.excludedAccountCount > 0
                 )
             }
         }
@@ -922,27 +911,20 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalance = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalance += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-            var totalAvailableCredit = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCredit += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            val accountTotals = calculateAccountTotals(
+                regularAccounts = regularAccounts,
+                creditCards = creditCards,
+                selectedCurrency = selectedCurrency,
+                isUnifiedMode = isUnified
+            )
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
-                totalBalance = totalBalance,
-                totalAvailableCredit = totalAvailableCredit,
+                totalBalance = accountTotals.totalBalance,
+                totalAvailableCredit = accountTotals.totalAvailableCredit,
                 isBalanceReady = true,
-                isApproximateBalance = hasApproximateBalance
+                isApproximateBalance = accountTotals.excludedAccountCount > 0
             )
         }
     }
@@ -1037,28 +1019,20 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalanceInSelectedCurrency += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-
-            var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            val accountTotals = calculateAccountTotals(
+                regularAccounts = regularAccounts,
+                creditCards = creditCards,
+                selectedCurrency = selectedCurrency,
+                isUnifiedMode = isUnified
+            )
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
-                totalBalance = totalBalanceInSelectedCurrency,
-                totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
+                totalBalance = accountTotals.totalBalance,
+                totalAvailableCredit = accountTotals.totalAvailableCredit,
                 isBalanceReady = true,
-                isApproximateBalance = hasApproximateBalance
+                isApproximateBalance = accountTotals.excludedAccountCount > 0
             )
         }
     }
@@ -1579,6 +1553,45 @@ class HomeViewModel @Inject constructor(
         const val MIN_TRANSACTIONS_FOR_SHARE_PROMPT = 20
     }
 
+}
+
+internal data class AccountTotals(
+    val totalBalance: BigDecimal,
+    val totalAvailableCredit: BigDecimal,
+    val excludedAccountCount: Int
+)
+
+/**
+ * Produces the single-currency figures shown on Home from account entities that have already
+ * gone through [HomeViewModel.convertAccountEntities]. Native mode deliberately selects one
+ * currency; in unified mode, a remaining foreign-currency entity represents a failed conversion.
+ */
+internal fun calculateAccountTotals(
+    regularAccounts: List<AccountBalanceEntity>,
+    creditCards: List<AccountBalanceEntity>,
+    selectedCurrency: String,
+    isUnifiedMode: Boolean
+): AccountTotals {
+    val balancesByCurrency = regularAccounts.sumByCurrency(
+        currencySelector = { it.currency },
+        amountSelector = { it.balance }
+    )
+    val availableCreditByCurrency = creditCards.sumByCurrency(
+        currencySelector = { it.currency },
+        amountSelector = { (it.creditLimit ?: BigDecimal.ZERO) - it.balance }
+    )
+    val excludedAccountCount = if (isUnifiedMode) {
+        regularAccounts.count { it.currency != selectedCurrency } +
+            creditCards.count { it.currency != selectedCurrency }
+    } else {
+        0
+    }
+
+    return AccountTotals(
+        totalBalance = balancesByCurrency[selectedCurrency]?.amount ?: BigDecimal.ZERO,
+        totalAvailableCredit = availableCreditByCurrency[selectedCurrency]?.amount ?: BigDecimal.ZERO,
+        excludedAccountCount = excludedAccountCount
+    )
 }
 
 data class HomeUiState(

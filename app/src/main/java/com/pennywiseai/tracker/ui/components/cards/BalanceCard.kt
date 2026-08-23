@@ -102,6 +102,9 @@ fun BalanceCard(
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
+    val excludedAccountCount =
+        accountBalances.count { it.currency != currency } +
+            creditCards.count { it.currency != currency }
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -482,7 +485,11 @@ fun BalanceCard(
                             if (isApproximate) {
                                 Spacer(modifier = Modifier.height(Spacing.xs))
                                 Text(
-                                    text = stringResource(R.string.balance_card_approximate_note),
+                                    text = pluralStringResource(
+                                        R.plurals.balance_card_excluded_accounts_note,
+                                        excludedAccountCount,
+                                        excludedAccountCount
+                                    ),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.fillMaxWidth()
