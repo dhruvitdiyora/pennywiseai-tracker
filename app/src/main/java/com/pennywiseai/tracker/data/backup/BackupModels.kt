@@ -90,6 +90,9 @@ data class BackupStatistics(
     @SerialName("total_categories")
     val totalCategories: Int = 0,
 
+    @SerialName("total_subcategories")
+    val totalSubcategories: Int = 0,
+
     @SerialName("total_cards")
     val totalCards: Int = 0,
 
@@ -165,6 +168,13 @@ data class DatabaseSnapshot(
 
     @SerialName("categories")
     val categories: List<CategoryEntity> = emptyList(),
+
+    /**
+     * Defaulted so a backup written before schema 60 — which has no
+     * `subcategories` key at all — still deserialises (hard constraint 3).
+     */
+    @SerialName("subcategories")
+    val subcategories: List<SubcategoryEntity> = emptyList(),
 
     @SerialName("cards")
     val cards: List<CardEntity> = emptyList(),

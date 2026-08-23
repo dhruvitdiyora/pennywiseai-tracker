@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.SubcategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
@@ -147,6 +148,12 @@ object DatabaseModule {
     @Singleton
     fun provideCategoryDao(database: PennyWiseDatabase): CategoryDao {
         return database.categoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSubcategoryDao(database: PennyWiseDatabase): SubcategoryDao {
+        return database.subcategoryDao()
     }
     
     /**
@@ -299,11 +306,26 @@ class DatabaseCallback : RoomDatabase.Callback() {
     private fun seedCategories(db: SupportSQLiteDatabase) {
         val categories = DefaultCategoryData.ALL
 
+        // This is the ONLY live seeding path for a fresh install. (Migration7To8 also
+        // inserts these rows, but for installs coming from v7 — it must NOT write the
+        // columns below, which do not exist until 59. Those rows are filled in later
+        // by CategoryRepository.backfillSystemCategoryDefaults().)
+        //
+        // `default_*` mirror the live values at creation time so a user can edit a
+        // built-in category and still restore it.
         categories.forEachIndexed { index, seed ->
             db.execSQL("""
-                INSERT OR IGNORE INTO categories (name, color, is_system, is_income, display_order, created_at, updated_at)
-                VALUES (?, ?, 1, ?, ?, datetime('now'), datetime('now'))
-            """.trimIndent(), arrayOf<Any>(seed.name, seed.colorHex, if (seed.isIncome) 1 else 0, index + 1))
+                INSERT OR IGNORE INTO categories (
+                    name, color, is_system, is_income, display_order, created_at, updated_at,
+                    icon_name, description,
+                    default_name, default_color, default_icon_name, default_description
+                )
+                VALUES (?, ?, 1, ?, ?, datetime('now'), datetime('now'), ?, '', ?, ?, ?, '')
+            """.trimIndent(), arrayOf<Any>(
+                seed.name, seed.colorHex, if (seed.isIncome) 1 else 0, index + 1,
+                seed.iconName,
+                seed.name, seed.colorHex, seed.iconName
+            ))
         }
     }
 

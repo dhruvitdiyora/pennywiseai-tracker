@@ -136,11 +136,40 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE loan_id IS NULL AND group_id IS NULL")
     suspend fun deleteUncuratedTransactions()
     
-    @Query("UPDATE transactions SET category = :newCategory WHERE merchant_name = :merchantName")
+    /**
+     * Bulk "recategorise everything from this merchant".
+     *
+     * Clearing `subcategory` is deliberate: it belonged to the *previous*
+     * category and would be orphaned under the new one — "Fuel" under
+     * Transportation means nothing once the row is moved to Groceries.
+     */
+    @Query("UPDATE transactions SET category = :newCategory, subcategory = NULL WHERE merchant_name = :merchantName")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
 
     @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
     suspend fun updateCategoryById(transactionId: Long, category: String, updatedAt: LocalDateTime)
+
+    /**
+     * Sibling of [updateCategoryById] that also sets the subcategory. A separate
+     * query rather than an extra parameter on that one, because its existing
+     * callers mean "change only the category" and must keep doing so.
+     */
+    @Query("UPDATE transactions SET category = :category, subcategory = :subcategory, updated_at = :updatedAt WHERE id = :transactionId")
+    suspend fun updateCategoryAndSubcategory(
+        transactionId: Long,
+        category: String,
+        subcategory: String?,
+        updatedAt: LocalDateTime
+    )
+
+    /**
+     * Used to decide whether a category's income/expense type may still be
+     * flipped. Counts deleted rows too — they can be restored, and restoring one
+     * into a category whose type changed underneath it is the corruption this
+     * guards against.
+     */
+    @Query("SELECT COUNT(*) FROM transactions WHERE category = :category")
+    suspend fun getTransactionCountForCategory(category: String): Int
 
     @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName AND id != :excludeId")
     suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int

@@ -36,6 +36,10 @@ interface CategoryDao {
     
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun getCategoryCount(): Int
+
+    /** One-shot read for the 58→59 backfill; the Flow variants are for UI. */
+    @Query("SELECT * FROM categories WHERE is_system = 1")
+    suspend fun getSystemCategories(): List<CategoryEntity>
     
     @Query("SELECT EXISTS(SELECT 1 FROM categories WHERE name = :categoryName)")
     suspend fun categoryExists(categoryName: String): Boolean

@@ -26,6 +26,8 @@ class AddTransactionUseCase @Inject constructor(
         amount: BigDecimal,
         merchant: String,
         category: String,
+        /** Optional refinement under [category]; see ui-revamp doc 17. */
+        subcategory: String? = null,
         type: TransactionType,
         date: LocalDateTime,
         notes: String? = null,
@@ -50,6 +52,7 @@ class AddTransactionUseCase @Inject constructor(
             amount = amount,
             merchantName = merchant,
             category = category,
+            subcategory = subcategory,
             transactionType = type,
             dateTime = date,
             description = notes,

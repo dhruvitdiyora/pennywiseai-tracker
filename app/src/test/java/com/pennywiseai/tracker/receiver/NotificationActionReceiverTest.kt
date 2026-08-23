@@ -69,6 +69,7 @@ class NotificationActionReceiverTest {
         override fun merchantMappingDao(): MerchantMappingDao = error("unused")
         override fun merchantAliasDao(): MerchantAliasDao = error("unused")
         override fun categoryDao(): CategoryDao = error("unused")
+        override fun subcategoryDao(): SubcategoryDao = error("unused")
         override fun accountBalanceDao(): AccountBalanceDao = error("unused")
         override fun unrecognizedSmsDao(): UnrecognizedSmsDao = error("unused")
         override fun cardDao(): CardDao = error("unused")

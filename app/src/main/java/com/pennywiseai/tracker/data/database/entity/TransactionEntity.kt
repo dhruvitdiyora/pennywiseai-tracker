@@ -28,6 +28,20 @@ data class TransactionEntity(
     
     @ColumnInfo(name = "category")
     val category: String,
+
+    /**
+     * Subcategory *name*, not id — mirroring [category]. Nullable because most
+     * transactions have none: the parser never sets one, and a user only picks
+     * a subcategory when the extra granularity is worth the tap.
+     *
+     * Not a foreign key, deliberately. Renaming a subcategory must not have to
+     * rewrite every row, and a backup import must not be able to fail on a
+     * dangling reference. Resolution to a `SubcategoryEntity` is by name,
+     * scoped to the row's category, and is **allowed to miss** — a stale name
+     * falls back to showing the category alone rather than erroring.
+     */
+    @ColumnInfo(name = "subcategory")
+    val subcategory: String? = null,
     
     @ColumnInfo(name = "transaction_type")
     val transactionType: TransactionType,

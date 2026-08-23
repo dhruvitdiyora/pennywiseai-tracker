@@ -34,6 +34,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
 
+    @Inject
+    lateinit var categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository
+
+    @Inject
+    lateinit var subcategoryRepository: com.pennywiseai.tracker.data.repository.SubcategoryRepository
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -54,6 +60,23 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+
+        // Schema 58→59 added icon and reset-to-default columns to categories.
+        // Rows created before that — by an older install, or by Migration7To8,
+        // which cannot write columns that do not exist at version 8 — arrive with
+        // empty icons. Fill them from the seed table once per launch; the call is
+        // idempotent and writes nothing when there is nothing to fill.
+        applicationScope.launch {
+            try {
+                categoryRepository.backfillSystemCategoryDefaults()
+                // Strictly after the backfill: the seeder resolves parents by
+                // name against rows the backfill may just have completed, and a
+                // seed whose parent is missing is dropped rather than retried.
+                subcategoryRepository.initializeDefaultSubcategories()
+            } catch (e: Exception) {
+                android.util.Log.w("PennyWiseApp", "Category bootstrap failed: ${e.message}", e)
+            }
+        }
 
         // Initial billing-entitlement sync. No-op on F-Droid (the stub
         // gateway returns immediately). Failure here is non-fatal — the

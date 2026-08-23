@@ -113,6 +113,10 @@ class BackupImporter @Inject constructor(
             try {
                 // Clear existing data
                 database.transactionDao().deleteAllTransactions()
+                // Subcategories would go with the categories by cascade, but
+                // clear them explicitly so this does not depend on the FK
+                // surviving a future schema change.
+                database.subcategoryDao().deleteAll()
                 database.categoryDao().deleteAllCategories()
                 database.cardDao().deleteAllCards()
                 database.accountBalanceDao().deleteAllBalances()
@@ -186,6 +190,13 @@ class BackupImporter @Inject constructor(
                 backup.database.categories.insertEachCounting({ skippedRows++ }) { category ->
                     database.categoryDao().insertCategory(category)
                     importedCategories++
+                }
+
+                // Immediately after categories: the FK rejects a subcategory whose
+                // parent is not in the table yet. Replace mode keeps the backup's
+                // own category ids, so `categoryId` still points at the right row.
+                backup.database.subcategories.insertEachCounting({ skippedRows++ }) { subcategory ->
+                    database.subcategoryDao().insertSubcategory(subcategory)
                 }
 
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
@@ -321,6 +332,36 @@ class BackupImporter @Inject constructor(
                         val newCategory = category.copy(id = 0)
                         database.categoryDao().insertCategory(newCategory)
                         importedCategories++
+                    }
+                }
+
+                // Subcategories, merge mode. The backup's `categoryId` is useless
+                // here: merge inserts categories with id = 0 so Room assigns fresh
+                // ids, and pre-existing categories are skipped entirely. Resolving
+                // the parent by NAME is the only correct mapping — using the raw
+                // id would silently file every subcategory under whatever category
+                // happens to hold that id locally.
+                run {
+                    val backupCategoryNameById = backup.database.categories
+                        .associateBy({ it.id }, { it.name })
+                    val localCategoryIdByName = database.categoryDao()
+                        .getAllCategories().first()
+                        .associateBy({ it.name }, { it.id })
+
+                    backup.database.subcategories.insertEachCounting({ skippedRows++ }) { subcategory ->
+                        val parentName = backupCategoryNameById[subcategory.categoryId]
+                        val localParentId = parentName?.let { localCategoryIdByName[it] }
+                        if (localParentId != null &&
+                            database.subcategoryDao()
+                                .getByCategoryAndName(localParentId, subcategory.name) == null
+                        ) {
+                            database.subcategoryDao().insertSubcategory(
+                                subcategory.copy(id = 0, categoryId = localParentId)
+                            )
+                        }
+                        // A subcategory whose parent is not in the backup, or was
+                        // not imported, is dropped rather than orphaned. Counting it
+                        // as skipped keeps the import report honest.
                     }
                 }
 

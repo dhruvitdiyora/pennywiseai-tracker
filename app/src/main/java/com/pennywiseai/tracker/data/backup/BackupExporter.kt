@@ -62,6 +62,7 @@ class BackupExporter @Inject constructor(
         // Get all database data
         val transactions = database.transactionDao().getAllTransactions().first()
         val categories = database.categoryDao().getAllCategories().first()
+        val subcategories = database.subcategoryDao().getAllOnce()
         val cards = database.cardDao().getAllCards().first()
         val accountBalances = database.accountBalanceDao().getAllBalances().first()
         val subscriptions = database.subscriptionDao().getAllSubscriptions().first()
@@ -155,6 +156,7 @@ class BackupExporter @Inject constructor(
                 statistics = BackupStatistics(
                     totalTransactions = finalTransactions.size,
                     totalCategories = categories.size,
+                    totalSubcategories = subcategories.size,
                     totalCards = cards.size,
                     totalSubscriptions = subscriptions.size,
                     totalRules = exportedRules.size,
@@ -176,6 +178,7 @@ class BackupExporter @Inject constructor(
             database = DatabaseSnapshot(
                 transactions = finalTransactions,
                 categories = categories,
+                subcategories = subcategories,
                 cards = cards,
                 accountBalances = accountBalances,
                 subscriptions = subscriptions,

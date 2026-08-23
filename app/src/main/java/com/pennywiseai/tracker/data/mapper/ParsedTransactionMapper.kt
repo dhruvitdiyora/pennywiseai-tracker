@@ -36,6 +36,11 @@ fun ParsedTransaction.toEntity(): TransactionEntity {
         amount = amount,
         merchantName = normalizedMerchant ?: "Unknown Merchant",
         category = determineCategory(merchant, entityType),
+        // The parser has no notion of subcategories — `parser-core` contains no
+        // category logic at all. They exist only as a manual refinement or via
+        // a rule (docs/ui-revamp/19-rules-subcategory.md). Explicit rather than
+        // defaulted so this reads as a decision, not an omission.
+        subcategory = null,
         transactionType = entityType,
         dateTime = dateTime,
         description = null,

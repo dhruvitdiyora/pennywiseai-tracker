@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.SubcategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
@@ -42,6 +43,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.SubcategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
@@ -62,7 +64,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 58
+const val SCHEMA_VERSION = 61
 
 /**
  * The PennyWise Room database.
@@ -75,7 +77,7 @@ const val SCHEMA_VERSION = 58
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class, SubcategoryEntity::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -127,7 +129,18 @@ const val SCHEMA_VERSION = 58
         AutoMigration(from = 55, to = 56),
         // 56→57 adds a nullable account_last4 column to subscriptions — a pure
         // additive change, so Room generates the ALTER TABLE automatically (#570).
-        AutoMigration(from = 56, to = 57)
+        AutoMigration(from = 56, to = 57),
+        // 58→59 adds icon, description and reset-to-default columns to `categories`.
+        // Purely additive — every column is nullable or carries a `defaultValue` —
+        // so Room generates the ALTER TABLEs. (57→58 was manual because it added a
+        // foreign key and indices; this one does not.)
+        AutoMigration(from = 58, to = 59),
+        // 60→61 adds a nullable `subcategory` column to transactions (#374).
+        // Purely additive, so Room generates the ALTER TABLE. `transactions` is
+        // the largest table here, but ADD COLUMN with a NULL default is O(1) in
+        // SQLite — it rewrites the header, not the rows — so this stays fast on
+        // a large install. Do not replace it with a hand-rolled table copy.
+        AutoMigration(from = 60, to = 61)
     ]
 )
 @TypeConverters(Converters::class)
@@ -138,6 +151,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun merchantMappingDao(): MerchantMappingDao
     abstract fun merchantAliasDao(): MerchantAliasDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun subcategoryDao(): SubcategoryDao
     abstract fun accountBalanceDao(): AccountBalanceDao
     abstract fun unrecognizedSmsDao(): UnrecognizedSmsDao
     abstract fun cardDao(): CardDao
@@ -626,6 +640,23 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_59_60 = object : Migration(59, 60) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Subcategories, one level under a category (#374).
+                //
+                // Hand-written rather than an AutoMigration because this adds a
+                // table with a foreign key and two indices — the same shape as
+                // 57→58. The SQL below is copied verbatim out of Room's generated
+                // schemas/.../60.json (with `${TABLE_NAME}` substituted), so the
+                // migrated database matches the compiled identity hash. Do not
+                // retype it from memory; a single differing space fails the hash
+                // check at runtime, not at build time.
+                db.execSQL("CREATE TABLE IF NOT EXISTS `subcategories` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `category_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `icon_name` TEXT NOT NULL DEFAULT '', `icon_res_id` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#757575', `is_system` INTEGER NOT NULL DEFAULT 0, `default_name` TEXT, `default_icon_name` TEXT, `default_color` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_subcategories_category_id` ON `subcategories` (`category_id`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_subcategories_category_id_name` ON `subcategories` (`category_id`, `name`)")
+            }
+        }
+
         /**
          * Single source of truth for the migration list. Both the Hilt-built
          * database (DatabaseModule.providePennyWiseDatabase) and the
@@ -654,6 +685,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_53_54,
             MIGRATION_54_55,
             MIGRATION_57_58,
+            MIGRATION_59_60,
         )
     }
     

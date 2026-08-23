@@ -213,6 +213,23 @@ open class TransactionRepository @Inject constructor(
     suspend fun updateCategory(transactionId: Long, category: String) {
         transactionDao.updateCategoryById(transactionId, category, LocalDateTime.now())
     }
+
+    /**
+     * Sets both fields together.
+     *
+     * Separate from [updateCategory] rather than an extra parameter on it: that
+     * one means "change only the category" to its existing callers, and they
+     * must keep meaning that. Uses doc 12's paired query rather than two writes.
+     */
+    suspend fun updateCategoryAndSubcategory(
+        transactionId: Long,
+        category: String,
+        subcategory: String?
+    ) {
+        transactionDao.updateCategoryAndSubcategory(
+            transactionId, category, subcategory, LocalDateTime.now()
+        )
+    }
     
     suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)
