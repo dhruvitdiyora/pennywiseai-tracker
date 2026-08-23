@@ -420,13 +420,7 @@ fun HomeScreen(
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                // Whichever obstruction is taller — the nav bar, or the FAB
-                // stack sitting `fabBottomInset` above the bottom edge — plus
-                // a gap so the last row clears it rather than touching it.
-                bottom = maxOf(
-                    Dimensions.Component.bottomBarHeight,
-                    Dimensions.Component.fabBottomInset + fabStackHeight
-                ) + Spacing.md
+                bottom = Dimensions.Component.fabListBottomClearance(fabStackHeight)
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -1604,4 +1598,3 @@ private fun MenuListItem(
         )
     }
 }
-

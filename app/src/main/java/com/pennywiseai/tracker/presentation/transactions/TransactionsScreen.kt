@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.res.stringResource
@@ -288,6 +289,8 @@ fun TransactionsScreen(
     // 80.dp strip the Scaffold inset here doesn't know about, so the list + FAB
     // stack need matching bottom clearance (whether or not a back arrow shows).
     val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
+    val fabStackBottomInset = bottomBarClearance + Dimensions.Padding.fab
+    var fabStackHeight by remember { mutableStateOf(0.dp) }
 
     Scaffold(
         modifier = modifier
@@ -364,7 +367,15 @@ fun TransactionsScreen(
         },
         floatingActionButton = {
             Column(
-                modifier = Modifier.padding(bottom = bottomBarClearance),
+                modifier = Modifier
+                    .padding(bottom = bottomBarClearance)
+                    // The padding above belongs to Scaffold placement, not the
+                    // stack itself. Measure the conditional export/add stack so
+                    // terminal list padding remains correct if its height changes.
+                    .onGloballyPositioned { coords ->
+                        val measured = with(density) { coords.size.height.toDp() }
+                        if (measured != fabStackHeight) fabStackHeight = measured
+                    },
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 // Export FAB (only show if transactions exist)
@@ -402,6 +413,13 @@ fun TransactionsScreen(
             }
         }
     ) { paddingValues ->
+        val listBottomPadding = paddingValues.calculateBottomPadding() +
+            Dimensions.Component.fabListBottomClearance(
+                fabStackHeight = fabStackHeight,
+                bottomObstruction = bottomBarClearance,
+                stackBottomInset = fabStackBottomInset
+            )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -508,7 +526,7 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
+                        bottom = listBottomPadding
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
@@ -545,7 +563,7 @@ fun TransactionsScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Spacing.md,
-                        bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
+                        bottom = listBottomPadding
                     ),
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.theme
 
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -163,6 +164,20 @@ object Dimensions {
 
         /** How far a FAB stack sits above the bottom edge, clearing the nav bar. */
         val fabBottomInset = 96.dp
+
+        /**
+         * Terminal list padding for content beneath a floating action-button stack.
+         * The list clears whichever obstruction reaches higher, then leaves one
+         * standard content gap so the final row does not touch the buttons.
+         */
+        fun fabListBottomClearance(
+            fabStackHeight: Dp,
+            bottomObstruction: Dp = bottomBarHeight,
+            stackBottomInset: Dp = fabBottomInset,
+        ): Dp = maxOf(
+            bottomObstruction,
+            stackBottomInset + fabStackHeight,
+        ) + Spacing.md
     }
 
     // ── Motion ────────────────────────────────────────────────────────────
