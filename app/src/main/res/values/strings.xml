@@ -65,6 +65,84 @@
     <string name="search">Search</string>
     <string name="clear_search">Clear search</string>
     <string name="search_transactions">Search transactions…</string>
+    <string name="search_icons">Search icons</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <!-- Category edit sheet (ui-revamp doc 14). -->
+    <string name="category_choose_icon">Choose icon</string>
+    <!-- Subcategories (ui-revamp doc 15). -->
+    <string name="subcategory_none">No subcategories</string>
+    <string name="back">Back</string>
+    <string name="category_just_parent">Just %1$s</string>
+    <!-- Categories screen (ui-revamp doc 16). -->
+    <string name="categories_title">Categories</string>
+    <string name="categories_search">Search categories</string>
+    <string name="categories_filter">Filter</string>
+    <string name="categories_filter_all">All</string>
+    <string name="categories_add">Add category</string>
+    <string name="categories_system_badge">System</string>
+    <string name="categories_expense_section">Expense Categories</string>
+    <string name="categories_income_section">Income Categories</string>
+    <string name="categories_delete_title">Delete “%1$s”?</string>
+    <string name="categories_delete_body">Transactions already in this category keep their label, but will show as uncategorised.</string>
+    <plurals name="categories_delete_body_with_subs">
+        <item quantity="one">This also deletes its %1$d subcategory. Transactions already in this category keep their label, but will show as uncategorised.</item>
+        <item quantity="other">This also deletes its %1$d subcategories. Transactions already in this category keep their label, but will show as uncategorised.</item>
+    </plurals>
+    <string name="categories_empty_headline">No categories yet</string>
+    <string name="categories_empty_body">Categories group your spending. Add one to get started.</string>
+    <string name="categories_empty_search_headline">No categories found</string>
+    <string name="categories_empty_search_body">Nothing matches “%1$s” — not a category name, description, or subcategory.</string>
+    <string name="categories_empty_income_headline">No income categories yet</string>
+    <string name="categories_empty_expense_headline">No expense categories yet</string>
+    <string name="categories_empty_filter_body">Nothing matches this filter.</string>
+    <string name="subcategory_add">Add subcategory</string>
+    <string name="subcategory_name_placeholder">Subcategory name</string>
+    <string name="subcategory_under_parent">under %1$s</string>
+    <string name="subcategory_reset_confirm">Reset this subcategory to its original name, icon and colour (“%1$s”)? Your transactions are not changed.</string>
+    <string name="subcategory_delete_confirm">Delete “%1$s”? Transactions filed under it keep their category — they just stop showing this subcategory.</string>
+    <string name="category_change_icon">Change icon</string>
+    <string name="category_name_label">Name</string>
+    <string name="category_name_placeholder">Category name</string>
+    <string name="category_description_label">Description (optional)</string>
+    <string name="category_color_label">Colour</string>
+    <string name="category_type_locked_hint">This category already has transactions. Changing its type would move that spending between your income and expense totals.</string>
+    <string name="category_reset_to_default">Reset to default</string>
+    <string name="category_reset_action">Reset</string>
+    <string name="category_reset_confirm">Reset this category to its original name, icon and colour (“%1$s”)? Your transactions keep their category.</string>
+    <string name="category_delete_confirm">Delete “%1$s”? Transactions already in it keep the name.</string>
+    <string name="color_custom">Custom colour</string>
+    <string name="color_hue">Hue</string>
+    <string name="color_saturation">Saturation</string>
+    <string name="color_brightness">Brightness</string>
+    <string name="color_hex">Hex</string>
+    <string name="color_hex_error">Six hex digits, e.g. 1E88E5</string>
+    <string name="icon_none">No icon</string>
+    <string name="icon_search_empty_headline">No icons found</string>
+    <string name="icon_search_empty_description">Nothing matches “%1$s”. Try a shorter word, or the name of a group.</string>
+    <!-- Icon picker group headings. The keys stay English in IconCatalog; only
+         these labels are translated. Per-icon names are deliberately NOT
+         translated — 496 of them is not a reasonable ask, and the picture
+         carries the meaning. -->
+    <string name="icon_group_animals">Animals</string>
+    <string name="icon_group_beverages">Beverages</string>
+    <string name="icon_group_events_places">Events &amp; Places</string>
+    <string name="icon_group_finance">Finance</string>
+    <string name="icon_group_flowers_nature">Flowers &amp; Nature</string>
+    <string name="icon_group_food">Food</string>
+    <string name="icon_group_fruits">Fruits</string>
+    <string name="icon_group_groceries">Groceries</string>
+    <string name="icon_group_health">Health</string>
+    <string name="icon_group_human">Human</string>
+    <string name="icon_group_musical_instruments">Musical Instruments</string>
+    <string name="icon_group_shopping">Shopping</string>
+    <string name="icon_group_snacks">Snacks</string>
+    <string name="icon_group_sports">Sports</string>
+    <string name="icon_group_stationery">Stationery</string>
+    <string name="icon_group_sweets">Sweets</string>
+    <string name="icon_group_tools">Tools</string>
+    <string name="icon_group_travel">Travel</string>
+    <string name="icon_group_vegetables">Vegetables</string>
     <string name="search_in_format">Search in %1$s…</string>
     <string name="more_filters">More Filters</string>
     <string name="more_filters_active_format">More Filters (%1$d active)</string>
@@ -250,4 +328,10 @@
     <!-- Expandable list -->
     <string name="expandable_list_view_less">View Less</string>
     <string name="expandable_list_view_all_more">View All (%1$d more)</string>
+
+    <!-- Home balance conversion failures -->
+    <plurals name="balance_card_excluded_accounts_note">
+        <item quantity="one">* %1$d account was excluded because its balance could not be converted. The total may be understated.</item>
+        <item quantity="other">* %1$d accounts were excluded because their balances could not be converted. The total may be understated.</item>
+    </plurals>
 </resources>
