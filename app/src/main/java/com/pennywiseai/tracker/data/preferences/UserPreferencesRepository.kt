@@ -71,6 +71,8 @@ open class UserPreferencesRepository @Inject constructor(
         val LAST_SCAN_TIMESTAMP = longPreferencesKey("last_scan_timestamp")
         val LAST_SCAN_PERIOD = intPreferencesKey("last_scan_period")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
+        val HOME_WIDGET_LAYOUT = stringPreferencesKey("home_widget_layout")
+        val HOME_WIDGET_HIDDEN = stringPreferencesKey("home_widget_hidden")
 
         // Share card — which single figure the card leads with, and over what window
         val SHARE_CARD_HERO = stringPreferencesKey("share_card_hero")
@@ -167,6 +169,23 @@ open class UserPreferencesRepository @Inject constructor(
         // F-Droid support nudge: at most one contextual prompt per this many days.
         const val SUPPORT_NUDGE_COOLDOWN_DAYS = 30L
     }
+
+    val homeWidgetLayout: Flow<List<HomeWidget>> = context.dataStore.data.map { prefs ->
+        val hidden = prefs[PreferencesKeys.HOME_WIDGET_HIDDEN].orEmpty().split(',').mapNotNull { raw ->
+            HomeWidget.entries.firstOrNull { it.name == raw.trim() }
+        }.toSet()
+        HomeWidget.decode(prefs[PreferencesKeys.HOME_WIDGET_LAYOUT]).filterNot { it in hidden }
+    }
+
+    suspend fun updateHomeWidgetLayout(layout: List<HomeWidget>) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.HOME_WIDGET_LAYOUT] = layout.distinct().joinToString(",") { it.name }
+            prefs[PreferencesKeys.HOME_WIDGET_HIDDEN] = HomeWidget.entries
+                .filterNot { it in layout }.joinToString(",") { it.name }
+        }
+    }
+
+    suspend fun resetHomeWidgetLayout() = updateHomeWidgetLayout(HomeWidget.defaults)
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data
         .map { preferences ->

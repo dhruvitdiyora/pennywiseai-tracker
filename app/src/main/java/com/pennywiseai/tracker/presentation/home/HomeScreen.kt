@@ -150,6 +150,7 @@ fun HomeScreen(
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val groupSummaries by viewModel.groupSummaries.collectAsState()
+    val homeWidgets by viewModel.homeWidgets.collectAsState()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
 
@@ -161,6 +162,7 @@ fun HomeScreen(
 
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
+    var showEditWidgetsSheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     // Period the sheet should open on. The monthly banner points it at the finished
     // month; opening from the overflow menu uses whatever the user saved.
@@ -424,8 +426,9 @@ fun HomeScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
+            val visibleWidgets = homeWidgets.toSet()
             // 1. Balance Card (0ms delay)
-            item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.BALANCE in visibleWidgets) item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(0); visible.value = true }
@@ -502,7 +505,7 @@ fun HomeScreen(
             }
 
             // 1.5. Cash-flow card (25ms delay) — hides itself on dormant months.
-            item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.CASH_FLOW in visibleWidgets) item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(25); visible.value = true }
@@ -527,7 +530,7 @@ fun HomeScreen(
             }
 
             // 2. Budget Carousel (50ms delay)
-            uiState.budgetSummary?.let { summary ->
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.BUDGETS in visibleWidgets) uiState.budgetSummary?.let { summary ->
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -618,7 +621,7 @@ fun HomeScreen(
             // stays uncluttered for everyone else. Discovery was the ask:
             // groups only surfaced via Settings or a group card that happened
             // to have recent activity.
-            if (groupSummaries.isNotEmpty()) {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.GROUPS in visibleWidgets && groupSummaries.isNotEmpty()) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -665,7 +668,7 @@ fun HomeScreen(
             }
 
             // 3. Recent Transactions Section (100ms delay)
-            item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS in visibleWidgets) item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(100); visible.value = true }
@@ -713,7 +716,7 @@ fun HomeScreen(
                 }
             }
 
-            if (uiState.isLoading) {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS in visibleWidgets && uiState.isLoading) {
                 item {
                     Column(
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -724,7 +727,7 @@ fun HomeScreen(
                         }
                     }
                 }
-            } else if (uiState.recentItems.isEmpty()) {
+            } else if (com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS in visibleWidgets && uiState.recentItems.isEmpty()) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -756,7 +759,7 @@ fun HomeScreen(
                         )
                     }
                 }
-            } else {
+            } else if (com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS in visibleWidgets) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -800,7 +803,7 @@ fun HomeScreen(
             }
 
             // 4. Account Carousel (200ms delay)
-            if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.ACCOUNTS in visibleWidgets && (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty())) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -901,7 +904,7 @@ fun HomeScreen(
             }
 
             // 6. Heatmap Widget (300ms delay)
-            item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.ACTIVITY_HEATMAP in visibleWidgets) item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(300); visible.value = true }
@@ -1155,6 +1158,16 @@ fun HomeScreen(
                     }
                 )
 
+                MenuListItem(
+                    headline = "Edit widgets",
+                    icon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                    position = ListItemPosition.Middle,
+                    onClick = {
+                        showMenuSheet = false
+                        showEditWidgetsSheet = true
+                    }
+                )
+
                 // Join Discord (Middle)
                 MenuListItem(
                     headline = "Join Discord for feedback",
@@ -1216,6 +1229,15 @@ fun HomeScreen(
 
     // Pro upgrade sheet — triggered from the subtle ✨ chip in the top bar
     // for free users; reuses the same composable Settings uses.
+    if (showEditWidgetsSheet) {
+        EditWidgetsSheet(
+            layout = homeWidgets,
+            onSave = viewModel::updateHomeWidgets,
+            onReset = viewModel::resetHomeWidgets,
+            onDismiss = { showEditWidgetsSheet = false }
+        )
+    }
+
     if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },

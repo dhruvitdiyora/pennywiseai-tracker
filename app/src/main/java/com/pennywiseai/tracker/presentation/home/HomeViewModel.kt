@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.HomeWidget
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
@@ -89,6 +90,16 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
 ) : ViewModel() {
+    val homeWidgets: StateFlow<List<HomeWidget>> = userPreferencesRepository.homeWidgetLayout
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeWidget.defaults)
+
+    fun updateHomeWidgets(layout: List<HomeWidget>) {
+        viewModelScope.launch { userPreferencesRepository.updateHomeWidgetLayout(layout) }
+    }
+
+    fun resetHomeWidgets() {
+        viewModelScope.launch { userPreferencesRepository.resetHomeWidgetLayout() }
+    }
 
     /**
      * Drives the subtle Pro chip in the home top bar — hidden when the
