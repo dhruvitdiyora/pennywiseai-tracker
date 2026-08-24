@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.screens.analytics
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -71,18 +72,15 @@ fun AnalyticsSummaryCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     val formattedTotal = CurrencyFormatter.formatCurrency(totalAmount, currency)
-                    val isLongAmount = formattedTotal.length > 14
                     Text(
                         text = formattedTotal,
-                        style = if (isLongAmount) {
-                            MaterialTheme.typography.headlineMedium
-                        } else {
-                            MaterialTheme.typography.headlineLarge
-                        },
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Clip
+                        overflow = TextOverflow.Clip,
+                        // basicMarquee only animates when this one value exceeds its measured width.
+                        modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
                     )
                 }
 
