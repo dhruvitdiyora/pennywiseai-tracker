@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.TiledIconBackground
+import com.pennywiseai.tracker.ui.components.NumberPad
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
 import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
@@ -473,7 +475,7 @@ fun ManageAccountsScreen(
     if (showUpdateDialog && selectedAccount != null && selectedAccountEntity != null) {
         if (selectedAccountEntity!!.isCreditCard) {
             // Credit Card Update Dialog
-            UpdateCreditCardDialog(
+            UpdateCreditCardNumberPadSheet(
                 bankName = selectedAccount!!.first,
                 accountLast4 = selectedAccount!!.second,
                 currentOutstanding = selectedAccountEntity!!.balance,
@@ -497,7 +499,7 @@ fun ManageAccountsScreen(
             )
         } else {
             // Regular Account Update Dialog
-            UpdateBalanceDialog(
+            UpdateBalanceNumberPadSheet(
                 bankName = selectedAccount!!.first,
                 accountLast4 = selectedAccount!!.second,
                 onDismiss = {
@@ -1440,6 +1442,81 @@ private fun AccountAliasDialog(
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UpdateBalanceNumberPadSheet(
+    bankName: String,
+    accountLast4: String,
+    onDismiss: () -> Unit,
+    onConfirm: (BigDecimal) -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.Padding.content),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Text(
+                text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            NumberPad(
+                initialValue = "",
+                title = "Update balance",
+                doneLabel = "Update",
+                onDone = { amount -> amount.toBigDecimalOrNull()?.let(onConfirm) }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UpdateCreditCardNumberPadSheet(
+    bankName: String,
+    accountLast4: String,
+    currentOutstanding: BigDecimal,
+    currentLimit: BigDecimal,
+    onDismiss: () -> Unit,
+    onConfirm: (BigDecimal, BigDecimal) -> Unit
+) {
+    var outstanding by rememberSaveable { mutableStateOf(currentOutstanding.toPlainString()) }
+    var enteringLimit by rememberSaveable { mutableStateOf(false) }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.Padding.content),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Text(
+                text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (enteringLimit) {
+                TextButton(onClick = { enteringLimit = false }) { Text("Edit outstanding balance") }
+            }
+            NumberPad(
+                initialValue = if (enteringLimit) currentLimit.toPlainString() else outstanding,
+                title = if (enteringLimit) "Enter credit limit" else "Enter outstanding balance",
+                doneLabel = if (enteringLimit) "Update" else "Next",
+                onDone = { amount ->
+                    amount.toBigDecimalOrNull()?.let { parsed ->
+                        if (enteringLimit) onConfirm(outstanding.toBigDecimalOrNull() ?: BigDecimal.ZERO, parsed)
+                        else {
+                            outstanding = parsed.toPlainString()
+                            enteringLimit = true
+                        }
+                    }
+                }
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
