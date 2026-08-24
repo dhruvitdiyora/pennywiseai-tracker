@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
+import com.pennywiseai.tracker.navigation.Settings
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -32,7 +33,9 @@ fun PennyWiseApp(
     editTransactionId: Long? = null,
     openAddTransaction: Boolean = false,
     onEditComplete: (() -> Unit)? = null,
-    onAddTransactionShortcutHandled: (() -> Unit)? = null
+    onAddTransactionShortcutHandled: (() -> Unit)? = null,
+    openSettings: Boolean = false,
+    onOpenSettingsHandled: (() -> Unit)? = null
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
     val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
@@ -115,6 +118,13 @@ fun PennyWiseApp(
                 launchSingleTop = true
             }
             onAddTransactionShortcutHandled?.invoke()
+        }
+    }
+
+    LaunchedEffect(openSettings) {
+        if (openSettings) {
+            navController.navigate(Settings) { launchSingleTop = true }
+            onOpenSettingsHandled?.invoke()
         }
     }
 

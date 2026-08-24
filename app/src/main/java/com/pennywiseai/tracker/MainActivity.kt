@@ -17,6 +17,7 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
+        const val EXTRA_OPEN_SETTINGS = "com.pennywiseai.tracker.OPEN_SETTINGS"
     }
 
     // Transaction ID to edit when launched from notification
@@ -25,6 +26,9 @@ class MainActivity : FragmentActivity() {
 
     // Flag to navigate directly to Add Transaction when launched from a shortcut/widget
     var openAddTransaction by mutableStateOf(false)
+        private set
+
+    var openSettings by mutableStateOf(false)
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,13 +43,16 @@ class MainActivity : FragmentActivity() {
 
         val editCompleteCallback = { editTransactionId = null }
         val addShortcutCallback = { openAddTransaction = false }
+        val openSettingsCallback = { openSettings = false }
 
         setContent {
             PennyWiseApp(
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
                 onEditComplete = editCompleteCallback,
-                onAddTransactionShortcutHandled = addShortcutCallback
+                onAddTransactionShortcutHandled = addShortcutCallback,
+                openSettings = openSettings,
+                onOpenSettingsHandled = openSettingsCallback
             )
         }
     }
@@ -65,6 +72,9 @@ class MainActivity : FragmentActivity() {
         }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true) {
             openAddTransaction = true
+        }
+        if (intent?.getBooleanExtra(EXTRA_OPEN_SETTINGS, false) == true) {
+            openSettings = true
         }
     }
 }

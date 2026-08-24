@@ -156,6 +156,8 @@ fun SettingsScreen(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val scheduledFolderBackupLastError by settingsViewModel.scheduledFolderBackupLastError.collectAsStateWithLifecycle(initialValue = null)
+    val scheduledFolderBackupFolderName by settingsViewModel.scheduledFolderBackupFolderName.collectAsStateWithLifecycle(initialValue = null)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
@@ -178,6 +180,23 @@ fun SettingsScreen(
     var showNumberFormatDialog by remember { mutableStateOf(false) }
     var showBudgetCycleDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
+    val backupLastSuccessText = scheduledFolderBackupLastTimestamp?.let { timestamp ->
+        java.time.Instant.ofEpochMilli(timestamp)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+    }
+    val lastBackupTimestamp = scheduledFolderBackupLastTimestamp
+    val backupWarning = when {
+        scheduledFolderBackupEnabled && lastBackupTimestamp != null &&
+            System.currentTimeMillis() - lastBackupTimestamp > 3 * 24 * 60 * 60 * 1_000L ->
+            "No backup since $backupLastSuccessText. The backup folder may no longer be accessible."
+        scheduledFolderBackupEnabled && scheduledFolderBackupLastError != null ->
+            "Automatic backup couldn't run: $scheduledFolderBackupLastError"
+        else -> null
+    }
+    val automaticBackupSubtitle = scheduledFolderBackupFolderName?.let { folderName ->
+        "$folderName - ${backupLastSuccessText?.let { "Last backup: $it" } ?: "Waiting for the first backup"}"
+    } ?: "Back up daily to a folder - pick one your cloud app syncs to back up off-device"
     var showMainAccountDropdown by remember { mutableStateOf(false) }
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
     val hasNotificationAccess = permissionUiState.hasNotificationAccess
@@ -593,39 +612,32 @@ fun SettingsScreen(
                     icon = Iconsax.Sync,
                     iconBgColor = purple_light,
                     iconTint = purple_dark,
-                    title = "Automatic Folder Backup",
-                    subtitle = if (scheduledFolderBackupEnabled) {
-                        "Daily backup at 2:00 AM to your chosen folder"
-                    } else if (!isProEntitled) {
-                        "Pro · Save a backup to a folder every day at 2:00 AM"
-                    } else {
-                        "Save a backup to a folder every day at 2:00 AM"
-                    },
+                    title = "Automatic backup",
+                    subtitle = automaticBackupSubtitle,
                     checked = scheduledFolderBackupEnabled,
-                    // Scheduling daily backups is a Pro feature. Turning it ON while
-                    // free routes to the paywall; turning it OFF is always allowed so
-                    // a lapsed/downgraded user can still stop scheduled backups.
-                    onCheckedChange = { enabled ->
-                        if (enabled && !isProEntitled) {
-                            showUpgradeSheet = true
-                        } else {
-                            settingsViewModel.setScheduledFolderBackupEnabled(enabled)
-                        }
-                    },
+                    onCheckedChange = settingsViewModel::setScheduledFolderBackupEnabled,
                     position = ListItemPosition.Middle
                 )
                 if (scheduledFolderBackupEnabled) {
+                    backupWarning?.let { warning ->
+                        SettingsNavItem(
+                            icon = Iconsax.Danger,
+                            iconBgColor = red_light,
+                            iconTint = red_dark,
+                            title = "Backup needs attention",
+                            subtitle = warning,
+                            trailingText = "Re-select",
+                            onClick = { settingsViewModel.requestChangeBackupFolder() },
+                            position = ListItemPosition.Middle
+                        )
+                    }
                     SettingsNavItem(
                         icon = Iconsax.ExportArrow02,
                         iconBgColor = green_light,
                         iconTint = green_dark,
                         title = "Back Up Now",
-                        subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
-                            val formatted = java.time.Instant.ofEpochMilli(timestamp)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
-                            "Last backup: $formatted"
-                        } ?: "Run a backup to your folder now",
+                        subtitle = backupLastSuccessText?.let { "Last backup: $it" }
+                            ?: "Run a backup to your folder now",
                         onClick = { settingsViewModel.backupToFolderNow() },
                         position = ListItemPosition.Middle
                     )
@@ -633,7 +645,7 @@ fun SettingsScreen(
                         icon = Iconsax.Folder2,
                         iconBgColor = amber_light,
                         iconTint = amber_dark,
-                        title = "Change Backup Folder",
+                        title = if (backupWarning == null) "Change Backup Folder" else "Re-select Backup Folder",
                         subtitle = "Pick a different folder for automatic backups",
                         onClick = { settingsViewModel.requestChangeBackupFolder() },
                         position = ListItemPosition.Middle

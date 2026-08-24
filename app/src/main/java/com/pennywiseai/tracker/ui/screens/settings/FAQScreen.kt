@@ -102,7 +102,11 @@ fun FAQScreen(
                     ),
                     FAQItem(
                         question = "Can I backup my data?",
-                        answer = "Currently, data is stored locally only. Export/backup features are planned for future updates."
+                        answer = "Yes. Use Export Data for a manual backup, or turn on Automatic backup in Settings to save one rolling backup file to a folder every day."
+                    ),
+                    FAQItem(
+                        question = "How do I back up to the cloud?",
+                        answer = "Install and sign in to a cloud app that makes a writable folder available in Android's folder picker. In Settings, turn on Automatic backup and choose a folder inside that app. PennyWise writes one file daily at around 2:00 AM; the cloud app syncs it. Backups are plain JSON and are not encrypted, so choose a provider or encrypted folder you trust. Each run replaces the previous file, although your cloud provider may keep its own version history. Not every cloud app allows writable folder access; if a folder is rejected, choose a different folder or app."
                     ),
                     FAQItem(
                         question = "What data does the app access?",

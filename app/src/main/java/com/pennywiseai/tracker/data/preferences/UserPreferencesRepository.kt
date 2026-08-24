@@ -158,6 +158,9 @@ open class UserPreferencesRepository @Inject constructor(
         val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
         val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
         val SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_timestamp")
+        val SCHEDULED_FOLDER_BACKUP_LAST_ERROR = stringPreferencesKey("scheduled_folder_backup_last_error")
+        val SCHEDULED_FOLDER_BACKUP_LAST_ERROR_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_error_timestamp")
+        val SCHEDULED_FOLDER_BACKUP_CONSECUTIVE_FAILURE_COUNT = intPreferencesKey("scheduled_folder_backup_consecutive_failure_count")
     }
 
     private companion object {
@@ -893,6 +896,12 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP]
         }
 
+    val scheduledFolderBackupLastError: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_ERROR] }
+
+    val scheduledFolderBackupLastErrorTimestamp: Flow<Long?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_ERROR_TIMESTAMP] }
+
     suspend fun isScheduledFolderBackupEnabled(): Boolean {
         return scheduledFolderBackupEnabled.first()
     }
@@ -916,7 +925,22 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
+            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_ERROR)
+            preferences.remove(PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_ERROR_TIMESTAMP)
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_CONSECUTIVE_FAILURE_COUNT] = 0
         }
+    }
+
+    /** Records a failed automatic run and returns its consecutive failure count. */
+    suspend fun recordScheduledFolderBackupFailure(message: String, timestamp: Long): Int {
+        var failureCount = 0
+        context.dataStore.edit { preferences ->
+            failureCount = (preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_CONSECUTIVE_FAILURE_COUNT] ?: 0) + 1
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_CONSECUTIVE_FAILURE_COUNT] = failureCount
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_ERROR] = message
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_ERROR_TIMESTAMP] = timestamp
+        }
+        return failureCount
     }
 }
 

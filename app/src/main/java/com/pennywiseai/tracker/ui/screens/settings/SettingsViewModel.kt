@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import android.content.Intent
+import androidx.documentfile.provider.DocumentFile
 import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.core.Constants
 import kotlinx.coroutines.flow.SharingStarted
@@ -93,6 +94,12 @@ class SettingsViewModel @Inject constructor(
 
     val scheduledFolderBackupEnabled = userPreferencesRepository.scheduledFolderBackupEnabled
     val scheduledFolderBackupLastTimestamp = userPreferencesRepository.scheduledFolderBackupLastTimestamp
+    val scheduledFolderBackupLastError = userPreferencesRepository.scheduledFolderBackupLastError
+    val scheduledFolderBackupLastErrorTimestamp = userPreferencesRepository.scheduledFolderBackupLastErrorTimestamp
+    val scheduledFolderBackupFolderName = userPreferencesRepository.scheduledFolderBackupTreeUri
+        .map { treeUri ->
+            treeUri?.let { DocumentFile.fromTreeUri(context, Uri.parse(it))?.name }
+        }
 
     private val _requestFolderPicker = MutableStateFlow(false)
     val requestFolderPicker: StateFlow<Boolean> = _requestFolderPicker.asStateFlow()
@@ -736,6 +743,12 @@ class SettingsViewModel @Inject constructor(
                 context.contentResolver.takePersistableUriPermission(uri, flags)
 
                 val treeUri = uri.toString()
+                if (!folderBackupWriter.canWriteToFolder(treeUri)) {
+                    _importExportMessage.value =
+                        "This folder can't be written to. Some cloud apps only allow read access â€” try a different folder or a different app."
+                    return@launch
+                }
+
                 userPreferencesRepository.setScheduledFolderBackupTreeUri(treeUri)
 
                 when (currentFolderPickerAction) {
@@ -799,7 +812,8 @@ class SettingsViewModel @Inject constructor(
 
     private suspend fun enableScheduledFolderBackup(treeUri: String) {
         if (!folderBackupWriter.canWriteToFolder(treeUri)) {
-            _importExportMessage.value = "Cannot write to the selected backup folder"
+            _importExportMessage.value =
+                "This folder can't be written to. Some cloud apps only allow read access â€” try a different folder or a different app."
             return
         }
 

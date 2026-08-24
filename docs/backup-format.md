@@ -73,6 +73,19 @@ The one deliberate exception is `importProfilesAndBuildMap`: its inserts build
 the profile id-remap map that transactions/balances depend on, so it stays
 strict (a profile failure should surface, not be silently swallowed).
 
+## Automatic backup to a cloud folder
+
+Automatic backup writes the same `PennyWise_Backup.pennywisebackup` payload to
+a folder selected through Android's Storage Access Framework. It runs daily at
+about 02:00 local time and keeps a single rolling file. The writer first saves
+a sibling `.tmp` file, then replaces the prior backup, so an interrupted write
+does not truncate the previous file at open.
+
+To back up off-device, select a writable folder managed by a cloud-sync app;
+PennyWise itself does not connect to that service. Restore the synced file via
+the ordinary **Settings -> Import Data** path. The payload is plain JSON, not
+encrypted, so use a provider or encrypted folder you trust.
+
 ## How to change the format safely
 
 ### Adding a column to an existing entity

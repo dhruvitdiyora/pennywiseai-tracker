@@ -349,4 +349,7 @@
         <item quantity="other">* %1$d accounts were excluded because their balances could not be converted. The total may be understated.</item>
     </plurals>
     <string name="add_category">Add category</string>
+    <string name="automatic_backup_notification_channel">Automatic backup</string>
+    <string name="automatic_backup_notification_title">Automatic backup needs attention</string>
+    <string name="automatic_backup_notification_text">Choose the backup folder again in Settings.</string>
 </resources>
