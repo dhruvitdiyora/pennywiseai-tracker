@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.manager.SmsScanManager
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.presentation.accounts.AccountDraft
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -131,6 +132,26 @@ class OnBoardingViewModel @Inject constructor(
 
     fun skipSmsPermission() {
         _uiState.update { it.copy(smsPermissionSkipped = true) }
+    }
+
+    fun addManualAccount(draft: AccountDraft) {
+        viewModelScope.launch {
+            accountBalanceRepository.seedManualAccount(
+                AccountBalanceEntity(
+                    bankName = draft.bankName,
+                    accountLast4 = draft.accountLast4,
+                    balance = draft.balance,
+                    timestamp = java.time.LocalDateTime.now(),
+                    creditLimit = draft.creditLimit,
+                    isCreditCard = draft.accountType.name == "CREDIT",
+                    sourceType = AccountBalanceRepository.SOURCE_MANUAL,
+                    accountType = draft.accountType.name,
+                    currency = draft.currency
+                ),
+                openingBalance = draft.balance
+            )
+            loadAccounts()
+        }
     }
 
     fun navigateToStep(step: OnBoardingStep) {

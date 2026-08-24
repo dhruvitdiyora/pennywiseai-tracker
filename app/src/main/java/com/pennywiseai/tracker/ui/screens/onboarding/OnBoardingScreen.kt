@@ -8,6 +8,11 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +33,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -56,6 +62,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +83,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.presentation.accounts.EditAccountSheet
 
 @Composable
 fun OnBoardingScreen(
@@ -148,7 +157,8 @@ fun OnBoardingScreen(
                 OnBoardingStep.SMS_SCAN -> SmsScanStep(uiState = uiState)
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
-                    onSelectAccount = { viewModel.selectAccount(it) }
+                    onSelectAccount = { viewModel.selectAccount(it) },
+                    onAddManualAccount = viewModel::addManualAccount
                 )
             }
         }
@@ -414,12 +424,7 @@ private fun PermissionsStep(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Filled.MailOutline,
-            contentDescription = null,
-            modifier = Modifier.size(HERO_ICON_SIZE_SMALL),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        PermissionMessagePreview()
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -642,8 +647,10 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
 @Composable
 private fun AccountSetupStep(
     uiState: OnBoardingUiState,
-    onSelectAccount: (String) -> Unit
+    onSelectAccount: (String) -> Unit,
+    onAddManualAccount: (com.pennywiseai.tracker.presentation.accounts.AccountDraft) -> Unit
 ) {
+    var showManualAccountSheet by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -674,11 +681,13 @@ private fun AccountSetupStep(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             Text(
-                text = "No accounts were detected yet. You can set up your main account later in Settings.",
+                text = "No accounts were detected yet. Add one manually to get started.",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(Spacing.lg))
+            Button(onClick = { showManualAccountSheet = true }) { Text("Add account") }
         } else {
             Text(
                 text = "Select Your Main Account",
@@ -773,6 +782,17 @@ private fun AccountSetupStep(
             }
         }
     }
+    if (showManualAccountSheet) {
+        EditAccountSheet(
+            account = null,
+            defaultCurrency = "INR",
+            onDismiss = { showManualAccountSheet = false },
+            onSave = { draft ->
+                onAddManualAccount(draft)
+                showManualAccountSheet = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -780,27 +800,27 @@ private fun StepIndicator(
     currentStep: OnBoardingStep,
     modifier: Modifier = Modifier
 ) {
-    val steps = OnBoardingStep.entries
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    val progress = (OnBoardingStep.entries.indexOf(currentStep) + 1).toFloat() / OnBoardingStep.entries.size
+    LinearProgressIndicator(progress = { progress }, modifier = modifier.padding(horizontal = Spacing.lg))
+}
+
+@Composable
+private fun PermissionMessagePreview() {
+    val transition = rememberInfiniteTransition(label = "permission_preview")
+    val offset by transition.animateFloat(
+        initialValue = -1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2400), RepeatMode.Reverse), label = "message_offset"
+    )
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large
     ) {
-        steps.forEachIndexed { index, step ->
-            val isActive = step == currentStep
-            val isPast = index < steps.indexOf(currentStep)
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = Spacing.xs)
-                    .size(if (isActive) STEP_DOT_ACTIVE else STEP_DOT_INACTIVE)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            isActive -> MaterialTheme.colorScheme.primary
-                            isPast -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                        }
-                    )
+        Column(Modifier.padding(Spacing.md)) {
+            Text("DemoPay", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "A transaction alert will be read on this device.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.offset(x = (offset * Spacing.sm.value).dp)
             )
         }
     }
