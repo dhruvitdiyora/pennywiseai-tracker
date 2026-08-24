@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,8 +44,11 @@ import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import ir.ehsannarmani.compose_charts.LineChart
+import ir.ehsannarmani.compose_charts.models.*
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -140,6 +146,17 @@ fun BudgetHistoryScreen(
                 }
             }
 
+            // A trend only communicates something when it has a change to
+            // show. Keep the per-window list as the useful one-period view.
+            if (state.windowHistory.size >= 2) {
+                item {
+                    SpendingTrendChart(
+                        windows = state.windowHistory,
+                        currency = state.currency
+                    )
+                }
+            }
+
             // Per-window list
             item {
                 Text(
@@ -157,6 +174,11 @@ fun BudgetHistoryScreen(
                 HistoryRow(
                     window = window,
                     currency = state.currency,
+                    budgetAmount = if (budget.periodType == BudgetPeriodType.WEEKLY) {
+                        budget.limitAmount
+                    } else {
+                        state.budgetAmount
+                    },
                     isDisplayed = window.window.start == state.displayedWindowStart &&
                         window.window.end == state.displayedWindowEnd,
                     isCurrentPeriod = state.yearMonth == YearMonth.now(),
@@ -184,11 +206,24 @@ fun BudgetHistoryScreen(
 private fun HistoryRow(
     window: PastWindowSpending,
     currency: String,
+    budgetAmount: BigDecimal,
     isDisplayed: Boolean,
     isCurrentPeriod: Boolean,
     onClick: () -> Unit
 ) {
     val shortFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+    val percentageUsed = if (budgetAmount > BigDecimal.ZERO) {
+        window.spent.divide(budgetAmount, 4, java.math.RoundingMode.HALF_UP)
+            .multiply(BigDecimal(100))
+            .coerceAtLeast(BigDecimal.ZERO)
+    } else {
+        BigDecimal.ZERO
+    }
+    val progressColor = when {
+        percentageUsed >= BigDecimal(90) -> MaterialTheme.colorScheme.error
+        percentageUsed >= BigDecimal(70) -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
     PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,16 +256,114 @@ private fun HistoryRow(
                     )
                 }
             }
-            Text(
-                text = CurrencyFormatter.formatCurrency(window.spent, currency),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(window.spent, currency),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    if (budgetAmount > BigDecimal.ZERO) {
+                        Text(
+                            text = "of ${CurrencyFormatter.formatCurrency(budgetAmount, currency)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.size(Spacing.sm))
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    CircularProgressIndicator(
+                        progress = { percentageUsed.toFloat().div(100f).coerceIn(0f, 1f) },
+                        modifier = Modifier.size(52.dp),
+                        color = progressColor,
+                        strokeWidth = 4.dp,
+                        trackColor = progressColor.copy(alpha = 0.14f)
+                    )
+                    Text(
+                        text = "${percentageUsed.toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = progressColor
+                    )
+                }
+            }
             if (window.isLive && isCurrentPeriod) {
                 LiveBadge()
             } else {
                 FrozenBadge(window.capDate)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingTrendChart(
+    windows: List<PastWindowSpending>,
+    currency: String
+) {
+    val colors = MaterialTheme.colorScheme
+    val formatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+    val values = remember(windows) { windows.map { it.spent.toDouble() } }
+    val labels = remember(windows) {
+        listOf(windows.first(), windows.last()).distinctBy { it.window.start }.map {
+            it.window.start.format(formatter)
+        }
+    }
+
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending trend",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        LineChart(
+            modifier = Modifier.fillMaxWidth().height(140.dp),
+            data = listOf(
+                Line(
+                    label = "Spending",
+                    values = values,
+                    color = SolidColor(colors.primary),
+                    firstGradientFillColor = colors.primary.copy(alpha = 0.2f),
+                    secondGradientFillColor = Color.Transparent,
+                    strokeAnimationSpec = androidx.compose.animation.core.tween(1200),
+                    gradientAnimationDelay = 600,
+                    drawStyle = DrawStyle.Stroke(width = 2.5.dp),
+                    curvedEdges = true,
+                    dotProperties = DotProperties(enabled = false)
+                )
+            ),
+            dividerProperties = DividerProperties(enabled = false),
+            indicatorProperties = HorizontalIndicatorProperties(
+                enabled = true,
+                textStyle = PennyWiseText.chartLabel.copy(color = colors.onSurfaceVariant),
+                contentBuilder = { value -> CurrencyFormatter.formatAbbreviated(value, currency) }
+            ),
+            labelHelperProperties = LabelHelperProperties(enabled = false),
+            labelProperties = LabelProperties(enabled = false),
+            gridProperties = GridProperties(
+                enabled = true,
+                xAxisProperties = GridProperties.AxisProperties(enabled = false),
+                yAxisProperties = GridProperties.AxisProperties(
+                    enabled = true,
+                    style = StrokeStyle.Dashed(),
+                    color = SolidColor(colors.onSurface.copy(alpha = 0.08f))
+                )
+            ),
+            animationMode = AnimationMode.Together(delayBuilder = { it * 100L })
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            labels.forEach { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant
+                )
             }
         }
     }

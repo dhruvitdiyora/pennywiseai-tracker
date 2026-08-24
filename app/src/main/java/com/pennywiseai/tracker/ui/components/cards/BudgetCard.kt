@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 
@@ -151,6 +152,27 @@ fun BudgetCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+
+        // Keep remaining as the hero. Daily left is an additional planning
+        // signal while this window is still active, not a replacement.
+        if (!isOverBudget && groupSpending.daysRemaining > 0) {
+            val dailyLeft = groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO).divide(
+                BigDecimal.valueOf(groupSpending.daysRemaining.toLong()),
+                2,
+                RoundingMode.HALF_UP
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(
+                    R.string.budget_card_daily_left,
+                    CurrencyFormatter.formatCurrency(dailyLeft, currency)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
 
         Spacer(modifier = Modifier.height(Spacing.xs))
 

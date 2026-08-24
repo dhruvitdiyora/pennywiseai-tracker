@@ -226,6 +226,7 @@
     <!-- Budget card -->
     <string name="budget_card_over_budget_amount">%1$s over budget</string>
     <string name="budget_card_remaining_amount">%1$s remaining</string>
+    <string name="budget_card_daily_left">Daily left: %1$s</string>
     <string name="budget_card_finished">Finished</string>
     <string name="budget_card_tracking_all_expenses">Tracking all expenses</string>
     <string name="budget_card_resets_today_weekday">Resets today · %1$s renew</string>
