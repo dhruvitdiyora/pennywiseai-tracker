@@ -112,6 +112,18 @@ class TransactionsViewModel @Inject constructor(
     private val _tagFilter = MutableStateFlow<String?>(null)
     val tagFilter: StateFlow<String?> = _tagFilter.asStateFlow()
 
+    data class MoreFilters(
+        val subcategories: Set<String> = emptySet(),
+        val currencies: Set<String> = emptySet(),
+        val minimumAmount: BigDecimal? = null,
+        val maximumAmount: BigDecimal? = null
+    ) {
+        val activeCount: Int get() = subcategories.size + currencies.size +
+            listOfNotNull(minimumAmount, maximumAmount).size
+    }
+    private val _moreFilters = MutableStateFlow(MoreFilters())
+    val moreFilters: StateFlow<MoreFilters> = _moreFilters.asStateFlow()
+
     val availableTags: StateFlow<List<String>> = tagRepository.observeAllTagNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -326,6 +338,51 @@ class TransactionsViewModel @Inject constructor(
     }
 
     fun clearSelection() { _selectedIds.value = emptySet() }
+
+    /** Selects only rows visible after the current search and filter set. */
+    fun selectAllVisible() {
+        _selectedIds.value = _uiState.value.transactions.mapTo(LinkedHashSet()) { it.id }
+    }
+
+    fun toggleSelectAllVisible() {
+        if (_selectedIds.value.size == _uiState.value.transactions.size) clearSelection()
+        else selectAllVisible()
+    }
+
+    data class BulkEditPatch(
+        val dateTime: LocalDateTime? = null,
+        val amount: BigDecimal? = null,
+        val note: String? = null,
+        val updateDateTime: Boolean = false,
+        val updateAmount: Boolean = false,
+        val updateNote: Boolean = false
+    )
+
+    /** Applies independently selected edits. Amounts are never rewritten across currencies. */
+    fun bulkEdit(patch: BulkEditPatch) {
+        val selected = _uiState.value.transactions.filter { it.id in _selectedIds.value }
+        if (selected.isEmpty()) return
+        if (patch.updateAmount && selected.map { it.currency }.distinct().size != 1) {
+            _bulkSnack.value = BulkSnack("Amount can only be changed for one currency at a time")
+            return
+        }
+        viewModelScope.launch {
+            val now = LocalDateTime.now()
+            selected.forEach { transaction ->
+                transactionRepository.updateTransaction(
+                    transaction.copy(
+                        dateTime = if (patch.updateDateTime) patch.dateTime ?: transaction.dateTime else transaction.dateTime,
+                        amount = if (patch.updateAmount) patch.amount ?: transaction.amount else transaction.amount,
+                        description = if (patch.updateNote) patch.note else transaction.description,
+                        updatedAt = now
+                    )
+                )
+            }
+            refreshWidgets()
+            clearSelection()
+            _bulkSnack.value = BulkSnack("${selected.size} transactions updated")
+        }
+    }
 
     init {
         // Prune selected ids that fall out of the visible list (filter change,
@@ -766,6 +823,7 @@ class TransactionsViewModel @Inject constructor(
             _profileAccountKeys.map { "profileAccountKeys" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
+            moreFilters.map { "moreFilters" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -786,6 +844,7 @@ class TransactionsViewModel @Inject constructor(
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
                 val tag = _tagFilter.value
+                val more = _moreFilters.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
                 // filter helper can reuse it for THIS_MONTH. Non-THIS_MONTH
@@ -805,13 +864,19 @@ class TransactionsViewModel @Inject constructor(
                             filterByProfile(allTransactions, profileId),
                             accountKey
                         )
-                        val transactions = if (tag != null) {
+                        val tagged = if (tag != null) {
                             profileAndAccountFiltered.filter { tx ->
                                 transactionTagsMap.value[tx.id]
                                     ?.any { it.equals(tag, ignoreCase = true) } == true
                             }
                         } else {
                             profileAndAccountFiltered
+                        }
+                        val transactions = tagged.filter { tx ->
+                            (more.subcategories.isEmpty() || tx.subcategory in more.subcategories) &&
+                                (more.currencies.isEmpty() || tx.currency in more.currencies) &&
+                                (more.minimumAmount == null || tx.amount >= more.minimumAmount) &&
+                                (more.maximumAmount == null || tx.amount <= more.maximumAmount)
                         }
                         if (isUnified) {
                             // Show all transactions regardless of currency
@@ -949,6 +1014,10 @@ class TransactionsViewModel @Inject constructor(
     fun clearTagFilter() {
         _tagFilter.value = null
     }
+
+    fun setMoreFilters(filters: MoreFilters) {
+        _moreFilters.value = filters
+    }
     
     fun setSelectedProfile(profileId: Long?) {
         _selectedProfileId.value = profileId
@@ -1046,6 +1115,7 @@ class TransactionsViewModel @Inject constructor(
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
         setAccountFilter(null)
         clearTagFilter()
+        _moreFilters.value = MoreFilters()
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
         if (!_isUnifiedMode.value) {

@@ -132,6 +132,7 @@ fun TransactionsScreen(
     val accountOptions by viewModel.accountOptions.collectAsState()
     val tagFilter by viewModel.tagFilter.collectAsState()
     val availableTags by viewModel.availableTags.collectAsState()
+    val moreFilters by viewModel.moreFilters.collectAsState()
 
     // Bulk-edit selection (#369)
     val selectedIds by viewModel.selectedIds.collectAsState()
@@ -140,6 +141,7 @@ fun TransactionsScreen(
     val selectionMode = selectedIds.isNotEmpty()
     var showBulkCategorySheet by remember { mutableStateOf(false) }
     var showBulkGroupSheet by remember { mutableStateOf(false) }
+    var showBatchEditSheet by remember { mutableStateOf(false) }
     val groups by viewModel.groups.collectAsState()
 
     // Self-transfer suggestions (#385): map of txn-id → partner-id.
@@ -158,6 +160,7 @@ fun TransactionsScreen(
     var showPeriodMenu by remember { mutableStateOf(false) }
     var showTypeMenu by remember { mutableStateOf(false) }
     var showMoreFiltersMenu by remember { mutableStateOf(false) }
+    var showMoreFiltersSheet by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
     var showTagMenu by remember { mutableStateOf(false) }
 
@@ -181,6 +184,7 @@ fun TransactionsScreen(
         selectedProfileId != null ||
         accountFilter != null ||
         tagFilter != null ||
+        moreFilters.activeCount > 0 ||
         hasCurrencyFilter ||
         customDateRange != null
 
@@ -316,6 +320,12 @@ fun TransactionsScreen(
                         // Wrap explicitly in a Row so both action IconButtons render
                         // even when the top-bar's actions slot is constrained.
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { viewModel.toggleSelectAllVisible() }) {
+                                Icon(
+                                    if (selectedIds.size == uiState.transactions.size) Icons.Default.Deselect else Icons.Default.SelectAll,
+                                    contentDescription = if (selectedIds.size == uiState.transactions.size) "Deselect all visible transactions" else "Select all ${uiState.transactions.size} visible transactions"
+                                )
+                            }
                             // Link exactly two selected rows as a transfer — the
                             // manual counterpart to the auto-detected chip (#614),
                             // covering pairs the detector misses (fees, wide gaps).
@@ -329,6 +339,9 @@ fun TransactionsScreen(
                             }
                             IconButton(onClick = { showBulkCategorySheet = true }) {
                                 Icon(Icons.Default.Category, contentDescription = "Change category")
+                            }
+                            IconButton(onClick = { showBatchEditSheet = true }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit $selectedIds.size selected transactions")
                             }
                             IconButton(onClick = { showBulkGroupSheet = true }) {
                                 Icon(
@@ -378,6 +391,15 @@ fun TransactionsScreen(
                     },
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
+                if (selectionMode) {
+                    ExtendedFloatingActionButton(
+                        onClick = { showBatchEditSheet = true },
+                        icon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        text = { Text("Edit ${selectedIds.size}") },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
                 // Export FAB (only show if transactions exist)
                 if (uiState.transactions.isNotEmpty()) {
                     SmallFloatingActionButton(
@@ -436,6 +458,7 @@ fun TransactionsScreen(
             hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
             selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.name ?: "Profile",
             hasProfileFilter = selectedProfileId != null,
+            moreFilterCount = moreFilters.activeCount,
             hasAnyActiveFilter = hasAnyActiveFilter,
             showSortMenu = showSortMenu,
             showPeriodMenu = showPeriodMenu,
@@ -477,7 +500,7 @@ fun TransactionsScreen(
                 viewModel.setTransactionTypeFilter(typeFilter)
                 showTypeMenu = false
             },
-            onMoreFiltersClick = { showMoreFiltersMenu = true },
+            onMoreFiltersClick = { showMoreFiltersSheet = true },
             onMoreFiltersDismiss = { showMoreFiltersMenu = false },
             onCategorySelected = { category ->
                 // Its four sibling filter callbacks all fired CONFIRM and this
@@ -812,6 +835,26 @@ fun TransactionsScreen(
         )
     }
 
+    if (showBatchEditSheet && selectedIds.isNotEmpty()) {
+        val selectedTransactions = uiState.transactions.filter { it.id in selectedIds }
+        BatchEditSheet(
+            selectedCount = selectedTransactions.size,
+            selectedCurrencies = selectedTransactions.mapTo(LinkedHashSet()) { it.currency },
+            onApply = viewModel::bulkEdit,
+            onDismiss = { showBatchEditSheet = false }
+        )
+    }
+
+    if (showMoreFiltersSheet) {
+        MoreFiltersSheet(
+            initial = moreFilters,
+            subcategories = subcategoriesByCategory.values.flatten().map { it.name }.distinct().sorted(),
+            currencies = availableCurrencies,
+            onApply = viewModel::setMoreFilters,
+            onDismiss = { showMoreFiltersSheet = false }
+        )
+    }
+
     // Bulk action snackbar with Undo (#369).
     LaunchedEffect(bulkSnack) {
         bulkSnack?.let { snack ->
@@ -1059,6 +1102,7 @@ private fun TransactionFilterHeader(
     hasCategoryFilter: Boolean,
     selectedProfileName: String,
     hasProfileFilter: Boolean,
+    moreFilterCount: Int,
     hasAnyActiveFilter: Boolean,
     showSortMenu: Boolean,
     showPeriodMenu: Boolean,
@@ -1265,7 +1309,7 @@ private fun TransactionFilterHeader(
                     Box {
                         ExpressiveFilterChip(
                             selected = hasCategoryFilter || hasProfileFilter,
-                            text = moreFiltersLabel(
+                            text = if (moreFilterCount > 0) "More ($moreFilterCount)" else moreFiltersLabel(
                                 categoryLabel = categoryLabel,
                                 selectedProfileName = selectedProfileName,
                                 hasCategoryFilter = hasCategoryFilter,
