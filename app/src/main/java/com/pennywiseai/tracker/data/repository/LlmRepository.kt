@@ -183,6 +183,19 @@ class LlmRepository @Inject constructor(
         chatDao.deleteAllMessages()
     }
 
+    suspend fun deleteMessage(messageId: String) {
+        // Conversation history changes, so force a fresh model conversation next send.
+        llmService.closeConversation()
+        chatDao.deleteMessage(messageId)
+    }
+
+    suspend fun savePartialAssistantResponse(response: String) {
+        if (response.isBlank()) return
+        chatDao.insertMessage(ChatMessage(message = response, isUser = false))
+        // A cancelled native conversation cannot safely be reused for the next request.
+        llmService.closeConversation()
+    }
+
     suspend fun deleteOldMessages(beforeTimestamp: Long) {
         // Conversation needs to be recreated after history changes
         llmService.closeConversation()

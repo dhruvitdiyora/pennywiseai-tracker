@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +47,9 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +67,10 @@ fun ChatScreen(
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
     val downloadedMB by viewModel.downloadedMB.collectAsStateWithLifecycle()
     val totalMB by viewModel.totalMB.collectAsStateWithLifecycle()
-    
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    var showChatMenu by remember { mutableStateOf(false) }
+
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -88,6 +100,27 @@ fun ChatScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = "PennyWise AI",
+                hasActionButton = true,
+                actionContent = {
+                    Box {
+                        IconButton(onClick = { showChatMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More chat options")
+                        }
+                        DropdownMenu(
+                            expanded = showChatMenu,
+                            onDismissRequest = { showChatMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Clear chat") },
+                                onClick = {
+                                    showChatMenu = false
+                                    viewModel.clearChat()
+                                },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                            )
+                        }
+                    }
+                },
                 hazeState = hazeState
             )
         }
@@ -187,7 +220,10 @@ fun ChatScreen(
                             flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
                             items(messages) { message ->
-                                ChatMessageItem(message = message)
+                                ChatMessageItem(message = message, onCopy = {
+                                    clipboard.setText(AnnotatedString(message.message))
+                                    Toast.makeText(context, "Message copied", Toast.LENGTH_SHORT).show()
+                                }, onDelete = { viewModel.deleteMessage(message) })
                             }
                         }
                     }
@@ -323,44 +359,6 @@ fun ChatScreen(
                             )
                         }
 
-                        // Clear chat button when there are messages
-                        AnimatedVisibility(
-                            visible = messages.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 1.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = Dimensions.Padding.content,
-                                            vertical = Spacing.sm
-                                        ),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(
-                                        onClick = { viewModel.clearChat() },
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error
-                                        )
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Clear Chat")
-                                    }
-                                }
-                            }
-                        }
-
                         // Messages list
                         LazyColumn(
                             state = listState,
@@ -390,7 +388,18 @@ fun ChatScreen(
                             }
 
                             items(messages) { message ->
-                                ChatMessageItem(message = message)
+                                ChatMessageItem(message = message, onCopy = {
+                                    clipboard.setText(AnnotatedString(message.message))
+                                    Toast.makeText(context, "Message copied", Toast.LENGTH_SHORT).show()
+                                }, onDelete = { viewModel.deleteMessage(message) }, onRegenerate =
+                                    if (message.isUser) null else {
+                                        val prompt = messages
+                                            .takeWhile { it.id != message.id }
+                                            .lastOrNull { it.isUser }
+                                            ?.message
+                                        prompt?.let { { viewModel.regenerateResponse(message, it) } }
+                                    }
+                                )
                             }
 
                             // Show streaming response if available
@@ -478,19 +487,19 @@ fun ChatScreen(
 
                                 FilledIconButton(
                                     onClick = {
-                                        viewModel.sendMessage(inputText)
-                                        inputText = ""
-                                        // Keep keyboard open by requesting focus
-                                        focusRequester.requestFocus()
+                                        if (uiState.isLoading) {
+                                            viewModel.stopGeneration()
+                                        } else {
+                                            viewModel.sendMessage(inputText)
+                                            inputText = ""
+                                            focusRequester.requestFocus()
+                                        }
                                     },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
+                                    enabled = uiState.isLoading || inputText.isNotBlank(),
                                     modifier = Modifier.size(48.dp)
                                 ) {
                                     if (uiState.isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(Dimensions.Icon.medium),
-                                            strokeWidth = 2.dp
-                                        )
+                                        Icon(Icons.Default.Stop, contentDescription = "Stop generating")
                                     } else {
                                         Icon(
                                             Icons.AutoMirrored.Filled.Send,
@@ -771,9 +780,13 @@ fun TypingIndicator(
 @Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
-    isStreaming: Boolean = false
+    isStreaming: Boolean = false,
+    onCopy: () -> Unit = {},
+    onDelete: () -> Unit = {},
+    onRegenerate: (() -> Unit)? = null
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    var showUserActions by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -782,7 +795,13 @@ fun ChatMessageItem(
         PennyWiseCardV2(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .animateContentSize(),
+                .animateContentSize()
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        if (message.isUser && !isStreaming) showUserActions = true
+                    }
+                ),
             colors = CardDefaults.cardColors(
                 containerColor = if (message.isUser)
                     MaterialTheme.colorScheme.primaryContainer
@@ -790,14 +809,15 @@ fun ChatMessageItem(
                     MaterialTheme.colorScheme.secondaryContainer
             )
         ) {
-            Text(
-                text = message.message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (message.isUser)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            val messageColor = if (message.isUser)
+                MaterialTheme.colorScheme.onPrimaryContainer
+            else
+                MaterialTheme.colorScheme.onSecondaryContainer
+            if (message.isUser) {
+                Text(message.message, style = MaterialTheme.typography.bodyMedium, color = messageColor)
+            } else {
+                Text(markdownAnnotatedString(message.message), style = MaterialTheme.typography.bodyMedium, color = messageColor)
+            }
 
             Spacer(modifier = Modifier.height(Spacing.xs))
 
@@ -819,6 +839,84 @@ fun ChatMessageItem(
                     else
                         MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
+            }
+
+            if (!isStreaming && !message.isUser) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    IconButton(onClick = onCopy, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy response", modifier = Modifier.size(18.dp))
+                    }
+                    onRegenerate?.let { regenerate ->
+                        IconButton(onClick = regenerate, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Regenerate response", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete response", modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
+    }
+
+    if (showUserActions) {
+        AlertDialog(
+            onDismissRequest = { showUserActions = false },
+            title = { Text("Message actions") },
+            text = { Text("Copy or delete this message?") },
+            confirmButton = {
+                TextButton(onClick = { showUserActions = false; onCopy() }) { Text("Copy") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showUserActions = false; onDelete() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Delete") }
+            }
+        )
+    }
+}
+
+private fun markdownAnnotatedString(markdown: String): AnnotatedString = buildAnnotatedString {
+    markdown.lineSequence().forEachIndexed { lineIndex, line ->
+        if (lineIndex > 0) append('\n')
+        val trimmed = line.trimStart()
+        val isHeading = trimmed.startsWith("#") && trimmed.dropWhile { it == '#' }.startsWith(" ")
+        val content = when {
+            isHeading -> trimmed.dropWhile { it == '#' }.trimStart()
+            trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("+ ") -> "• ${trimmed.drop(2)}"
+            else -> line
+        }
+        appendInlineMarkdown(content, isHeading)
+    }
+}
+
+private fun AnnotatedString.Builder.appendInlineMarkdown(text: String, isHeading: Boolean) {
+    var cursor = 0
+    while (cursor < text.length) {
+        val marker = when {
+            text.startsWith("**", cursor) -> "**"
+            text[cursor] == '`' -> "`"
+            else -> null
+        }
+        if (marker == null) {
+            val next = text.indexOfAny(charArrayOf('*', '`'), cursor).let { if (it == -1) text.length else it }
+            withStyle(if (isHeading) SpanStyle(fontWeight = FontWeight.Bold) else SpanStyle()) {
+                append(text.substring(cursor, next))
+            }
+            cursor = next
+        } else {
+            val end = text.indexOf(marker, cursor + marker.length)
+            if (end == -1) {
+                append(marker)
+                cursor += marker.length
+            } else {
+                val style = when (marker) {
+                    "**" -> SpanStyle(fontWeight = FontWeight.Bold)
+                    else -> SpanStyle(fontFamily = FontFamily.Monospace)
+                }
+                withStyle(style) { append(text.substring(cursor + marker.length, end)) }
+                cursor = end + marker.length
             }
         }
     }

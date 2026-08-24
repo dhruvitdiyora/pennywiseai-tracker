@@ -25,7 +25,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -49,6 +53,7 @@ class ChatViewModel @Inject constructor(
     val totalMB: StateFlow<Long> = _totalMB.asStateFlow()
 
     private var currentDownloadId: Long? = null
+    private var generationJob: Job? = null
     
     private val _contextMessage = MutableStateFlow<ChatMessage?>(null)
     
@@ -143,6 +148,13 @@ class ChatViewModel @Inject constructor(
         // Resume an in-progress download, or (when idle) resolve + re-verify the model.
         checkAndResumeDownload()
     }
+
+    /** Stops streaming without discarding the partial answer currently shown in the UI. */
+    fun stopGeneration() {
+        generationJob?.cancel()
+        generationJob = null
+        _uiState.value = _uiState.value.copy(isLoading = false)
+    }
     
     private suspend fun loadContextMessage() {
         val contextMessage = llmRepository.getFormattedContextForDisplay()
@@ -156,7 +168,7 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(message: String) {
         if (message.isBlank() || _uiState.value.isLoading) return
         
-        viewModelScope.launch {
+        generationJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null
@@ -187,6 +199,14 @@ class ChatViewModel @Inject constructor(
                 
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 _currentResponse.value = ""
+            } catch (_: CancellationException) {
+                if (_currentResponse.value.isNotBlank()) {
+                    withContext(NonCancellable) {
+                        llmRepository.savePartialAssistantResponse(_currentResponse.value)
+                    }
+                    _currentResponse.value = ""
+                }
+                _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: Exception) {
                 val errorMessage = when {
                     e.message?.contains("memory is full") == true -> 
@@ -214,6 +234,19 @@ class ChatViewModel @Inject constructor(
             )
             // Reload context message after clearing chat
             loadContextMessage()
+        }
+    }
+
+    fun deleteMessage(message: ChatMessage) {
+        if (message.isSystemPrompt) return
+        viewModelScope.launch { llmRepository.deleteMessage(message.id) }
+    }
+
+    fun regenerateResponse(response: ChatMessage, prompt: String) {
+        if (_uiState.value.isLoading) return
+        viewModelScope.launch {
+            llmRepository.deleteMessage(response.id)
+            sendMessage(prompt)
         }
     }
     
