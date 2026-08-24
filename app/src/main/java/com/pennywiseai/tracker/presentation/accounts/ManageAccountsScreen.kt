@@ -66,9 +66,12 @@ fun ManageAccountsScreen(
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val formState by viewModel.formState.collectAsState()
+    var showAddSheet by remember { mutableStateOf(false) }
     var showUpdateDialog by remember { mutableStateOf(false) }
     var selectedAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedAccountEntity by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
+    var historyTarget by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var accountToDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showHiddenAccounts by remember { mutableStateOf(false) }
@@ -119,7 +122,7 @@ fun ManageAccountsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAddAccount,
+                onClick = { showAddSheet = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Account")
@@ -262,9 +265,7 @@ fun ManageAccountsScreen(
                                 selectedAccountEntity = account
                                 showUpdateDialog = true
                             },
-                            onViewHistory = {
-                                onNavigateToBalanceHistory(account.bankName, account.accountLast4)
-                            },
+                            onViewHistory = { historyTarget = account },
                             onUnlinkCard = { cardId ->
                                 viewModel.unlinkCard(cardId)
                             },
@@ -332,9 +333,7 @@ fun ManageAccountsScreen(
                                 selectedAccountEntity = card
                                 showUpdateDialog = true
                             },
-                            onViewHistory = {
-                                onNavigateToBalanceHistory(card.bankName, card.accountLast4)
-                            },
+                            onViewHistory = { historyTarget = card },
                             onDeleteAccount = {
                                 accountToDelete = card.bankName to card.accountLast4
                                 showDeleteConfirmDialog = true
@@ -410,9 +409,7 @@ fun ManageAccountsScreen(
                                     selectedAccountEntity = account
                                     showUpdateDialog = true
                                 },
-                                onViewHistory = {
-                                    onNavigateToBalanceHistory(account.bankName, account.accountLast4)
-                                },
+                                onViewHistory = { historyTarget = account },
                                 onUnlinkCard = { cardId ->
                                     viewModel.unlinkCard(cardId)
                                 },
@@ -449,9 +446,7 @@ fun ManageAccountsScreen(
                                     selectedAccountEntity = card
                                     showUpdateDialog = true
                                 },
-                                onViewHistory = {
-                                    onNavigateToBalanceHistory(card.bankName, card.accountLast4)
-                                },
+                                onViewHistory = { historyTarget = card },
                                 onDeleteAccount = {
                                     accountToDelete = card.bankName to card.accountLast4
                                     showDeleteConfirmDialog = true
@@ -538,27 +533,54 @@ fun ManageAccountsScreen(
         )
     }
 
-    // Edit Account Dialog
+    if (showAddSheet) {
+        EditAccountSheet(
+            account = null,
+            defaultCurrency = formState.currency,
+            onDismiss = { showAddSheet = false },
+            onSave = { draft ->
+                viewModel.updateAccountType(draft.accountType)
+                viewModel.updateCurrency(draft.currency)
+                viewModel.updateBankName(draft.bankName)
+                viewModel.updateAccountLast4(draft.accountLast4)
+                viewModel.updateBalance(draft.balance.toPlainString())
+                viewModel.updateCreditLimit(draft.creditLimit?.toPlainString().orEmpty())
+                viewModel.addAccount()
+                showAddSheet = false
+            }
+        )
+    }
+
+    // Shared edit sheet preserves the existing detected account type.
     if (showEditDialog && accountToEdit != null) {
-        EditAccountDialog(
+        EditAccountSheet(
             account = accountToEdit!!,
+            defaultCurrency = formState.currency,
             onDismiss = {
                 showEditDialog = false
                 accountToEdit = null
             },
-            onConfirm = { newBankName, newBalance, newCreditLimit, newCurrency ->
+            onSave = { draft ->
                 viewModel.editAccount(
                     oldBankName = accountToEdit!!.bankName,
                     accountLast4 = accountToEdit!!.accountLast4,
-                    newBankName = newBankName,
-                    newBalance = newBalance,
-                    newCreditLimit = newCreditLimit,
+                    newBankName = draft.bankName,
+                    newBalance = draft.balance,
+                    newCreditLimit = draft.creditLimit,
                     isCreditCard = accountToEdit!!.isCreditCard,
-                    newCurrency = newCurrency
+                    newCurrency = draft.currency
                 )
                 showEditDialog = false
                 accountToEdit = null
             }
+        )
+    }
+
+    historyTarget?.let { account ->
+        BalanceHistorySheet(
+            bankName = account.bankName,
+            accountLast4 = account.accountLast4,
+            onDismiss = { historyTarget = null }
         )
     }
 
@@ -667,10 +689,10 @@ private fun CreditCardItem(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Iconsax.Card,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                    BrandIcon(
+                        merchantName = card.bankName,
+                        size = Dimensions.Icon.list,
+                        showBackground = true
                     )
                     Column {
                         Row(
@@ -732,6 +754,7 @@ private fun CreditCardItem(
                     )
                 }
                 
+                if (card.creditLimit != null) {
                 // Available Credit
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -776,6 +799,13 @@ private fun CreditCardItem(
                             fontWeight = FontWeight.Medium
                         )
                     }
+                }
+                } else {
+                    Text(
+                        text = "Set a credit limit to see available credit and utilisation",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 

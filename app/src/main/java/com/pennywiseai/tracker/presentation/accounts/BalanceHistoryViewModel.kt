@@ -25,13 +25,23 @@ class BalanceHistoryViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository
 ) : ViewModel() {
 
-    val bankName: String = savedStateHandle.get<String>("bankName") ?: ""
-    val accountLast4: String = savedStateHandle.get<String>("accountLast4") ?: ""
+    var bankName: String = savedStateHandle.get<String>("bankName") ?: ""
+        private set
+    var accountLast4: String = savedStateHandle.get<String>("accountLast4") ?: ""
+        private set
 
     private val _history = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
     val history: StateFlow<List<AccountBalanceEntity>> = _history.asStateFlow()
 
     init {
+        if (bankName.isNotBlank() && accountLast4.isNotBlank()) reload()
+    }
+
+    /** Lets the Manage Accounts sheet reuse this read/write history source. */
+    fun loadAccount(bankName: String, accountLast4: String) {
+        if (this.bankName == bankName && this.accountLast4 == accountLast4) return
+        this.bankName = bankName
+        this.accountLast4 = accountLast4
         reload()
     }
 
