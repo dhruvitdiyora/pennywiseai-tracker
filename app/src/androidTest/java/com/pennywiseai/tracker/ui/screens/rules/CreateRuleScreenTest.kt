@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -28,9 +29,9 @@ class CreateRuleScreenTest {
         setScreen(savedRule)
 
         selectSetSubcategoryAction()
-        composeRule.onNodeWithText("Choose subcategory").performClick()
-        composeRule.onNodeWithText("Food").performClick()
-        composeRule.onNodeWithText("Monthly under Food").performClick()
+        clickText("Choose subcategory")
+        clickText("Food")
+        clickText("Monthly under Food")
 
         saveRule()
 
@@ -43,7 +44,7 @@ class CreateRuleScreenTest {
         setScreen(savedRule)
 
         selectSetSubcategoryAction()
-        composeRule.onNodeWithText("Enter custom subcategory").performClick()
+        clickText("Enter custom subcategory")
         composeRule.onNodeWithText("Custom subcategory").performTextInput("Future child")
 
         saveRule()
@@ -56,9 +57,9 @@ class CreateRuleScreenTest {
         val savedRule = mutableStateOf<TransactionRule?>(null)
         setScreen(savedRule)
 
-        composeRule.onNodeWithText("Choose category").performClick()
-        composeRule.onNodeWithText("Food").performClick()
-        composeRule.onNodeWithText("Monthly").performClick()
+        clickText("Choose category")
+        clickText("Food")
+        clickText("Monthly")
 
         saveRule()
 
@@ -70,7 +71,7 @@ class CreateRuleScreenTest {
         val savedRule = mutableStateOf<TransactionRule?>(null)
         setScreen(savedRule)
 
-        composeRule.onNodeWithText("Enter custom category").performClick()
+        clickText("Enter custom category")
         composeRule.onNodeWithText("Custom category").performTextInput("Future parent")
 
         saveRule()
@@ -98,8 +99,13 @@ class CreateRuleScreenTest {
     }
 
     private fun selectSetSubcategoryAction() {
-        composeRule.onNodeWithText("Set Category").performClick()
-        composeRule.onNodeWithText("Set Subcategory").performClick()
+        clickText("Set Category")
+        clickText("Set Subcategory")
+    }
+
+    private fun clickText(text: String) {
+        composeRule.onNodeWithText(text).performScrollTo().performClick()
+        composeRule.waitForIdle()
     }
 
     private fun saveRule() {
