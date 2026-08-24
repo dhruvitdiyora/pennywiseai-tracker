@@ -31,6 +31,8 @@ import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.TiledIconBackground
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
 import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
@@ -986,12 +988,14 @@ private fun AccountItem(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            TiledIconBackground(merchantName = account.bankName)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
             // Account Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1003,10 +1007,10 @@ private fun AccountItem(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountBalance,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                    BrandIcon(
+                        merchantName = account.bankName,
+                        size = 36.dp,
+                        showBackground = true
                     )
                     val alias = account.alias?.takeIf { it.isNotBlank() }
                     Column {
@@ -1078,8 +1082,7 @@ private fun AccountItem(
                                 bankName = account.bankName
                             )
                         ),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = PennyWiseText.heroAmount,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1301,6 +1304,7 @@ private fun AccountItem(
                         )
                     }
                 }
+            }
             }
         }
     }

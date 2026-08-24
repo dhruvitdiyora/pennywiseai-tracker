@@ -111,6 +111,7 @@ fun AccountDetailScreen(
                 CurrentBalanceCard(
                     balance = uiState.currentBalance?.balance ?: BigDecimal.ZERO,
                     creditLimit = uiState.currentBalance?.creditLimit,
+                    isCreditCard = uiState.currentBalance?.isCreditCard == true,
                     bankName = uiState.bankName,
                     accountLast4 = uiState.accountLast4,
                     primaryCurrency = uiState.primaryCurrency,
@@ -275,14 +276,13 @@ private fun ExpandableBalanceChart(
 private fun CurrentBalanceCard(
     balance: BigDecimal,
     creditLimit: BigDecimal? = null,
+    isCreditCard: Boolean,
     bankName: String,
     accountLast4: String,
     primaryCurrency: String,
     billedOutstanding: BigDecimal? = null,
     unbilledOutstanding: BigDecimal? = null
 ) {
-    val isCreditCard = creditLimit != null
-    
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -319,19 +319,24 @@ private fun CurrentBalanceCard(
             if (isCreditCard) {
                 // Credit card layout
                 Text(
-                    text = "Available Credit",
+                    text = if (creditLimit == null) "Outstanding" else "Available Credit",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
-                    text = CurrencyFormatter.formatCurrency(creditLimit, primaryCurrency),
+                    text = CurrencyFormatter.formatCurrency(
+                        if (creditLimit == null) balance else creditLimit,
+                        primaryCurrency
+                    ),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                // Show outstanding balance if any
-                if (balance > BigDecimal.ZERO) {
+                // A configured limit enables the derived available-credit and
+                // billed/unbilled figures. A null limit means not set up, not
+                // "not a credit card"; never invent a limit-derived number.
+                if (creditLimit != null && balance > BigDecimal.ZERO) {
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
                         text = "Outstanding: ${CurrencyFormatter.formatCurrency(balance, primaryCurrency)}",
@@ -373,6 +378,14 @@ private fun CurrentBalanceCard(
                             }
                         }
                     }
+                }
+                if (creditLimit == null) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        text = "Set a credit limit to see available credit and utilisation",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
                 // Regular account layout
@@ -649,4 +662,3 @@ private fun AccountTransactionItem(
         }
     }
 }
-
