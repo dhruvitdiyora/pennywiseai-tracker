@@ -126,6 +126,9 @@ fun SettingsScreen(
     onNavigateToTransactionGroups: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
+    onNavigateToCurrencySettings: () -> Unit = {},
+    onNavigateToBackupRestore: () -> Unit = {},
+    onNavigateToSmsScan: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
@@ -282,6 +285,17 @@ fun SettingsScreen(
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.Person,
+                    iconBgColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    title = themeUiState.userName.ifBlank { "Profile" },
+                    subtitle = "Profile and appearance",
+                    onClick = onNavigateToAppearance,
+                    position = ListItemPosition.Single
+                )
+            }
             // ── PennyWise Pro / Support development ──
             // Top of Settings on purpose: highest-discoverability slot.
             // F-Droid builds have no Play billing (everything is already
@@ -339,6 +353,17 @@ fun SettingsScreen(
             // ── Currency ──
             SectionHeaderV2(title = "Currency")
             SettingsGroup {
+                SettingsNavItem(
+                    icon = Iconsax.Convertshape2,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = "Currency Settings",
+                    subtitle = "Display, rates, defaults and number format",
+                    onClick = onNavigateToCurrencySettings,
+                    position = ListItemPosition.Single
+                )
+            }
+            if (false) SettingsGroup {
                 SettingsSwitchRow(
                     icon = Iconsax.Convertshape2,
                     iconBgColor = green_light,
@@ -543,8 +568,42 @@ fun SettingsScreen(
             }
 
             // ── Data Management ──
-            SectionHeaderV2(title = "Data Management")
+            SectionHeaderV2(title = "Data & backup")
             SettingsGroup {
+                SettingsNavItem(
+                    icon = Iconsax.ExportArrow02,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = "Backup & Restore",
+                    subtitle = "Export, import and automatic backup",
+                    onClick = onNavigateToBackupRestore,
+                    position = ListItemPosition.Top
+                )
+                SettingsNavItem(
+                    icon = Iconsax.Calendar,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = "SMS & scanning",
+                    subtitle = "Scan period and unrecognized messages",
+                    onClick = onNavigateToSmsScan,
+                    position = ListItemPosition.Bottom
+                )
+            }
+            SectionHeaderV2(title = "Manage data")
+            SettingsGroup {
+                SettingsNavItem(Iconsax.Wallet3, red_light, red_dark, "Manage Accounts", "View and manage your bank accounts", onNavigateToManageAccounts, ListItemPosition.Top)
+                SettingsNavItem(Iconsax.Category2, purple_light, purple_dark, "Categories", "Manage expense and income categories", onNavigateToCategories, ListItemPosition.Middle)
+                SettingsNavItem(Iconsax.Magicpen, orange_light, orange_dark, "Smart Rules", "Automatic transaction categorization", onNavigateToRules, ListItemPosition.Middle)
+                SettingsNavItem(Iconsax.WalletMoney, green_light, green_dark, "Budgets", "Track spending limits by category", onNavigateToBudgets, ListItemPosition.Middle)
+                SettingsNavItem(Icons.Default.SwapHoriz, amber_light, amber_dark, "Loans", "Track money lent and borrowed", onNavigateToLoans, ListItemPosition.Middle)
+                SettingsNavItem(Iconsax.Folder2, MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, "Transaction Groups", "Organise transactions under a topic", onNavigateToTransactionGroups, ListItemPosition.Bottom)
+            }
+            SectionHeaderV2(title = "Import tools")
+            SettingsGroup {
+                SettingsNavItem(Iconsax.ImportArrow01, cyan_light, cyan_dark, "Import Transactions (CSV)", "Import from a PennyWise CSV export", { csvImportLauncher.launch("*/*") }, ListItemPosition.Top)
+                SettingsNavItem(Iconsax.DocumentText2, indigo_light, indigo_dark, "Import Statement", "Import from GPay, PhonePe, Paytm", onNavigateToImportStatement, ListItemPosition.Bottom)
+            }
+            if (false) SettingsGroup {
                 SettingsNavItem(
                     icon = Iconsax.Wallet3,
                     iconBgColor = red_light,
@@ -1260,14 +1319,14 @@ fun SettingsScreen(
 // object. These wrappers only add the settings-specific trailing affordance.
 
 @Composable
-private fun SettingsGroup(
+internal fun SettingsGroup(
     content: @Composable ColumnScope.() -> Unit
 ) {
     GroupedList(content = content)
 }
 
 @Composable
-private fun SettingsNavItem(
+internal fun SettingsNavItem(
     icon: ImageVector,
     iconBgColor: Color,
     iconTint: Color,
@@ -1300,7 +1359,7 @@ private fun SettingsNavItem(
 }
 
 @Composable
-private fun SettingsSwitchRow(
+internal fun SettingsSwitchRow(
     icon: ImageVector,
     iconBgColor: Color,
     iconTint: Color,
@@ -1333,7 +1392,7 @@ private fun SettingsSwitchRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsDropdownItem(
+internal fun SettingsDropdownItem(
     icon: ImageVector,
     iconBgColor: Color,
     iconTint: Color,

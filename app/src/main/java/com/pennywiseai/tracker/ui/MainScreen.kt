@@ -474,6 +474,21 @@ fun MainScreen(
                                     launchSingleTop = true
                                 }
                             },
+                            onNavigateToCurrencySettings = {
+                                navController.navigate("currency_settings") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToBackupRestore = {
+                                navController.navigate("backup_restore") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToSmsScan = {
+                                navController.navigate("sms_scan") {
+                                    launchSingleTop = true
+                                }
+                            },
                             onNavigateToImportStatement = {
                                 navController.navigate("import_statement") {
                                     launchSingleTop = true
@@ -499,6 +514,34 @@ fun MainScreen(
                         )
                     }
                 )
+
+                composable(route = "currency_settings") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.CurrencySettingsScreen(
+                        onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToExchangeRates = {
+                            rootNavController?.navigate(
+                                com.pennywiseai.tracker.navigation.ExchangeRates
+                            ) { launchSingleTop = true }
+                        }
+                    )
+                }
+
+                composable(route = "backup_restore") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.BackupRestoreScreen(
+                        onNavigateBack = { navController.safePopBackStack() }
+                    )
+                }
+
+                composable(route = "sms_scan") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.SmsScanScreen(
+                        onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToUnrecognizedSms = {
+                            navController.navigate("unrecognized_sms") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
 
                 composable(
                     route = "categories",
