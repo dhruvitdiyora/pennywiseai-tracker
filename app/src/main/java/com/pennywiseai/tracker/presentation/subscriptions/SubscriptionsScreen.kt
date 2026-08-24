@@ -477,6 +477,12 @@ private fun SwipeableSubscriptionItem(
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
             when (dismissValue) {
+                // Keep the established left swipe (EndToStart) as hide. The
+                // opposite direction opens edit without dismissing the card.
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    showEditDialog = true
+                    false
+                }
                 SwipeToDismissBoxValue.EndToStart -> {
                     onHide()
                     true
@@ -491,6 +497,7 @@ private fun SwipeableSubscriptionItem(
         backgroundContent = {
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
                     SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
                     else -> Color.Transparent
                 },
@@ -501,12 +508,24 @@ private fun SwipeableSubscriptionItem(
                     .fillMaxSize()
                     .background(color)
                     .padding(horizontal = Dimensions.Padding.content),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                    else -> Alignment.CenterEnd
+                }
             ) {
                 Icon(
-                    imageVector = Icons.Default.VisibilityOff,
-                    contentDescription = "Hide",
-                    tint = MaterialTheme.colorScheme.onError
+                    imageVector = when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Edit
+                        else -> Icons.Default.VisibilityOff
+                    },
+                    contentDescription = when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> "Edit"
+                        else -> "Hide"
+                    },
+                    tint = when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onError
+                    }
                 )
             }
         },
@@ -583,30 +602,34 @@ private fun SwipeableSubscriptionItem(
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    var nextPaymentDate: LocalDate = subscriptionDate
-                                    while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
-                                        nextPaymentDate = nextPaymentDate.plusMonths(1)
-                                    }
-                                    val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
+                                    val daysUntilDue = ChronoUnit.DAYS.between(today, subscriptionDate)
+                                    val isOverdue = subscriptionDate.isBefore(today) && !isPaidThisCycle
+                                    val isDueSoon = !isOverdue && daysUntilDue in 0..3
 
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
                                         contentDescription = null,
                                         modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = when {
+                                            isOverdue -> MaterialTheme.colorScheme.error
+                                            isDueSoon -> MaterialTheme.colorScheme.tertiary
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                     Text(
                                         text = when {
-                                            daysUntilNext == 0L -> "Due today"
-                                            daysUntilNext == 1L -> "Due tomorrow"
-                                            daysUntilNext in 2..7 -> "Due in $daysUntilNext days"
-                                            else -> nextPaymentDate.format(
+                                            isOverdue -> "Overdue"
+                                            daysUntilDue == 0L -> "Due today"
+                                            daysUntilDue == 1L -> "Due tomorrow"
+                                            daysUntilDue in 2..7 -> "Due in $daysUntilDue days"
+                                            else -> subscriptionDate.format(
                                                 DateTimeFormatter.ofPattern("MMM d")
                                             )
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = when {
-                                            daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
+                                            isOverdue -> MaterialTheme.colorScheme.error
+                                            isDueSoon -> MaterialTheme.colorScheme.tertiary
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         },
                                         maxLines = 1,
