@@ -57,10 +57,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
@@ -523,6 +525,39 @@ class HomeViewModel @Inject constructor(
                         txs.fold(BigDecimal.ZERO) { acc, tx -> acc + (tx.loanContribution ?: tx.amount) }
                     }
                     updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+                }
+        }
+
+        viewModelScope.launch {
+            combine(
+                accountBalanceRepository.getBalancesFromDate(LocalDateTime.now().minusMonths(2)),
+                _currentCycleWindow,
+                _uiState.map { it.selectedCurrency to it.isUnifiedMode }.distinctUntilChanged()
+            ) { snapshots, window, currencyMode -> Triple(snapshots, window, currencyMode) }
+                .collect { (snapshots, window, currencyMode) ->
+                    val (currency, unified) = currencyMode
+                    if (unified) {
+                        _uiState.value = _uiState.value.copy(netWorthHistory = emptyList())
+                        return@collect
+                    }
+                    val carryIn = accountBalanceRepository.getLatestBalancesBefore(window.first.atStartOfDay())
+                    val histories = (carryIn + snapshots)
+                        .filter { it.currency.equals(currency, ignoreCase = true) }
+                        .groupBy { it.bankName to it.accountLast4 }
+                    if (histories.values.flatten().map { it.timestamp.toLocalDate() }.distinct().size < 2) {
+                        _uiState.value = _uiState.value.copy(netWorthHistory = emptyList())
+                        return@collect
+                    }
+                    val points = mutableListOf<BigDecimal>()
+                    var day = window.first
+                    while (!day.isAfter(LocalDate.now())) {
+                        val end = day.atTime(23, 59, 59)
+                        points += histories.values.mapNotNull { account ->
+                            account.filter { !it.timestamp.isAfter(end) }.maxByOrNull { it.timestamp }?.balance
+                        }.fold(BigDecimal.ZERO, BigDecimal::add)
+                        day = day.plusDays(1)
+                    }
+                    _uiState.value = _uiState.value.copy(netWorthHistory = points)
                 }
         }
 
@@ -1625,6 +1660,7 @@ data class HomeUiState(
     val availableCurrencies: List<String> = emptyList(),
     val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val spendingHistory: List<BigDecimal> = emptyList(),
+    val netWorthHistory: List<BigDecimal> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
     val showBreakdownDialog: Boolean = false,

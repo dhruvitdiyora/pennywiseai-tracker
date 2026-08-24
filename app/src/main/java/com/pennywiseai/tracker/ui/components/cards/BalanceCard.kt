@@ -62,6 +62,7 @@ import dev.chrisbanes.haze.hazeEffect
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income_dark
 import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.expense_dark
 import com.pennywiseai.tracker.ui.theme.expense_light
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
@@ -83,6 +84,7 @@ fun BalanceCard(
     currentMonthLent: BigDecimal = BigDecimal.ZERO,
     currentMonthTotal: BigDecimal,
     spendingHistory: List<BigDecimal> = emptyList(),
+    netWorthHistory: List<BigDecimal> = emptyList(),
     lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
     lastMonthSpending: BigDecimal = BigDecimal.ZERO,
     availableCurrencies: List<String>,
@@ -310,6 +312,19 @@ fun BalanceCard(
                                     )
                                 }
                             }
+                        }
+
+                        if (netWorthHistory.size >= 2) {
+                            Spacer(modifier = Modifier.height(Spacing.md))
+                            Text("Net worth", style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            BalanceSparkline(
+                                data = netWorthHistory,
+                                lineColor = MaterialTheme.colorScheme.income,
+                                modifier = Modifier.fillMaxWidth().height(SPARKLINE_HEIGHT),
+                                currency = currency,
+                                isBalanceHidden = isBalanceHidden
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(Spacing.sm))

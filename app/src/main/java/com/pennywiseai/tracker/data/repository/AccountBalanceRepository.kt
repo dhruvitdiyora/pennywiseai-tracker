@@ -165,6 +165,9 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getBalancesFromDate(startDate)
     }
 
+    suspend fun getLatestBalancesBefore(beforeDate: LocalDateTime): List<AccountBalanceEntity> =
+        accountBalanceDao.getLatestBalancesBefore(beforeDate)
+
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.deleteAccount(bankName, accountLast4)
     }

@@ -456,6 +456,7 @@ fun HomeScreen(
                             currentMonthLent = uiState.currentMonthLent,
                             currentMonthTotal = uiState.currentMonthTotal,
                             spendingHistory = uiState.spendingHistory,
+                            netWorthHistory = uiState.netWorthHistory,
                             lastMonthSpendingHistory = uiState.lastMonthSpendingHistory,
                             lastMonthSpending = uiState.lastMonthExpenses,
                             availableCurrencies = uiState.availableCurrencies,
