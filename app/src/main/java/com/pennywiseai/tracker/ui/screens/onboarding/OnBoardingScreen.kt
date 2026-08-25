@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -8,6 +9,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -95,6 +98,7 @@ fun OnBoardingScreen(
     val stepOrder = remember {
         OnBoardingStep.entries.toList()
     }
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
     Scaffold(
         bottomBar = {
             OnBoardingBottomBar(
@@ -136,7 +140,9 @@ fun OnBoardingScreen(
             transitionSpec = {
                 val targetIndex = stepOrder.indexOf(targetState)
                 val initialIndex = stepOrder.indexOf(initialState)
-                if (targetIndex > initialIndex) {
+                if (!animationsEnabled) {
+                    EnterTransition.None togetherWith ExitTransition.None
+                } else if (targetIndex > initialIndex) {
                     slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
                 } else {
                     slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
@@ -167,13 +173,15 @@ fun OnBoardingScreen(
 
 @Composable
 private fun WelcomeStep() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(Spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        PermissionsBackgroundAnimation(modifier = Modifier.fillMaxSize())
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Spacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
         Image(
             painter = painterResource(id = R.mipmap.ic_launcher_foreground),
             contentDescription = "PennyWise",
@@ -225,6 +233,8 @@ private fun WelcomeStep() {
             }
         }
     }
+}
+
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -424,7 +434,7 @@ private fun PermissionsStep(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        PermissionMessagePreview()
+        NotificationHeroAnimation()
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -792,35 +802,76 @@ private fun AccountSetupStep(
                 showManualAccountSheet = false
             }
         )
+        }
     }
-}
 
 @Composable
-private fun StepIndicator(
+private fun StageProgressIndicator(
     currentStep: OnBoardingStep,
     modifier: Modifier = Modifier
 ) {
     val progress = (OnBoardingStep.entries.indexOf(currentStep) + 1).toFloat() / OnBoardingStep.entries.size
-    LinearProgressIndicator(progress = { progress }, modifier = modifier.padding(horizontal = Spacing.lg))
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
+    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = progress,
+        animationSpec = if (animationsEnabled) tween(450) else tween(0),
+        label = "onboarding_stage_progress"
+    )
+    LinearProgressIndicator(
+        progress = { if (animationsEnabled) animatedProgress else progress },
+        modifier = modifier.padding(horizontal = Spacing.lg)
+    )
 }
 
 @Composable
-private fun PermissionMessagePreview() {
+private fun PermissionsBackgroundAnimation(modifier: Modifier = Modifier) {
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
+    val transition = rememberInfiniteTransition(label = "onboarding_background")
+    val alpha by transition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.18f,
+        animationSpec = infiniteRepeatable(tween(2200), RepeatMode.Reverse),
+        label = "onboarding_background_alpha"
+    )
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(220.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = if (animationsEnabled) alpha else 0.12f))
+        )
+    }
+}
+
+@Composable
+private fun NotificationHeroAnimation() {
+    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
     val transition = rememberInfiniteTransition(label = "permission_preview")
     val offset by transition.animateFloat(
         initialValue = -1f, targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(2400), RepeatMode.Reverse), label = "message_offset"
     )
+    AnimatedMessageBubble(offset = if (animationsEnabled) offset else 0f)
+}
+
+@Composable
+private fun AnimatedMessageBubble(offset: Float) {
+    MessageBubble(modifier = Modifier.offset(x = (offset * Spacing.sm.value).dp))
+}
+
+@Composable
+private fun MessageBubble(modifier: Modifier = Modifier) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        shape = MaterialTheme.shapes.large
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier
     ) {
         Column(Modifier.padding(Spacing.md)) {
             Text("DemoPay", style = MaterialTheme.typography.labelLarge)
             Text(
                 "A transaction alert will be read on this device.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.offset(x = (offset * Spacing.sm.value).dp)
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
@@ -841,7 +892,7 @@ private fun OnBoardingBottomBar(
     // the Scaffold's bottomBar slot doesn't apply navigation-bar insets on its own,
     // so without this the gesture/3-button nav bar overlaps the Next button.
     Column(modifier = Modifier.navigationBarsPadding()) {
-        StepIndicator(
+        StageProgressIndicator(
             currentStep = uiState.currentStep,
             modifier = Modifier
                 .fillMaxWidth()
