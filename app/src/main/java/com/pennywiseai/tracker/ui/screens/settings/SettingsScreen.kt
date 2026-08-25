@@ -133,6 +133,7 @@ fun SettingsScreen(
     onNavigateToAbout: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
     onNavigateToProfiles: () -> Unit = {},
+    onNavigateToDataPrivacy: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -581,6 +582,15 @@ fun SettingsScreen(
                     subtitle = "Export, import and automatic backup",
                     onClick = onNavigateToBackupRestore,
                     position = ListItemPosition.Top
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Lock,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = stringResource(R.string.data_privacy_title),
+                    subtitle = stringResource(R.string.data_privacy_subtitle),
+                    onClick = onNavigateToDataPrivacy,
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Iconsax.Calendar,

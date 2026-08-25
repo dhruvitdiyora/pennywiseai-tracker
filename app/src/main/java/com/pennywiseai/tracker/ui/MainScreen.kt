@@ -507,6 +507,9 @@ fun MainScreen(
                             },
                             onNavigateToProfiles = {
                                 navController.navigate("profiles") { launchSingleTop = true }
+                            },
+                            onNavigateToDataPrivacy = {
+                                navController.navigate("data_privacy") { launchSingleTop = true }
                             }
                         )
                     }
@@ -536,6 +539,15 @@ fun MainScreen(
                 composable(route = "profiles") { _: NavBackStackEntry ->
                     com.pennywiseai.tracker.ui.screens.settings.ProfileScreen(
                         onNavigateBack = { navController.safePopBackStack() }
+                    )
+                }
+
+                composable(route = "data_privacy") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.DataPrivacyScreen(
+                        onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToBackupRestore = {
+                            navController.navigate("backup_restore") { launchSingleTop = true }
+                        }
                     )
                 }
 

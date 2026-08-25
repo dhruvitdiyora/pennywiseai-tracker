@@ -393,4 +393,11 @@
     <string name="profile_edit">Edit profile</string>
     <string name="profile_name">Profile name</string>
     <string name="profile_choose_color">Choose profile colour</string>
+    <string name="data_privacy_title">Data &amp; privacy</string>
+    <string name="data_privacy_subtitle">How PennyWise stores and processes your data</string>
+    <string name="data_privacy_heading">Your data stays on your device</string>
+    <string name="data_privacy_body">PennyWise processes bank messages and financial records locally. No cloud account is required for core tracking, and your financial records are not sent to a remote server.</string>
+    <string name="data_privacy_local_storage">Transactions, categories, accounts, preferences, and downloaded AI models are stored in the app private local storage. Backups are created only when you choose an export or backup destination.</string>
+    <string name="data_privacy_permissions">SMS and notification access are optional Android permissions used for automatic detection. You can revoke them from Android settings at any time.</string>
+    <string name="data_privacy_backup_action">Open Backup &amp; Restore</string>
 </resources>
