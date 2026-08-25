@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +23,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -329,11 +332,11 @@ private fun CategoryTypeFilter.label(): String = when (this) {
 /**
  * One category: icon, name, description, System badge, and its subcategory strip.
  *
- * Swipe-to-delete was dropped here. `SubcategoryRow` is a horizontal `LazyRow`
- * inside this card, and both it and a `SwipeToDismissBox` consume horizontal
- * drag — doc 16's own risk table calls that out. Delete now lives on the card's
- * overflow, which is also where a confirmation belongs.
+ * Swipe actions are scoped to this header only. `SubcategoryRow` is a horizontal
+ * `LazyRow` below it, so its horizontal scrolling and tap targets are not wrapped
+ * by the swipe container.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryCard(
     category: CategoryEntity,
@@ -343,6 +346,26 @@ private fun CategoryCard(
     onSubcategoryClick: (SubcategoryEntity) -> Unit,
     onAddSubcategory: () -> Unit,
 ) {
+    val view = LocalView.current
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                    onEdit()
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    if (!category.isSystem) {
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        onDelete()
+                    }
+                    false
+                }
+                else -> false
+            }
+        }
+    )
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
         onClick = onEdit
@@ -350,57 +373,109 @@ private fun CategoryCard(
         // The list's verticalArrangement does not reach inside a single item, so
         // the internal rhythm is this card's own responsibility (trap 4).
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CategoryIconTile(category)
-
-                Column(modifier = Modifier.weight(1f)) {
+            SwipeToDismissBox(
+                state = dismissState,
+                enableDismissFromStartToEnd = true,
+                enableDismissFromEndToStart = !category.isSystem,
+                backgroundContent = {
+                    val backgroundColor by animateColorAsState(
+                        targetValue = when (dismissState.targetValue) {
+                            SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                            SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                            else -> Color.Transparent
+                        },
+                        label = "category_swipe_background"
+                    )
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(backgroundColor)
+                            .padding(horizontal = Spacing.md),
+                        horizontalArrangement = when (dismissState.targetValue) {
+                            SwipeToDismissBoxValue.StartToEnd -> Arrangement.Start
+                            else -> Arrangement.End
+                        },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = category.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        Icon(
+                            imageVector = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Edit
+                                else -> Icons.Default.Delete
+                            },
+                            contentDescription = null,
+                            tint = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.onPrimaryContainer
+                                else -> MaterialTheme.colorScheme.onErrorContainer
+                            }
                         )
-                        if (category.isSystem) {
-                            // Kept: it is the explanation for why Delete is absent.
-                            Text(
-                                text = stringResource(R.string.categories_system_badge),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(
+                            text = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> stringResource(R.string.categories_swipe_edit)
+                                else -> stringResource(R.string.delete)
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            color = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.onPrimaryContainer
+                                else -> MaterialTheme.colorScheme.onErrorContainer
+                            }
+                        )
+                    }
+                },
+                content = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CategoryIconTile(category)
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = category.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (category.isSystem) {
+                                    // Kept: it is the explanation for why Delete is absent.
+                                    Text(
+                                        text = stringResource(R.string.categories_system_badge),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            // Omitted entirely when blank — an empty line reserved for
+                            // a description most categories do not have makes every row taller.
+                            if (category.description.isNotBlank()) {
+                                Text(
+                                    text = category.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        if (!category.isSystem) {
+                            IconButton(onClick = onDelete) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.delete),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-                    // Omitted entirely when blank — an empty line reserved for a
-                    // description most categories do not have makes every row taller.
-                    if (category.description.isNotBlank()) {
-                        Text(
-                            text = category.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
                 }
-
-                if (!category.isSystem) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.delete),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            )
 
             SubcategoryRow(
                 subcategories = subcategories,
