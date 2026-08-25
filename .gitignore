@@ -105,3 +105,5 @@ iosApp/fastlane/report.xml
 # Device-verification screenshots (contain real account data)
 .verification/
 /docs
+# Stray root run log — the real one lives in docs/ui-revamp/RUNLOG.md
+/RUNLOG.md
