@@ -510,6 +510,9 @@ fun MainScreen(
                             },
                             onNavigateToDataPrivacy = {
                                 navController.navigate("data_privacy") { launchSingleTop = true }
+                            },
+                            onNavigateToDeveloper = {
+                                navController.navigate("developer") { launchSingleTop = true }
                             }
                         )
                     }
@@ -548,6 +551,12 @@ fun MainScreen(
                         onNavigateToBackupRestore = {
                             navController.navigate("backup_restore") { launchSingleTop = true }
                         }
+                    )
+                }
+
+                composable(route = "developer") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.DeveloperScreen(
+                        onNavigateBack = { navController.safePopBackStack() }
                     )
                 }
 

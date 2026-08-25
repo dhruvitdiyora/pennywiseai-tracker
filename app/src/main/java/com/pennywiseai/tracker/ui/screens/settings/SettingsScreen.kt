@@ -134,6 +134,7 @@ fun SettingsScreen(
     onNavigateToNotificationSettings: () -> Unit = {},
     onNavigateToProfiles: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {},
+    onNavigateToDeveloper: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -827,8 +828,19 @@ fun SettingsScreen(
                     subtitle = "Show technical information in chat",
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    position = ListItemPosition.Single
+                    position = if (com.pennywiseai.tracker.BuildConfig.DEBUG) ListItemPosition.Top else ListItemPosition.Single
                 )
+                if (com.pennywiseai.tracker.BuildConfig.DEBUG) {
+                    SettingsNavItem(
+                        icon = Iconsax.CodeCircle,
+                        iconBgColor = grey_light,
+                        iconTint = grey_dark,
+                        title = stringResource(R.string.developer_screen_title),
+                        subtitle = stringResource(R.string.developer_screen_subtitle),
+                        onClick = onNavigateToDeveloper,
+                        position = ListItemPosition.Bottom
+                    )
+                }
             }
 
             // ── Support & Community ──

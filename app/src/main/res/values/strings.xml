@@ -400,4 +400,10 @@
     <string name="data_privacy_local_storage">Transactions, categories, accounts, preferences, and downloaded AI models are stored in the app private local storage. Backups are created only when you choose an export or backup destination.</string>
     <string name="data_privacy_permissions">SMS and notification access are optional Android permissions used for automatic detection. You can revoke them from Android settings at any time.</string>
     <string name="data_privacy_backup_action">Open Backup &amp; Restore</string>
+    <string name="developer_screen_title">Developer tools</string>
+    <string name="developer_screen_subtitle">Debug-only technical information</string>
+    <string name="developer_screen_heading">PennyWise diagnostics</string>
+    <string name="developer_screen_build">Build type: %1$s</string>
+    <string name="developer_screen_description">This screen contains non-personal diagnostics only. Webhooks, sample financial data, and external data transmission are intentionally not available.</string>
+    <string name="developer_mode">Developer mode</string>
 </resources>
