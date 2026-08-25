@@ -27,11 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.AmountInput
+import com.pennywiseai.tracker.ui.components.NumberPad
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -67,6 +68,8 @@ fun EditAccountSheet(
     var currency by remember(account, defaultCurrency) { mutableStateOf(account?.currency ?: defaultCurrency) }
     var typeMenu by remember { mutableStateOf(false) }
     var currencyMenu by remember { mutableStateOf(false) }
+    var showNumberPad by remember(account) { mutableStateOf(false) }
+    var editingCreditLimit by remember(account) { mutableStateOf(false) }
     val isCredit = accountType == AccountType.CREDIT
     val valid = bankName.isNotBlank() && (accountType == AccountType.CASH || last4.isNotBlank()) &&
         balance.toBigDecimalOrNull() != null && (!isCredit || limit.isBlank() || limit.toBigDecimalOrNull() != null)
@@ -76,6 +79,27 @@ fun EditAccountSheet(
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent
     )
+
+    if (showNumberPad) {
+        ModalBottomSheet(onDismissRequest = { showNumberPad = false }) {
+            NumberPad(
+                initialValue = if (editingCreditLimit) limit else balance,
+                title = if (editingCreditLimit) "Credit limit" else if (isCredit) "Outstanding balance" else "Current balance",
+                doneLabel = "Done",
+                onDone = { value ->
+                    if (editingCreditLimit) {
+                        limit = value.toBigDecimalOrNull()
+                            ?.takeUnless { it.compareTo(BigDecimal.ZERO) == 0 }
+                            ?.toPlainString()
+                            .orEmpty()
+                    } else {
+                        balance = value
+                    }
+                    showNumberPad = false
+                }
+            )
+        }
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -177,8 +201,42 @@ fun EditAccountSheet(
             }
             TextField(bankName, { bankName = it }, label = { Text("Account name") }, modifier = Modifier.fillMaxWidth(), colors = fieldColors)
             TextField(last4, { if (accountType == AccountType.CASH || it.length <= 4) last4 = it }, label = { Text(if (accountType == AccountType.CASH) "Identifier (optional)" else "Last 4 digits") }, modifier = Modifier.fillMaxWidth(), colors = fieldColors)
-            TextField(balance, { if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) balance = it }, label = { Text(if (isCredit) "Outstanding balance" else "Current balance") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), colors = fieldColors)
-            if (isCredit) TextField(limit, { if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) limit = it }, label = { Text("Credit limit (optional)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), colors = fieldColors)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    text = if (isCredit) "Outstanding balance" else "Current balance",
+                    style = PennyWiseText.fieldLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                AmountInput(
+                    amount = balance,
+                    currencySymbol = CurrencyFormatter.getCurrencySymbol(currency),
+                    onClick = {
+                        editingCreditLimit = false
+                        showNumberPad = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd
+                )
+            }
+            if (isCredit) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        text = "Credit limit (optional)",
+                        style = PennyWiseText.fieldLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    AmountInput(
+                        amount = limit,
+                        currencySymbol = CurrencyFormatter.getCurrencySymbol(currency),
+                        onClick = {
+                            editingCreditLimit = true
+                            showNumberPad = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    )
+                }
+            }
             Button(onClick = {
                 onSave(AccountDraft(bankName, last4.ifBlank { "CASH" }, balance.toBigDecimal(), limit.toBigDecimalOrNull(), accountType, currency))
             }, enabled = valid, modifier = Modifier.fillMaxWidth()) { Text("Save") }
