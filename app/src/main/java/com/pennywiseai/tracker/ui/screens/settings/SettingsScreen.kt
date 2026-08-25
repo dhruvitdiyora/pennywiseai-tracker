@@ -131,6 +131,7 @@ fun SettingsScreen(
     onNavigateToSmsScan: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -783,10 +784,7 @@ fun SettingsScreen(
                     iconTint = indigo_dark,
                     title = "Bank Notification Access",
                     subtitle = if (hasNotificationAccess) "Enabled" else "Tap to enable bank app notifications",
-                    onClick = {
-                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                        notificationAccessLauncher.launch(intent)
-                    },
+                    onClick = onNavigateToNotificationSettings,
                     position = ListItemPosition.Single,
                     trailingText = if (hasNotificationAccess) "On" else "Off"
                 )

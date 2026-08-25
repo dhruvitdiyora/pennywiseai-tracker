@@ -380,4 +380,10 @@
     <string name="license_hilt_detail">Hilt is provided under the Apache License 2.0.</string>
     <string name="license_kotlin">Kotlin</string>
     <string name="license_kotlin_detail">Kotlin is provided under the Apache License 2.0.</string>
+    <string name="notification_settings_title">Notification settings</string>
+    <string name="notification_settings_enabled">Bank notifications are enabled</string>
+    <string name="notification_settings_disabled">Bank notifications are disabled</string>
+    <string name="notification_settings_description">PennyWise can read notifications from supported banking apps and pass eligible transaction messages to the on-device parser.</string>
+    <string name="notification_settings_privacy">Only configured supported banking apps are processed. Notification content is kept on this device.</string>
+    <string name="notification_settings_open_system">Open Android notification access</string>
 </resources>
