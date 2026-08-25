@@ -26,6 +26,9 @@ data class LoanEntity(
     @ColumnInfo(name = "person_name")
     val personName: String,
 
+    @ColumnInfo(name = "person_id", defaultValue = "")
+    val personId: String = "",
+
     @ColumnInfo(name = "direction")
     val direction: LoanDirection,
 

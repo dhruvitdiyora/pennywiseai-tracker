@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,6 +68,11 @@ class LoanRepository @Inject constructor(
     suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection): LoanEntity? =
         loanDao.getActiveLoanByPersonAndDirection(personName, direction.name)
 
+    suspend fun renamePerson(personId: String, newName: String) {
+        require(newName.isNotBlank()) { "Person name cannot be blank" }
+        loanDao.renamePerson(personId, newName.trim(), LocalDateTime.now())
+    }
+
     /**
      * Merge [transactionId] into an existing loan, bumping its principal by the
      * caller-supplied [contribution]. When [contribution] is less than the
@@ -102,6 +108,7 @@ class LoanRepository @Inject constructor(
     ): Long {
         val loan = LoanEntity(
             personName = personName,
+            personId = UUID.randomUUID().toString(),
             direction = direction,
             originalAmount = amount,
             remainingAmount = amount,
