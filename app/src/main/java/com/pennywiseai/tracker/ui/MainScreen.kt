@@ -504,6 +504,9 @@ fun MainScreen(
                             },
                             onNavigateToNotificationSettings = {
                                 navController.navigate("notification_settings") { launchSingleTop = true }
+                            },
+                            onNavigateToProfiles = {
+                                navController.navigate("profiles") { launchSingleTop = true }
                             }
                         )
                     }
@@ -526,6 +529,12 @@ fun MainScreen(
 
                 composable(route = "notification_settings") { _: NavBackStackEntry ->
                     com.pennywiseai.tracker.ui.screens.settings.NotificationSettingsScreen(
+                        onNavigateBack = { navController.safePopBackStack() }
+                    )
+                }
+
+                composable(route = "profiles") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.ProfileScreen(
                         onNavigateBack = { navController.safePopBackStack() }
                     )
                 }

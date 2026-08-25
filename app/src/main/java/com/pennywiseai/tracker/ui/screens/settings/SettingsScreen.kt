@@ -132,6 +132,7 @@ fun SettingsScreen(
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
+    onNavigateToProfiles: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -594,6 +595,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = "Manage data")
             SettingsGroup {
                 SettingsNavItem(Iconsax.Wallet3, red_light, red_dark, "Manage Accounts", "View and manage your bank accounts", onNavigateToManageAccounts, ListItemPosition.Top)
+                SettingsNavItem(Icons.Default.People, teal_light, teal_dark, stringResource(R.string.profile_settings_title), stringResource(R.string.profile_settings_subtitle), onNavigateToProfiles, ListItemPosition.Middle)
                 SettingsNavItem(Iconsax.Category2, purple_light, purple_dark, "Categories", "Manage expense and income categories", onNavigateToCategories, ListItemPosition.Middle)
                 SettingsNavItem(Iconsax.Magicpen, orange_light, orange_dark, "Smart Rules", "Automatic transaction categorization", onNavigateToRules, ListItemPosition.Middle)
                 SettingsNavItem(Iconsax.WalletMoney, green_light, green_dark, "Budgets", "Track spending limits by category", onNavigateToBudgets, ListItemPosition.Middle)

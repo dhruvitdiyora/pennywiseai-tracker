@@ -386,4 +386,11 @@
     <string name="notification_settings_description">PennyWise can read notifications from supported banking apps and pass eligible transaction messages to the on-device parser.</string>
     <string name="notification_settings_privacy">Only configured supported banking apps are processed. Notification content is kept on this device.</string>
     <string name="notification_settings_open_system">Open Android notification access</string>
+    <string name="profile_settings_title">Profiles</string>
+    <string name="profile_settings_subtitle">Manage personal and business profiles</string>
+    <string name="profile_settings_description">Profiles keep account and transaction organization separate while preserving the existing Personal and Business identifiers.</string>
+    <string name="profile_add">Add profile</string>
+    <string name="profile_edit">Edit profile</string>
+    <string name="profile_name">Profile name</string>
+    <string name="profile_choose_color">Choose profile colour</string>
 </resources>
