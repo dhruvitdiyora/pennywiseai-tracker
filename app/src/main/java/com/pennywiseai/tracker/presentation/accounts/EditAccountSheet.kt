@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -24,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
@@ -81,14 +83,67 @@ fun EditAccountSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Text(if (account == null) "Add account" else "Edit account", style = MaterialTheme.typography.titleLarge)
-            PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    BrandIcon(merchantName = bankName.ifBlank { "Account" }, size = Dimensions.Icon.list)
-                    Column {
-                        Text(bankName.ifBlank { "Account name" }, style = MaterialTheme.typography.titleSmall)
+            PennyWiseCardV2(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                contentPadding = Spacing.none
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(
+                            horizontal = Dimensions.Padding.card,
+                            vertical = Spacing.md
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
                         Text(
-                            CurrencyFormatter.formatCurrency(balance.toBigDecimalOrNull() ?: BigDecimal.ZERO, currency),
+                            text = if (isCredit) "Outstanding" else "Balance",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = CurrencyFormatter.formatCurrency(
+                                balance.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                                currency
+                            ),
                             style = PennyWiseText.amountLarge
+                        )
+                        if (isCredit && limit.toBigDecimalOrNull() != null) {
+                            Text(
+                                text = "Credit limit · ${CurrencyFormatter.formatCurrency(limit.toBigDecimal(), currency)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.large)
+                            .padding(Dimensions.Padding.card),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text(
+                                text = bankName.ifBlank { "Account name" },
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = if (accountType == AccountType.CASH) {
+                                    "Cash account"
+                                } else {
+                                    "•••• •••• •••• ${last4.ifBlank { "0000" }}"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        BrandIcon(
+                            merchantName = bankName.ifBlank { "Account" },
+                            size = Dimensions.Icon.avatarLarge
                         )
                     }
                 }
