@@ -498,10 +498,28 @@ fun MainScreen(
                                 rootNavController?.navigate(
                                     com.pennywiseai.tracker.navigation.TransactionGroups
                                 ) { launchSingleTop = true }
+                            },
+                            onNavigateToAbout = {
+                                navController.navigate("about") { launchSingleTop = true }
                             }
                         )
                     }
                 )
+
+                composable(route = "about") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.AboutScreen(
+                        onNavigateBack = { navController.safePopBackStack() },
+                        onNavigateToLicenses = {
+                            navController.navigate("licenses") { launchSingleTop = true }
+                        }
+                    )
+                }
+
+                composable(route = "licenses") { _: NavBackStackEntry ->
+                    com.pennywiseai.tracker.ui.screens.settings.LicensesScreen(
+                        onNavigateBack = { navController.safePopBackStack() }
+                    )
+                }
 
                 composable(
                     route = "appearance",

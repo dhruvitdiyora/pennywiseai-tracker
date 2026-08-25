@@ -22,6 +22,12 @@ object Transactions
 object Settings
 
 @Serializable
+object About
+
+@Serializable
+object Licenses
+
+@Serializable
 object Categories
 
 @Serializable

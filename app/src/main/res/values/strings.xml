@@ -361,4 +361,23 @@
     <string name="home_widget_activity">Activity</string>
     <string name="color_picker_title">Select colour</string>
     <string name="select">Select</string>
+    <string name="cd_navigate_back">Navigate back</string>
+    <string name="about_title">About PennyWise</string>
+    <string name="about_settings_subtitle">Version, privacy, and open-source notices</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">PennyWise reads bank messages on your phone to help you understand your spending. Your financial data stays on-device.</string>
+    <string name="about_open_source_licenses">Open-source licenses</string>
+    <string name="about_privacy_note">No cloud account is required. Processing remains on-device.</string>
+    <string name="licenses_title">Open-source licenses</string>
+    <string name="licenses_detail_title">License notice</string>
+    <string name="license_androidx">AndroidX</string>
+    <string name="license_androidx_detail">AndroidX libraries are provided under the Apache License 2.0.</string>
+    <string name="license_compose">Jetpack Compose</string>
+    <string name="license_compose_detail">Jetpack Compose is provided under the Apache License 2.0.</string>
+    <string name="license_room">Room</string>
+    <string name="license_room_detail">Room is provided under the Apache License 2.0.</string>
+    <string name="license_hilt">Hilt</string>
+    <string name="license_hilt_detail">Hilt is provided under the Apache License 2.0.</string>
+    <string name="license_kotlin">Kotlin</string>
+    <string name="license_kotlin_detail">Kotlin is provided under the Apache License 2.0.</string>
 </resources>

@@ -130,6 +130,7 @@ fun SettingsScreen(
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToSmsScan: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -842,8 +843,17 @@ fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
                         context.startActivity(intent)
                     },
-                    position = ListItemPosition.Bottom,
+                    position = ListItemPosition.Middle,
                     trailingIcon = Iconsax.ExportArrow01
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Info,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.about_title),
+                    subtitle = stringResource(R.string.about_settings_subtitle),
+                    onClick = onNavigateToAbout,
+                    position = ListItemPosition.Bottom
                 )
             }
 
