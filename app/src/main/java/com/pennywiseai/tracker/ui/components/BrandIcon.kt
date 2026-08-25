@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
+import com.pennywiseai.tracker.ui.icons.IconCatalog
 import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 
 /**
@@ -37,7 +38,9 @@ fun BrandIcon(
     subcategory: String? = null,
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
-    showBackground: Boolean = true
+    showBackground: Boolean = true,
+    overrideIconName: String? = null,
+    overrideColor: String? = null
 ) {
     val context = LocalContext.current
     // Every screen that has not been wired up yet supplies an empty lookup, so
@@ -46,6 +49,9 @@ fun BrandIcon(
     val categoryEntity = lookup.category(category)
     val subcategoryEntity = lookup.subcategory(category, subcategory)
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val customIconResId = remember(overrideIconName) {
+        overrideIconName?.let { name -> IconCatalog.all.firstOrNull { it.iconName == name }?.resourceId }
+    }
 
     // The whole chain, memoised. `nameToResId` is already cached, but the rest
     // of the resolution would otherwise re-run on every recomposition of the
@@ -64,6 +70,7 @@ fun BrandIcon(
     }
 
     val backgroundColor = when {
+        overrideColor != null -> parseColor(overrideColor, surfaceVariant)
         iconResource is IconResource.DrawableResource -> {
             BrandIcons.getBrandColor(merchantName)?.let { parseColor(it, surfaceVariant) }
                 ?: surfaceVariant
@@ -113,7 +120,16 @@ fun BrandIcon(
             ),
         contentAlignment = Alignment.Center
     ) {
-        when (iconResource) {
+        if (customIconResId != null) {
+            Icon(
+                painter = painterResource(customIconResId),
+                contentDescription = merchantName,
+                tint = if (overrideColor != null) Color.White else Color.Unspecified,
+                modifier = Modifier.fillMaxSize().then(
+                    if (overrideColor != null) Modifier.padding(8.dp) else Modifier
+                )
+            )
+        } else when (iconResource) {
             is IconResource.DrawableResource -> {
                 // Brand logo from drawable
                 Image(

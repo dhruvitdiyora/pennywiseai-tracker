@@ -180,7 +180,9 @@ private fun AccountCarouselCard(
                 merchantName = account.bankName,
                 modifier = iconModifier,
                 size = 40.dp,
-                showBackground = true
+                showBackground = true,
+                overrideIconName = account.iconName,
+                overrideColor = account.iconColor
             )
 
             Text(

@@ -115,6 +115,8 @@ fun AccountDetailScreen(
                     bankName = uiState.bankName,
                     accountLast4 = uiState.accountLast4,
                     primaryCurrency = uiState.primaryCurrency,
+                    iconName = uiState.currentBalance?.iconName,
+                    iconColor = uiState.currentBalance?.iconColor,
                     billedOutstanding = uiState.billedOutstanding,
                     unbilledOutstanding = uiState.unbilledOutstanding
                 )
@@ -280,6 +282,8 @@ private fun CurrentBalanceCard(
     bankName: String,
     accountLast4: String,
     primaryCurrency: String,
+    iconName: String? = null,
+    iconColor: String? = null,
     billedOutstanding: BigDecimal? = null,
     unbilledOutstanding: BigDecimal? = null
 ) {
@@ -312,7 +316,9 @@ private fun CurrentBalanceCard(
                 merchantName = bankName,
                 modifier = iconModifier,
                 size = 48.dp,
-                showBackground = true
+                showBackground = true,
+                overrideIconName = iconName,
+                overrideColor = iconColor
             )
             Spacer(modifier = Modifier.height(Spacing.smd))
 

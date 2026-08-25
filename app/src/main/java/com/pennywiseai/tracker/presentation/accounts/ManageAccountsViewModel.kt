@@ -754,7 +754,9 @@ class ManageAccountsViewModel @Inject constructor(
         newBalance: BigDecimal,
         newCreditLimit: BigDecimal?,
         isCreditCard: Boolean,
-        newCurrency: String? = null
+        newCurrency: String? = null,
+        newIconName: String? = null,
+        newIconColor: String? = null
     ) {
         viewModelScope.launch {
             try {
@@ -814,6 +816,13 @@ class ManageAccountsViewModel @Inject constructor(
                         )
                     )
                 }
+
+                accountBalanceRepository.updatePresentation(
+                    bankName = newBankName,
+                    accountLast4 = accountLast4,
+                    iconName = newIconName,
+                    iconColor = newIconColor
+                )
 
                 _uiState.update {
                     it.copy(successMessage = "Account updated successfully")

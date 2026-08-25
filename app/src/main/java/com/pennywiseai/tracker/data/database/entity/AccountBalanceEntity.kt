@@ -78,7 +78,14 @@ data class AccountBalanceEntity(
     // BigDecimal as a plain string and old backups without the key default to null.
     @ColumnInfo(name = "lowBalanceThreshold")
     @Contextual
-    val lowBalanceThreshold: BigDecimal? = null
+    val lowBalanceThreshold: BigDecimal? = null,
+
+    /** Optional presentation overrides; null preserves bank-brand rendering. */
+    @ColumnInfo(name = "icon_name", defaultValue = "NULL")
+    val iconName: String? = null,
+
+    @ColumnInfo(name = "icon_color", defaultValue = "NULL")
+    val iconColor: String? = null
 ) {
     /**
      * Label to show wherever the user picks or reads this account: the user-set

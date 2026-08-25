@@ -75,6 +75,13 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun updateBalance(balance: AccountBalanceEntity) {
         accountBalanceDao.updateBalance(balance)
     }
+
+    suspend fun updatePresentation(
+        bankName: String,
+        accountLast4: String,
+        iconName: String?,
+        iconColor: String?
+    ) = accountBalanceDao.updatePresentation(bankName, accountLast4, iconName, iconColor)
     
     suspend fun deleteBalance(balance: AccountBalanceEntity) {
         accountBalanceDao.deleteBalance(balance)

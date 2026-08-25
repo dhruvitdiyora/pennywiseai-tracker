@@ -155,6 +155,14 @@ interface AccountBalanceDao {
     
     @Update
     suspend fun updateBalance(balance: AccountBalanceEntity)
+
+    @Query("UPDATE account_balances SET icon_name = :iconName, icon_color = :iconColor WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun updatePresentation(
+        bankName: String,
+        accountLast4: String,
+        iconName: String?,
+        iconColor: String?
+    )
     
     @Delete
     suspend fun deleteBalance(balance: AccountBalanceEntity)

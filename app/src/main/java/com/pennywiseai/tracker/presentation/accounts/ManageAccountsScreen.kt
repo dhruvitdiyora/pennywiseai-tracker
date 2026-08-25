@@ -568,7 +568,9 @@ fun ManageAccountsScreen(
                     newBalance = draft.balance,
                     newCreditLimit = draft.creditLimit,
                     isCreditCard = accountToEdit!!.isCreditCard,
-                    newCurrency = draft.currency
+                    newCurrency = draft.currency,
+                    newIconName = draft.iconName,
+                    newIconColor = draft.iconColor
                 )
                 showEditDialog = false
                 accountToEdit = null

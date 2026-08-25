@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.ColorPickerContent
+import com.pennywiseai.tracker.ui.components.IconSelector
 import com.pennywiseai.tracker.ui.components.AmountInput
 import com.pennywiseai.tracker.ui.components.NumberPad
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -46,7 +49,9 @@ data class AccountDraft(
     val balance: BigDecimal,
     val creditLimit: BigDecimal?,
     val accountType: AccountType,
-    val currency: String
+    val currency: String,
+    val iconName: String? = null,
+    val iconColor: String? = null
 )
 
 /** Shared add/edit account sheet. Editing keeps the detected account type immutable. */
@@ -66,10 +71,14 @@ fun EditAccountSheet(
         mutableStateOf(account?.accountType?.let { runCatching { AccountType.valueOf(it) }.getOrNull() } ?: AccountType.SAVINGS)
     }
     var currency by remember(account, defaultCurrency) { mutableStateOf(account?.currency ?: defaultCurrency) }
+    var iconName by remember(account) { mutableStateOf(account?.iconName) }
+    var iconColor by remember(account) { mutableStateOf(account?.iconColor) }
     var typeMenu by remember { mutableStateOf(false) }
     var currencyMenu by remember { mutableStateOf(false) }
     var showNumberPad by remember(account) { mutableStateOf(false) }
     var editingCreditLimit by remember(account) { mutableStateOf(false) }
+    var showIconPicker by remember { mutableStateOf(false) }
+    var showColorPicker by remember { mutableStateOf(false) }
     val isCredit = accountType == AccountType.CREDIT
     val valid = bankName.isNotBlank() && (accountType == AccountType.CASH || last4.isNotBlank()) &&
         balance.toBigDecimalOrNull() != null && (!isCredit || limit.isBlank() || limit.toBigDecimalOrNull() != null)
@@ -98,6 +107,37 @@ fun EditAccountSheet(
                     showNumberPad = false
                 }
             )
+        }
+    }
+
+    if (showIconPicker) {
+        ModalBottomSheet(onDismissRequest = { showIconPicker = false }) {
+            IconSelector(
+                selectedIconName = iconName,
+                onIconSelected = { iconName = it.ifBlank { null }; showIconPicker = false },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+
+    if (showColorPicker) {
+        ModalBottomSheet(onDismissRequest = { showColorPicker = false }) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Text("Account colour", style = MaterialTheme.typography.titleLarge)
+                ColorPickerContent(
+                    selectedColor = iconColor ?: "#757575",
+                    onColorChanged = { iconColor = it }
+                )
+                TextButton(onClick = { iconColor = null; showColorPicker = false }) {
+                    Text("Use bank colour")
+                }
+                Button(onClick = { showColorPicker = false }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Done")
+                }
+            }
         }
     }
 
@@ -172,6 +212,15 @@ fun EditAccountSheet(
                     }
                 }
             }
+            Text("Presentation", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(onClick = { showIconPicker = true }, modifier = Modifier.weight(1f)) {
+                    Text(if (iconName == null) "Bank icon" else "Custom icon")
+                }
+                Button(onClick = { showColorPicker = true }, modifier = Modifier.weight(1f)) {
+                    Text(if (iconColor == null) "Bank colour" else "Custom colour")
+                }
+            }
             ExposedDropdownMenuBox(expanded = typeMenu, onExpandedChange = { if (account == null) typeMenu = it }) {
                 TextField(
                     value = accountType.name.lowercase().replaceFirstChar { it.titlecase() }, onValueChange = {}, readOnly = true,
@@ -238,7 +287,7 @@ fun EditAccountSheet(
                 }
             }
             Button(onClick = {
-                onSave(AccountDraft(bankName, last4.ifBlank { "CASH" }, balance.toBigDecimal(), limit.toBigDecimalOrNull(), accountType, currency))
+                onSave(AccountDraft(bankName, last4.ifBlank { "CASH" }, balance.toBigDecimal(), limit.toBigDecimalOrNull(), accountType, currency, iconName, iconColor))
             }, enabled = valid, modifier = Modifier.fillMaxWidth()) { Text("Save") }
         }
     }
