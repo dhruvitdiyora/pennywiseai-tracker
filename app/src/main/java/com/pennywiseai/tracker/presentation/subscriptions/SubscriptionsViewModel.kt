@@ -111,7 +111,7 @@ class SubscriptionsViewModel @Inject constructor(
                 val today = java.time.LocalDate.now()
                 val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
                     sub.lastPaidAt?.let { lastPaid ->
-                        val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+                        val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingIntervalCount, sub.billingIntervalUnit)
                         today.isBefore(nextLegitMark)
                     } ?: false
                 }
@@ -186,6 +186,9 @@ class SubscriptionsViewModel @Inject constructor(
         category: String?,
         account: AccountBalanceEntity?,
         accountChanged: Boolean,
+        intervalCount: Int,
+        intervalUnit: String,
+        endDate: java.time.LocalDate?,
     ) {
         viewModelScope.launch {
             val existing = subscriptionRepository.getSubscriptionById(id) ?: return@launch
@@ -203,6 +206,9 @@ class SubscriptionsViewModel @Inject constructor(
                     // "No account" still work because that flips accountChanged. (#570)
                     bankName = if (accountChanged) account?.bankName ?: "Manual Entry" else existing.bankName,
                     accountLast4 = if (accountChanged) account?.accountLast4 else existing.accountLast4,
+                    billingIntervalCount = intervalCount.coerceAtLeast(1),
+                    billingIntervalUnit = intervalUnit,
+                    endDate = endDate,
                     updatedAt = java.time.LocalDateTime.now()
                 )
             )

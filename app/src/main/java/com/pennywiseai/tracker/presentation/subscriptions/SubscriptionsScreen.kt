@@ -232,8 +232,8 @@ fun SubscriptionsScreen(
                             onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
-                            onEdit = { merchantName, amount, nextDate, category, account, accountChanged ->
-                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account, accountChanged)
+                            onEdit = { merchantName, amount, nextDate, category, account, accountChanged, intervalCount, intervalUnit, endDate ->
+                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account, accountChanged, intervalCount, intervalUnit, endDate)
                             },
                             onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
@@ -466,7 +466,7 @@ private fun SwipeableSubscriptionItem(
     onTap: () -> Unit = {},
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
-    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean, intervalCount: Int, intervalUnit: String, endDate: LocalDate?) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -831,8 +831,8 @@ private fun SwipeableSubscriptionItem(
             subscription = subscription,
             accounts = accounts,
             onDismiss = { showEditDialog = false },
-            onSave = { merchantName, amount, nextDate, category, account, accountChanged ->
-                onEdit(merchantName, amount, nextDate, category, account, accountChanged)
+            onSave = { merchantName, amount, nextDate, category, account, accountChanged, intervalCount, intervalUnit, endDate ->
+                onEdit(merchantName, amount, nextDate, category, account, accountChanged, intervalCount, intervalUnit, endDate)
                 showEditDialog = false
             }
         )
@@ -868,7 +868,7 @@ private fun EditSubscriptionDialog(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit
+    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean, intervalCount: Int, intervalUnit: String, endDate: LocalDate?) -> Unit
 ) {
     var merchantName by remember { mutableStateOf(subscription.merchantName) }
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
@@ -876,6 +876,11 @@ private fun EditSubscriptionDialog(
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
+    var intervalCountText by remember { mutableStateOf(subscription.billingIntervalCount.toString()) }
+    var intervalUnit by remember { mutableStateOf(subscription.billingIntervalUnit) }
+    var endDate by remember { mutableStateOf(subscription.endDate) }
+    var showUnitMenu by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
     // Whether the user actually changed the account. Guards against wiping a
     // stored account the picker can't represent (e.g. one not yet in the
     // balance list) when the user edits other fields and saves.
@@ -917,6 +922,36 @@ private fun EditSubscriptionDialog(
                     label = { Text("Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = intervalCountText,
+                        onValueChange = { intervalCountText = it.filter(Char::isDigit).take(3) },
+                        label = { Text("Every") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box(modifier = Modifier.weight(1.5f)) {
+                        OutlinedTextField(
+                            value = intervalUnit.lowercase().replaceFirstChar { it.titlecase() },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Unit") },
+                            modifier = Modifier.fillMaxWidth().clickable { showUnitMenu = true }
+                        )
+                        DropdownMenu(expanded = showUnitMenu, onDismissRequest = { showUnitMenu = false }) {
+                            listOf("DAY", "WEEK", "MONTH", "YEAR").forEach { unit ->
+                                DropdownMenuItem(text = { Text(unit.lowercase().replaceFirstChar { it.titlecase() }) }, onClick = { intervalUnit = unit; showUnitMenu = false })
+                            }
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = endDate?.format(DateTimeFormatter.ofPattern("d MMM yyyy")) ?: "No end date",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("End date (optional)") },
+                    modifier = Modifier.fillMaxWidth().clickable { showEndDatePicker = true }
                 )
                 OutlinedTextField(
                     value = amountText,
@@ -1027,7 +1062,7 @@ private fun EditSubscriptionDialog(
                 enabled = isValid,
                 onClick = {
                     parsedAmount?.let { amt ->
-                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
+                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged, intervalCountText.toIntOrNull()?.coerceAtLeast(1) ?: 1, intervalUnit, endDate)
                     }
                 }
             ) { Text("Save") }
@@ -1057,6 +1092,17 @@ private fun EditSubscriptionDialog(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = endDate?.toEpochDay()?.times(86_400_000))
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { endDate = datePickerState.selectedDateMillis?.let { LocalDate.ofEpochDay(it / 86_400_000) }; showEndDatePicker = false }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") } }
+        ) { DatePicker(state = datePickerState) }
     }
 }
 

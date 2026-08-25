@@ -95,6 +95,16 @@ data class SubscriptionEntity(
     @ColumnInfo(name = "last_paid_at")
     @Contextual
     val lastPaidAt: LocalDate? = null,
+
+    @ColumnInfo(name = "billing_interval_count", defaultValue = "1")
+    val billingIntervalCount: Int = 1,
+
+    @ColumnInfo(name = "billing_interval_unit", defaultValue = "MONTH")
+    val billingIntervalUnit: String = "MONTH",
+
+    @ColumnInfo(name = "end_date", defaultValue = "NULL")
+    @Contextual
+    val endDate: LocalDate? = null,
 )
 
 @Serializable

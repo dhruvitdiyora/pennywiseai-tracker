@@ -120,7 +120,7 @@ class SubscriptionRepository @Inject constructor(
         chargeDate: LocalDate = LocalDate.now()
     ) {
         val sub = subscriptionDao.getSubscriptionById(subscriptionId) ?: return
-        subscriptionDao.updateNextPaymentDate(subscriptionId, advance(chargeDate, sub.billingCycle))
+        subscriptionDao.updateNextPaymentDate(subscriptionId, advance(chargeDate, sub.billingIntervalCount, sub.billingIntervalUnit))
     }
 
     /**
@@ -138,6 +138,17 @@ class SubscriptionRepository @Inject constructor(
             "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * sign)
             "ANNUAL", "YEARLY" -> date.plusYears(sign)
             else -> date.plusMonths(sign)
+        }
+    }
+
+    fun advance(date: LocalDate, count: Int, unit: String, reverse: Boolean = false): LocalDate {
+        val sign = if (reverse) -1L else 1L
+        val safeCount = count.coerceAtLeast(1).toLong() * sign
+        return when (unit.uppercase()) {
+            "DAY" -> date.plusDays(safeCount)
+            "WEEK" -> date.plusWeeks(safeCount)
+            "YEAR" -> date.plusYears(safeCount)
+            else -> date.plusMonths(safeCount)
         }
     }
 

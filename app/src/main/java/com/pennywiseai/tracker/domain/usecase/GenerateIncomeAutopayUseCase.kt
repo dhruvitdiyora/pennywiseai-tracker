@@ -72,7 +72,7 @@ class GenerateIncomeAutopayUseCase @Inject constructor(
                     )
                     if (rowId != -1L) inserted++
                 }
-                scheduled = subscriptionRepository.advance(scheduled, sub.billingCycle)
+                scheduled = subscriptionRepository.advance(scheduled, sub.billingIntervalCount, sub.billingIntervalUnit)
             }
             // Persist the final advanced date so the next scan starts from
             // there instead of replaying everything.

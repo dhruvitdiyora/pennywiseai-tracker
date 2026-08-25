@@ -80,7 +80,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         // within one billing cycle. So if today < lastPaidAt + 1 cycle,
         // it's a re-tap of the cycle we just paid.
         sub.lastPaidAt?.let { lastPaid ->
-            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingIntervalCount, sub.billingIntervalUnit)
             if (LocalDate.now().isBefore(nextLegitMark)) {
                 return Result.AlreadyMarked(nextPaymentDate = scheduled)
             }
@@ -97,7 +97,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         // wasn't yet written (crash between insert and markPaid).
         val existing = transactionRepository.getTransactionByHash(hash)
         if (existing != null) {
-            val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
+            val nextDate = subscriptionRepository.advance(scheduled, sub.billingIntervalCount, sub.billingIntervalUnit)
             subscriptionRepository.markPaid(sub.id, paymentDate, nextDate)
             return Result.AlreadyMarked(nextDate)
         }
@@ -131,7 +131,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             accountLast4 = sub.accountLast4,
         )
 
-        val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
+        val nextDate = subscriptionRepository.advance(scheduled, sub.billingIntervalCount, sub.billingIntervalUnit)
         subscriptionRepository.markPaid(sub.id, paymentDate, nextDate)
 
         Log.i(
@@ -160,7 +160,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
 
         // Same-cycle re-tap guard — see [execute] for the semantic.
         sub.lastPaidAt?.let { lastPaid ->
-            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingIntervalCount, sub.billingIntervalUnit)
             if (LocalDate.now().isBefore(nextLegitMark)) {
                 return Result.AlreadyMarked(nextPaymentDate = scheduled)
             }
@@ -169,7 +169,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         val linkedTxn = transactionRepository.getTransactionById(transactionId)
         val paidAt = linkedTxn?.dateTime?.toLocalDate() ?: LocalDate.now()
 
-        val nextDate = subscriptionRepository.advance(scheduled, sub.billingCycle)
+        val nextDate = subscriptionRepository.advance(scheduled, sub.billingIntervalCount, sub.billingIntervalUnit)
         subscriptionRepository.markPaid(sub.id, paidAt, nextDate)
 
         Log.i(

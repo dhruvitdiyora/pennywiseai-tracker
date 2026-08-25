@@ -64,7 +64,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 62
+const val SCHEMA_VERSION = 63
 
 /**
  * The PennyWise Room database.
@@ -665,6 +665,15 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_62_63 = object : Migration(62, 63) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_interval_count` INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_interval_unit` TEXT NOT NULL DEFAULT 'MONTH'")
+                db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `end_date` TEXT DEFAULT NULL")
+                db.execSQL("UPDATE `subscriptions` SET `billing_interval_count` = CASE UPPER(`billing_cycle`) WHEN 'WEEKLY' THEN 1 WHEN 'QUARTERLY' THEN 3 WHEN 'SEMI-ANNUAL' THEN 6 WHEN 'SEMI ANNUAL' THEN 6 WHEN 'SEMIANNUAL' THEN 6 WHEN 'ANNUAL' THEN 1 WHEN 'YEARLY' THEN 1 ELSE 1 END, `billing_interval_unit` = CASE UPPER(`billing_cycle`) WHEN 'WEEKLY' THEN 'WEEK' WHEN 'ANNUAL' THEN 'YEAR' WHEN 'YEARLY' THEN 'YEAR' ELSE 'MONTH' END")
+            }
+        }
+
         /**
          * Single source of truth for the migration list. Both the Hilt-built
          * database (DatabaseModule.providePennyWiseDatabase) and the
@@ -695,6 +704,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_57_58,
             MIGRATION_59_60,
             MIGRATION_61_62,
+            MIGRATION_62_63,
         )
 
     }
