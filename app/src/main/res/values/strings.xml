@@ -413,4 +413,10 @@
     <string name="lend_borrow_owed_to_you">Owed to you</string>
     <string name="lend_borrow_you_owe">You owe</string>
     <string name="lend_borrow_add">Add lend or borrow</string>
+    <string name="person_detail_active_balances">Active balances</string>
+    <string name="person_detail_owed_to_you">Owed to you</string>
+    <string name="person_detail_you_owe">You owe</string>
+    <string name="person_detail_history">Loan history</string>
+    <string name="person_detail_settled">Settled</string>
+    <string name="person_detail_active">Active</string>
 </resources>
