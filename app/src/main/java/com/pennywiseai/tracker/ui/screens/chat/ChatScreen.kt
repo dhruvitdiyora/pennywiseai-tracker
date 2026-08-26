@@ -772,6 +772,16 @@ fun TypingIndicator(
                             )
                     )
                 }
+
+                // A short progress line keeps the waiting state legible when
+                // the animated dots are visually subtle in either theme.
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .width(48.dp)
+                        .height(2.dp),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.18f)
+                )
             }
         }
     }
