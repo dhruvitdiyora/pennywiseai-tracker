@@ -33,6 +33,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Search
@@ -59,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -605,7 +608,6 @@ fun HomeScreen(
                             )
                             Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                                 ActiveLoansSummaryCard(
-                                    loans = summary.activeLoans,
                                     totalLentRemaining = summary.totalLentRemaining,
                                     totalBorrowedRemaining = summary.totalBorrowedRemaining,
                                     currency = uiState.selectedCurrency,
@@ -1539,14 +1541,14 @@ private fun UpcomingSubscriptionsCard(
 
 @Composable
 private fun ActiveLoansSummaryCard(
-    loans: List<com.pennywiseai.tracker.data.database.entity.LoanEntity>,
     totalLentRemaining: java.math.BigDecimal,
     totalBorrowedRemaining: java.math.BigDecimal,
     currency: String,
     onClick: () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
+    val lentColor = if (isDark) loan_dark else loan_light
+    val borrowedColor = if (isDark) income_dark else income_light
 
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
@@ -1554,43 +1556,77 @@ private fun ActiveLoansSummaryCard(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // Loan icon
-            Icon(
-                imageVector = Icons.Default.SwapHoriz,
-                contentDescription = null,
-                tint = loanColor,
-                modifier = Modifier.size(Dimensions.Icon.medium)
+            HomeLoanSummaryItem(
+                label = stringResource(R.string.lend_borrow_owed_to_you),
+                amount = totalLentRemaining,
+                currency = currency,
+                color = lentColor,
+                icon = Icons.Default.ArrowUpward,
+                onClick = onClick,
+                modifier = Modifier.weight(1f)
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${loans.size} active loan${if (loans.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                val subtitle = when {
-                    totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
-                        "${CurrencyFormatter.formatCurrency(totalLentRemaining, currency)} owed to you"
-                    totalLentRemaining > java.math.BigDecimal.ZERO ->
-                        "${CurrencyFormatter.formatCurrency(totalLentRemaining, currency)} owed to you"
-                    else ->
-                        "You owe ${CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency)}"
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            HomeLoanSummaryItem(
+                label = stringResource(R.string.lend_borrow_you_owe),
+                amount = totalBorrowedRemaining,
+                currency = currency,
+                color = borrowedColor,
+                icon = Icons.Default.ArrowDownward,
+                onClick = onClick,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeLoanSummaryItem(
+    label: String,
+    amount: java.math.BigDecimal,
+    currency: String,
+    color: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.large)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(Dimensions.Icon.inline)
                 )
             }
             Text(
-                text = "View",
-                style = MaterialTheme.typography.labelLarge,
-                color = loanColor,
-                fontWeight = FontWeight.Medium
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Text(
+            text = CurrencyFormatter.formatCurrency(amount, currency),
+            style = PennyWiseText.amountMedium,
+            color = color,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
