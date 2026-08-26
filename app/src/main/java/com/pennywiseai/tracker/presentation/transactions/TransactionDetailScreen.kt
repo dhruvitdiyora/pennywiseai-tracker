@@ -398,7 +398,7 @@ fun TransactionDetailScreen(
     if (showMarkAsLoanSheet) {
         val txType = transaction?.transactionType
         val inferredDirection = if (txType == TransactionType.INCOME) LoanDirection.BORROWED else LoanDirection.LENT
-        MarkAsLoanBottomSheet(
+        AddEditLendBorrowTransactionSheet(
             transactionAmount = transaction?.amount ?: BigDecimal.ZERO,
             transactionCurrency = transaction?.currency ?: "INR",
             direction = inferredDirection,
@@ -2118,7 +2118,7 @@ private fun AccountNumberField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MarkAsLoanBottomSheet(
+private fun AddEditLendBorrowTransactionSheet(
     transactionAmount: BigDecimal,
     transactionCurrency: String,
     direction: LoanDirection,
