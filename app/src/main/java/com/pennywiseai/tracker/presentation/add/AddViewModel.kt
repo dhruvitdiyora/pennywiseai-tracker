@@ -82,6 +82,10 @@ class AddViewModel @Inject constructor(
     
     
     init {
+        initializeData()
+    }
+
+    fun initializeData() {
         // Load base currency and set as default for both transaction and subscription
         viewModelScope.launch {
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
@@ -92,6 +96,13 @@ class AddViewModel @Inject constructor(
             // source. Done after the default currency so the source's currency wins.
             sourceTransactionId?.let { prefillFromTransaction(it) }
         }
+    }
+
+    fun resetAllStates() {
+        merchantSuggestionJob?.cancel()
+        _transactionUiState.value = TransactionUiState()
+        _subscriptionUiState.value = SubscriptionUiState()
+        initializeData()
     }
 
     /**
@@ -179,6 +190,10 @@ class AddViewModel @Inject constructor(
             }
             currentState.copy(selectedAccount = account, currency = currency)
         }
+    }
+
+    fun updateTransactionAccount(account: AccountBalanceEntity?) {
+        updateSelectedAccount(account)
     }
 
     /** The TO account for a TRANSFER (see [updateSelectedAccount] for FROM). */
