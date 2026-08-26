@@ -117,11 +117,12 @@ class LoanRepository @Inject constructor(
         amount: BigDecimal,
         currency: String,
         note: String?,
-        sourceTransactionId: Long
+        sourceTransactionId: Long,
+        personId: String? = null
     ): Long {
         val loan = LoanEntity(
             personName = personName,
-            personId = UUID.randomUUID().toString(),
+            personId = personId?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString(),
             direction = direction,
             originalAmount = amount,
             remainingAmount = amount,
@@ -132,6 +133,54 @@ class LoanRepository @Inject constructor(
         loanDao.linkTransaction(sourceTransactionId, loanId)
         persistContributionOverride(sourceTransactionId, amount)
         return loanId
+    }
+
+    /**
+     * Creates a lend/borrow entry together with its manual wallet transaction.
+     * The two rows are linked through the existing loan ledger; no parallel
+     * people or lend/borrow table is introduced.
+     */
+    suspend fun createManualLoan(
+        personName: String,
+        personId: String?,
+        direction: LoanDirection,
+        amount: BigDecimal,
+        currency: String,
+        note: String?,
+        dateTime: LocalDateTime = LocalDateTime.now()
+    ): Long {
+        require(personName.isNotBlank()) { "Person name cannot be blank" }
+        require(amount > BigDecimal.ZERO) { "Loan amount must be positive" }
+        require(currency.isNotBlank()) { "Currency is required" }
+
+        val transactionType = if (direction == LoanDirection.LENT) {
+            TransactionType.EXPENSE
+        } else {
+            TransactionType.INCOME
+        }
+        val transaction = TransactionEntity(
+            amount = amount,
+            merchantName = personName.trim(),
+            category = if (transactionType == TransactionType.INCOME) "Income" else "Others",
+            transactionType = transactionType,
+            dateTime = dateTime,
+            description = note,
+            transactionHash = "loan_${UUID.randomUUID()}",
+            currency = currency,
+            createdAt = dateTime,
+            updatedAt = dateTime
+        )
+        val transactionId = transactionDao.insertTransaction(transaction)
+        if (transactionId == -1L) return -1L
+        return createLoan(
+            personName = personName.trim(),
+            direction = direction,
+            amount = amount,
+            currency = currency,
+            note = note,
+            sourceTransactionId = transactionId,
+            personId = personId
+        )
     }
 
     /**
@@ -174,7 +223,8 @@ class LoanRepository @Inject constructor(
         loanId: Long,
         amount: BigDecimal,
         personName: String,
-        currency: String
+        currency: String,
+        note: String? = null
     ): Long {
         val loan = loanDao.getLoanById(loanId) ?: return -1
         requireCurrenciesMatch(loan.currency, currency, "manual loan repayment")
@@ -186,7 +236,7 @@ class LoanRepository @Inject constructor(
             category = if (txType == TransactionType.INCOME) "Income" else "Others",
             transactionType = txType,
             dateTime = LocalDateTime.now(),
-            description = "Loan repayment – $personName",
+            description = note?.trim()?.takeIf { it.isNotBlank() } ?: "Loan repayment – $personName",
             transactionHash = "loan_repayment_${loanId}_${System.currentTimeMillis()}",
             currency = currency,
             loanId = loanId
