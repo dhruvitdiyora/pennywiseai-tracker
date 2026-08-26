@@ -73,6 +73,7 @@ import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.DashedLine
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitEditor
@@ -1022,6 +1023,11 @@ private fun TransactionReceipt(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    DashedLine(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     AsyncImage(
                         model = uri,
