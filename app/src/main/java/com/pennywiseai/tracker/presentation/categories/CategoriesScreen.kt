@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.categories
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -426,7 +427,10 @@ private fun CategoryCard(
     ) {
         // The list's verticalArrangement does not reach inside a single item, so
         // the internal rhythm is this card's own responsibility (trap 4).
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Column(
+            modifier = Modifier.animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
             SwipeToDismissBox(
                 state = dismissState,
                 enableDismissFromStartToEnd = true,
