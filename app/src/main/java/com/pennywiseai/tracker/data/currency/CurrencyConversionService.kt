@@ -503,10 +503,10 @@ class CurrencyConversionService @Inject constructor(
             isCustomRate = true
         )
 
-        // Check if existing row exists to preserve its ID for REPLACE
+        // Preserve the existing pair row so the unique currency-pair index remains stable.
         val existing = exchangeRateDao.getExchangeRateIgnoringExpiry(fromCurrency, toCurrency)
         val entityToInsert = if (existing != null) entity.copy(id = existing.id) else entity
-        exchangeRateDao.insertExchangeRate(entityToInsert)
+        exchangeRateDao.upsertCustomRate(entityToInsert)
 
         val cacheKey = "${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
         updateCache(cacheKey, rate)
@@ -516,7 +516,7 @@ class CurrencyConversionService @Inject constructor(
      * Clear a custom rate, allowing API rates to take over again.
      */
     suspend fun clearCustomRate(fromCurrency: String, toCurrency: String) {
-        exchangeRateDao.clearCustomRateFlag(fromCurrency, toCurrency)
+        exchangeRateDao.resetCustomRate(fromCurrency, toCurrency)
         val cacheKey = "${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
         rateCache.remove(cacheKey)
     }

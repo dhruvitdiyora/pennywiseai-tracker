@@ -58,6 +58,18 @@ interface ExchangeRateDao {
     @Query("SELECT * FROM exchange_rates WHERE from_currency = :fromCurrency AND to_currency = :toCurrency")
     suspend fun getExchangeRateIgnoringExpiry(fromCurrency: String, toCurrency: String): ExchangeRateEntity?
 
+    @Query("SELECT * FROM exchange_rates WHERE from_currency = :fromCurrency AND to_currency = :toCurrency AND is_custom_rate = 1")
+    suspend fun getCustomRate(fromCurrency: String, toCurrency: String): ExchangeRateEntity?
+
+    @Query("SELECT * FROM exchange_rates WHERE from_currency = :fromCurrency AND is_custom_rate = 1 ORDER BY to_currency")
+    suspend fun getCustomRatesForCurrency(fromCurrency: String): List<ExchangeRateEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCustomRate(exchangeRate: ExchangeRateEntity)
+
+    @Query("UPDATE exchange_rates SET is_custom_rate = 0 WHERE from_currency = :fromCurrency AND to_currency = :toCurrency")
+    suspend fun resetCustomRate(fromCurrency: String, toCurrency: String)
+
     @Query("UPDATE exchange_rates SET is_custom_rate = 0 WHERE from_currency = :fromCurrency AND to_currency = :toCurrency")
     suspend fun clearCustomRateFlag(fromCurrency: String, toCurrency: String)
 
