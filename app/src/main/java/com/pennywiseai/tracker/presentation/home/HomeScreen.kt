@@ -21,6 +21,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -417,22 +418,12 @@ fun HomeScreen(
         var fabStackHeight by remember { mutableStateOf(0.dp) }
 
         // LazyColumn scrolls over the banner
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .overScrollVertical(),
-            flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
-            contentPadding = PaddingValues(
-                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = Dimensions.Component.fabListBottomClearance(fabStackHeight)
-            ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            val visibleWidgets = homeWidgets.toSet()
+        fun LazyListScope.emitHomeWidget(widget: com.pennywiseai.tracker.data.preferences.HomeWidget) {
+            val visibleWidgets = setOf(widget)
+            when (widget) {
+                com.pennywiseai.tracker.data.preferences.HomeWidget.BALANCE -> {
             // 1. Balance Card (0ms delay)
-            if (com.pennywiseai.tracker.data.preferences.HomeWidget.BALANCE in visibleWidgets) item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.BALANCE in visibleWidgets) item(key = "home_balance") {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(0); visible.value = true }
@@ -491,11 +482,9 @@ fun HomeScreen(
                 }
             }
 
-            // 1.2. Monthly share prompt. Offers the user something ("your month, summed
-            // up") rather than asking a favour, and only appears when the finished month
-            // actually has enough in it to be worth sending.
+
             if (showSharePrompt) {
-                item {
+                item(key = "home_share_prompt") {
                     ShareMonthBanner(
                         onOpen = {
                             viewModel.markSharePromptHandled()
@@ -508,8 +497,10 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.CASH_FLOW -> {
             // 1.5. Cash-flow card (25ms delay) — hides itself on dormant months.
-            if (com.pennywiseai.tracker.data.preferences.HomeWidget.CASH_FLOW in visibleWidgets) item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.CASH_FLOW in visibleWidgets) item(key = "home_cash_flow") {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(25); visible.value = true }
@@ -533,9 +524,11 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.BUDGETS -> {
             // 2. Budget Carousel (50ms delay)
             if (com.pennywiseai.tracker.data.preferences.HomeWidget.BUDGETS in visibleWidgets) uiState.budgetSummary?.let { summary ->
-                item {
+                item(key = "home_budgets") {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
                         if (!hasAnimated) { delay(50); visible.value = true }
@@ -575,10 +568,12 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.LOANS -> {
             // 2.5. Loans Summary (75ms delay) — only when active loans exist
             if (com.pennywiseai.tracker.data.preferences.HomeWidget.LOANS in visibleWidgets) {
                 uiState.loanSummary?.let { summary ->
-                item {
+                item(key = "home_loans") {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
                         if (!hasAnimated) { delay(75); visible.value = true }
@@ -621,13 +616,15 @@ fun HomeScreen(
             }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.GROUPS -> {
             // 2.5. Groups section (#664) — a horizontal rail of the user's
             // transaction groups, absent entirely when none exist so Home
             // stays uncluttered for everyone else. Discovery was the ask:
             // groups only surfaced via Settings or a group card that happened
             // to have recent activity.
             if (com.pennywiseai.tracker.data.preferences.HomeWidget.GROUPS in visibleWidgets && groupSummaries.isNotEmpty()) {
-                item {
+                item(key = "home_groups") {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
                         if (!hasAnimated) { delay(100); visible.value = true }
@@ -672,8 +669,10 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS -> {
             // 3. Recent Transactions Section (100ms delay)
-            if (com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS in visibleWidgets) item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.RECENT_TRANSACTIONS in visibleWidgets) item(key = "home_recent_transactions") {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(100); visible.value = true }
@@ -807,9 +806,11 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.ACCOUNTS -> {
             // 4. Account Carousel (200ms delay)
             if (com.pennywiseai.tracker.data.preferences.HomeWidget.ACCOUNTS in visibleWidgets && (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty())) {
-                item {
+                item(key = "home_accounts") {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
                         if (!hasAnimated) { delay(200); visible.value = true }
@@ -860,10 +861,12 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.UPCOMING_SUBSCRIPTIONS -> {
             // 5. Upcoming Subscriptions Alert (250ms delay)
             if (com.pennywiseai.tracker.data.preferences.HomeWidget.UPCOMING_SUBSCRIPTIONS in visibleWidgets &&
                 uiState.upcomingSubscriptions.isNotEmpty()) {
-                item {
+                item(key = "home_upcoming_subscriptions") {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
                         if (!hasAnimated) { delay(250); visible.value = true }
@@ -909,8 +912,10 @@ fun HomeScreen(
                 }
             }
 
+                }
+                com.pennywiseai.tracker.data.preferences.HomeWidget.ACTIVITY_HEATMAP -> {
             // 6. Heatmap Widget (300ms delay)
-            if (com.pennywiseai.tracker.data.preferences.HomeWidget.ACTIVITY_HEATMAP in visibleWidgets) item {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.ACTIVITY_HEATMAP in visibleWidgets) item(key = "home_activity_heatmap") {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(300); visible.value = true }
@@ -937,6 +942,28 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
+
+                }
+            }
+        }
+
+
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .overScrollVertical(),
+            flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
+            contentPadding = PaddingValues(
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                bottom = Dimensions.Component.fabListBottomClearance(fabStackHeight)
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            homeWidgets.forEach { widget ->
+                emitHomeWidget(widget)
             }
         }
         
