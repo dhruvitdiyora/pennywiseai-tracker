@@ -73,6 +73,14 @@ class LoanRepository @Inject constructor(
         loanDao.renamePerson(personId, newName.trim(), LocalDateTime.now())
     }
 
+    suspend fun mergePerson(sourcePersonId: String, targetPersonId: String, targetName: String) {
+        require(sourcePersonId.isNotBlank()) { "Source person is required" }
+        require(targetPersonId.isNotBlank()) { "Target person is required" }
+        require(sourcePersonId != targetPersonId) { "Source and target must differ" }
+        require(targetName.isNotBlank()) { "Target person name cannot be blank" }
+        loanDao.mergePerson(sourcePersonId, targetPersonId, targetName.trim(), LocalDateTime.now())
+    }
+
     /**
      * Merge [transactionId] into an existing loan, bumping its principal by the
      * caller-supplied [contribution]. When [contribution] is less than the

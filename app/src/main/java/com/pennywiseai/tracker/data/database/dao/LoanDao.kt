@@ -20,6 +20,9 @@ interface LoanDao {
     @Query("UPDATE loans SET person_name = :newName, updated_at = :updatedAt WHERE person_id = :personId")
     suspend fun renamePerson(personId: String, newName: String, updatedAt: LocalDateTime)
 
+    @Query("UPDATE loans SET person_id = :targetPersonId, person_name = :targetName, updated_at = :updatedAt WHERE person_id = :sourcePersonId")
+    suspend fun mergePerson(sourcePersonId: String, targetPersonId: String, targetName: String, updatedAt: LocalDateTime)
+
     @Delete
     suspend fun deleteLoan(loan: LoanEntity)
 

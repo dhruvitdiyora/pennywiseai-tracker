@@ -419,4 +419,10 @@
     <string name="person_detail_history">Loan history</string>
     <string name="person_detail_settled">Settled</string>
     <string name="person_detail_active">Active</string>
+    <string name="person_add_title">Add person</string>
+    <string name="person_edit_title">Edit person</string>
+    <string name="person_name_label">Name</string>
+    <string name="person_save">Save</string>
+    <string name="person_merge">Merge person</string>
+    <string name="person_merge_into">Merge into %1$s</string>
 </resources>
