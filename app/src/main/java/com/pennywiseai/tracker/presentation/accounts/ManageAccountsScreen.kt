@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.TiledIconBackground
 import com.pennywiseai.tracker.ui.components.NumberPad
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.icons.iconsax.Iconsax
 import com.pennywiseai.tracker.ui.icons.iconsax.ArrowLeft02
@@ -1009,7 +1010,7 @@ private fun AccountItem(
     val isLowBalance = !account.isCreditCard &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
-    Card(
+    PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when {
@@ -1020,7 +1021,7 @@ private fun AccountItem(
                 else -> MaterialTheme.colorScheme.surfaceContainerLow
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        contentPadding = 0.dp
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             TiledIconBackground(merchantName = account.bankName)
