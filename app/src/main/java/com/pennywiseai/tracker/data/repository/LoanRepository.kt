@@ -65,8 +65,11 @@ class LoanRepository @Inject constructor(
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity? =
         loanDao.getOriginalTransactionForLoan(loanId)
 
-    suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection): LoanEntity? =
-        loanDao.getActiveLoanByPersonAndDirection(personName, direction.name)
+    suspend fun findActiveLoanForPerson(
+        personName: String,
+        direction: LoanDirection,
+        currency: String
+    ): LoanEntity? = loanDao.getActiveLoanByPersonAndDirection(personName, direction.name, currency)
 
     suspend fun renamePerson(personId: String, newName: String) {
         require(newName.isNotBlank()) { "Person name cannot be blank" }
@@ -90,6 +93,8 @@ class LoanRepository @Inject constructor(
      */
     suspend fun addToExistingLoan(loanId: Long, contribution: BigDecimal, transactionId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
+        val transaction = transactionDao.getTransactionById(transactionId) ?: return
+        requireCurrenciesMatch(loan.currency, transaction.currency, "loan contribution")
         loanDao.updateLoan(
             loan.copy(
                 originalAmount = loan.originalAmount + contribution,
@@ -155,6 +160,9 @@ class LoanRepository @Inject constructor(
         transactionId: Long,
         contribution: BigDecimal? = null
     ) {
+        val loan = loanDao.getLoanById(loanId) ?: return
+        val transaction = transactionDao.getTransactionById(transactionId) ?: return
+        requireCurrenciesMatch(loan.currency, transaction.currency, "loan repayment")
         loanDao.linkTransaction(transactionId, loanId)
         if (contribution != null) {
             persistContributionOverride(transactionId, contribution)
@@ -169,6 +177,7 @@ class LoanRepository @Inject constructor(
         currency: String
     ): Long {
         val loan = loanDao.getLoanById(loanId) ?: return -1
+        requireCurrenciesMatch(loan.currency, currency, "manual loan repayment")
         val txType = if (loan.direction == LoanDirection.LENT)
             TransactionType.INCOME else TransactionType.EXPENSE
         val transaction = TransactionEntity(
@@ -270,5 +279,11 @@ class LoanRepository @Inject constructor(
                 updatedAt = LocalDateTime.now()
             )
         )
+    }
+
+    private fun requireCurrenciesMatch(loanCurrency: String, transactionCurrency: String, operation: String) {
+        require(loanCurrency.equals(transactionCurrency, ignoreCase = true)) {
+            "Cannot record $operation in $transactionCurrency against a $loanCurrency loan"
+        }
     }
 }
