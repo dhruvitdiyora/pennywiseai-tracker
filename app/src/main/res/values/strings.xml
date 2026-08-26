@@ -432,4 +432,11 @@
     <string name="lend_borrow_entry_note">Note (optional)</string>
     <string name="lend_borrow_entry_lent">I lent</string>
     <string name="lend_borrow_entry_borrowed">I borrowed</string>
+    <string name="profile_delete">Delete profile</string>
+    <string name="profile_delete_description">Reassign accounts and transactions from %1$s before deleting it.</string>
+    <string name="profile_reassign_to">Reassign to</string>
+    <string name="profile_error_blank_name">Profile name cannot be blank.</string>
+    <string name="profile_error_duplicate_name">A profile with this name already exists.</string>
+    <string name="profile_error_built_in_delete">Personal and Business profiles cannot be deleted.</string>
+    <string name="profile_error_reassignment_required">Choose a profile for reassignment.</string>
 </resources>

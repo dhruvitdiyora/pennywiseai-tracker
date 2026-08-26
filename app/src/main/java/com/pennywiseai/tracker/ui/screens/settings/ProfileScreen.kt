@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,8 +59,17 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<ProfileEntity?>(null) }
     var creating by remember { mutableStateOf(false) }
+    var reassignTo by remember(uiState.profilePendingDeletion, profiles) {
+        mutableStateOf(
+            profiles.firstOrNull {
+                it.id != uiState.profilePendingDeletion?.id &&
+                    it.id == ProfileEntity.PERSONAL_ID
+            }
+        )
+    }
 
     Scaffold(
         modifier = modifier,
@@ -93,6 +105,15 @@ fun ProfileScreen(
                     modifier = Modifier.padding(bottom = Spacing.sm)
                 )
             }
+            uiState.error?.let { error ->
+                item {
+                    Text(
+                        text = stringResource(error.messageRes),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
             items(profiles, key = { it.id }) { profile ->
                 Row(
                     modifier = Modifier
@@ -107,6 +128,13 @@ fun ProfileScreen(
                     IconButton(onClick = { editing = profile }) {
                         Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.profile_edit))
                     }
+                    if (profile.id != ProfileEntity.PERSONAL_ID &&
+                        profile.id != ProfileEntity.BUSINESS_ID
+                    ) {
+                        IconButton(onClick = { viewModel.requestDelete(profile) }) {
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.profile_delete))
+                        }
+                    }
                 }
             }
         }
@@ -117,7 +145,7 @@ fun ProfileScreen(
             profile = null,
             onDismiss = { creating = false },
             onSave = { name, color ->
-                viewModel.save(ProfileEntity((profiles.maxOfOrNull { it.id } ?: 2L) + 1L, name, color, profiles.size))
+                viewModel.createProfile(name, color)
                 creating = false
             }
         )
@@ -127,12 +155,60 @@ fun ProfileScreen(
             profile = profile,
             onDismiss = { editing = null },
             onSave = { name, color ->
-                viewModel.save(profile.copy(name = name, colorHex = color))
+                viewModel.updateProfile(profile, name, color)
                 editing = null
             }
         )
     }
+
+    uiState.profilePendingDeletion?.let { profile ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDelete,
+            title = { Text(stringResource(R.string.profile_delete)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(stringResource(R.string.profile_delete_description, profile.name))
+                    Text(stringResource(R.string.profile_reassign_to))
+                    profiles
+                        .filter { it.id != profile.id }
+                        .forEach { target ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { reassignTo = target },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = reassignTo?.id == target.id,
+                                    onClick = { reassignTo = target }
+                                )
+                                Text(target.name)
+                            }
+                        }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.deleteProfile(profile, reassignTo) },
+                    enabled = reassignTo != null && !uiState.isSaving
+                ) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDelete) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
+
+private val ProfileError.messageRes: Int
+    get() = when (this) {
+        ProfileError.BLANK_NAME -> R.string.profile_error_blank_name
+        ProfileError.DUPLICATE_NAME -> R.string.profile_error_duplicate_name
+        ProfileError.BUILT_IN_DELETE -> R.string.profile_error_built_in_delete
+        ProfileError.REASSIGNMENT_REQUIRED -> R.string.profile_error_reassignment_required
+    }
 
 @Composable
 private fun ProfileColorDot(hex: String) {
