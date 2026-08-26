@@ -394,14 +394,29 @@ fun PennyWiseNavHost(
             popEnterTransition = { fadeIn(tween(300)) },
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
         ) {
-            com.pennywiseai.tracker.presentation.loans.LoansScreen(
+            com.pennywiseai.tracker.presentation.loans.LendBorrowScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
                 },
-                onNavigateToLoanDetail = { loanId ->
-                    navController.navigate(LoanDetail(loanId)) {
+                onPersonClick = { personId ->
+                    navController.navigate(PersonDetail(personId)) {
                         launchSingleTop = true
                     }
+                },
+                onAdd = { navController.navigate(AddTransaction()) }
+            )
+        }
+
+        composable<PersonDetail>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.loans.PersonDetailScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onLoanClick = { loanId ->
+                    navController.navigate(LoanDetail(loanId)) { launchSingleTop = true }
                 }
             )
         }

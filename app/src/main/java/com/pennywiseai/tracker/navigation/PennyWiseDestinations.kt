@@ -82,6 +82,9 @@ data class BudgetHistory(
 object Loans
 
 @Serializable
+data class PersonDetail(val personId: String)
+
+@Serializable
 data class LoanDetail(val loanId: Long)
 
 @Serializable
