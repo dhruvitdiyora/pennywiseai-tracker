@@ -646,24 +646,32 @@ private fun SwipeableSubscriptionItem(
                             // important than the category label.
                             if (isPaidThisCycle) {
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Row(
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = Spacing.xs,
+                                            vertical = 2.dp
+                                        ),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                    Text(
-                                        text = "Paid ${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("MMM d"))}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small),
+                                        )
+                                        Text(
+                                            text = "Paid ${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("MMM d"))}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        )
+                                    }
                                 }
                             }
 
