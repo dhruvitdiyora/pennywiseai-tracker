@@ -288,6 +288,7 @@ fun AppearanceScreen(
                 // Navigation Style Section
                 SectionHeaderV2(
                     title = "Navigation",
+                    subtitle = "Choose how the main sections are arranged",
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 NavBarStyleSelector(
@@ -298,6 +299,7 @@ fun AppearanceScreen(
                 // Cover Style Section
                 SectionHeaderV2(
                     title = "Cover Style",
+                    subtitle = "Tune the home screen header treatment",
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 CoverStyleSelector(
@@ -309,6 +311,7 @@ fun AppearanceScreen(
                 // Font Selection Section
                 SectionHeaderV2(
                     title = "Fonts",
+                    subtitle = "Set the typeface used throughout PennyWise",
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 FontSelector(

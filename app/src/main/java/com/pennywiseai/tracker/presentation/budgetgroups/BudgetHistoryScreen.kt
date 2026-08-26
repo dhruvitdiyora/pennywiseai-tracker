@@ -43,6 +43,7 @@ import com.pennywiseai.tracker.data.repository.PastWindowSpending
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -159,15 +160,13 @@ fun BudgetHistoryScreen(
 
             // Per-window list
             item {
-                Text(
-                    text = when (budget.periodType) {
+                SectionHeaderV2(
+                    title = when (budget.periodType) {
                         BudgetPeriodType.WEEKLY -> "Per-week breakdown"
                         BudgetPeriodType.MONTHLY -> "Cycle"
                         BudgetPeriodType.CUSTOM -> "Range"
                     },
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = Spacing.xs, top = Spacing.sm)
+                    subtitle = "Tap a window to view its category breakdown"
                 )
             }
             items(state.windowHistory) { window ->

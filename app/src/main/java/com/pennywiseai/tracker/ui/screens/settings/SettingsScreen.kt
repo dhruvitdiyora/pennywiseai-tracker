@@ -342,7 +342,10 @@ fun SettingsScreen(
             }
 
             // ── Personalization ──
-            SectionHeaderV2(title = "Personalization")
+            SectionHeaderV2(
+                title = "Personalization",
+                subtitle = "Theme, colors, fonts and navigation"
+            )
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.Palette,

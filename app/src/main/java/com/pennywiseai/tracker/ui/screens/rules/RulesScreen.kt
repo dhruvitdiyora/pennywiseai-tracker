@@ -214,7 +214,10 @@ fun RulesScreen(
 
                     groupedRules.forEach { (category, categoryRules) ->
                         if (categoryRules.isNotEmpty()) {
-                            SectionHeaderV2(title = category)
+                            SectionHeaderV2(
+                                title = category,
+                                subtitle = "${categoryRules.size} rule${if (categoryRules.size == 1) "" else "s"}"
+                            )
 
                             categoryRules.forEach { rule ->
                                 RuleCard(
