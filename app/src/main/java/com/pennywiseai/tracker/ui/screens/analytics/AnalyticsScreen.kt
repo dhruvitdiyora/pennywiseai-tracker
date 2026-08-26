@@ -368,25 +368,32 @@ fun AnalyticsScreen(
                         }
                     }
 
-                    // Chart display with crossfade transition
-                    Crossfade(
-                        targetState = chartType,
-                        label = "chart_transition"
-                    ) { type ->
-                        when (type) {
-                            ChartType.LINE -> BalanceChart(
-                                primaryCurrency = selectedCurrency,
-                                balanceHistory = uiState.spendingTrend,
-                                height = 220
-                            )
-                            ChartType.BAR -> SpendingBarChart(
-                                primaryCurrency = selectedCurrency,
-                                data = uiState.spendingTrend,
-                                height = 220
-                            )
-                            ChartType.HEATMAP -> SpendingHeatmap(
-                                data = uiState.spendingTrend
-                            )
+                    // Keep every chart mode inside the same visual container so the
+                    // line, bar, and heatmap views have a stable composition while
+                    // their content crossfades.
+                    PennyWiseCardV2(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = Spacing.xs
+                    ) {
+                        Crossfade(
+                            targetState = chartType,
+                            label = "chart_transition"
+                        ) { type ->
+                            when (type) {
+                                ChartType.LINE -> BalanceChart(
+                                    primaryCurrency = selectedCurrency,
+                                    balanceHistory = uiState.spendingTrend,
+                                    height = 220
+                                )
+                                ChartType.BAR -> SpendingBarChart(
+                                    primaryCurrency = selectedCurrency,
+                                    data = uiState.spendingTrend,
+                                    height = 220
+                                )
+                                ChartType.HEATMAP -> SpendingHeatmap(
+                                    data = uiState.spendingTrend
+                                )
+                            }
                         }
                     }
                 }
