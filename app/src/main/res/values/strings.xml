@@ -407,4 +407,10 @@
     <string name="developer_screen_description">This screen contains non-personal diagnostics only. Webhooks, sample financial data, and external data transmission are intentionally not available.</string>
     <string name="developer_mode">Developer mode</string>
     <string name="categories_swipe_edit">Edit</string>
+    <string name="lend_borrow_title">Lend &amp; Borrow</string>
+    <string name="lend_borrow_empty_title">No people yet</string>
+    <string name="lend_borrow_empty_body">Add a loan or borrowing entry to start tracking people.</string>
+    <string name="lend_borrow_owed_to_you">Owed to you</string>
+    <string name="lend_borrow_you_owe">You owe</string>
+    <string name="lend_borrow_add">Add lend or borrow</string>
 </resources>
