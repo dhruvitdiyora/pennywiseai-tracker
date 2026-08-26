@@ -361,6 +361,14 @@
     <string name="home_widget_activity">Activity</string>
     <string name="home_widget_loans">Loans</string>
     <string name="home_widget_upcoming_subscriptions">Upcoming subscriptions</string>
+    <string name="settings_language_section">Language</string>
+    <string name="settings_language_title">App language</string>
+    <string name="settings_language_subtitle">Choose the language used by PennyWise</string>
+    <string name="settings_language_select">Select app language</string>
+    <string name="settings_language_system_default">System default</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_android_requirement">Per-app language selection requires Android 13 or later.</string>
+    <string name="settings_language_open_system">Open system language settings</string>
     <string name="color_picker_title">Select colour</string>
     <string name="select">Select</string>
     <string name="cd_navigate_back">Navigate back</string>

@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.LocaleList
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.*
@@ -59,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -188,6 +191,7 @@ fun SettingsScreen(
     var showNumberFormatDialog by remember { mutableStateOf(false) }
     var showBudgetCycleDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
+    var showLanguageBottomSheet by remember { mutableStateOf(false) }
     val backupLastSuccessText = scheduledFolderBackupLastTimestamp?.let { timestamp ->
         java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.systemDefault())
@@ -209,6 +213,16 @@ fun SettingsScreen(
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
     val hasNotificationAccess = permissionUiState.hasNotificationAccess
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val currentLanguageCode = remember(configuration) {
+        configuration.locales[0]?.language ?: java.util.Locale.getDefault().language
+    }
+    val currentLanguageName = remember(currentLanguageCode) {
+        if (currentLanguageCode == "en") "English"
+        else java.util.Locale.forLanguageTag(currentLanguageCode)
+            .getDisplayLanguage(java.util.Locale.getDefault())
+            .ifBlank { currentLanguageCode }
+    }
     val notificationAccessLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -354,6 +368,20 @@ fun SettingsScreen(
                     title = "Appearance",
                     subtitle = "Theme, colors, fonts & navigation",
                     onClick = onNavigateToAppearance,
+                    position = ListItemPosition.Single
+                )
+            }
+
+            SectionHeaderV2(title = stringResource(R.string.settings_language_section))
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.Translate,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = stringResource(R.string.settings_language_title),
+                    subtitle = stringResource(R.string.settings_language_subtitle),
+                    trailingText = currentLanguageName,
+                    onClick = { showLanguageBottomSheet = true },
                     position = ListItemPosition.Single
                 )
             }
@@ -1343,6 +1371,99 @@ fun SettingsScreen(
     if (showSupportDialog) {
         SupportDevelopmentDialog(onDismiss = { showSupportDialog = false })
     }
+
+    if (showLanguageBottomSheet) {
+        LanguageSelectionBottomSheet(
+            selectedLanguageCode = currentLanguageCode,
+            onLanguageSelected = { languageCode ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val localeManager = context.getSystemService(android.app.LocaleManager::class.java)
+                    localeManager?.applicationLocales = if (languageCode.isBlank()) {
+                        LocaleList.getEmptyLocaleList()
+                    } else {
+                        LocaleList.forLanguageTags(languageCode)
+                    }
+                }
+            },
+            onDismiss = { showLanguageBottomSheet = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSelectionBottomSheet(
+    selectedLanguageCode: String,
+    onLanguageSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val options = listOf(
+        "" to stringResource(R.string.settings_language_system_default),
+        "en" to stringResource(R.string.settings_language_english)
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_language_select),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = Spacing.sm)
+            )
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                Text(
+                    text = stringResource(R.string.settings_language_android_requirement),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                            )
+                        }
+                        onDismiss()
+                    },
+                    modifier = Modifier.padding(bottom = Spacing.md)
+                ) {
+                    Text(stringResource(R.string.settings_language_open_system))
+                }
+            } else {
+                options.forEach { (code, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onLanguageSelected(code)
+                                onDismiss()
+                            }
+                            .padding(vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = code == selectedLanguageCode,
+                            onClick = null
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                Spacer(modifier = Modifier.height(Spacing.md))
+            }
+        }
+    }
 }
 
 // ── Reusable Settings Components ──
@@ -1480,6 +1601,7 @@ internal fun SettingsDropdownItem(
                 content = dropdownContent
             )
         }
+
     }
 }
 
