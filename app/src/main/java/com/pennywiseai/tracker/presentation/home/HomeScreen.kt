@@ -576,7 +576,8 @@ fun HomeScreen(
             }
 
             // 2.5. Loans Summary (75ms delay) — only when active loans exist
-            uiState.loanSummary?.let { summary ->
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.LOANS in visibleWidgets) {
+                uiState.loanSummary?.let { summary ->
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
@@ -617,6 +618,7 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
             }
 
             // 2.5. Groups section (#664) — a horizontal rail of the user's
@@ -859,7 +861,8 @@ fun HomeScreen(
             }
 
             // 5. Upcoming Subscriptions Alert (250ms delay)
-            if (uiState.upcomingSubscriptions.isNotEmpty()) {
+            if (com.pennywiseai.tracker.data.preferences.HomeWidget.UPCOMING_SUBSCRIPTIONS in visibleWidgets &&
+                uiState.upcomingSubscriptions.isNotEmpty()) {
                 item {
                     val visible = remember { mutableStateOf(hasAnimated) }
                     LaunchedEffect(Unit) {
