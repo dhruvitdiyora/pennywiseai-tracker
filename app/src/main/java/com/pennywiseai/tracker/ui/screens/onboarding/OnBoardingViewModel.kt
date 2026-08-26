@@ -1,7 +1,10 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
@@ -23,6 +26,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,7 +61,8 @@ data class OnBoardingUiState(
     val scanCompleted: Boolean = false,
     val accounts: List<AccountBalanceEntity> = emptyList(),
     val selectedAccountKey: String? = null,
-    val isCompleting: Boolean = false
+    val isCompleting: Boolean = false,
+    val permissionRationaleVisible: Boolean = false
 )
 
 @HiltViewModel
@@ -69,6 +75,7 @@ class OnBoardingViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(OnBoardingUiState())
     val uiState: StateFlow<OnBoardingUiState> = _uiState.asStateFlow()
+    private var scanProgressObservationStarted = false
 
     val avatarDrawables = AvatarHelper.avatarDrawables
 
@@ -91,9 +98,75 @@ class OnBoardingViewModel @Inject constructor(
         0xFFACB0BE.toInt()  // Overlay2
     )
 
+    init {
+        checkPermissionStatus()
+        observeUserPreferences()
+        observeAccounts()
+        observeScanWorkInfo()
+    }
+
+    private fun checkPermissionStatus() {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+        _uiState.update { it.copy(smsPermissionGranted = granted) }
+    }
+
+    private fun observeUserPreferences() {
+        userPreferencesRepository.userPreferences
+            .onEach { preferences ->
+                val storedImage = preferences.profileImageUri
+                val avatarIndex = storedImage
+                    ?.removePrefix("avatar://")
+                    ?.toIntOrNull()
+                    ?.takeIf { it in avatarDrawables.indices }
+                val storedColorIndex = backgroundColors.indexOf(preferences.profileBackgroundColor)
+                _uiState.update { state ->
+                    state.copy(
+                        userName = if (state.userName.isBlank()) preferences.userName else state.userName,
+                        profileImageUri = if (avatarIndex == null) {
+                            storedImage?.takeUnless { it.startsWith("avatar://") }?.toUri()
+                        } else {
+                            null
+                        },
+                        selectedAvatarIndex = avatarIndex ?: state.selectedAvatarIndex,
+                        selectedBackgroundColor = storedColorIndex.takeIf { it >= 0 }
+                            ?: state.selectedBackgroundColor,
+                        smsPermissionSkipped = preferences.hasSkippedSmsPermission
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun observeAccounts() {
+        accountBalanceRepository.getAllLatestBalances()
+            .onEach { accounts ->
+                val eligibleAccounts = accounts.filter {
+                    !it.isCreditCard && it.balance != BigDecimal.ZERO
+                }
+                _uiState.update { state ->
+                    state.copy(
+                        accounts = eligibleAccounts,
+                        selectedAccountKey = when {
+                            state.selectedAccountKey != null &&
+                                eligibleAccounts.any { it.accountKey() == state.selectedAccountKey } ->
+                                state.selectedAccountKey
+                            eligibleAccounts.size == 1 -> eligibleAccounts.first().accountKey()
+                            else -> null
+                        }
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     fun updateUserName(name: String) {
         _uiState.update { it.copy(userName = name) }
     }
+
+    fun onNameChange(name: String) = updateUserName(name)
 
     fun selectAvatar(index: Int) {
         _uiState.update { it.copy(selectedAvatarIndex = index, profileImageUri = null) }
@@ -103,6 +176,14 @@ class OnBoardingViewModel @Inject constructor(
         viewModelScope.launch {
             val savedUri = saveImageToInternalStorage(uri)
             _uiState.update { it.copy(profileImageUri = savedUri ?: uri, selectedAvatarIndex = -1) }
+        }
+    }
+
+    fun onProfileImageChange(uri: Uri?) {
+        if (uri == null) {
+            _uiState.update { it.copy(profileImageUri = null) }
+        } else {
+            selectProfileImage(uri)
         }
     }
 
@@ -121,13 +202,28 @@ class OnBoardingViewModel @Inject constructor(
         _uiState.update { it.copy(selectedBackgroundColor = colorIndex) }
     }
 
+    fun onBackgroundColorChange(color: Int) {
+        backgroundColors.indexOf(color).takeIf { it >= 0 }?.let(::selectBackgroundColor)
+    }
+
     fun onSmsPermissionResult(granted: Boolean) {
         _uiState.update {
             it.copy(
                 smsPermissionGranted = granted,
-                smsPermissionSkipped = !granted
+                smsPermissionSkipped = !granted,
+                permissionRationaleVisible = false
             )
         }
+    }
+
+    fun onPermissionResult(granted: Boolean) = onSmsPermissionResult(granted)
+
+    fun onPermissionDenied() {
+        _uiState.update { it.copy(permissionRationaleVisible = true) }
+    }
+
+    fun dismissPermissionRationale() {
+        _uiState.update { it.copy(permissionRationaleVisible = false) }
     }
 
     fun skipSmsPermission() {
@@ -198,10 +294,12 @@ class OnBoardingViewModel @Inject constructor(
     fun startSmsScan() {
         smsScanManager.startSmsLoggingScan()
         _uiState.update { it.copy(isScanning = true, scanCompleted = false) }
-        observeScanProgress()
+        observeScanWorkInfo()
     }
 
-    private fun observeScanProgress() {
+    private fun observeScanWorkInfo() {
+        if (scanProgressObservationStarted) return
+        scanProgressObservationStarted = true
         val workManager = WorkManager.getInstance(context)
         viewModelScope.launch {
             workManager.getWorkInfosForUniqueWorkLiveData(OptimizedSmsReaderWorker.WORK_NAME)
@@ -281,6 +379,25 @@ class OnBoardingViewModel @Inject constructor(
         _uiState.update { it.copy(selectedAccountKey = accountKey) }
     }
 
+    fun checkAccountsAfterSync() {
+        loadAccounts()
+    }
+
+    fun setAsMainAccount(accountKey: String) {
+        _uiState.update { it.copy(selectedAccountKey = accountKey) }
+        viewModelScope.launch {
+            userPreferencesRepository.updateMainAccountKey(accountKey)
+        }
+    }
+
+    fun nextStep() = goToNextStep()
+
+    fun previousStep() = goToPreviousStep()
+
+    fun finishOnboarding(onComplete: () -> Unit = {}) {
+        completeOnboarding(onComplete)
+    }
+
     fun completeOnboarding(onComplete: () -> Unit) {
         _uiState.update { it.copy(isCompleting = true) }
         viewModelScope.launch {
@@ -320,3 +437,5 @@ class OnBoardingViewModel @Inject constructor(
     }
 
 }
+
+private fun AccountBalanceEntity.accountKey(): String = "${bankName}_${accountLast4}"
