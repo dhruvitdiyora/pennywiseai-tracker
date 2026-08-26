@@ -30,6 +30,8 @@ open class TransactionRepository @Inject constructor(
 ) {
     fun getAllTransactions(): Flow<List<TransactionEntity>> = 
         transactionDao.getAllTransactions()
+
+    fun getTransactionCount(): Flow<Int> = transactionDao.getTransactionCount()
     
     open suspend fun getTransactionById(id: Long): TransactionEntity? = 
         transactionDao.getTransactionById(id)
@@ -165,6 +167,32 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
 
+    suspend fun getTransactionsByReferenceAndAmount(
+        reference: String,
+        amount: BigDecimal,
+        accountLast4: String?,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity> = transactionDao.getTransactionsByReferenceAndAmount(
+        reference, amount, accountLast4, startDate, endDate
+    )
+
+    suspend fun getTransactionsUpdatedBetween(
+        updatedAfter: LocalDateTime,
+        updatedBefore: LocalDateTime,
+        currency: String
+    ): List<TransactionEntity> = transactionDao.getTransactionsUpdatedBetween(
+        updatedAfter, updatedBefore, currency
+    )
+
+    suspend fun getTransactionsBetweenDatesByCurrency(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        currency: String
+    ): List<TransactionEntity> = transactionDao.getTransactionsBetweenDatesByCurrency(
+        startDate, endDate, currency
+    )
+
     suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
         val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
         return transactionDao.getTransactionsByReference(reference)
@@ -235,6 +263,16 @@ open class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)
     }
 
+    /** Returns active rows whose merchant contains [merchantName], excluding one row. */
+    suspend fun getTransactionsByMerchantContains(
+        merchantName: String,
+        excludeId: Long
+    ): List<TransactionEntity> = transactionDao.getTransactionsByMerchantContains(merchantName, excludeId)
+
+    /** One-shot counterpart to [searchTransactions], for worker and import callers. */
+    suspend fun searchTransactionsList(searchQuery: String): List<TransactionEntity> =
+        transactionDao.searchTransactionsList(searchQuery)
+
     suspend fun countExplicitProfileMismatchForAccount(
         bankName: String,
         accountLast4: String,
@@ -297,6 +335,22 @@ open class TransactionRepository @Inject constructor(
         return getTransactionsForComparableLastMonth()
             .map { transactions ->
                 transactions.toMonthlyBreakdownByCurrency()
+            }
+    }
+
+    /**
+     * Returns the current calendar-year breakdown without combining currencies.
+     * This intentionally follows the same excluded/loan filtering as the
+     * month-by-currency summaries.
+     */
+    fun getCurrentYearBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
+        val startDate = LocalDate.now().withDayOfYear(1).atStartOfDay()
+        val endDate = LocalDateTime.now()
+        return transactionDao.getTransactionsBetweenDates(startDate, endDate)
+            .map { transactions ->
+                transactions
+                    .filter { !it.excludedFromAnalytics }
+                    .toMonthlyBreakdownByCurrency()
             }
     }
 

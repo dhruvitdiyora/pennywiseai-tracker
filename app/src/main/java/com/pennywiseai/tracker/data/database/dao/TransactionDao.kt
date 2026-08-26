@@ -13,6 +13,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
+    @Query("SELECT COUNT(*) FROM transactions WHERE is_deleted = 0")
+    fun getTransactionCount(): Flow<Int>
+
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
     
@@ -371,6 +374,25 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE reference = :reference AND is_deleted = 0 LIMIT 1")
     suspend fun getTransactionByReference(reference: String): TransactionEntity?
 
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+          AND reference = :reference
+          AND amount = :amount
+          AND (:accountLast4 IS NULL OR account_number = :accountLast4)
+          AND date_time BETWEEN :startDate AND :endDate
+        ORDER BY date_time DESC
+        """
+    )
+    suspend fun getTransactionsByReferenceAndAmount(
+        reference: String,
+        amount: BigDecimal,
+        accountLast4: String?,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity>
+
     @Query("""
         SELECT * FROM transactions
         WHERE reference = :reference
@@ -418,5 +440,63 @@ interface TransactionDao {
         amount: BigDecimal,
         dateStart: LocalDateTime,
         dateEnd: LocalDateTime
+    ): List<TransactionEntity>
+
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+          AND merchant_name LIKE '%' || :merchantName || '%'
+          AND id != :excludeId
+        ORDER BY date_time DESC
+        """
+    )
+    suspend fun getTransactionsByMerchantContains(
+        merchantName: String,
+        excludeId: Long
+    ): List<TransactionEntity>
+
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+          AND (
+            merchant_name LIKE '%' || :searchQuery || '%'
+            OR description LIKE '%' || :searchQuery || '%'
+            OR sms_body LIKE '%' || :searchQuery || '%'
+          )
+        ORDER BY date_time DESC
+        """
+    )
+    suspend fun searchTransactionsList(searchQuery: String): List<TransactionEntity>
+
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE updated_at > :updatedAfter
+          AND updated_at <= :updatedBefore
+          AND currency = :currency
+        ORDER BY updated_at ASC, id ASC
+        """
+    )
+    suspend fun getTransactionsUpdatedBetween(
+        updatedAfter: LocalDateTime,
+        updatedBefore: LocalDateTime,
+        currency: String
+    ): List<TransactionEntity>
+
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+          AND currency = :currency
+          AND date_time BETWEEN :startDate AND :endDate
+        ORDER BY date_time DESC
+        """
+    )
+    suspend fun getTransactionsBetweenDatesByCurrency(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        currency: String
     ): List<TransactionEntity>
 }
