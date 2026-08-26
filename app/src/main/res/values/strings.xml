@@ -442,4 +442,9 @@
     <string name="categories_migrate_title">Move transactions before deleting</string>
     <string name="categories_migrate_body">Move %2$d transactions from %1$s to another category before deleting it.</string>
     <string name="categories_migrate_to">Move transactions to</string>
+    <string name="receipt">Receipt</string>
+    <string name="receipt_tap_to_view">Tap to view</string>
+    <string name="share_receipt">Share receipt</string>
+    <string name="show_original_sms">Show original SMS</string>
+    <string name="hide_sms">Hide SMS</string>
 </resources>

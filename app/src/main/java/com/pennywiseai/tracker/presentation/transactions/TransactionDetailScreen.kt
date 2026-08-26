@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,6 +56,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.presentation.categories.EditCategorySheet
@@ -110,6 +113,33 @@ private val editTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, 
 private val editMiddleShape = RoundedCornerShape(4.dp)
 private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
 private val editFullShape = RoundedCornerShape(16.dp)
+
+private fun shareReceipt(
+    context: android.content.Context,
+    receiptUri: Uri,
+    transaction: TransactionEntity
+) {
+    val path = receiptUri.path ?: return
+    val receiptFile = java.io.File(path)
+    if (!receiptFile.exists()) return
+
+    runCatching {
+        val shareUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            receiptFile
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/jpeg"
+            putExtra(Intent.EXTRA_STREAM, shareUri)
+            putExtra(Intent.EXTRA_SUBJECT, transaction.merchantName)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(
+            Intent.createChooser(intent, context.getString(R.string.share_receipt))
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -554,6 +584,7 @@ private fun TransactionReceipt(
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long? = null
 ) {
+    val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
         TransactionType.INCOME -> if (isDark) income_dark else income_light
@@ -968,13 +999,25 @@ private fun TransactionReceipt(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Receipt",
+                            text = stringResource(R.string.receipt),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = {
+                            shareReceipt(
+                                context = context,
+                                receiptUri = uri,
+                                transaction = transaction
+                            )
+                        }) {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = stringResource(R.string.share_receipt)
+                            )
+                        }
                         Text(
-                            text = "Tap to view",
+                            text = stringResource(R.string.receipt_tap_to_view),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -982,7 +1025,7 @@ private fun TransactionReceipt(
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     AsyncImage(
                         model = uri,
-                        contentDescription = "Receipt",
+                        contentDescription = stringResource(R.string.receipt),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 200.dp)
@@ -995,7 +1038,7 @@ private fun TransactionReceipt(
 
         // ── SMS Section ──
         if (!transaction.smsBody.isNullOrBlank()) {
-            ExpandableSmsSection(smsBody = transaction.smsBody)
+            SmsBodyCard(smsBody = transaction.smsBody)
         }
 
         // ── Split Breakdown ──
@@ -1097,7 +1140,7 @@ private fun TransferFlowRow(
 }
 
 @Composable
-private fun ExpandableSmsSection(smsBody: String) {
+private fun SmsBodyCard(smsBody: String) {
     var expanded by remember { mutableStateOf(false) }
 
     OutlinedCard(
@@ -1125,7 +1168,9 @@ private fun ExpandableSmsSection(smsBody: String) {
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Text(
-                        text = if (expanded) "Hide SMS" else "Show original SMS",
+                        text = stringResource(
+                            if (expanded) R.string.hide_sms else R.string.show_original_sms
+                        ),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
