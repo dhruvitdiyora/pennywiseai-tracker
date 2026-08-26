@@ -403,7 +403,6 @@ fun PennyWiseNavHost(
                         launchSingleTop = true
                     }
                 },
-                onAdd = { navController.navigate(AddTransaction()) }
             )
         }
 

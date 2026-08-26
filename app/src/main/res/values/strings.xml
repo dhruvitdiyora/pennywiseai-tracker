@@ -425,4 +425,11 @@
     <string name="person_save">Save</string>
     <string name="person_merge">Merge person</string>
     <string name="person_merge_into">Merge into %1$s</string>
+    <string name="lend_borrow_entry_title">Add lend or borrow</string>
+    <string name="lend_borrow_entry_person">Person</string>
+    <string name="lend_borrow_entry_amount">Amount</string>
+    <string name="lend_borrow_entry_currency">Currency</string>
+    <string name="lend_borrow_entry_note">Note (optional)</string>
+    <string name="lend_borrow_entry_lent">I lent</string>
+    <string name="lend_borrow_entry_borrowed">I borrowed</string>
 </resources>

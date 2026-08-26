@@ -57,10 +57,10 @@ import com.pennywiseai.tracker.utils.Money
 fun LendBorrowScreen(
     onNavigateBack: () -> Unit = {},
     onPersonClick: (String) -> Unit = {},
-    onAdd: () -> Unit = {},
     viewModel: LendBorrowViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val openAddSheet = { viewModel.showAddTransactionSheet(true) }
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
@@ -80,7 +80,7 @@ fun LendBorrowScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = onAdd,
+                onClick = openAddSheet,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.lend_borrow_add)) }
             )
@@ -96,7 +96,7 @@ fun LendBorrowScreen(
                     headline = stringResource(R.string.lend_borrow_empty_title),
                     description = stringResource(R.string.lend_borrow_empty_body),
                     actionLabel = stringResource(R.string.lend_borrow_add),
-                    onAction = onAdd
+                    onAction = openAddSheet
                 )
             }
             else -> LazyColumn(
@@ -109,11 +109,20 @@ fun LendBorrowScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                items(uiState.people, key = { it.personId }) { person ->
+                items(uiState.filteredPeople, key = { it.personId }) { person ->
                     PersonSummaryCard(person = person, onClick = { onPersonClick(person.personId) })
                 }
             }
         }
+    }
+    if (uiState.showAddTransactionSheet) {
+        LendBorrowEntrySheet(
+            initialPersonName = uiState.personForTransaction?.personName ?: uiState.draftPersonName,
+            onDismiss = { viewModel.showAddTransactionSheet(false) },
+            onSubmit = { personName, direction, amount, currency, note ->
+                viewModel.addTransaction(personName, direction, amount, currency, note)
+            }
+        )
     }
 }
 
