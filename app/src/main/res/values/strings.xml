@@ -439,4 +439,7 @@
     <string name="profile_error_duplicate_name">A profile with this name already exists.</string>
     <string name="profile_error_built_in_delete">Personal and Business profiles cannot be deleted.</string>
     <string name="profile_error_reassignment_required">Choose a profile for reassignment.</string>
+    <string name="categories_migrate_title">Move transactions before deleting</string>
+    <string name="categories_migrate_body">Move %2$d transactions from %1$s to another category before deleting it.</string>
+    <string name="categories_migrate_to">Move transactions to</string>
 </resources>

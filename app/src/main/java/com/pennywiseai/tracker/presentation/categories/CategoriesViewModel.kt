@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -103,6 +104,9 @@ class CategoriesViewModel @Inject constructor(
 
     private val _subcategoryNameError = MutableStateFlow<String?>(null)
     val subcategoryNameError: StateFlow<String?> = _subcategoryNameError.asStateFlow()
+
+    private val _migration = MutableStateFlow<CategoryMigration?>(null)
+    val migration: StateFlow<CategoryMigration?> = _migration.asStateFlow()
 
     fun showAddDialog() {
         _nameError.value = null
@@ -214,6 +218,8 @@ class CategoriesViewModel @Inject constructor(
         }
     }
 
+    fun resetCategory(category: CategoryEntity) = resetCategoryToDefault(category)
+
     fun deleteCategory(category: CategoryEntity) {
         if (category.isSystem) {
             _snackbarMessage.value = "System categories cannot be deleted"
@@ -222,12 +228,7 @@ class CategoriesViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val deleted = categoryRepository.deleteCategory(category.id)
-                if (deleted) {
-                    _snackbarMessage.value = "Category deleted successfully"
-                } else {
-                    _snackbarMessage.value = "Cannot delete this category"
-                }
+                showMigrationSheet(category)
             } catch (e: Exception) {
                 _snackbarMessage.value = "Error deleting category: ${e.message}"
             }
@@ -240,6 +241,53 @@ class CategoriesViewModel @Inject constructor(
     // Doc 16 step 7 replaces all of them, and the category ones, with a single
     // sealed sheet state; that consolidation needs to cover both sheets at once,
     // so it is deliberately not pre-empted here.
+
+    fun showMigrationSheet(category: CategoryEntity) {
+        if (category.isSystem) return
+        viewModelScope.launch {
+            val transactionCount = transactionDao.getTransactionCountForCategory(category.name)
+            _migration.value = CategoryMigration(category, transactionCount)
+        }
+    }
+
+    fun hideMigrationSheet() {
+        _migration.value = null
+    }
+
+    fun confirmMigrationToCategory(target: CategoryEntity?) {
+        val pending = _migration.value ?: return
+        if (target == null && pending.transactionCount > 0) {
+            _snackbarMessage.value = "Choose a category for migration"
+            return
+        }
+        if (target?.id == pending.source.id) return
+
+        viewModelScope.launch {
+            try {
+                target?.let { destination ->
+                    transactionDao.getTransactionsByCategory(pending.source.name)
+                        .first()
+                        .forEach { transaction ->
+                            transactionDao.updateCategoryAndSubcategory(
+                                transactionId = transaction.id,
+                                category = destination.name,
+                                subcategory = null,
+                                updatedAt = LocalDateTime.now()
+                            )
+                        }
+                }
+                val deleted = categoryRepository.deleteCategory(pending.source.id)
+                _migration.value = null
+                _snackbarMessage.value = if (deleted) {
+                    "Category deleted successfully"
+                } else {
+                    "Cannot delete this category"
+                }
+            } catch (e: Exception) {
+                _snackbarMessage.value = "Error deleting category: " + e.message
+            }
+        }
+    }
 
     fun showAddSubcategoryDialog(parent: CategoryEntity) {
         _subcategoryNameError.value = null
@@ -305,6 +353,9 @@ class CategoriesViewModel @Inject constructor(
         }
     }
 
+    fun resetSubcategory(subcategory: SubcategoryEntity) =
+        resetSubcategoryToDefault(subcategory)
+
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -353,6 +404,11 @@ class CategoriesViewModel @Inject constructor(
         _snackbarMessage.value = null
     }
 }
+
+data class CategoryMigration(
+    val source: CategoryEntity,
+    val transactionCount: Int
+)
 
 /** Which of the two sheets this screen hosts is open. */
 sealed interface CategorySheet {

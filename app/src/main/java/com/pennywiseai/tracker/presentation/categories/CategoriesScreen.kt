@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.categories
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -53,12 +54,14 @@ fun CategoriesScreen(
     onNavigateBack: () -> Unit,
     viewModel: CategoriesViewModel = hiltViewModel()
 ) {
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     val visibleCategories by viewModel.visibleCategories.collectAsStateWithLifecycle()
     val subcategoriesByCategory by viewModel.subcategoriesByCategory.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val typeFilter by viewModel.typeFilter.collectAsStateWithLifecycle()
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
+    val migration by viewModel.migration.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -315,6 +318,57 @@ fun CategoriesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    migration?.let { pending ->
+        var target by remember(migration, categories) {
+            mutableStateOf(categories.firstOrNull { it.id != pending.source.id })
+        }
+        AlertDialog(
+            onDismissRequest = viewModel::hideMigrationSheet,
+            title = { Text(stringResource(R.string.categories_migrate_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        stringResource(
+                            R.string.categories_migrate_body,
+                            pending.source.name,
+                            pending.transactionCount
+                        )
+                    )
+                    if (pending.transactionCount > 0) {
+                        Text(stringResource(R.string.categories_migrate_to))
+                        categories
+                            .filter { it.id != pending.source.id }
+                            .forEach { category ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { target = category },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = target?.id == category.id,
+                                        onClick = { target = category }
+                                    )
+                                    Text(category.name)
+                                }
+                            }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.confirmMigrationToCategory(target) },
+                    enabled = pending.transactionCount == 0 || target != null
+                ) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::hideMigrationSheet) {
                     Text(stringResource(R.string.cancel))
                 }
             }
