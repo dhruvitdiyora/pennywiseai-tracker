@@ -52,6 +52,7 @@ fun LoanDetailScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
+    var showActionDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) onNavigateBack()
@@ -76,34 +77,8 @@ fun LoanDetailScreen(
                 },
                 actionContent = {
                     if (loan != null) {
-                        var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = { showActionDialog = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More")
-                        }
-                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                            if (loan.status == LoanStatus.ACTIVE) {
-                                DropdownMenuItem(
-                                    text = { Text("Set expected return") },
-                                    onClick = { showMenu = false; viewModel.showEditAmountDialog() },
-                                    leadingIcon = { Icon(Icons.Default.Edit, null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Settle") },
-                                    onClick = { showMenu = false; viewModel.showSettleDialog() },
-                                    leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
-                                )
-                            } else {
-                                DropdownMenuItem(
-                                    text = { Text("Reopen") },
-                                    onClick = { showMenu = false; viewModel.reopenLoan() },
-                                    leadingIcon = { Icon(Icons.Default.Refresh, null) }
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                onClick = { showMenu = false; viewModel.showDeleteDialog() },
-                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
-                            )
                         }
                     }
                 },
@@ -261,6 +236,17 @@ fun LoanDetailScreen(
                 }
             }
         }
+    }
+
+    if (showActionDialog && loan != null) {
+        LendBorrowTransactionActionDialog(
+            isSettled = loan.status == LoanStatus.SETTLED,
+            onDismiss = { showActionDialog = false },
+            onEditAmount = { showActionDialog = false; viewModel.showEditAmountDialog() },
+            onSettle = { showActionDialog = false; viewModel.showSettleDialog() },
+            onReopen = { showActionDialog = false; viewModel.reopenLoan() },
+            onDelete = { showActionDialog = false; viewModel.showDeleteDialog() }
+        )
     }
 
     // Settle dialog
