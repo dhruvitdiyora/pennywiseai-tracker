@@ -64,7 +64,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 64
+const val SCHEMA_VERSION = 59
 
 /**
  * The PennyWise Room database.
@@ -134,13 +134,13 @@ const val SCHEMA_VERSION = 64
         // Purely additive — every column is nullable or carries a `defaultValue` —
         // so Room generates the ALTER TABLEs. (57→58 was manual because it added a
         // foreign key and indices; this one does not.)
-        AutoMigration(from = 58, to = 59),
+        // 58->59 is the manual collapsed migration below.
         // 60→61 adds a nullable `subcategory` column to transactions (#374).
         // Purely additive, so Room generates the ALTER TABLE. `transactions` is
         // the largest table here, but ADD COLUMN with a NULL default is O(1) in
         // SQLite — it rewrites the header, not the rows — so this stays fast on
         // a large install. Do not replace it with a hand-rolled table copy.
-        AutoMigration(from = 60, to = 61)
+        // 60->61 is included in MIGRATION_58_59.
     ]
 )
 @TypeConverters(Converters::class)
@@ -640,42 +640,25 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATION_59_60 = object : Migration(59, 60) {
+        val MIGRATION_58_59 = object : Migration(58, 59) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Subcategories, one level under a category (#374).
-                //
-                // Hand-written rather than an AutoMigration because this adds a
-                // table with a foreign key and two indices — the same shape as
-                // 57→58. The SQL below is copied verbatim out of Room's generated
-                // schemas/.../60.json (with `${TABLE_NAME}` substituted), so the
-                // migrated database matches the compiled identity hash. Do not
-                // retype it from memory; a single differing space fails the hash
-                // check at runtime, not at build time.
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `icon_name` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `icon_res_id` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `description` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `default_name` TEXT")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `default_color` TEXT")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `default_icon_name` TEXT")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `default_description` TEXT")
                 db.execSQL("CREATE TABLE IF NOT EXISTS `subcategories` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `category_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `icon_name` TEXT NOT NULL DEFAULT '', `icon_res_id` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#757575', `is_system` INTEGER NOT NULL DEFAULT 0, `default_name` TEXT, `default_icon_name` TEXT, `default_color` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_subcategories_category_id` ON `subcategories` (`category_id`)")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_subcategories_category_id_name` ON `subcategories` (`category_id`, `name`)")
-            }
-        }
-
-        /** Adds optional per-account presentation overrides; NULL preserves brand fallback. */
-        val MIGRATION_61_62 = object : Migration(61, 62) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `transactions` ADD COLUMN `subcategory` TEXT")
                 db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `icon_name` TEXT")
                 db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `icon_color` TEXT")
-            }
-        }
-
-        val MIGRATION_62_63 = object : Migration(62, 63) {
-            override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_interval_count` INTEGER NOT NULL DEFAULT 1")
                 db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_interval_unit` TEXT NOT NULL DEFAULT 'MONTH'")
                 db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `end_date` TEXT DEFAULT NULL")
                 db.execSQL("UPDATE `subscriptions` SET `billing_interval_count` = CASE UPPER(`billing_cycle`) WHEN 'WEEKLY' THEN 1 WHEN 'QUARTERLY' THEN 3 WHEN 'SEMI-ANNUAL' THEN 6 WHEN 'SEMI ANNUAL' THEN 6 WHEN 'SEMIANNUAL' THEN 6 WHEN 'ANNUAL' THEN 1 WHEN 'YEARLY' THEN 1 ELSE 1 END, `billing_interval_unit` = CASE UPPER(`billing_cycle`) WHEN 'WEEKLY' THEN 'WEEK' WHEN 'ANNUAL' THEN 'YEAR' WHEN 'YEARLY' THEN 'YEAR' ELSE 'MONTH' END")
-            }
-        }
-
-        val MIGRATION_63_64 = object : Migration(63, 64) {
-            override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `loans` ADD COLUMN `person_id` TEXT NOT NULL DEFAULT ''")
                 db.execSQL("UPDATE `loans` SET `person_id` = lower(hex(randomblob(16))) WHERE `person_id` = ''")
                 db.execSQL("UPDATE `loans` SET `person_id` = (SELECT MIN(l2.`person_id`) FROM `loans` l2 WHERE l2.`person_name` = `loans`.`person_name`) WHERE `person_id` != ''")
@@ -710,10 +693,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_53_54,
             MIGRATION_54_55,
             MIGRATION_57_58,
-            MIGRATION_59_60,
-            MIGRATION_61_62,
-            MIGRATION_62_63,
-            MIGRATION_63_64,
+            MIGRATION_58_59,
         )
 
     }

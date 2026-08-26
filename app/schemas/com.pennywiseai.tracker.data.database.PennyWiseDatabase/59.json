@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 59,
-    "identityHash": "a0dc75d7086d281c13eb2bf5c55c85f5",
+    "identityHash": "8aafcbb52ee8344f9f296664bff47c24",
     "entities": [
       {
         "tableName": "transactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` TEXT NOT NULL, `merchant_name` TEXT NOT NULL, `category` TEXT NOT NULL, `transaction_type` TEXT NOT NULL, `date_time` TEXT NOT NULL, `description` TEXT, `sms_body` TEXT, `bank_name` TEXT, `sms_sender` TEXT, `account_number` TEXT, `balance_after` TEXT, `transaction_hash` TEXT NOT NULL DEFAULT '', `is_recurring` INTEGER NOT NULL, `is_deleted` INTEGER NOT NULL DEFAULT 0, `excluded_from_analytics` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `from_account` TEXT, `to_account` TEXT, `reference` TEXT, `loan_id` INTEGER DEFAULT NULL, `loan_contribution` TEXT DEFAULT NULL, `receipt_path` TEXT DEFAULT NULL, `budget_category` TEXT DEFAULT NULL, `budget_impact_type` TEXT DEFAULT NULL, `group_id` INTEGER DEFAULT NULL, `profile_id` INTEGER DEFAULT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` TEXT NOT NULL, `merchant_name` TEXT NOT NULL, `category` TEXT NOT NULL, `subcategory` TEXT, `transaction_type` TEXT NOT NULL, `date_time` TEXT NOT NULL, `description` TEXT, `sms_body` TEXT, `bank_name` TEXT, `sms_sender` TEXT, `account_number` TEXT, `balance_after` TEXT, `transaction_hash` TEXT NOT NULL DEFAULT '', `is_recurring` INTEGER NOT NULL, `is_deleted` INTEGER NOT NULL DEFAULT 0, `excluded_from_analytics` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `from_account` TEXT, `to_account` TEXT, `reference` TEXT, `loan_id` INTEGER DEFAULT NULL, `loan_contribution` TEXT DEFAULT NULL, `receipt_path` TEXT DEFAULT NULL, `budget_category` TEXT DEFAULT NULL, `budget_impact_type` TEXT DEFAULT NULL, `group_id` INTEGER DEFAULT NULL, `profile_id` INTEGER DEFAULT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -31,6 +31,11 @@
             "columnName": "category",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "subcategory",
+            "columnName": "subcategory",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "transactionType",
@@ -198,7 +203,7 @@
       },
       {
         "tableName": "subscriptions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `merchant_name` TEXT NOT NULL, `amount` TEXT NOT NULL, `next_payment_date` TEXT, `state` TEXT NOT NULL, `bank_name` TEXT, `account_last4` TEXT, `umn` TEXT, `category` TEXT, `sms_body` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `direction` TEXT NOT NULL DEFAULT 'EXPENSE', `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly', `last_paid_at` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `merchant_name` TEXT NOT NULL, `amount` TEXT NOT NULL, `next_payment_date` TEXT, `state` TEXT NOT NULL, `bank_name` TEXT, `account_last4` TEXT, `umn` TEXT, `category` TEXT, `sms_body` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `direction` TEXT NOT NULL DEFAULT 'EXPENSE', `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly', `last_paid_at` TEXT, `billing_interval_count` INTEGER NOT NULL DEFAULT 1, `billing_interval_unit` TEXT NOT NULL DEFAULT 'MONTH', `end_date` TEXT DEFAULT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -291,6 +296,26 @@
             "fieldPath": "lastPaidAt",
             "columnName": "last_paid_at",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "billingIntervalCount",
+            "columnName": "billing_interval_count",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "billingIntervalUnit",
+            "columnName": "billing_interval_unit",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'MONTH'"
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "end_date",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
           }
         ],
         "primaryKey": {
@@ -529,7 +554,7 @@
       },
       {
         "tableName": "account_balances",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bank_name` TEXT NOT NULL, `account_last4` TEXT NOT NULL, `balance` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `transaction_id` INTEGER, `credit_limit` TEXT, `is_credit_card` INTEGER NOT NULL DEFAULT 0, `sms_source` TEXT, `source_type` TEXT, `account_type` TEXT, `created_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `statement_day` INTEGER DEFAULT NULL, `profile_id` INTEGER NOT NULL DEFAULT 1, `alias` TEXT, `lowBalanceThreshold` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bank_name` TEXT NOT NULL, `account_last4` TEXT NOT NULL, `balance` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `transaction_id` INTEGER, `credit_limit` TEXT, `is_credit_card` INTEGER NOT NULL DEFAULT 0, `sms_source` TEXT, `source_type` TEXT, `account_type` TEXT, `created_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `statement_day` INTEGER DEFAULT NULL, `profile_id` INTEGER NOT NULL DEFAULT 1, `alias` TEXT, `lowBalanceThreshold` TEXT, `icon_name` TEXT DEFAULT NULL, `icon_color` TEXT DEFAULT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -628,6 +653,18 @@
             "fieldPath": "lowBalanceThreshold",
             "columnName": "lowBalanceThreshold",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "iconName",
+            "columnName": "icon_name",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
+          },
+          {
+            "fieldPath": "iconColor",
+            "columnName": "icon_color",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
           }
         ],
         "primaryKey": {
@@ -1653,7 +1690,7 @@
       },
       {
         "tableName": "loans",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `person_name` TEXT NOT NULL, `direction` TEXT NOT NULL, `original_amount` TEXT NOT NULL, `remaining_amount` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `status` TEXT NOT NULL DEFAULT 'ACTIVE', `note` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `settled_at` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `person_name` TEXT NOT NULL, `person_id` TEXT NOT NULL DEFAULT '', `direction` TEXT NOT NULL, `original_amount` TEXT NOT NULL, `remaining_amount` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `status` TEXT NOT NULL DEFAULT 'ACTIVE', `note` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `settled_at` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -1666,6 +1703,13 @@
             "columnName": "person_name",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "personId",
+            "columnName": "person_id",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           },
           {
             "fieldPath": "direction",
@@ -1956,11 +2000,130 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "subcategories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `category_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `icon_name` TEXT NOT NULL DEFAULT '', `icon_res_id` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#757575', `is_system` INTEGER NOT NULL DEFAULT 0, `default_name` TEXT, `default_icon_name` TEXT, `default_color` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoryId",
+            "columnName": "category_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iconName",
+            "columnName": "icon_name",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "iconResId",
+            "columnName": "icon_res_id",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'#757575'"
+          },
+          {
+            "fieldPath": "isSystem",
+            "columnName": "is_system",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "defaultName",
+            "columnName": "default_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "defaultIconName",
+            "columnName": "default_icon_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "defaultColor",
+            "columnName": "default_color",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_subcategories_category_id",
+            "unique": false,
+            "columnNames": [
+              "category_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_subcategories_category_id` ON `${TABLE_NAME}` (`category_id`)"
+          },
+          {
+            "name": "index_subcategories_category_id_name",
+            "unique": true,
+            "columnNames": [
+              "category_id",
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_subcategories_category_id_name` ON `${TABLE_NAME}` (`category_id`, `name`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "categories",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "category_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a0dc75d7086d281c13eb2bf5c55c85f5')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8aafcbb52ee8344f9f296664bff47c24')"
     ]
   }
 }
