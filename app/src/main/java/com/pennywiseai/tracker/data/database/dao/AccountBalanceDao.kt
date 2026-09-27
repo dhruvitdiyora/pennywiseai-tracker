@@ -93,6 +93,32 @@ interface AccountBalanceDao {
     
     @Query("SELECT * FROM account_balances ORDER BY timestamp DESC")
     fun getAllBalances(): Flow<List<AccountBalanceEntity>>
+
+    /**
+     * Rows needed for a bounded portfolio trend: every update in the window plus
+     * one opening snapshot per account from immediately before it.
+     */
+    @Query("""
+        SELECT * FROM account_balances AS balance_row
+        WHERE balance_row.timestamp BETWEEN :startDate AND :endDate
+           OR balance_row.id IN (
+               SELECT prior.id
+               FROM account_balances AS prior
+               WHERE prior.timestamp < :startDate
+                 AND prior.timestamp = (
+                     SELECT MAX(candidate.timestamp)
+                     FROM account_balances AS candidate
+                     WHERE candidate.bank_name = prior.bank_name
+                       AND candidate.account_last4 = prior.account_last4
+                       AND candidate.timestamp < :startDate
+                 )
+           )
+        ORDER BY balance_row.timestamp ASC
+    """)
+    fun getBalanceTrendRows(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+    ): Flow<List<AccountBalanceEntity>>
     
     @Query("DELETE FROM account_balances")
     suspend fun deleteAllBalances()

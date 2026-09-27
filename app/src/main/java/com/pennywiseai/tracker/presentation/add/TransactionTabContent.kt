@@ -12,7 +12,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,10 +34,18 @@ import coil.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.ui.components.AccountSelectionSheet
+import com.pennywiseai.tracker.ui.components.CategoryIcon
+import com.pennywiseai.tracker.ui.components.NumberPad
+import com.pennywiseai.tracker.ui.components.NumberPadInputState
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.TagInputField
+import com.pennywiseai.tracker.ui.components.evaluateNumberExpression
+import com.pennywiseai.tracker.ui.components.formatNumberPadResult
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -61,11 +68,6 @@ private fun filledFieldColors() = TextFieldDefaults.colors(
     disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
     disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
 )
-
-private val topShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-private val bottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-private val middleShape = RoundedCornerShape(4.dp)
-private val fullShape = RoundedCornerShape(16.dp)
 
 /** Which account picker the shared account dropdown is currently assigning to. */
 private enum class AccountPickerTarget { FROM, TO }
@@ -97,9 +99,12 @@ private fun AccountSelectorCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
+                .padding(
+                    horizontal = Dimensions.Padding.cardCompact,
+                    vertical = Dimensions.Padding.content
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
             Icon(
                 when (account?.getAccountType()) {
@@ -132,12 +137,12 @@ private fun AccountSelectorCard(
             if (account != null) {
                 IconButton(
                     onClick = onClear,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                 ) {
                     Icon(
                         Icons.Default.Clear,
-                        contentDescription = stringResource(R.string.add_clear),
-                        modifier = Modifier.size(16.dp),
+                        contentDescription = stringResource(R.string.add_clear_account),
+                        modifier = Modifier.size(Dimensions.Icon.inline),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -163,13 +168,17 @@ fun TransactionTabContent(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showAmountCalculator by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
     // Which account picker is open (null = closed). For a TRANSFER this routes the
     // chosen account to either the FROM or TO card; for other types only FROM is used.
     var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
 
     val isTransfer = uiState.transactionType == TransactionType.TRANSFER
+    val topShape = ListItemPosition.Top.toShape()
+    val bottomShape = ListItemPosition.Bottom.toShape()
+    val fullShape = ListItemPosition.Single.toShape()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -189,7 +198,7 @@ fun TransactionTabContent(
                 ExposedDropdownMenuBox(
                     expanded = showCurrencyMenu,
                     onExpandedChange = { showCurrencyMenu = it },
-                    modifier = Modifier.width(130.dp)
+                    modifier = Modifier.width(Dimensions.Component.currencySelectorWidth)
                 ) {
                     TextField(
                         value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
@@ -228,53 +237,20 @@ fun TransactionTabContent(
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = fullShape,
+                    trailingIcon = {
+                        IconButton(onClick = { showAmountCalculator = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Calculate,
+                                contentDescription = stringResource(R.string.add_open_calculator)
+                            )
+                        }
+                    },
                     colors = filledFieldColors()
                 )
             }
 
-            // ── Merchant + Notes (connected cards) ──
-            // Merchant is meaningless for a TRANSFER (it moves money between own
-            // accounts), so hide it and show Notes on its own.
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
-            ) {
-                if (!isTransfer) {
-                    TextField(
-                        value = uiState.merchant,
-                        onValueChange = viewModel::updateTransactionMerchant,
-                        label = { Text(stringResource(R.string.add_field_merchant), fontWeight = FontWeight.SemiBold) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = topShape,
-                        leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
-                        isError = uiState.merchantError != null,
-                        supportingText = uiState.merchantError?.let { { Text(it.asString()) } },
-                        colors = filledFieldColors()
-                    )
-                }
-
-                TextField(
-                    value = uiState.notes,
-                    onValueChange = viewModel::updateTransactionNotes,
-                    label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = if (isTransfer) fullShape else bottomShape,
-                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                    colors = filledFieldColors()
-                )
-            }
-
-            // ── Tags (create or select existing) ──
-            val allTagNames by viewModel.allTagNames.collectAsState()
-            TagInputField(
-                selectedTags = uiState.tags,
-                allTags = allTagNames,
-                onAddTag = viewModel::addTransactionTag,
-                onRemoveTag = viewModel::removeTransactionTag
-            )
-
-            // ── Transaction Type chips ──
+            // Type follows the amount so the transaction's meaning is set
+            // before the form asks for merchant/account-specific details.
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -295,15 +271,17 @@ fun TransactionTabContent(
                                     modifier = Modifier.size(Dimensions.Icon.small)
                                 )
                             }
-                        } else null,
+                        } else {
+                            null
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                             labelColor = MaterialTheme.colorScheme.onSurface
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            borderWidth = 0.dp,
+                            borderWidth = Dimensions.Padding.none,
                             selected = uiState.transactionType == type,
                             enabled = true
                         )
@@ -322,7 +300,7 @@ fun TransactionTabContent(
                         .weight(1f)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                            shape = MaterialTheme.shapes.medium
                         )
                         .padding(Spacing.sm)
                         .clickable(
@@ -345,12 +323,16 @@ fun TransactionTabContent(
                         Spacer(Modifier.size(Spacing.sm))
                         Column {
                             Text(
-                                text = uiState.date.format(DateTimeFormatter.ofPattern("yyyy")),
+                                text = uiState.date.format(
+                                    DateTimeFormatter.ofPattern("yyyy", Locale.getDefault())
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = uiState.date.format(DateTimeFormatter.ofPattern("dd MMMM")),
+                                text = uiState.date.format(
+                                    DateTimeFormatter.ofPattern("dd MMMM", Locale.getDefault())
+                                ),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
@@ -375,7 +357,9 @@ fun TransactionTabContent(
                     ) {
                         val hour = if (uiState.date.hour % 12 == 0) 12 else uiState.date.hour % 12
                         val minute = uiState.date.minute
-                        val amPm = if (uiState.date.hour < 12) "AM" else "PM"
+                        val amPm = uiState.date.format(
+                            DateTimeFormatter.ofPattern("a", Locale.getDefault())
+                        )
 
                         Box(
                             modifier = Modifier
@@ -428,7 +412,7 @@ fun TransactionTabContent(
                 // Two account pickers: From (money out) and To (money in).
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
                 ) {
                     AccountSelectorCard(
                         account = uiState.selectedAccount,
@@ -448,7 +432,7 @@ fun TransactionTabContent(
             } else {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
                 ) {
                     // Account card
                     AccountSelectorCard(
@@ -459,141 +443,99 @@ fun TransactionTabContent(
                         onClear = { viewModel.updateSelectedAccount(null) }
                     )
 
-                    // Category field
-                    ExposedDropdownMenuBox(
-                        expanded = showCategoryMenu,
-                        onExpandedChange = { showCategoryMenu = it },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        TextField(
-                            value = uiState.category,
-                            onValueChange = {},
-                            label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
-                            readOnly = true,
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            shape = bottomShape,
-                            leadingIcon = {
-                                Icon(Icons.Default.Category, contentDescription = null)
-                            },
-                            trailingIcon = {
-                                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
-                            },
-                            isError = uiState.categoryError != null,
-                            supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
-                            colors = filledFieldColors()
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = showCategoryMenu,
-                            onDismissRequest = { showCategoryMenu = false }
-                        ) {
-                            categories.forEach { category ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            category.name,
-                                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.updateTransactionCategory(category.name)
-                                        showCategoryMenu = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    AddCategorySelector(
+                        category = uiState.category,
+                        error = uiState.categoryError?.asString(),
+                        onClick = { showCategoryPicker = true }
+                    )
                 }
             }
 
-            // Account selection dropdown menu (shared by From/To pickers).
-            DropdownMenu(
-                expanded = accountPickerTarget != null,
-                onDismissRequest = { accountPickerTarget = null }
-            ) {
-                val target = accountPickerTarget
-                // "No account" only makes sense outside a transfer — both transfer
-                // legs must reference a real account to move money.
-                if (!isTransfer) {
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                Text(stringResource(R.string.add_txn_no_account))
-                                Text(
-                                    stringResource(R.string.add_txn_no_account_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        onClick = {
-                            viewModel.updateSelectedAccount(null)
-                            accountPickerTarget = null
-                        },
-                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
-                    )
-                    HorizontalDivider()
-                }
-                val selectedForTarget = when (target) {
+            accountPickerTarget?.let { target ->
+                val selectedAccount = when (target) {
                     AccountPickerTarget.TO -> uiState.toAccount
-                    else -> uiState.selectedAccount
+                    AccountPickerTarget.FROM -> uiState.selectedAccount
                 }
-                val groupedAccounts = accounts.groupBy { it.getAccountType() }
-                groupedAccounts.forEach { (accountType, accountList) ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = accountType.displayName(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        onClick = {},
-                        enabled = false
-                    )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(account.displayLabel)
-                                    Text(
-                                        CurrencyFormatter.formatCurrency(account.balance, account.currency),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            },
-                            onClick = {
-                                if (target == AccountPickerTarget.TO) {
-                                    viewModel.updateToAccount(account)
-                                } else {
-                                    viewModel.updateSelectedAccount(account)
-                                }
-                                accountPickerTarget = null
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    when (accountType) {
-                                        AccountType.CASH -> Icons.Default.Money
-                                        AccountType.CREDIT -> Icons.Default.CreditCard
-                                        else -> Icons.Default.AccountBalance
-                                    },
-                                    contentDescription = null
-                                )
-                            },
-                            trailingIcon = {
-                                if (selectedForTarget?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                        )
-                    }
-                }
+                AccountSelectionSheet(
+                    accounts = accounts,
+                    selectedAccount = selectedAccount,
+                    allowManualEntry = !isTransfer,
+                    title = stringResource(
+                        if (isTransfer && target == AccountPickerTarget.TO) {
+                            R.string.account_selection_title_to
+                        } else if (isTransfer) {
+                            R.string.account_selection_title_from
+                        } else {
+                            R.string.account_selection_title
+                        }
+                    ),
+                    onAccountSelected = { account ->
+                        if (target == AccountPickerTarget.TO) {
+                            viewModel.updateToAccount(account)
+                        } else {
+                            viewModel.updateSelectedAccount(account)
+                        }
+                        accountPickerTarget = null
+                    },
+                    onDismissRequest = { accountPickerTarget = null }
+                )
             }
+
+            if (showCategoryPicker) {
+                QuickCategoryPickerSheet(
+                    currentCategory = uiState.category,
+                    categories = categories,
+                    title = stringResource(R.string.category_picker_select_title),
+                    searchPlaceholder = stringResource(R.string.category_picker_search_placeholder),
+                    onCategorySelected = { category ->
+                        viewModel.updateTransactionCategory(category)
+                        showCategoryPicker = false
+                    },
+                    onDismiss = { showCategoryPicker = false }
+                )
+            }
+
+            // ── Merchant + Notes (connected cards) ──
+            // Merchant is meaningless for a TRANSFER (it moves money between own
+            // accounts), so hide it and show Notes on its own.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+            ) {
+                if (!isTransfer) {
+                    TextField(
+                        value = uiState.merchant,
+                        onValueChange = viewModel::updateTransactionMerchant,
+                        label = { Text(stringResource(R.string.add_field_merchant), fontWeight = FontWeight.SemiBold) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = topShape,
+                        leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
+                        isError = uiState.merchantError != null,
+                        supportingText = uiState.merchantError?.let { { Text(it.asString()) } },
+                        colors = filledFieldColors()
+                    )
+                }
+
+                TextField(
+                    value = uiState.notes,
+                    onValueChange = viewModel::updateTransactionNotes,
+                    label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = if (isTransfer) fullShape else bottomShape,
+                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                    colors = filledFieldColors()
+                )
+            }
+
+            // ── Tags (create or select existing) ──
+            val allTagNames by viewModel.allTagNames.collectAsState()
+            TagInputField(
+                selectedTags = uiState.tags,
+                allTags = allTagNames,
+                onAddTag = viewModel::addTransactionTag,
+                onRemoveTag = viewModel::removeTransactionTag
+            )
 
             // ── Budget Impact (INCOME only) ──
             if (uiState.transactionType == TransactionType.INCOME) {
@@ -607,6 +549,31 @@ fun TransactionTabContent(
                 )
             }
 
+            uiState.error?.let { errorMessage ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Dimensions.Padding.cardCompact),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = errorMessage.asString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+
             // ── Receipt ──
             ReceiptPickerSection(
                 receiptUri = uiState.receiptUri,
@@ -616,7 +583,7 @@ fun TransactionTabContent(
             )
 
             // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
         }
 
         // ── Sticky Save Button ──
@@ -642,12 +609,12 @@ fun TransactionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(Dimensions.Component.listItemMinHeight)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(Dimensions.Icon.small),
-                        strokeWidth = 2.dp
+                        strokeWidth = Spacing.xxs
                     )
                 } else {
                     Icon(Icons.Default.Done, contentDescription = null)
@@ -656,6 +623,17 @@ fun TransactionTabContent(
                 }
             }
         }
+    }
+
+    if (showAmountCalculator) {
+        AmountCalculatorSheet(
+            initialAmount = uiState.amount,
+            onDismiss = { showAmountCalculator = false },
+            onApply = { amount ->
+                viewModel.updateTransactionAmount(amount)
+                showAmountCalculator = false
+            }
+        )
     }
 
     // Date Picker Dialog
@@ -681,7 +659,9 @@ fun TransactionTabContent(
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.add_cancel))
+                }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -708,9 +688,183 @@ fun TransactionTabContent(
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text(stringResource(R.string.add_cancel))
+                }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AmountCalculatorSheet(
+    initialAmount: String,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit,
+) {
+    val initialExpression = remember(initialAmount) {
+        initialAmount.takeIf { evaluateNumberExpression(it) != null }.orEmpty()
+    }
+    var inputState by remember(initialExpression) {
+        mutableStateOf(
+            NumberPadInputState(
+                expression = initialExpression,
+                replaceOnNextNumber = initialExpression.isNotBlank()
+            )
+        )
+    }
+    val result = evaluateNumberExpression(inputState.expression)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(
+                    start = Dimensions.Padding.dialog,
+                    end = Dimensions.Padding.dialog,
+                    bottom = Dimensions.Padding.dialog
+                ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.add_calculator_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.add_close_calculator)
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.add_calculator_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            NumberPad(
+                state = inputState,
+                onStateChange = { inputState = it }
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.add_cancel))
+                }
+                Button(
+                    onClick = { result?.let { onApply(formatNumberPadResult(it)) } },
+                    enabled = result != null,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.add_use_amount))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun AddCategorySelector(
+    category: String,
+    error: String?,
+    onClick: () -> Unit,
+    position: ListItemPosition = ListItemPosition.Bottom,
+    modifier: Modifier = Modifier
+) {
+    val shape = position.toShape()
+    Column(modifier = modifier.fillMaxWidth()) {
+        Card(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = shape,
+            colors = CardDefaults.cardColors(
+                containerColor = if (error == null) {
+                    MaterialTheme.colorScheme.surfaceContainerLow
+                } else {
+                    MaterialTheme.colorScheme.errorContainer
+                }
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Dimensions.Component.listItemMinHeight)
+                    .padding(horizontal = Dimensions.Padding.cardCompact),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CategoryIcon(
+                    category = category,
+                    size = Dimensions.Icon.medium,
+                    tint = if (error == null) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    }
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                ) {
+                    Text(
+                        text = stringResource(R.string.add_category_label),
+                        style = PennyWiseText.fieldLabel,
+                        color = if (error == null) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        }
+                    )
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (error == null) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = if (error == null) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    }
+                )
+            }
+        }
+        if (error != null) {
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(
+                    start = Dimensions.Padding.cardCompact,
+                    top = Spacing.xs
+                )
+            )
+        }
     }
 }
 
@@ -751,7 +905,7 @@ fun ReceiptPickerSection(
                     contentDescription = stringResource(R.string.add_receipt_image),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 160.dp),
+                        .heightIn(max = Dimensions.Component.receiptPreviewHeight),
                     contentScale = ContentScale.Crop
                 )
                 FilledIconButton(
@@ -759,7 +913,7 @@ fun ReceiptPickerSection(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(Spacing.xs)
-                        .size(28.dp),
+                        .size(Dimensions.Component.minTouchTarget),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
@@ -767,7 +921,7 @@ fun ReceiptPickerSection(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = stringResource(R.string.add_receipt_remove),
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.inline),
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }

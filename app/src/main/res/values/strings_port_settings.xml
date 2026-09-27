@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- New strings introduced while porting the Cashiro UI refresh onto
+         upstream Settings i18n; kept separate so upstream's own
+         strings_settings.xml stays untouched. -->
+    <string name="settings_data_manage_section">Manage data</string>
+    <string name="settings_data_backup_section">Backup &amp; restore</string>
+    <string name="settings_data_imports_section">Imports &amp; SMS</string>
+
+    <!-- Updated FAQ answers (Codex's port refreshed these to describe backup/export,
+         optional contact access, and the unrecognized-SMS report flow, all of which
+         postdate the original faq_*_answer strings in strings_settings.xml). -->
+    <string name="faq_data_secure_answer_v2">Core financial records are stored and processed on your device, and the AI model runs locally. Records leave the app only when you choose an action such as reporting an unrecognized SMS, exporting, backing up, or sharing.</string>
+    <string name="faq_backup_answer_v2">Yes. Settings &gt; Data Management lets you create or import a backup. You can save or share an exported backup, and PennyWise Pro can schedule daily backups to a folder you choose.</string>
+    <string name="faq_data_access_answer_v2">With permission, SMS scanning happens on your device to identify transaction messages. Contact access is optional and is used to replace matching UPI addresses with contact names. Reporting an unrecognized SMS sends that message, its sender, and an encrypted device identifier to the web parser only when you choose Report.</string>
+</resources>

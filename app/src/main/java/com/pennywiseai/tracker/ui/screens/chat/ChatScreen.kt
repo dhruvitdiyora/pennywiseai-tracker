@@ -1,9 +1,11 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,28 +17,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.repository.ModelState
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.TokenUtils
@@ -69,6 +75,17 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val copiedMessage = stringResource(R.string.chat_message_copied)
+    var showTopBarMenu by remember { mutableStateOf(false) }
+    var showClearConfirmation by remember { mutableStateOf(false) }
+
+    val copyMessage: (com.pennywiseai.tracker.data.database.entity.ChatMessage) -> Unit = { message ->
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(copiedMessage, message.message))
+        scope.launch { snackbarHostState.showSnackbar(copiedMessage) }
+    }
     
     // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size, currentResponse) {
@@ -89,12 +106,43 @@ fun ChatScreen(
     Scaffold(
         modifier = modifier,
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.chat_title),
-                hazeState = hazeState
+                hazeState = hazeState,
+                actionContent = {
+                    if (messages.isNotEmpty()) {
+                        Box {
+                            IconButton(
+                                onClick = { showTopBarMenu = true },
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.chat_more_options),
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showTopBarMenu,
+                                onDismissRequest = { showTopBarMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.chat_clear_action)) },
+                                    onClick = {
+                                        showTopBarMenu = false
+                                        showClearConfirmation = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null)
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
             )
         }
     ) { paddingValues ->
@@ -128,7 +176,7 @@ fun ChatScreen(
                                 Icon(
                                     Icons.Default.CloudDownload,
                                     contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
+                                    modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
@@ -136,7 +184,15 @@ fun ChatScreen(
                                     style = MaterialTheme.typography.headlineSmall
                                 )
                                 Text(
-                                    text = if (isDownloading) stringResource(R.string.chat_download_progress, downloadedMB, totalMB) else stringResource(R.string.chat_model_required_body),
+                                    text = if (isDownloading) {
+                                        stringResource(
+                                            R.string.chat_download_progress,
+                                            downloadedMB,
+                                            totalMB,
+                                        )
+                                    } else {
+                                        stringResource(R.string.chat_model_required_body)
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -193,7 +249,7 @@ fun ChatScreen(
                             flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
                             items(messages) { message ->
-                                ChatMessageItem(message = message)
+                                ChatMessageItem(message = message, onCopy = copyMessage)
                             }
                         }
                     }
@@ -202,7 +258,7 @@ fun ChatScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.tertiaryContainer,
-                        tonalElevation = 3.dp
+                        tonalElevation = Dimensions.Elevation.bottomBar,
                     ) {
                         if (isDownloading) {
                             Column(
@@ -327,46 +383,8 @@ fun ChatScreen(
                         ) {
                             TokenLimitWarning(
                                 usagePercent = chatStats.contextUsagePercent,
-                                onClearChat = { viewModel.clearChat() }
+                                onClearChat = { showClearConfirmation = true }
                             )
-                        }
-
-                        // Clear chat button when there are messages
-                        AnimatedVisibility(
-                            visible = messages.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 1.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = Dimensions.Padding.content,
-                                            vertical = Spacing.sm
-                                        ),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(
-                                        onClick = { viewModel.clearChat() },
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error
-                                        )
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text(stringResource(R.string.chat_clear_chat))
-                                    }
-                                }
-                            }
                         }
 
                         // Messages list
@@ -398,7 +416,7 @@ fun ChatScreen(
                             }
 
                             items(messages) { message ->
-                                ChatMessageItem(message = message)
+                                ChatMessageItem(message = message, onCopy = copyMessage)
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
@@ -423,7 +441,8 @@ fun ChatScreen(
                                             isUser = false,
                                             timestamp = System.currentTimeMillis()
                                         ),
-                                        isStreaming = true
+                                        isStreaming = true,
+                                        onCopy = copyMessage,
                                     )
                                 }
                             } else if (uiState.isLoading) {
@@ -474,56 +493,19 @@ fun ChatScreen(
                             }
                         }
 
-                        // Input field
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 3.dp
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(Dimensions.Padding.content),
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                OutlinedTextField(
-                                    value = inputText,
-                                    onValueChange = { inputText = it },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .focusRequester(focusRequester),
-                                    placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
-                                    enabled = !uiState.isLoading,
-                                    maxLines = 3,
-                                    shape = MaterialTheme.shapes.extraLarge
-                                )
-
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-
-                                FilledIconButton(
-                                    onClick = {
-                                        viewModel.sendMessage(inputText)
-                                        inputText = ""
-                                        // Keep keyboard open by requesting focus
-                                        focusRequester.requestFocus()
-                                    },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    if (uiState.isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(Dimensions.Icon.medium),
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.Send,
-                                            contentDescription = stringResource(R.string.chat_send)
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        ChatComposer(
+                            value = inputText,
+                            onValueChange = { inputText = it },
+                            onSend = {
+                                viewModel.sendMessage(inputText)
+                                inputText = ""
+                                focusRequester.requestFocus()
+                            },
+                            enabled = !uiState.isLoading,
+                            isLoading = uiState.isLoading,
+                            focusRequester = focusRequester,
+                            modifier = Modifier.padding(Dimensions.Padding.content),
+                        )
                         Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
                     }
                 }
@@ -531,6 +513,102 @@ fun ChatScreen(
         }
     }
     }
+
+    if (showClearConfirmation) {
+        ChatClearConfirmationDialog(
+            onConfirm = {
+                showClearConfirmation = false
+                viewModel.clearChat()
+            },
+            onDismiss = { showClearConfirmation = false },
+        )
+    }
+}
+
+@Composable
+fun ChatComposer(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSend: () -> Unit,
+    enabled: Boolean,
+    isLoading: Boolean,
+    focusRequester: FocusRequester,
+    modifier: Modifier = Modifier,
+) {
+    val canSend = enabled && value.isNotBlank()
+
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        enabled = enabled,
+        placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
+        maxLines = 3,
+        shape = MaterialTheme.shapes.extraLarge,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+        keyboardActions = KeyboardActions(
+            onSend = {
+                if (canSend) onSend()
+            },
+        ),
+        trailingIcon = {
+            FilledIconButton(
+                onClick = onSend,
+                enabled = canSend,
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(Dimensions.Icon.medium),
+                        strokeWidth = Spacing.xxs,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = stringResource(R.string.chat_send),
+                    )
+                }
+            }
+        },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+        ),
+    )
+}
+
+@Composable
+fun ChatClearConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null) },
+        title = { Text(stringResource(R.string.chat_clear_confirmation_title)) },
+        text = { Text(stringResource(R.string.chat_clear_confirmation_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(stringResource(R.string.chat_clear_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.chat_cancel))
+            }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -566,7 +644,7 @@ fun TokenLimitWarning(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = backgroundColor,
-        tonalElevation = 2.dp
+        tonalElevation = Dimensions.Elevation.raisedCard,
     ) {
         Row(
             modifier = Modifier
@@ -652,7 +730,7 @@ fun DeveloperInfoCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically
@@ -753,12 +831,15 @@ fun TypingIndicator(
     modifier: Modifier = Modifier,
     status: String? = null
 ) {
+    val waitingDescription = stringResource(R.string.chat_waiting_for_response)
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
         PennyWiseCardV2(
-            modifier = Modifier.widthIn(max = 280.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = waitingDescription },
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
@@ -789,7 +870,7 @@ fun TypingIndicator(
                     
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
+                            .size(Spacing.sm)
                             .background(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
                                 shape = RoundedCornerShape(50)
@@ -804,6 +885,19 @@ fun TypingIndicator(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
+
+                // Keep the waiting state legible when the animated dots are subtle in
+                // either theme. This is intentionally indeterminate: it communicates
+                // activity without implying a completion percentage.
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .width(Dimensions.Icon.avatarLarge)
+                        .height(Spacing.xxs),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(
+                        alpha = Dimensions.Alpha.divider
+                    )
+                )
             }
         }
     }
@@ -812,54 +906,91 @@ fun TypingIndicator(
 @Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
-    isStreaming: Boolean = false
+    isStreaming: Boolean = false,
+    onCopy: (com.pennywiseai.tracker.data.database.entity.ChatMessage) -> Unit = {},
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    val isUser = message.isUser
+    val containerColor = if (isUser) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val contentColor = if (isUser) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val messageShape = if (isUser) {
+        RoundedCornerShape(
+            topStart = Dimensions.CornerRadius.extraLarge,
+            topEnd = Dimensions.CornerRadius.extraLarge,
+            bottomStart = Dimensions.CornerRadius.extraLarge,
+            bottomEnd = Dimensions.CornerRadius.medium,
+        )
+    } else {
+        MaterialTheme.shapes.large
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
-        PennyWiseCardV2(
+        Surface(
             modifier = Modifier
-                .widthIn(max = 280.dp)
-                .animateContentSize(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Text(
-                text = message.message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (message.isUser)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSecondaryContainer
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.xs))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                if (isStreaming) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 1.dp
-                    )
-                }
-                Text(
-                    text = timeFormat.format(Date(message.timestamp)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (message.isUser)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    else
-                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                .then(
+                    if (isUser) Modifier.fillMaxWidth(0.84f) else Modifier.fillMaxWidth()
                 )
+                .animateContentSize(),
+            color = containerColor,
+            contentColor = contentColor,
+            shape = messageShape,
+        ) {
+            Column(
+                modifier = Modifier.padding(Dimensions.Padding.card),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(
+                    text = message.message,
+                    style = if (isUser) {
+                        MaterialTheme.typography.bodyLarge
+                    } else {
+                        MaterialTheme.typography.bodyMedium
+                    },
+                    color = contentColor,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    if (isStreaming) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(Dimensions.Icon.tiny),
+                            strokeWidth = Spacing.xxs,
+                        )
+                    }
+                    Text(
+                        text = timeFormat.format(Date(message.timestamp)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = Dimensions.Alpha.subtitle),
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (!isStreaming) {
+                        IconButton(
+                            onClick = { onCopy(message) },
+                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.chat_copy_message),
+                                modifier = Modifier.size(Dimensions.Icon.inline),
+                                tint = contentColor.copy(alpha = Dimensions.Alpha.subtitle),
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -887,7 +1018,7 @@ private fun ChatEmptyState(
         Icon(
             Icons.Default.AutoAwesome,
             contentDescription = null,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(Dimensions.Icon.avatarLarge),
             tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
         )
 

@@ -67,6 +67,7 @@ class BackupSchemaGuardTest {
         serializer<LoanEntity>().descriptor,
         serializer<TransactionGroupEntity>().descriptor,
         serializer<ProfileEntity>().descriptor,
+        serializer<PersonEntity>().descriptor,
         serializer<BudgetMonthSnapshotEntity>().descriptor,
         serializer<BudgetCategoryMonthSnapshotEntity>().descriptor,
         serializer<TagEntity>().descriptor,

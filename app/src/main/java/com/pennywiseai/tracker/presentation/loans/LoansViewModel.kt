@@ -25,9 +25,20 @@ data class LoansUiState(
     val totalLentRemaining: BigDecimal = BigDecimal.ZERO,
     val totalBorrowedRemaining: BigDecimal = BigDecimal.ZERO,
     val summaryCurrency: String = "INR",
+    val defaultEntryCurrency: String = "INR",
     val isLoading: Boolean = true,
-    val showSettledLoans: Boolean = false
+    val showSettledLoans: Boolean = false,
+    val showAddEntrySheet: Boolean = false,
+    val isSavingEntry: Boolean = false,
+    val entryError: LoanEntryError? = null,
 )
+
+enum class LoanEntryError {
+    PERSON_REQUIRED,
+    AMOUNT_REQUIRED,
+    CURRENCY_REQUIRED,
+    SAVE_FAILED,
+}
 
 @HiltViewModel
 class LoansViewModel @Inject constructor(
@@ -86,8 +97,12 @@ class LoansViewModel @Inject constructor(
                     totalLentRemaining = lent,
                     totalBorrowedRemaining = borrowed,
                     summaryCurrency = summaryCurrency,
+                    defaultEntryCurrency = inputs.baseCurrency.ifBlank { "INR" },
                     isLoading = false,
-                    showSettledLoans = _uiState.value.showSettledLoans
+                    showSettledLoans = _uiState.value.showSettledLoans,
+                    showAddEntrySheet = _uiState.value.showAddEntrySheet,
+                    isSavingEntry = _uiState.value.isSavingEntry,
+                    entryError = _uiState.value.entryError,
                 )
             }
         }
@@ -142,4 +157,66 @@ class LoansViewModel @Inject constructor(
     fun toggleShowSettled() {
         _uiState.value = _uiState.value.copy(showSettledLoans = !_uiState.value.showSettledLoans)
     }
+
+    fun showAddEntrySheet(show: Boolean) {
+        if (_uiState.value.isSavingEntry) return
+        _uiState.value = _uiState.value.copy(
+            showAddEntrySheet = show,
+            entryError = null,
+        )
+    }
+
+    fun addManualEntry(
+        personName: String,
+        direction: LoanDirection,
+        amount: BigDecimal?,
+        currency: String,
+        note: String?,
+    ) {
+        val error = validateLoanEntry(personName, amount, currency)
+        if (error != null) {
+            _uiState.value = _uiState.value.copy(entryError = error)
+            return
+        }
+        if (_uiState.value.isSavingEntry) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSavingEntry = true, entryError = null)
+            runCatching {
+                loanRepository.createManualLoan(
+                    personName = personName,
+                    direction = direction,
+                    amount = requireNotNull(amount),
+                    currency = currency,
+                    note = note,
+                )
+            }.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    showAddEntrySheet = false,
+                    isSavingEntry = false,
+                    entryError = null,
+                )
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isSavingEntry = false,
+                    entryError = LoanEntryError.SAVE_FAILED,
+                )
+            }
+        }
+    }
+
+    fun clearEntryError() {
+        _uiState.value = _uiState.value.copy(entryError = null)
+    }
+}
+
+internal fun validateLoanEntry(
+    personName: String,
+    amount: BigDecimal?,
+    currency: String,
+): LoanEntryError? = when {
+    personName.isBlank() -> LoanEntryError.PERSON_REQUIRED
+    amount == null || amount <= BigDecimal.ZERO -> LoanEntryError.AMOUNT_REQUIRED
+    currency.isBlank() -> LoanEntryError.CURRENCY_REQUIRED
+    else -> null
 }

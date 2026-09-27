@@ -126,6 +126,9 @@ data class BackupStatistics(
     @SerialName("total_profiles")
     val totalProfiles: Int = 0,
 
+    @SerialName("total_people")
+    val totalPeople: Int = 0,
+
     @SerialName("total_budget_month_snapshots")
     val totalBudgetMonthSnapshots: Int = 0,
 
@@ -219,6 +222,9 @@ data class DatabaseSnapshot(
 
     @SerialName("profiles")
     val profiles: List<ProfileEntity> = emptyList(),
+
+    @SerialName("people")
+    val people: List<PersonEntity> = emptyList(),
 
     @SerialName("budget_month_snapshots")
     val budgetMonthSnapshots: List<BudgetMonthSnapshotEntity> = emptyList(),

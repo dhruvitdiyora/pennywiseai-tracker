@@ -41,8 +41,12 @@ import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
+import com.pennywiseai.tracker.ui.screens.settings.AboutScreen
 import com.pennywiseai.tracker.ui.screens.settings.AppearanceScreen
+import com.pennywiseai.tracker.ui.screens.settings.DataPrivacyScreen
 import com.pennywiseai.tracker.ui.screens.settings.FAQScreen
+import com.pennywiseai.tracker.ui.screens.settings.LicensesScreen
+import com.pennywiseai.tracker.ui.screens.settings.ProfileScreen
 import com.pennywiseai.tracker.ui.screens.settings.SettingsScreen
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
@@ -163,6 +167,11 @@ fun MainScreen(
                                 navController.navigate("settings") {
                                     launchSingleTop = true
                                 }
+                            },
+                            onNavigateToPersonalDashboard = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.PersonalDashboard
+                                ) { launchSingleTop = true }
                             },
                             onNavigateToTransactions = {
                                 navController.navigate("transactions") {
@@ -481,6 +490,26 @@ fun MainScreen(
                                     launchSingleTop = true
                                 }
                             },
+                            onNavigateToProfiles = {
+                                navController.navigate("profiles") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToPersonalDashboard = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.PersonalDashboard
+                                ) { launchSingleTop = true }
+                            },
+                            onNavigateToAbout = {
+                                navController.navigate("about") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToDataPrivacy = {
+                                navController.navigate("data_privacy") {
+                                    launchSingleTop = true
+                                }
+                            },
                             onNavigateToImportStatement = {
                                 navController.navigate("import_statement") {
                                     launchSingleTop = true
@@ -493,6 +522,55 @@ fun MainScreen(
                             }
                         )
                     }
+                )
+
+                composable(
+                    route = "profiles",
+                    content = { _: NavBackStackEntry ->
+                        ProfileScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            }
+                        )
+                    }
+                )
+
+                composable(
+                    route = "about",
+                    content = { _: NavBackStackEntry ->
+                        AboutScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
+                            onNavigateToLicenses = {
+                                navController.navigate("licenses") {
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    },
+                )
+
+                composable(
+                    route = "licenses",
+                    content = { _: NavBackStackEntry ->
+                        LicensesScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
+                        )
+                    },
+                )
+
+                composable(
+                    route = "data_privacy",
+                    content = { _: NavBackStackEntry ->
+                        DataPrivacyScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
+                        )
+                    },
                 )
 
                 composable(

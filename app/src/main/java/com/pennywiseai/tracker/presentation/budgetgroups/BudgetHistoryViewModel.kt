@@ -37,6 +37,8 @@ data class BudgetHistoryUiState(
     val currency: String = "INR",
     val baseCurrency: String = "INR",
     val budgetAmount: BigDecimal = BigDecimal.ZERO,
+    /** Effective limit for one history window, including category-funded budgets. */
+    val windowBudgetAmount: BigDecimal = BigDecimal.ZERO,
     /**
      * The per-window category breakdown currently shown in the bottom
      * sheet. Null when the sheet is dismissed. Set by [loadBreakdown].
@@ -84,10 +86,13 @@ class BudgetHistoryViewModel @Inject constructor(
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             val displayCurrency = baseCurrency
-            val budget = budgetGroupRepository.getGroupById(groupId) ?: run {
+            val groupWithCategories = budgetGroupRepository.getActiveGroups().first()
+                .firstOrNull { it.budget.id == groupId }
+            val budget = groupWithCategories?.budget ?: budgetGroupRepository.getGroupById(groupId) ?: run {
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 return@launch
             }
+            val windowBudgetAmount = groupWithCategories?.totalBudgetAmount ?: budget.limitAmount
             val history = budgetGroupRepository.getBudgetHistoryForMonth(
                 budget = budget,
                 year = yearMonth.year,
@@ -126,9 +131,12 @@ class BudgetHistoryViewModel @Inject constructor(
                 totalSpent = totalSpent,
                 currency = displayCurrency,
                 baseCurrency = baseCurrency,
-                budgetAmount = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
-                    budget.limitAmount.multiply(BigDecimal(history.size))
-                } else budget.limitAmount
+                budgetAmount = historyBudgetAmount(
+                    periodType = budget.periodType,
+                    windowBudgetAmount = windowBudgetAmount,
+                    windowCount = history.size,
+                ),
+                windowBudgetAmount = windowBudgetAmount,
             )
         }
     }
@@ -164,4 +172,14 @@ class BudgetHistoryViewModel @Inject constructor(
     fun dismissBreakdown() {
         _uiState.value = _uiState.value.copy(breakdown = null, isLoadingBreakdown = false)
     }
+}
+
+internal fun historyBudgetAmount(
+    periodType: com.pennywiseai.tracker.data.database.entity.BudgetPeriodType,
+    windowBudgetAmount: BigDecimal,
+    windowCount: Int,
+): BigDecimal = if (periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
+    windowBudgetAmount.multiply(BigDecimal(windowCount.coerceAtLeast(0)))
+} else {
+    windowBudgetAmount
 }

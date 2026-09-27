@@ -21,6 +21,8 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
+import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
+import com.pennywiseai.tracker.domain.model.SubscriptionCycleUnit
 import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -467,9 +469,18 @@ class AddViewModel @Inject constructor(
     
     fun updateSubscriptionBillingCycle(cycle: String) {
         _subscriptionUiState.update { currentState ->
+            val isCustom = cycle == CUSTOM_CYCLE_LABEL
             currentState.copy(
-                billingCycle = cycle,
-                billingCycleError = null
+                billingCycle = if (isCustom) {
+                    SubscriptionBillingCycle.encodeCustom(
+                        currentState.customCycleCount.toLong(),
+                        currentState.customCycleUnit
+                    )
+                } else {
+                    cycle
+                },
+                billingCycleError = null,
+                isCustomCycle = isCustom
             )
         }
     }
@@ -480,6 +491,31 @@ class AddViewModel @Inject constructor(
     ) {
         _subscriptionUiState.update { currentState ->
             currentState.copy(direction = direction)
+        }
+    }
+
+    fun updateSubscriptionCustomCycleCountInput(input: String) {
+        _subscriptionUiState.update { state ->
+            val digits = input.filter(Char::isDigit)
+            val parsed = digits.toLongOrNull()?.takeIf { it > 0 && it <= Int.MAX_VALUE }
+            state.copy(
+                customCycleCountInput = digits,
+                customCycleCount = parsed?.toInt() ?: state.customCycleCount,
+                billingCycle = if (state.isCustomCycle && parsed != null) {
+                    SubscriptionBillingCycle.encodeCustom(parsed, state.customCycleUnit)
+                } else state.billingCycle
+            )
+        }
+    }
+
+    fun updateSubscriptionCustomCycleUnit(unit: SubscriptionCycleUnit) {
+        _subscriptionUiState.update { state ->
+            state.copy(
+                customCycleUnit = unit,
+                billingCycle = if (state.isCustomCycle) {
+                    SubscriptionBillingCycle.encodeCustom(state.customCycleCount.toLong(), unit)
+                } else state.billingCycle
+            )
         }
     }
     
@@ -552,6 +588,15 @@ class AddViewModel @Inject constructor(
                 _subscriptionUiState.update { it.copy(isLoading = true) }
                 
                 val amount = BigDecimal(state.amount)
+
+                val billingCycleToSave = if (state.isCustomCycle) {
+                    SubscriptionBillingCycle.encodeCustom(
+                        state.customCycleCount.toLong(),
+                        state.customCycleUnit
+                    )
+                } else {
+                    state.billingCycle
+                }
                 Log.d("AddViewModel", "Calling addSubscriptionUseCase.execute with: " +
                     "merchantName=${state.serviceName.trim()}, amount=$amount, " +
                     "nextPaymentDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, " +
@@ -561,7 +606,7 @@ class AddViewModel @Inject constructor(
                     merchantName = state.serviceName.trim(),
                     amount = amount,
                     nextPaymentDate = state.nextPaymentDate,
-                    billingCycle = state.billingCycle,
+                    billingCycle = billingCycleToSave,
                     category = state.category,
                     autoRenewal = false, // Not implemented yet
                     paymentReminder = false, // Not implemented yet
@@ -675,6 +720,10 @@ data class SubscriptionUiState(
     val amountError: UiText? = null,
     val billingCycle: String = "Monthly",
     val billingCycleError: UiText? = null,
+    val isCustomCycle: Boolean = false,
+    val customCycleCount: Int = 1,
+    val customCycleCountInput: String = "1",
+    val customCycleUnit: SubscriptionCycleUnit = SubscriptionCycleUnit.MONTH,
     val nextPaymentDate: LocalDate = LocalDate.now().plusMonths(1),
     val category: String = "Subscriptions",
     val categoryError: UiText? = null,
@@ -702,8 +751,13 @@ data class SubscriptionUiState(
                 amount.toDoubleOrNull() != null &&
                 amount.toDouble() > 0 &&
                 billingCycle.isNotBlank() &&
+                (!isCustomCycle || customCycleCountInput.toLongOrNull()?.let {
+                    it in 1..Int.MAX_VALUE.toLong()
+                } == true) &&
                 category.isNotBlank() &&
                 serviceError == null &&
                 amountError == null &&
                 categoryError == null
 }
+
+private const val CUSTOM_CYCLE_LABEL = "Custom"

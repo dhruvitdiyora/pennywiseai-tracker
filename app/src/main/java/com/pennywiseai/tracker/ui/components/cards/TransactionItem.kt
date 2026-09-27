@@ -2,19 +2,23 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import android.content.res.Resources
 import androidx.compose.ui.platform.LocalContext
-import com.pennywiseai.tracker.R
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -23,6 +27,7 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
@@ -74,47 +79,46 @@ fun TransactionItem(
         effectiveProfileId == ProfileEntity.BUSINESS_ID
     }
 
-    // User-written description, if present, is surfaced as the LEAD segment of
-    // the subtitle (kept short) — not as the title. Promoting it to title made
-    // casual notes ("movie night with sarah") read as inconsistent next to
-    // brand-name merchants ("Uber", "Netflix") and routinely got truncated. The
-    // merchant stays the visual heading; the description is a small contextual
-    // tag below. (#383)
     val description = transaction.description?.takeIf { it.isNotBlank() }
-
     val resources = LocalContext.current.resources
-    val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
-        buildList {
-            if (description != null) add(description)
-            add(dateTimeText)
-            if (transaction.category.isNotBlank() &&
-                !transaction.category.equals("Uncategorized", ignoreCase = true)
-            ) {
-                add(transaction.category)
-            }
-
-            if (showTypeLabel) {
-                when (transaction.transactionType) {
-                    TransactionType.CREDIT -> add(resources.getString(R.string.txn_item_tag_credit))
-                    TransactionType.TRANSFER -> {
-                        if (transferTitleOverride(transaction, resources) == null) {
-                            add(resources.getString(R.string.txn_item_tag_transfer))
-                        }
-                    }
-                    TransactionType.INVESTMENT -> add(resources.getString(R.string.txn_item_tag_investment))
-                    else -> {}
-                }
-            }
-            if (transaction.isRecurring) add(resources.getString(R.string.txn_item_tag_recurring))
-            if (isEffectivelyBusiness) add(resources.getString(R.string.txn_item_tag_business))
-            // Mark rows the user excluded from analytics so it's visible in the
-            // list which ones are skipped by spending stats (#451).
-            if (transaction.excludedFromAnalytics) add(resources.getString(R.string.txn_item_tag_excluded))
-            transaction.balanceAfter?.let { balance ->
-                add(resources.getString(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency)))
-            }
-        }.joinToString(" \u00B7 ")
+    val transferTitle = transferTitleOverride(transaction, resources)
+    val hasCategory = transaction.category.isNotBlank() &&
+        !transaction.category.equals("Uncategorized", ignoreCase = true)
+    val creditLabel = stringResource(R.string.txn_item_tag_credit)
+    val transferLabel = stringResource(R.string.txn_item_tag_transfer)
+    val investmentLabel = stringResource(R.string.txn_item_tag_investment)
+    val recurringLabel = stringResource(R.string.txn_item_tag_recurring)
+    val businessLabel = stringResource(R.string.txn_item_tag_business)
+    // Mark rows the user excluded from analytics so it's visible in the
+    // list which ones are skipped by spending stats (#451).
+    val excludedLabel = stringResource(R.string.txn_item_tag_excluded)
+    val typeLabel = if (showTypeLabel) {
+        when (transaction.transactionType) {
+            TransactionType.CREDIT -> creditLabel
+            TransactionType.TRANSFER -> transferLabel.takeIf { transferTitle == null }
+            TransactionType.INVESTMENT -> investmentLabel
+            TransactionType.INCOME, TransactionType.EXPENSE -> null
+        }
+    } else {
+        null
     }
+    val balanceAfterText = transaction.balanceAfter?.let { balance ->
+        stringResource(
+            R.string.txn_item_balance_after,
+            CurrencyFormatter.formatCurrency(balance, transaction.currency),
+        )
+    }
+
+    val subtitle = buildList {
+        add(dateTimeText)
+        if (hasCategory) add(transaction.category)
+        typeLabel?.let(::add)
+        if (transaction.isRecurring) add(recurringLabel)
+        if (isEffectivelyBusiness) add(businessLabel)
+        if (transaction.excludedFromAnalytics) add(excludedLabel)
+        balanceAfterText?.let(::add)
+        description?.let(::add)
+    }.joinToString(" \u00B7 ")
 
     val amountPrefix = remember(transaction.transactionType) {
         when (transaction.transactionType) {
@@ -138,11 +142,68 @@ fun TransactionItem(
     // "Transfer from 1234") is more informative than the merchant name (often
     // the user's own contact name), and stops the two legs from looking like
     // duplicate rows in the list. Falls back to merchant otherwise.
-    val transferTitle = transferTitleOverride(transaction, resources)
-
     ListItemCardV2(
         title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
+        subtitleContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clipToBounds(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SubtitleTag(
+                    text = dateTimeText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (hasCategory) {
+                    SubtitleTag(
+                        text = transaction.category,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                typeLabel?.let {
+                    val typeColor = when (transaction.transactionType) {
+                        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+                        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+                        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
+                        else -> MaterialTheme.colorScheme.secondary
+                    }
+                    SubtitleTag(text = it, color = typeColor)
+                }
+                if (transaction.isRecurring) {
+                    SubtitleTag(
+                        text = recurringLabel,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                if (isEffectivelyBusiness) {
+                    SubtitleTag(
+                        text = businessLabel,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+                if (transaction.excludedFromAnalytics) {
+                    SubtitleTag(
+                        text = excludedLabel,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                balanceAfterText?.let {
+                    SubtitleTag(
+                        text = it,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                description?.let {
+                    SubtitleTag(
+                        text = it,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
         shape = listItemPosition.toShape(),

@@ -39,6 +39,8 @@ import androidx.compose.material.icons.Icons
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
@@ -49,7 +51,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
@@ -139,6 +140,7 @@ fun HomeScreen(
     coverStyle: CoverStyle = CoverStyle.AURORA,
     blurEffects: Boolean = false,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToPersonalDashboard: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
@@ -396,7 +398,7 @@ fun HomeScreen(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
-                        onAvatarClick = onNavigateToSettings,
+                        onAvatarClick = onNavigateToPersonalDashboard,
                         onMenuClick = { showMenuSheet = true },
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
@@ -469,6 +471,7 @@ fun HomeScreen(
                             currentMonthLent = uiState.currentMonthLent,
                             currentMonthTotal = uiState.currentMonthTotal,
                             balanceHistory = uiState.balanceHistory,
+                            isBalanceHistoryApproximate = uiState.isBalanceHistoryApproximate,
                             spendingHistory = uiState.spendingHistory,
                             lastMonthSpendingHistory = uiState.lastMonthSpendingHistory,
                             lastMonthSpending = uiState.lastMonthExpenses,
@@ -632,7 +635,6 @@ fun HomeScreen(
                                         )
                                         Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                                             ActiveLoansSummaryCard(
-                                                loans = summary.activeLoans,
                                                 totalLentRemaining = summary.totalLentRemaining,
                                                 totalBorrowedRemaining = summary.totalBorrowedRemaining,
                                                 currency = uiState.selectedCurrency,
@@ -1613,16 +1615,12 @@ private fun UpcomingSubscriptionsCard(
 }
 
 @Composable
-private fun ActiveLoansSummaryCard(
-    loans: List<com.pennywiseai.tracker.data.database.entity.LoanEntity>,
+internal fun ActiveLoansSummaryCard(
     totalLentRemaining: java.math.BigDecimal,
     totalBorrowedRemaining: java.math.BigDecimal,
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
-
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -1630,42 +1628,69 @@ private fun ActiveLoansSummaryCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Loan icon
-            Icon(
-                imageVector = Icons.Default.SwapHoriz,
-                contentDescription = null,
-                tint = loanColor,
-                modifier = Modifier.size(Dimensions.Icon.medium)
+            HomeLoanSummaryItem(
+                label = stringResource(R.string.home_loans_label_owed_to_you),
+                amount = totalLentRemaining,
+                currency = currency,
+                color = MaterialTheme.colorScheme.income,
+                icon = Icons.Default.ArrowUpward,
+                modifier = Modifier.weight(1f),
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pluralStringResource(R.plurals.home_active_loans, loans.size, loans.size),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                val subtitle = when {
-                    totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
-                    totalLentRemaining > java.math.BigDecimal.ZERO ->
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
-                    else ->
-                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency))
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            HomeLoanSummaryItem(
+                label = stringResource(R.string.home_loans_label_you_owe),
+                amount = totalBorrowedRemaining,
+                currency = currency,
+                color = MaterialTheme.colorScheme.warning,
+                icon = Icons.Default.ArrowDownward,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeLoanSummaryItem(
+    label: String,
+    amount: java.math.BigDecimal,
+    currency: String,
+    color: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.large)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = Dimensions.Alpha.tonalIconContainer)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(Dimensions.Icon.inline),
                 )
             }
             Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = loanColor,
-                fontWeight = FontWeight.Medium
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Text(
+            text = CurrencyFormatter.formatCurrency(amount, currency),
+            style = PennyWiseText.amountMedium,
+            color = color,
+        )
     }
 }
 

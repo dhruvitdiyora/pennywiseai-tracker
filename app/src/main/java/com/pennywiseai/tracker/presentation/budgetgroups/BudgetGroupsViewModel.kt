@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.PastWindowSpending
 import com.pennywiseai.tracker.data.repository.WindowSpending
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.matchingTransactionsForBudget
 import com.pennywiseai.tracker.data.repository.overlaps
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.data.repository.windowsForMonth
@@ -541,6 +542,28 @@ class BudgetGroupsViewModel @Inject constructor(
         val catNames = if (group.categories.isEmpty()) null else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
         val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, convertedTotalBudget)
+        val matchingTransactions = matchingTransactionsForBudget(
+            group = group,
+            transactions = txsInDisplay,
+            canRepresentAmount = { currency, amount ->
+                currencyConversionService.convertAmountOrNull(
+                    amount,
+                    currency,
+                    displayCurrency,
+                ) != null
+            },
+            nativeTrackingAllSemantics = false,
+        )
+        val matchingDisplayAmounts = buildMap {
+            matchingTransactions.forEach { txWithSplits ->
+                val tx = txWithSplits.transaction
+                currencyConversionService.convertAmountOrNull(
+                    tx.amount,
+                    tx.currency,
+                    displayCurrency,
+                )?.let { put(tx.id, it) }
+            }
+        }
 
         return BudgetGroupSpending(
             group = group,
@@ -563,7 +586,9 @@ class BudgetGroupsViewModel @Inject constructor(
             displayedCapDate = today,
             displayedIsLive = isCurrentMonth,
             periodType = budget.periodType,
-            previousWindows = previous
+            previousWindows = previous,
+            matchingTransactions = matchingTransactions,
+            matchingTransactionDisplayAmounts = matchingDisplayAmounts,
         )
     }
 
@@ -595,6 +620,13 @@ class BudgetGroupsViewModel @Inject constructor(
 
     fun selectCurrentMonth() {
         _selectedYearMonth.value = YearMonth.now()
+    }
+
+    fun selectYearMonth(year: Int, month: Int) {
+        val requested = runCatching { YearMonth.of(year, month) }.getOrNull() ?: return
+        if (!requested.isAfter(YearMonth.now())) {
+            _selectedYearMonth.value = requested
+        }
     }
 
     fun deleteGroup(budgetId: Long) {

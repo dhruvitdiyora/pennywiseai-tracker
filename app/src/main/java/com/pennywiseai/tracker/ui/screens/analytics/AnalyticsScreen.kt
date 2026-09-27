@@ -370,27 +370,11 @@ fun AnalyticsScreen(
                         }
                     }
 
-                    // Chart display with crossfade transition
-                    Crossfade(
-                        targetState = chartType,
-                        label = "chart_transition"
-                    ) { type ->
-                        when (type) {
-                            ChartType.LINE -> BalanceChart(
-                                primaryCurrency = selectedCurrency,
-                                balanceHistory = uiState.spendingTrend,
-                                height = 220
-                            )
-                            ChartType.BAR -> SpendingBarChart(
-                                primaryCurrency = selectedCurrency,
-                                data = uiState.spendingTrend,
-                                height = 220
-                            )
-                            ChartType.HEATMAP -> SpendingHeatmap(
-                                data = uiState.spendingTrend
-                            )
-                        }
-                    }
+                    AnalyticsChartModeCard(
+                        chartType = chartType,
+                        selectedCurrency = selectedCurrency,
+                        data = uiState.spendingTrend,
+                    )
                 }
             }
         }
@@ -618,6 +602,43 @@ fun AnalyticsScreen(
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showTagsUpgradeSheet = false }
         )
+    }
+}
+
+/**
+ * Gives every analytics chart mode the same visual boundary without changing
+ * its data or interaction model.
+ */
+@Composable
+internal fun AnalyticsChartModeCard(
+    chartType: ChartType,
+    selectedCurrency: String,
+    data: List<BalancePoint>,
+    modifier: Modifier = Modifier,
+) {
+    PennyWiseCardV2(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = Spacing.xs,
+    ) {
+        Crossfade(
+            targetState = chartType,
+            label = "chart_transition",
+        ) { type ->
+            when (type) {
+                ChartType.LINE -> BalanceChart(
+                    primaryCurrency = selectedCurrency,
+                    balanceHistory = data,
+                    height = 220,
+                    seriesLabel = stringResource(R.string.analytics_spending_trend),
+                )
+                ChartType.BAR -> SpendingBarChart(
+                    primaryCurrency = selectedCurrency,
+                    data = data,
+                    height = 220,
+                )
+                ChartType.HEATMAP -> SpendingHeatmap(data = data)
+            }
+        }
     }
 }
 

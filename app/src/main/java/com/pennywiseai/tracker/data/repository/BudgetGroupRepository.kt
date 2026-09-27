@@ -998,6 +998,7 @@ class BudgetGroupRepository @Inject constructor(
         }
 
         val isTrackingAll = group.categories.isEmpty()
+        val matchingTransactions = matchingTransactionsForBudget(group, displayTxs)
         val groupSpending = if (isTrackingAll) {
             val totalBudget = group.budget.limitAmount
             val totalActual = totalAllExpenses
@@ -1027,6 +1028,7 @@ class BudgetGroupRepository @Inject constructor(
                 windowDays = displayWindow.days,
                 periodType = budget.periodType,
                 previousWindows = previousWindows,
+                matchingTransactions = matchingTransactions,
                 displayedCapDate = displayedCapDate,
                 displayedIsLive = displayedIsLive
             )
@@ -1089,6 +1091,7 @@ class BudgetGroupRepository @Inject constructor(
                 windowDays = displayWindow.days,
                 periodType = budget.periodType,
                 previousWindows = previousWindows,
+                matchingTransactions = matchingTransactions,
                 displayedCapDate = displayedCapDate,
                 displayedIsLive = displayedIsLive
             )
@@ -1099,6 +1102,70 @@ class BudgetGroupRepository @Inject constructor(
     companion object {
         /** Transaction types that can back a budget "type bucket". */
         val BUDGET_TYPE_BUCKETS = setOf(TransactionType.INVESTMENT)
+    }
+}
+
+/**
+ * Select the rows that participate in a budget's established aggregation.
+ * This mirrors [aggregateBudgetCategorySpending] and
+ * [BudgetGroupRepository.sumExpensesForWindow] without calculating totals.
+ * [canRepresentAmount] lets unified-currency callers omit rows whose amount
+ * cannot be converted instead of displaying a row that was excluded from the
+ * budget total.
+ */
+suspend fun matchingTransactionsForBudget(
+    group: BudgetWithCategories,
+    transactions: List<TransactionWithSplits>,
+    canRepresentAmount: suspend (currency: String, amount: BigDecimal) -> Boolean = { _, _ -> true },
+    nativeTrackingAllSemantics: Boolean = true,
+): List<TransactionWithSplits> {
+    val categoryNames = group.categories
+        .filter { it.matchType == null }
+        .map { it.categoryName }
+        .toSet()
+    val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+    val tracksEverything = group.categories.isEmpty()
+
+    return transactions.filter { txWithSplits ->
+        val tx = txWithSplits.transaction
+        if (tx.excludedFromAnalytics) return@filter false
+
+        if (tracksEverything) {
+            return@filter if (nativeTrackingAllSemantics) {
+                val affectsNativeTotal = when (tx.transactionType) {
+                    TransactionType.INCOME -> tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+                    TransactionType.TRANSFER -> false
+                    else -> true
+                }
+                affectsNativeTotal && canRepresentAmount(tx.currency, tx.amount)
+            } else {
+                tx.loanId == null &&
+                    (tx.transactionType == TransactionType.EXPENSE ||
+                        tx.transactionType == TransactionType.INVESTMENT) &&
+                    canRepresentAmount(tx.currency, tx.amount)
+            }
+        }
+
+        when (tx.transactionType) {
+            TransactionType.INCOME -> {
+                tx.budgetCategory in categoryNames &&
+                    tx.budgetImpactType != null &&
+                    canRepresentAmount(tx.currency, tx.amount)
+            }
+
+            TransactionType.TRANSFER -> false
+
+            in BudgetGroupRepository.BUDGET_TYPE_BUCKETS -> {
+                tx.transactionType.name in matchTypes &&
+                    canRepresentAmount(tx.currency, tx.amount)
+            }
+
+            else -> txWithSplits.getAmountByCategory().any { (category, amount) ->
+                val normalizedCategory = category.ifEmpty { "Others" }
+                normalizedCategory in categoryNames &&
+                    canRepresentAmount(tx.currency, amount)
+            }
+        }
     }
 }
 

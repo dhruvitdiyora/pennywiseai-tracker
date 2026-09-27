@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.billing.FreeTierLimits
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
@@ -17,6 +18,7 @@ import com.pennywiseai.tracker.domain.service.RuleTemplateService
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
+import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
 import com.pennywiseai.tracker.domain.usecase.InitializeRuleTemplatesUseCase
 import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,6 +37,7 @@ class RulesViewModel @Inject constructor(
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val getCategoriesUseCase: GetCategoriesUseCase,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -118,6 +121,14 @@ class RulesViewModel @Inject constructor(
                 }
                 .distinctBy { "${it.bankName}_${it.accountLast4}" }
         }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    /** Live category catalog used by the rule editor's searchable picker. */
+    val categories: StateFlow<List<CategoryEntity>> = getCategoriesUseCase.execute()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

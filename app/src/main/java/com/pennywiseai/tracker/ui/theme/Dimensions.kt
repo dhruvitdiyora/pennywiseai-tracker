@@ -14,6 +14,9 @@ object Dimensions {
 
     // ── Padding ───────────────────────────────────────────────────────────
     object Padding {
+        /** Explicitly unpadded content, for full-bleed card layers. */
+        val none = 0.dp
+
         /** Screen gutter — content inset from the window edge. */
         val content = Spacing.Layout.screenHorizontal
 
@@ -66,6 +69,12 @@ object Dimensions {
 
         /** Placeholder / skeleton content shown behind an empty state. */
         const val ghost = 0.12f
+
+        /** Decorative brand marks behind identity-card foreground content. */
+        const val decorativeWatermark = 0.045f
+
+        /** Strong semantic colour washed into a compact tonal icon container. */
+        const val tonalIconContainer = 0.14f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────
@@ -140,6 +149,22 @@ object Dimensions {
         /** Minimum height of a two-line list row (M3 spec). */
         val listItemMinHeightTwoLine = 72.dp
 
+        /** Width of the compact currency selector beside an amount field. */
+        val currencySelectorWidth = 128.dp
+
+        /** Standard height for mutually exclusive Appearance choice tiles. */
+        val appearanceChoiceHeight = 80.dp
+
+        /** Square preview used by the branded accent palette. */
+        val appearanceAccentPreviewSize = 112.dp
+
+        /** Home-cover thumbnail dimensions on the Appearance screen. */
+        val appearanceCoverPreviewWidth = 80.dp
+        val appearanceCoverPreviewHeight = 56.dp
+
+        /** Strong outline for a selected visual preview. */
+        val selectionStroke = 3.dp
+
         val dividerThickness = 1.dp
 
         /** Hairline used to outline cards in dark mode. */
@@ -157,6 +182,36 @@ object Dimensions {
 
         /** The colour dot beside a chart legend entry. */
         val legendDot = 10.dp
+
+        /** Compact percentage ring used by summary/history rows. */
+        val progressRingCompact = 52.dp
+
+        /** Stroke for compact circular progress summaries. */
+        val progressRingStroke = 4.dp
+
+        /** Height of a compact trend chart embedded in a card. */
+        val chartCompactHeight = 140.dp
+
+        /** Maximum height of an attached receipt preview in transaction details. */
+        val receiptPreviewHeight = 200.dp
+
+        /** Primary line weight for compact charts. */
+        val chartStroke = 2.5.dp
+
+        /** Secondary/reference line weight for compact charts. */
+        val chartReferenceStroke = 1.5.dp
+
+        /** Fixed hero height for the Home account identity card. */
+        val accountCardHeight = 200.dp
+
+        /** Onboarding device preview dimensions. */
+        val onboardingPhoneWidth = 216.dp
+        val onboardingPhoneHeight = 248.dp
+        val onboardingIllustrationSize = 128.dp
+        val onboardingOptionTile = 72.dp
+        val onboardingSelectionStroke = 3.dp
+        val onboardingStepActive = Spacing.sm
+        val onboardingStepInactive = 6.dp
 
         /** Standard FAB diameter. */
         val fab = 56.dp

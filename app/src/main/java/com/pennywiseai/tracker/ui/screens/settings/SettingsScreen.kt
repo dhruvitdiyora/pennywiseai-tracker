@@ -106,6 +106,10 @@ fun SettingsScreen(
     onNavigateToTransactionGroups: () -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
+    onNavigateToProfiles: () -> Unit = {},
+    onNavigateToPersonalDashboard: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToDataPrivacy: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
@@ -252,7 +256,10 @@ fun SettingsScreen(
             // unlocked), so instead of an un-buyable Pro upsell they get a
             // "Support development" tip jar. Play builds keep the Pro upgrade.
             if (isFdroidBuild) {
-                SectionHeaderV2(title = stringResource(R.string.support_title))
+                SectionHeaderV2(
+                    title = stringResource(R.string.support_title),
+                    topSpacing = Spacing.none,
+                )
                 SettingsGroup {
                     SettingsNavItem(
                         icon = Icons.Default.Favorite,
@@ -268,7 +275,10 @@ fun SettingsScreen(
                 // Row content adapts to entitlement state — paid users see
                 // "Active" so the row reads as status, free users see "Upgrade"
                 // so it reads as a call-to-action.
-                SectionHeaderV2(title = stringResource(R.string.settings_pro_section))
+                SectionHeaderV2(
+                    title = stringResource(R.string.settings_pro_section),
+                    topSpacing = Spacing.none,
+                )
                 SettingsGroup {
                     SettingsNavItem(
                         icon = Icons.Default.AutoAwesome,
@@ -290,13 +300,31 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_personalization_section))
             SettingsGroup {
                 SettingsNavItem(
+                    icon = Icons.Default.Person,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.personal_dashboard_title),
+                    subtitle = stringResource(R.string.personal_dashboard_settings_subtitle),
+                    onClick = onNavigateToPersonalDashboard,
+                    position = ListItemPosition.Top,
+                )
+                SettingsNavItem(
                     icon = Icons.Default.Palette,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
                     title = stringResource(R.string.settings_appearance_title),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
                     onClick = onNavigateToAppearance,
-                    position = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ListItemPosition.Top else ListItemPosition.Single
+                    position = ListItemPosition.Middle
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.People,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = stringResource(R.string.profile_settings_title),
+                    subtitle = stringResource(R.string.profile_settings_subtitle),
+                    onClick = onNavigateToProfiles,
+                    position = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) ListItemPosition.Middle else ListItemPosition.Bottom,
                 )
                 // Per-app language is a system screen on Android 13+; older
                 // versions follow the device language.
@@ -368,6 +396,7 @@ fun SettingsScreen(
                     iconTint = indigo_dark,
                     title = stringResource(R.string.settings_default_currency_title),
                     subtitle = stringResource(R.string.settings_default_currency_subtitle),
+                    fieldLabel = stringResource(R.string.settings_currency_field_label),
                     currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
                     expanded = showCurrencyDropdown,
                     onExpandedChange = { showCurrencyDropdown = it },
@@ -406,6 +435,7 @@ fun SettingsScreen(
                         iconTint = purple_dark,
                         title = stringResource(R.string.settings_main_account_title),
                         subtitle = stringResource(R.string.settings_main_account_subtitle),
+                        fieldLabel = stringResource(R.string.settings_account_field_label),
                         currentValue = mainAccount?.let { acc ->
                             val name = acc.alias?.takeIf { it.isNotBlank() } ?: acc.bankName
                             AccountBalanceEntity.accountLabel(name, acc.accountLast4)
@@ -515,7 +545,7 @@ fun SettingsScreen(
                     checked = appLockUiState.isLockEnabled,
                     onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
                     enabled = appLockUiState.canUseBiometric,
-                    position = if (appLockUiState.isLockEnabled) ListItemPosition.Top else ListItemPosition.Single
+                    position = ListItemPosition.Top
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(
@@ -532,208 +562,53 @@ fun SettingsScreen(
                             )
                         },
                         onClick = { showTimeoutDialog = true },
-                        position = ListItemPosition.Bottom
+                        position = ListItemPosition.Middle
                     )
                 }
+                SettingsNavItem(
+                    icon = Icons.Default.PrivacyTip,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = stringResource(R.string.data_privacy_title),
+                    subtitle = stringResource(R.string.data_privacy_settings_subtitle),
+                    onClick = onNavigateToDataPrivacy,
+                    position = ListItemPosition.Bottom,
+                )
             }
 
             // ── Data Management ──
-            SectionHeaderV2(title = stringResource(R.string.settings_data_section))
-            SettingsGroup {
-                SettingsNavItem(
-                    icon = Icons.Default.AccountBalance,
-                    iconBgColor = red_light,
-                    iconTint = red_dark,
-                    title = stringResource(R.string.settings_manage_accounts_title),
-                    subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
-                    onClick = onNavigateToManageAccounts,
-                    position = ListItemPosition.Top
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.Category,
-                    iconBgColor = purple_light,
-                    iconTint = purple_dark,
-                    title = stringResource(R.string.settings_categories_title),
-                    subtitle = stringResource(R.string.settings_categories_subtitle),
-                    onClick = onNavigateToCategories,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.AutoAwesome,
-                    iconBgColor = orange_light,
-                    iconTint = orange_dark,
-                    title = stringResource(R.string.settings_smart_rules_title),
-                    subtitle = stringResource(R.string.settings_smart_rules_subtitle),
-                    onClick = onNavigateToRules,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.AccountBalanceWallet,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
-                    title = stringResource(R.string.settings_budgets_title),
-                    subtitle = stringResource(R.string.settings_budgets_subtitle),
-                    onClick = onNavigateToBudgets,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.SwapHoriz,
-                    iconBgColor = amber_light,
-                    iconTint = amber_dark,
-                    title = stringResource(R.string.settings_loans_title),
-                    subtitle = stringResource(R.string.settings_loans_subtitle),
-                    onClick = onNavigateToLoans,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.EventRepeat,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
-                    title = stringResource(R.string.settings_recurring_title),
-                    subtitle = stringResource(R.string.settings_recurring_subtitle),
-                    onClick = onNavigateToRecurring,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.Folder,
-                    iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    title = stringResource(R.string.settings_transaction_groups_title),
-                    subtitle = stringResource(R.string.settings_transaction_groups_subtitle),
-                    onClick = onNavigateToTransactionGroups,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.Upload,
-                    iconBgColor = blue_light,
-                    iconTint = blue_dark,
-                    title = stringResource(R.string.settings_export_data_title),
-                    subtitle = stringResource(R.string.settings_export_data_subtitle),
-                    onClick = { settingsViewModel.exportBackup() },
-                    position = ListItemPosition.Middle
-                )
-                SettingsSwitchRow(
-                    icon = Icons.Default.Backup,
-                    iconBgColor = purple_light,
-                    iconTint = purple_dark,
-                    title = stringResource(R.string.settings_folder_backup_title),
-                    subtitle = if (scheduledFolderBackupEnabled) {
-                        stringResource(R.string.settings_folder_backup_subtitle_enabled)
-                    } else if (!isProEntitled) {
-                        stringResource(R.string.settings_folder_backup_subtitle_pro)
+            SettingsDataSections(
+                scheduledFolderBackupEnabled = scheduledFolderBackupEnabled,
+                scheduledFolderBackupLastTimestamp = scheduledFolderBackupLastTimestamp,
+                isProEntitled = isProEntitled,
+                smsScanAllTime = smsScanAllTime,
+                smsScanUseCustomDate = smsScanUseCustomDate,
+                smsScanCustomDate = smsScanCustomDate,
+                smsScanMonths = smsScanMonths,
+                onNavigateToManageAccounts = onNavigateToManageAccounts,
+                onNavigateToCategories = onNavigateToCategories,
+                onNavigateToRules = onNavigateToRules,
+                onNavigateToBudgets = onNavigateToBudgets,
+                onNavigateToLoans = onNavigateToLoans,
+                onNavigateToRecurring = onNavigateToRecurring,
+                onNavigateToTransactionGroups = onNavigateToTransactionGroups,
+                onExportData = { settingsViewModel.exportBackup() },
+                onScheduledFolderBackupChange = { enabled ->
+                    if (enabled && !isProEntitled) {
+                        showUpgradeSheet = true
                     } else {
-                        stringResource(R.string.settings_folder_backup_subtitle_disabled)
-                    },
-                    checked = scheduledFolderBackupEnabled,
-                    // Scheduling daily backups is a Pro feature. Turning it ON while
-                    // free routes to the paywall; turning it OFF is always allowed so
-                    // a lapsed/downgraded user can still stop scheduled backups.
-                    onCheckedChange = { enabled ->
-                        if (enabled && !isProEntitled) {
-                            showUpgradeSheet = true
-                        } else {
-                            settingsViewModel.setScheduledFolderBackupEnabled(enabled)
-                        }
-                    },
-                    position = ListItemPosition.Middle
-                )
-                if (scheduledFolderBackupEnabled) {
-                    SettingsNavItem(
-                        icon = Icons.Default.SaveAlt,
-                        iconBgColor = green_light,
-                        iconTint = green_dark,
-                        title = stringResource(R.string.settings_backup_now_title),
-                        subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
-                            val formatted = java.time.Instant.ofEpochMilli(timestamp)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
-                            stringResource(R.string.settings_backup_now_last_backup, formatted)
-                        } ?: stringResource(R.string.settings_backup_now_subtitle),
-                        onClick = { settingsViewModel.backupToFolderNow() },
-                        position = ListItemPosition.Middle
-                    )
-                    SettingsNavItem(
-                        icon = Icons.Default.FolderOpen,
-                        iconBgColor = amber_light,
-                        iconTint = amber_dark,
-                        title = stringResource(R.string.settings_change_backup_folder_title),
-                        subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
-                        onClick = { settingsViewModel.requestChangeBackupFolder() },
-                        position = ListItemPosition.Middle
-                    )
-                }
-                SettingsNavItem(
-                    icon = Icons.Default.Download,
-                    iconBgColor = cyan_light,
-                    iconTint = cyan_dark,
-                    title = stringResource(R.string.settings_import_data_title),
-                    subtitle = stringResource(R.string.settings_import_data_subtitle),
-                    onClick = { importLauncher.launch("*/*") },
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.Download,
-                    iconBgColor = cyan_light,
-                    iconTint = cyan_dark,
-                    title = stringResource(R.string.settings_import_csv_title),
-                    subtitle = stringResource(R.string.settings_import_csv_subtitle),
-                    onClick = { csvImportLauncher.launch("*/*") },
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.Description,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
-                    title = stringResource(R.string.settings_import_statement_title),
-                    subtitle = stringResource(R.string.settings_import_statement_subtitle),
-                    onClick = onNavigateToImportStatement,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.Sms,
-                    iconBgColor = orange_light,
-                    iconTint = orange_dark,
-                    title = stringResource(R.string.settings_unrecognized_sms_title),
-                    subtitle = stringResource(R.string.settings_unrecognized_sms_subtitle),
-                    onClick = onNavigateToUnrecognizedSms,
-                    position = ListItemPosition.Middle
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.CalendarMonth,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
-                    title = stringResource(R.string.settings_sms_scan_title),
-                    subtitle = when {
-                        smsScanAllTime -> stringResource(R.string.settings_sms_scan_subtitle_all_time)
-                        smsScanUseCustomDate -> {
-                            val formattedDate = smsScanCustomDate?.let { formatSmsScanCustomDate(it) }
-                            if (formattedDate != null) {
-                                stringResource(R.string.settings_sms_scan_subtitle_from_date, formattedDate)
-                            } else {
-                                stringResource(R.string.settings_sms_scan_subtitle_custom)
-                            }
-                        }
-                        else -> pluralStringResource(R.plurals.settings_sms_scan_subtitle_months, smsScanMonths, smsScanMonths)
-                    },
-                    onClick = { showSmsScanDialog = true },
-                    position = ListItemPosition.Middle,
-                    trailingText = when {
-                        smsScanAllTime -> stringResource(R.string.settings_sms_scan_all_time)
-                        smsScanUseCustomDate -> smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) }
-                            ?: stringResource(R.string.settings_sms_scan_custom_short)
-                        else -> pluralStringResource(R.plurals.settings_sms_scan_months_short, smsScanMonths, smsScanMonths)
+                        settingsViewModel.setScheduledFolderBackupEnabled(enabled)
                     }
-                )
-                SettingsNavItem(
-                    icon = Icons.Default.DeleteForever,
-                    iconBgColor = red_light,
-                    iconTint = red_dark,
-                    title = stringResource(R.string.settings_delete_all_title),
-                    subtitle = stringResource(R.string.settings_delete_all_subtitle),
-                    onClick = { settingsViewModel.requestDeleteAllTransactions() },
-                    position = ListItemPosition.Bottom
-                )
-            }
+                },
+                onBackupNow = { settingsViewModel.backupToFolderNow() },
+                onChangeBackupFolder = { settingsViewModel.requestChangeBackupFolder() },
+                onImportBackup = { importLauncher.launch("*/*") },
+                onImportCsv = { csvImportLauncher.launch("*/*") },
+                onNavigateToImportStatement = onNavigateToImportStatement,
+                onNavigateToUnrecognizedSms = onNavigateToUnrecognizedSms,
+                onSmsScanPeriod = { showSmsScanDialog = true },
+                onDeleteAllTransactions = { settingsViewModel.requestDeleteAllTransactions() },
+            )
 
             // ── Notifications ──
             SectionHeaderV2(title = stringResource(R.string.settings_notifications_section))
@@ -804,8 +679,17 @@ fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
                         context.startActivity(intent)
                     },
-                    position = ListItemPosition.Bottom,
+                    position = ListItemPosition.Middle,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Info,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = stringResource(R.string.about_title),
+                    subtitle = stringResource(R.string.about_settings_subtitle),
+                    onClick = onNavigateToAbout,
+                    position = ListItemPosition.Bottom,
                 )
             }
 
@@ -1351,6 +1235,232 @@ fun SettingsScreen(
     }
 }
 
+@Composable
+internal fun SettingsDataSections(
+    scheduledFolderBackupEnabled: Boolean,
+    scheduledFolderBackupLastTimestamp: Long?,
+    isProEntitled: Boolean,
+    smsScanAllTime: Boolean,
+    smsScanUseCustomDate: Boolean,
+    smsScanCustomDate: Long?,
+    smsScanMonths: Int,
+    onNavigateToManageAccounts: () -> Unit,
+    onNavigateToCategories: () -> Unit,
+    onNavigateToRules: () -> Unit,
+    onNavigateToBudgets: () -> Unit,
+    onNavigateToLoans: () -> Unit,
+    onNavigateToRecurring: () -> Unit,
+    onNavigateToTransactionGroups: () -> Unit,
+    onExportData: () -> Unit,
+    onScheduledFolderBackupChange: (Boolean) -> Unit,
+    onBackupNow: () -> Unit,
+    onChangeBackupFolder: () -> Unit,
+    onImportBackup: () -> Unit,
+    onImportCsv: () -> Unit,
+    onNavigateToImportStatement: () -> Unit,
+    onNavigateToUnrecognizedSms: () -> Unit,
+    onSmsScanPeriod: () -> Unit,
+    onDeleteAllTransactions: () -> Unit = {},
+) {
+    SectionHeaderV2(title = stringResource(R.string.settings_data_manage_section))
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.AccountBalance,
+            iconBgColor = red_light,
+            iconTint = red_dark,
+            title = stringResource(R.string.settings_manage_accounts_title),
+            subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
+            onClick = onNavigateToManageAccounts,
+            position = ListItemPosition.Top,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Category,
+            iconBgColor = purple_light,
+            iconTint = purple_dark,
+            title = stringResource(R.string.settings_categories_title),
+            subtitle = stringResource(R.string.settings_categories_subtitle),
+            onClick = onNavigateToCategories,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.AutoAwesome,
+            iconBgColor = orange_light,
+            iconTint = orange_dark,
+            title = stringResource(R.string.settings_smart_rules_title),
+            subtitle = stringResource(R.string.settings_smart_rules_subtitle),
+            onClick = onNavigateToRules,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.AccountBalanceWallet,
+            iconBgColor = green_light,
+            iconTint = green_dark,
+            title = stringResource(R.string.settings_budgets_title),
+            subtitle = stringResource(R.string.settings_budgets_subtitle),
+            onClick = onNavigateToBudgets,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.SwapHoriz,
+            iconBgColor = amber_light,
+            iconTint = amber_dark,
+            title = stringResource(R.string.settings_loans_title),
+            subtitle = stringResource(R.string.settings_loans_subtitle),
+            onClick = onNavigateToLoans,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.EventRepeat,
+            iconBgColor = green_light,
+            iconTint = green_dark,
+            title = stringResource(R.string.settings_recurring_title),
+            subtitle = stringResource(R.string.settings_recurring_subtitle),
+            onClick = onNavigateToRecurring,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Folder,
+            iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
+            iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+            title = stringResource(R.string.settings_transaction_groups_title),
+            subtitle = stringResource(R.string.settings_transaction_groups_subtitle),
+            onClick = onNavigateToTransactionGroups,
+            position = ListItemPosition.Bottom,
+        )
+    }
+
+    SectionHeaderV2(title = stringResource(R.string.settings_data_backup_section))
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.Upload,
+            iconBgColor = blue_light,
+            iconTint = blue_dark,
+            title = stringResource(R.string.settings_export_data_title),
+            subtitle = stringResource(R.string.settings_export_data_subtitle),
+            onClick = onExportData,
+            position = ListItemPosition.Top,
+        )
+        SettingsSwitchRow(
+            icon = Icons.Default.Backup,
+            iconBgColor = purple_light,
+            iconTint = purple_dark,
+            title = stringResource(R.string.settings_folder_backup_title),
+            subtitle = if (scheduledFolderBackupEnabled) {
+                stringResource(R.string.settings_folder_backup_subtitle_enabled)
+            } else if (!isProEntitled) {
+                stringResource(R.string.settings_folder_backup_subtitle_pro)
+            } else {
+                stringResource(R.string.settings_folder_backup_subtitle_disabled)
+            },
+            checked = scheduledFolderBackupEnabled,
+            onCheckedChange = onScheduledFolderBackupChange,
+            position = ListItemPosition.Middle,
+        )
+        if (scheduledFolderBackupEnabled) {
+            SettingsNavItem(
+                icon = Icons.Default.SaveAlt,
+                iconBgColor = green_light,
+                iconTint = green_dark,
+                title = stringResource(R.string.settings_backup_now_title),
+                subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
+                    val formatted = java.time.Instant.ofEpochMilli(timestamp)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                    stringResource(R.string.settings_backup_now_last_backup, formatted)
+                } ?: stringResource(R.string.settings_backup_now_subtitle),
+                onClick = onBackupNow,
+                position = ListItemPosition.Middle,
+            )
+            SettingsNavItem(
+                icon = Icons.Default.FolderOpen,
+                iconBgColor = amber_light,
+                iconTint = amber_dark,
+                title = stringResource(R.string.settings_change_backup_folder_title),
+                subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
+                onClick = onChangeBackupFolder,
+                position = ListItemPosition.Middle,
+            )
+        }
+        SettingsNavItem(
+            icon = Icons.Default.Download,
+            iconBgColor = cyan_light,
+            iconTint = cyan_dark,
+            title = stringResource(R.string.settings_import_data_title),
+            subtitle = stringResource(R.string.settings_import_data_subtitle),
+            onClick = onImportBackup,
+            position = ListItemPosition.Bottom,
+        )
+    }
+
+    SectionHeaderV2(title = stringResource(R.string.settings_data_imports_section))
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.Download,
+            iconBgColor = cyan_light,
+            iconTint = cyan_dark,
+            title = stringResource(R.string.settings_import_csv_title),
+            subtitle = stringResource(R.string.settings_import_csv_subtitle),
+            onClick = onImportCsv,
+            position = ListItemPosition.Top,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Description,
+            iconBgColor = indigo_light,
+            iconTint = indigo_dark,
+            title = stringResource(R.string.settings_import_statement_title),
+            subtitle = stringResource(R.string.settings_import_statement_subtitle),
+            onClick = onNavigateToImportStatement,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Sms,
+            iconBgColor = orange_light,
+            iconTint = orange_dark,
+            title = stringResource(R.string.settings_unrecognized_sms_title),
+            subtitle = stringResource(R.string.settings_unrecognized_sms_subtitle),
+            onClick = onNavigateToUnrecognizedSms,
+            position = ListItemPosition.Middle,
+        )
+        SettingsNavItem(
+            icon = Icons.Default.CalendarMonth,
+            iconBgColor = teal_light,
+            iconTint = teal_dark,
+            title = stringResource(R.string.settings_sms_scan_title),
+            subtitle = when {
+                smsScanAllTime -> stringResource(R.string.settings_sms_scan_subtitle_all_time)
+                smsScanUseCustomDate -> {
+                    val formattedDate = smsScanCustomDate?.let { formatSmsScanCustomDate(it) }
+                    if (formattedDate != null) {
+                        stringResource(R.string.settings_sms_scan_subtitle_from_date, formattedDate)
+                    } else {
+                        stringResource(R.string.settings_sms_scan_subtitle_custom)
+                    }
+                }
+                else -> pluralStringResource(R.plurals.settings_sms_scan_subtitle_months, smsScanMonths, smsScanMonths)
+            },
+            onClick = onSmsScanPeriod,
+            position = ListItemPosition.Middle,
+            trailingText = when {
+                smsScanAllTime -> stringResource(R.string.settings_sms_scan_all_time)
+                smsScanUseCustomDate -> {
+                    smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) }
+                        ?: stringResource(R.string.settings_sms_scan_custom_short)
+                }
+                else -> pluralStringResource(R.plurals.settings_sms_scan_months_short, smsScanMonths, smsScanMonths)
+            },
+        )
+        SettingsNavItem(
+            icon = Icons.Default.DeleteForever,
+            iconBgColor = red_light,
+            iconTint = red_dark,
+            title = stringResource(R.string.settings_delete_all_title),
+            subtitle = stringResource(R.string.settings_delete_all_subtitle),
+            onClick = onDeleteAllTransactions,
+            position = ListItemPosition.Bottom,
+        )
+    }
+}
+
 // ── Reusable Settings Components ──
 //
 // Row chrome — tonal surface, grouped-corner shape, padding, minimum height,
@@ -1433,12 +1543,13 @@ private fun SettingsSwitchRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsDropdownItem(
+internal fun SettingsDropdownItem(
     icon: ImageVector,
     iconBgColor: Color,
     iconTint: Color,
     title: String,
     subtitle: String,
+    fieldLabel: String,
     currentValue: String,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
@@ -1462,7 +1573,7 @@ private fun SettingsDropdownItem(
                 value = currentValue,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(stringResource(R.string.settings_currency_field_label)) },
+                label = { Text(fieldLabel) },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 },

@@ -81,6 +81,7 @@ class BackupExporter @Inject constructor(
         val loans = database.loanDao().getAllLoans().first()
         val transactionGroups = database.transactionGroupDao().getAllGroups().first()
         val profiles = database.profileDao().getAllProfiles()
+        val people = database.personDao().getAllPeople().first()
         val budgetMonthSnapshots = database.budgetSnapshotDao().getAllGroupSnapshots()
         val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
         val tags = database.tagDao().getAllTagsSync()
@@ -146,6 +147,7 @@ class BackupExporter @Inject constructor(
         val exportedLoans = if (privacy == ExportPrivacy.FULL) loans else emptyList()
         val exportedTransactionGroups = if (privacy == ExportPrivacy.FULL) transactionGroups else emptyList()
         val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
+        val exportedPeople = if (privacy == ExportPrivacy.FULL) people else emptyList()
         val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
         val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
         // Aliases carry raw merchant names (UPI VPAs, store names) + the user's
@@ -181,6 +183,7 @@ class BackupExporter @Inject constructor(
                     totalLoans = exportedLoans.size,
                     totalTransactionGroups = exportedTransactionGroups.size,
                     totalProfiles = exportedProfiles.size,
+                    totalPeople = exportedPeople.size,
                     totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
                     totalMerchantAliases = merchantAliases.size,
@@ -208,6 +211,7 @@ class BackupExporter @Inject constructor(
                 loans = exportedLoans,
                 transactionGroups = exportedTransactionGroups,
                 profiles = exportedProfiles,
+                people = exportedPeople,
                 budgetMonthSnapshots = exportedBudgetMonthSnapshots,
                 budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,
                 tags = exportedTags,

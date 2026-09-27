@@ -53,7 +53,6 @@ fun CategoryEditDialog(
     var nameError by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
     var emoji by remember { mutableStateOf(category?.icon ?: "") }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         PennyWiseCardV2(
@@ -276,7 +275,7 @@ fun CategoryEditDialog(
                 // gesture stays as a shortcut). System categories never show this.
                 if (category != null && !category.isSystem && onDelete != null) {
                     TextButton(
-                        onClick = { showDeleteConfirm = true },
+                        onClick = onDelete,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
@@ -293,30 +292,6 @@ fun CategoryEditDialog(
                 }
             }
         }
-    }
-
-    if (showDeleteConfirm && category != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(stringResource(R.string.category_edit_delete_title)) },
-            text = {
-                Text(stringResource(R.string.category_edit_delete_message, category.name))
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        onDelete?.invoke()
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) { Text(stringResource(R.string.categories_action_delete)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.categories_action_cancel)) }
-            }
-        )
     }
 }
 

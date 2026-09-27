@@ -876,4 +876,49 @@ class BackupModelsTest {
         assertFalse(sms.smsScanUseCustomDate)
         assertNull(sms.smsScanCustomDate)
     }
+
+    @Test
+    fun peopleRoundTripAndLegacyLoanPersonIdDefaultsToNull() {
+        val person = PersonEntity(
+            id = 7L,
+            name = "Taylor",
+            normalizedName = "taylor",
+            category = "Friend",
+        )
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(
+                statistics = BackupStatistics(totalPeople = 1)
+            ),
+            database = DatabaseSnapshot(people = listOf(person))
+        )
+
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(
+            backupJson.encodeToString(backup)
+        )
+        assertEquals(listOf(person), restored.database.people)
+        assertEquals(1, restored.metadata.statistics.totalPeople)
+
+        val withoutPeople = backupJson.decodeFromString<PennyWiseBackup>(
+            """{ "database": { "transactions": [] } }"""
+        )
+        assertTrue(withoutPeople.database.people.isEmpty())
+
+        val legacy = """
+        {
+          "database": {
+            "loans": [
+              {
+                "personName": "",
+                "direction": "LENT",
+                "originalAmount": "1.00",
+                "remainingAmount": "1.00"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+        val legacyLoan = backupJson.decodeFromString<PennyWiseBackup>(legacy)
+            .database.loans.single()
+        assertNull(legacyLoan.personId)
+    }
 }

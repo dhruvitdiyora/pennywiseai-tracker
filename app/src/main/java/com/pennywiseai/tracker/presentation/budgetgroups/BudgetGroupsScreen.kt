@@ -16,7 +16,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -29,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,11 +39,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
@@ -68,6 +69,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +78,7 @@ fun BudgetGroupsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
+    onNavigateToDetail: (Long, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -159,6 +162,9 @@ fun BudgetGroupsScreen(
                 onNavigateToHistory = { groupId ->
                     onNavigateToHistory(groupId, uiState.selectedYear, uiState.selectedMonth)
                 },
+                onNavigateToDetail = { groupId ->
+                    onNavigateToDetail(groupId, uiState.selectedYear, uiState.selectedMonth)
+                },
                 onCategoryClick = { category ->
                     val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
                     onNavigateToCategory(category, yearMonth, uiState.currency)
@@ -192,7 +198,7 @@ private fun EmptyBudgetState(
                 Icon(
                     imageVector = Icons.Default.AccountBalance,
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                     tint = MaterialTheme.colorScheme.primary
                 )
 
@@ -232,7 +238,7 @@ private fun EmptyBudgetState(
 @Composable
 private fun BudgetGroupsContent(
     modifier: Modifier = Modifier,
-    topPadding: Dp = 0.dp,
+    topPadding: Dp = Spacing.none,
     uiState: BudgetGroupsUiState,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -241,6 +247,7 @@ private fun BudgetGroupsContent(
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
     onNavigateToHistory: (Long) -> Unit,
+    onNavigateToDetail: (Long) -> Unit,
     onCategoryClick: (String) -> Unit
 ) {
     val summary = uiState.summary ?: return
@@ -251,7 +258,7 @@ private fun BudgetGroupsContent(
 
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val density = LocalDensity.current
-    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+    val slideOffsetPx = with(density) { Spacing.xl.roundToPx() }
 
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
@@ -312,12 +319,12 @@ private fun BudgetGroupsContent(
                     animationSpec = tween(300)
                 )
             ) {
-                BudgetCard(
+                BudgetOverviewCard(
                     groupSpending = groupSpending,
                     currency = uiState.currency,
                     isFirst = index == 0,
                     isLast = index == groupCount - 1,
-                    onClick = { onGroupClick(groupSpending.group.budget.id) },
+                    onEdit = { onGroupClick(groupSpending.group.budget.id) },
                     onDelete = {
                         deleteGroupId = groupSpending.group.budget.id
                         deleteGroupName = groupSpending.group.budget.name
@@ -325,6 +332,7 @@ private fun BudgetGroupsContent(
                     onMoveUp = { onMoveGroupUp(groupSpending.group.budget.id) },
                     onMoveDown = { onMoveGroupDown(groupSpending.group.budget.id) },
                     onViewHistory = { onNavigateToHistory(groupSpending.group.budget.id) },
+                    onViewDetails = { onNavigateToDetail(groupSpending.group.budget.id) },
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.animateItem()
                 )
@@ -369,7 +377,7 @@ private fun MonthSelector(
     onNext: () -> Unit
 ) {
     val yearMonth = YearMonth.of(year, month)
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -378,7 +386,7 @@ private fun MonthSelector(
     ) {
         FilledTonalIconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
                 Icons.Default.ChevronLeft,
@@ -407,7 +415,7 @@ private fun MonthSelector(
         FilledTonalIconButton(
             onClick = onNext,
             enabled = !isCurrentMonth,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
                 Icons.Default.ChevronRight,
@@ -419,21 +427,27 @@ private fun MonthSelector(
 }
 
 @Composable
-private fun BudgetCard(
+internal fun BudgetOverviewCard(
     groupSpending: BudgetGroupSpending,
     currency: String,
     isFirst: Boolean = false,
     isLast: Boolean = false,
-    onClick: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onViewHistory: () -> Unit,
+    onViewDetails: () -> Unit,
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val budget = groupSpending.group.budget
     var expanded by remember { mutableStateOf(false) }
+    val hasBreakdown = groupSpending.categorySpending.isNotEmpty() ||
+        (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty())
+    val expansionState = stringResource(
+        if (expanded) R.string.budget_hide_breakdown else R.string.budget_show_breakdown
+    )
 
     val pctUsed = groupSpending.percentageUsed
     val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
@@ -460,8 +474,12 @@ private fun BudgetCard(
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
     PennyWiseCardV2(
-        onClick = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth(),
+        onClick = if (hasBreakdown) ({ expanded = !expanded }) else null,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                if (hasBreakdown) stateDescription = expansionState
+            },
         containerColor = budgetColor.tintedSurface()
     ) {
         Column(
@@ -474,7 +492,7 @@ private fun BudgetCard(
                     )
                 )
         ) {
-            // Row 1: Budget name + percentage pill + action buttons
+            // Row 1: Budget name + percentage pill + consolidated actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -505,41 +523,22 @@ private fun BudgetCard(
                                     color = statusColor,
                                     shape = RoundedCornerShape(50)
                                 )
-                                .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = onClick,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = stringResource(R.string.budgets_edit),
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.budgets_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
                         )
                     }
                     Box {
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(
                             onClick = { showMenu = true },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
-                                contentDescription = stringResource(R.string.budgets_more_options),
-                                modifier = Modifier.size(Dimensions.Icon.small),
+                                contentDescription = stringResource(
+                                    R.string.budget_more_actions,
+                                    budget.name
+                                ),
+                                modifier = Modifier.size(Dimensions.Icon.medium),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -547,6 +546,16 @@ private fun BudgetCard(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.budget_edit)) },
+                                onClick = {
+                                    showMenu = false
+                                    onEdit()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.budgets_view_history)) },
                                 onClick = {
@@ -578,6 +587,25 @@ private fun BudgetCard(
                                     Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
                                 },
                                 enabled = !isLast
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.budget_delete),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onDelete()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             )
                         }
                     }
@@ -654,7 +682,7 @@ private fun BudgetCard(
                 // budget's own current window (Jun 29..Jul 5 even when
                 // the page is the July view) so this number is
                 // consistent across month views.
-                val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+                val dateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
                 val locale = LocalConfiguration.current.locales[0]
                 val subtitleText = when {
                     groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)
@@ -734,6 +762,43 @@ private fun BudgetCard(
                 )
             }
 
+            if (hasBreakdown) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = expansionState,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.inline),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            TextButton(
+                onClick = onViewDetails,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+            ) {
+                Text(stringResource(R.string.budget_view_details))
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.inline),
+                )
+            }
+
             // Expandable category list + pace chart
             AnimatedVisibility(
                 visible = expanded,
@@ -774,9 +839,6 @@ private fun BudgetCard(
                             else -> MaterialTheme.colorScheme.primary
                         }
 
-                        val categoryInfo = CategoryMapping.categories[catSpending.categoryName]
-                            ?: CategoryMapping.categories["Others"]!!
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -789,14 +851,14 @@ private fun BudgetCard(
                             // Category icon in colored circle
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(Dimensions.Icon.list)
                                     .clip(CircleShape)
                                     .background(CategoryMapping.colorFor(catSpending.categoryName).copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CategoryIcon(
                                     category = catSpending.categoryName,
-                                    size = 18.dp,
+                                    size = Dimensions.Icon.inline,
                                     tint = CategoryMapping.colorFor(catSpending.categoryName)
                                 )
                             }
@@ -828,7 +890,7 @@ private fun BudgetCard(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(4.dp)
+                                            .height(Dimensions.Component.progressBarHeight)
                                             .clip(catBarShape)
                                             .background(catStatusColor.copy(alpha = 0.15f))
                                     ) {
@@ -879,32 +941,34 @@ private fun SpendingPaceChart(
         budgetPace.lastOrNull()?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
+    val actualLabel = stringResource(R.string.budgets_chart_actual)
+    val budgetPaceLabel = stringResource(R.string.budgets_chart_pace)
 
     Column(modifier = modifier.fillMaxWidth()) {
             LineChart(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(Dimensions.Component.chartCompactHeight),
                 data = listOf(
                     Line(
-                        label = stringResource(R.string.budgets_chart_actual),
+                        label = actualLabel,
                         values = cumulativeSpending,
                         color = SolidColor(spendingColor),
                         firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
                         secondGradientFillColor = Color.Transparent,
                         strokeAnimationSpec = tween(1200),
                         gradientAnimationDelay = 600,
-                        drawStyle = DrawStyle.Stroke(width = 2.5.dp),
+                        drawStyle = DrawStyle.Stroke(width = Dimensions.Component.chartStroke),
                         curvedEdges = true,
                         dotProperties = DotProperties(
                             enabled = false
                         )
                     ),
                     Line(
-                        label = stringResource(R.string.budgets_chart_pace),
+                        label = budgetPaceLabel,
                         values = budgetPace,
                         color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
-                        drawStyle = DrawStyle.Stroke(width = 1.5.dp),
+                        drawStyle = DrawStyle.Stroke(width = Dimensions.Component.chartReferenceStroke),
                         strokeAnimationSpec = tween(1200),
                         curvedEdges = false,
                         dotProperties = DotProperties(enabled = false)
@@ -945,26 +1009,26 @@ private fun SpendingPaceChart(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(Dimensions.Component.legendDot)
                         .clip(CircleShape)
                         .background(spendingColor)
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(
-                    text = stringResource(R.string.budgets_chart_actual),
+                    text = actualLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = themeColors.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(Spacing.md))
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(Dimensions.Component.legendDot)
                         .clip(CircleShape)
                         .background(themeColors.onSurfaceVariant.copy(alpha = 0.4f))
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(
-                    text = stringResource(R.string.budgets_chart_pace),
+                    text = budgetPaceLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = themeColors.onSurfaceVariant
                 )

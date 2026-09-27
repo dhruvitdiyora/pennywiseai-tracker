@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -94,6 +97,12 @@ fun ListItemCardV2(
     containerColor: Color? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    /**
+     * Optional structured rendering for metadata such as transaction tags.
+     * [subtitle] remains the single accessibility sentence so assistive
+     * technology does not announce each decorative tag independently.
+     */
+    subtitleContent: (@Composable () -> Unit)? = null,
 ) {
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
@@ -130,7 +139,15 @@ fun ListItemCardV2(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (subtitle.isNotBlank()) {
+                if (subtitleContent != null) {
+                    Box(
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = subtitle
+                        }
+                    ) {
+                        subtitleContent()
+                    }
+                } else if (subtitle.isNotBlank()) {
                     Text(
                         text = subtitle,
                         style = PennyWiseText.metadata,

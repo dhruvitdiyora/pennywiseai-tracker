@@ -97,15 +97,15 @@ fun FAQScreen(
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_data_secure_question,
-                        answer = R.string.faq_data_secure_answer
+                        answer = R.string.faq_data_secure_answer_v2
                     ),
                     FAQItem(
                         question = R.string.faq_backup_question,
-                        answer = R.string.faq_backup_answer
+                        answer = R.string.faq_backup_answer_v2
                     ),
                     FAQItem(
                         question = R.string.faq_data_access_question,
-                        answer = R.string.faq_data_access_answer
+                        answer = R.string.faq_data_access_answer_v2
                     )
                 )
             ),

@@ -73,7 +73,23 @@ data class BudgetHistory(
 )
 
 @Serializable
+data class BudgetDetail(
+    val groupId: Long,
+    val year: Int,
+    val month: Int,
+)
+
+@Serializable
 object Loans
+
+@Serializable
+object Contacts
+
+@Serializable
+object PersonalDashboard
+
+@Serializable
+data class PersonDetail(val personId: Long)
 
 @Serializable
 object RecurringTransactions

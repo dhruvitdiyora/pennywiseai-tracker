@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import com.pennywiseai.tracker.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.annotation.StringRes
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
 import dev.chrisbanes.haze.HazeState
@@ -135,7 +137,8 @@ fun CreateRuleScreen(
     // Defaults to false: a non-null prefill must NOT imply edit, or a duplicate that
     // omits this flag would overwrite its source. Callers state edit intent explicitly.
     isEditing: Boolean = false,
-    allAccounts: List<RulesViewModel.AccountInfo> = emptyList()
+    allAccounts: List<RulesViewModel.AccountInfo> = emptyList(),
+    categories: List<CategoryEntity> = emptyList()
 ) {
     var ruleName by remember(existingRule) { mutableStateOf(existingRule?.name ?: "") }
     var description by remember(existingRule) { mutableStateOf(existingRule?.description ?: "") }
@@ -593,6 +596,7 @@ fun CreateRuleScreen(
                                 // Per-action editor
                                 ActionEditor(
                                     action = action,
+                                    categories = categories,
                                     onActionChange = { updated ->
                                         // BLOCK is terminal — it drops the transaction, so the other
                                         // actions can't run. If the user switches to BLOCK while other
@@ -1122,8 +1126,51 @@ private fun actionTypeLabel(type: ActionType): Int = when (type) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+internal fun RuleCategoryValueInput(
+    value: String,
+    categories: List<CategoryEntity>,
+    label: String,
+    placeholder: String,
+    onValueChange: (String) -> Unit
+) {
+    var showCategoryPicker by remember { mutableStateOf(false) }
+
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder) },
+        trailingIcon = {
+            IconButton(onClick = { showCategoryPicker = true }) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = stringResource(R.string.category_picker_search_action)
+                )
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+
+    if (showCategoryPicker) {
+        QuickCategoryPickerSheet(
+            currentCategory = value,
+            categories = categories,
+            title = stringResource(R.string.category_picker_select_title),
+            onCategorySelected = { selected ->
+                onValueChange(selected)
+                showCategoryPicker = false
+            },
+            onDismiss = { showCategoryPicker = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun ActionEditor(
     action: RuleAction,
+    categories: List<CategoryEntity> = emptyList(),
     onActionChange: (RuleAction) -> Unit
 ) {
     var actionTypeDropdownExpanded by remember { mutableStateOf(false) }
@@ -1254,34 +1301,12 @@ private fun ActionEditor(
             // Dynamic value input based on selected action field
             when (action.field) {
                 TransactionField.CATEGORY -> {
-                    // Category chips and input
-                    val commonCategories = listOf(
-                        "Food & Dining", "Transportation", "Shopping",
-                        "Bills & Utilities", "Entertainment", "Healthcare",
-                        "Investments", "Others"
-                    )
-
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        commonCategories.forEach { category ->
-                            FilterChip(
-                                selected = action.value == category,
-                                onClick = { onActionChange(action.copy(value = category)) },
-                                label = { Text(category, style = MaterialTheme.typography.bodySmall) }
-                            )
-                        }
-                    }
-
-                    TextField(
+                    RuleCategoryValueInput(
                         value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
-                        label = { Text(stringResource(R.string.rules_category_name_label)) },
-                        placeholder = { Text(stringResource(R.string.rules_category_name_placeholder)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        categories = categories,
+                        label = stringResource(R.string.rules_category_name_label),
+                        placeholder = stringResource(R.string.rules_category_name_placeholder),
+                        onValueChange = { onActionChange(action.copy(value = it)) }
                     )
                 }
 

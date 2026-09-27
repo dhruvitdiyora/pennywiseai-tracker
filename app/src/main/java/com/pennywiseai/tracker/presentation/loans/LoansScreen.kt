@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -43,12 +42,14 @@ import java.math.BigDecimal
 fun LoansScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToLoanDetail: (Long) -> Unit = {},
+    onNavigateToContacts: () -> Unit = {},
     viewModel: LoansViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val openAddEntry = { viewModel.showAddEntrySheet(true) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -64,9 +65,29 @@ fun LoansScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
+                actionContent = {
+                    IconButton(onClick = onNavigateToContacts) {
+                        Icon(
+                            Icons.Default.People,
+                            contentDescription = stringResource(R.string.people_open_contacts),
+                        )
+                    }
+                },
                 hazeState = hazeState
             )
-        }
+        },
+        floatingActionButton = {
+            if (
+                !uiState.isLoading &&
+                (uiState.activeLoans.isNotEmpty() || uiState.settledLoans.isNotEmpty())
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = openAddEntry,
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.lend_borrow_add)) },
+                )
+            }
+        },
     ) { paddingValues ->
         val lazyListState = rememberLazyListState()
 
@@ -88,7 +109,9 @@ fun LoansScreen(
                 PennyWiseEmptyState(
                     icon = Icons.Default.SwapHoriz,
                     headline = stringResource(R.string.loans_empty_title),
-                    description = stringResource(R.string.loans_empty_description)
+                    description = stringResource(R.string.loans_empty_description),
+                    actionLabel = stringResource(R.string.lend_borrow_add),
+                    onAction = openAddEntry,
                 )
             }
             return@Scaffold
@@ -127,7 +150,7 @@ fun LoansScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = paddingValues.calculateBottomPadding() + Spacing.md
+                bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance,
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -176,6 +199,17 @@ fun LoansScreen(
                 }
             }
         }
+    }
+
+    if (uiState.showAddEntrySheet) {
+        LendBorrowEntrySheet(
+            initialCurrency = uiState.defaultEntryCurrency,
+            error = uiState.entryError,
+            isSaving = uiState.isSavingEntry,
+            onInputChanged = viewModel::clearEntryError,
+            onDismiss = { viewModel.showAddEntrySheet(false) },
+            onSubmit = viewModel::addManualEntry,
+        )
     }
 }
 
@@ -345,7 +379,7 @@ fun LoanListItem(
             // Person initial avatar — colored by direction
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(Dimensions.Icon.avatarLarge)
                     .clip(CircleShape)
                     .background(directionColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center

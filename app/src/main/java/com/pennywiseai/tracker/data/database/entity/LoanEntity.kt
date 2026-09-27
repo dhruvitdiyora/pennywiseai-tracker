@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
     indices = [
         Index(value = ["status"]),
         Index(value = ["person_name"]),
+        Index(value = ["person_id"]),
         Index(value = ["created_at"])
     ]
 )
@@ -25,6 +26,10 @@ data class LoanEntity(
 
     @ColumnInfo(name = "person_name")
     val personName: String,
+
+    /** Optional canonical person reference; personName remains the history snapshot. */
+    @ColumnInfo(name = "person_id", defaultValue = "NULL")
+    val personId: Long? = null,
 
     @ColumnInfo(name = "direction")
     val direction: LoanDirection,

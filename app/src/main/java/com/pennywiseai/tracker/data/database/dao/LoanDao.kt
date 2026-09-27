@@ -59,6 +59,48 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE person_name = :personName AND direction = :direction AND currency = :currency AND status = 'ACTIVE' LIMIT 1")
     suspend fun getActiveLoanByPersonAndDirection(personName: String, direction: String, currency: String): LoanEntity?
 
+    @Query("SELECT * FROM loans WHERE person_id = :personId ORDER BY created_at DESC")
+    fun getLoansByPerson(personId: Long): Flow<List<LoanEntity>>
+
+    /** A one-shot variant used when deciding whether a person may be deleted. */
+    @Query("SELECT * FROM loans WHERE person_id = :personId ORDER BY created_at DESC")
+    suspend fun getLoansByPersonOnce(personId: Long): List<LoanEntity>
+
+    @Query("""
+        SELECT * FROM loans
+        WHERE person_id = :personId
+          AND direction = :direction
+          AND currency = :currency COLLATE NOCASE
+          AND status = 'ACTIVE'
+        ORDER BY updated_at DESC
+        LIMIT 1
+    """)
+    suspend fun getActiveLoanByPersonIdAndDirectionAndCurrency(
+        personId: Long,
+        direction: String,
+        currency: String
+    ): LoanEntity?
+
+    /**
+     * Compatibility lookup for imported/legacy rows that only have a name.
+     * Matching is deliberately case/whitespace insensitive and currency-aware
+     * so two loans for the same person in different currencies never merge.
+     */
+    @Query("""
+        SELECT * FROM loans
+        WHERE LOWER(TRIM(person_name)) = LOWER(TRIM(:personName))
+          AND direction = :direction
+          AND currency = :currency COLLATE NOCASE
+          AND status = 'ACTIVE'
+        ORDER BY updated_at DESC
+        LIMIT 1
+    """)
+    suspend fun getActiveLoanByPersonAndDirectionAndCurrency(
+        personName: String,
+        direction: String,
+        currency: String
+    ): LoanEntity?
+
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0 ORDER BY date_time ASC")
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>>
 

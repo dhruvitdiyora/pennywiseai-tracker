@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.budgetgroups
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,8 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
@@ -42,9 +42,24 @@ import com.pennywiseai.tracker.data.repository.PastWindowSpending
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import ir.ehsannarmani.compose_charts.LineChart
+import ir.ehsannarmani.compose_charts.models.AnimationMode
+import ir.ehsannarmani.compose_charts.models.DividerProperties
+import ir.ehsannarmani.compose_charts.models.DotProperties
+import ir.ehsannarmani.compose_charts.models.DrawStyle
+import ir.ehsannarmani.compose_charts.models.GridProperties
+import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
+import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
+import ir.ehsannarmani.compose_charts.models.LabelProperties
+import ir.ehsannarmani.compose_charts.models.Line
+import ir.ehsannarmani.compose_charts.models.StrokeStyle
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -90,6 +105,9 @@ fun BudgetHistoryScreen(
                 Text(stringResource(R.string.budget_history_not_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@PennyWiseScaffold
+        }
+        val trendWindows = remember(state.windowHistory) {
+            eligibleTrendWindows(state.windowHistory, LocalDate.now())
         }
 
         LazyColumn(
@@ -150,23 +168,32 @@ fun BudgetHistoryScreen(
                 }
             }
 
+            // A trend becomes informative once at least two comparable windows exist.
+            if (trendWindows.size >= 2) {
+                item {
+                    SpendingTrendChart(
+                        windows = trendWindows,
+                        currency = state.currency,
+                    )
+                }
+            }
+
             // Per-window list
             item {
-                Text(
-                    text = when (budget.periodType) {
+                SectionHeaderV2(
+                    title = when (budget.periodType) {
                         BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_history_per_week)
                         BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_history_cycle)
                         BudgetPeriodType.CUSTOM -> stringResource(R.string.budget_history_range)
                     },
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = Spacing.xs, top = Spacing.sm)
+                    subtitle = stringResource(R.string.budget_history_per_window_hint),
                 )
             }
             items(state.windowHistory) { window ->
                 HistoryRow(
                     window = window,
                     currency = state.currency,
+                    budgetAmount = state.windowBudgetAmount,
                     isDisplayed = window.window.start == state.displayedWindowStart &&
                         window.window.end == state.displayedWindowEnd,
                     isCurrentPeriod = state.yearMonth == YearMonth.now(),
@@ -191,18 +218,31 @@ fun BudgetHistoryScreen(
 }
 
 @Composable
-private fun HistoryRow(
+internal fun HistoryRow(
     window: PastWindowSpending,
     currency: String,
+    budgetAmount: BigDecimal,
     isDisplayed: Boolean,
     isCurrentPeriod: Boolean,
     onClick: () -> Unit
 ) {
     val shortFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+    val percentageUsed = if (budgetAmount > BigDecimal.ZERO) {
+        window.spent
+            .divide(budgetAmount, 4, java.math.RoundingMode.HALF_UP)
+            .multiply(BigDecimal(100))
+            .coerceAtLeast(BigDecimal.ZERO)
+    } else {
+        BigDecimal.ZERO
+    }
+    val progressColor = when {
+        percentageUsed >= BigDecimal(90) -> MaterialTheme.colorScheme.error
+        percentageUsed >= BigDecimal(70) -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.success
+    }
     PennyWiseCardV2(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
@@ -229,18 +269,52 @@ private fun HistoryRow(
                         modifier = Modifier
                             .background(
                                 color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(50)
+                                shape = CircleShape
                             )
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
                     )
                 }
             }
-            Text(
-                text = CurrencyFormatter.formatCurrency(window.spent, currency),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = CurrencyFormatter.formatCurrency(window.spent, currency),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    if (budgetAmount > BigDecimal.ZERO) {
+                        Text(
+                            text = "of ${CurrencyFormatter.formatCurrency(budgetAmount, currency)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.size(Spacing.sm))
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(Dimensions.Component.progressRingCompact),
+                ) {
+                    CircularProgressIndicator(
+                        progress = { percentageUsed.toFloat().div(100f).coerceIn(0f, 1f) },
+                        modifier = Modifier.size(Dimensions.Component.progressRingCompact),
+                        color = progressColor,
+                        strokeWidth = Dimensions.Component.progressRingStroke,
+                        trackColor = progressColor.copy(alpha = Dimensions.Alpha.divider),
+                    )
+                    Text(
+                        text = if (percentageUsed >= BigDecimal(1000)) {
+                            "999%+"
+                        } else {
+                            "${percentageUsed.toInt()}%"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = progressColor,
+                    )
+                }
+            }
             if (window.isLive && isCurrentPeriod) {
                 LiveBadge()
             } else {
@@ -251,6 +325,89 @@ private fun HistoryRow(
 }
 
 @Composable
+internal fun SpendingTrendChart(
+    windows: List<PastWindowSpending>,
+    currency: String,
+) {
+    if (windows.size < 2) return
+
+    val colors = MaterialTheme.colorScheme
+    val formatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+    val chronologicalWindows = remember(windows) { windows.sortedBy { it.window.start } }
+    val values = remember(chronologicalWindows) { chronologicalWindows.map { it.spent.toDouble() } }
+    val labels = remember(chronologicalWindows) {
+        listOf(chronologicalWindows.first(), chronologicalWindows.last())
+            .distinctBy { it.window.start }
+            .map { it.window.start.format(formatter) }
+    }
+
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending trend",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        LineChart(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Dimensions.Component.chartCompactHeight),
+            data = listOf(
+                Line(
+                    label = "Spending",
+                    values = values,
+                    color = SolidColor(colors.primary),
+                    firstGradientFillColor = colors.primary.copy(alpha = 0.2f),
+                    secondGradientFillColor = Color.Transparent,
+                    strokeAnimationSpec = androidx.compose.animation.core.tween(1200),
+                    gradientAnimationDelay = 600,
+                    drawStyle = DrawStyle.Stroke(width = Dimensions.Component.chartStroke),
+                    curvedEdges = true,
+                    dotProperties = DotProperties(enabled = false),
+                ),
+            ),
+            dividerProperties = DividerProperties(enabled = false),
+            indicatorProperties = HorizontalIndicatorProperties(
+                enabled = true,
+                textStyle = PennyWiseText.chartLabel.copy(color = colors.onSurfaceVariant),
+                contentBuilder = { value -> CurrencyFormatter.formatAbbreviated(value, currency) },
+            ),
+            labelHelperProperties = LabelHelperProperties(enabled = false),
+            labelProperties = LabelProperties(enabled = false),
+            gridProperties = GridProperties(
+                enabled = true,
+                xAxisProperties = GridProperties.AxisProperties(enabled = false),
+                yAxisProperties = GridProperties.AxisProperties(
+                    enabled = true,
+                    style = StrokeStyle.Dashed(),
+                    color = SolidColor(colors.onSurface.copy(alpha = 0.08f)),
+                ),
+            ),
+            animationMode = AnimationMode.Together(delayBuilder = { it * 100L }),
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            labels.forEach { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+internal fun eligibleTrendWindows(
+    windows: List<PastWindowSpending>,
+    asOf: LocalDate,
+): List<PastWindowSpending> = windows
+    .filter { !it.window.start.isAfter(asOf) }
+    .sortedBy { it.window.start }
+
+@Composable
 private fun LiveBadge() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -258,8 +415,8 @@ private fun LiveBadge() {
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(50))
+                .size(Spacing.sm)
+                .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.tertiary)
         )
         Text(
@@ -279,8 +436,8 @@ private fun FrozenBadge(capDate: LocalDate) {
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(50))
+                .size(Spacing.sm)
+                .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.onSurfaceVariant)
         )
         Text(

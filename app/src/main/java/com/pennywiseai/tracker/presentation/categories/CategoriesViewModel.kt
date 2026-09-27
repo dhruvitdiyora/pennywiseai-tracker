@@ -5,6 +5,8 @@ import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.repository.CategoryDeletionImpact
+import com.pennywiseai.tracker.data.repository.CategoryDeletionResult
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -34,6 +36,20 @@ class CategoriesViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val filteredCategories: StateFlow<List<CategoryEntity>> = combine(
+        categories,
+        searchQuery
+    ) { allCategories, query ->
+        filterCategoriesForQuery(allCategories, query)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     
     // Dialog states
     private val _showAddEditDialog = MutableStateFlow(false)
@@ -45,7 +61,18 @@ class CategoriesViewModel @Inject constructor(
     // Snackbar message
     private val _snackbarMessage = MutableStateFlow<UiText?>(null)
     val snackbarMessage: StateFlow<UiText?> = _snackbarMessage.asStateFlow()
-    
+
+    private val _categoryDeletion = MutableStateFlow(CategoryDeletionUiState())
+    val categoryDeletion: StateFlow<CategoryDeletionUiState> = _categoryDeletion.asStateFlow()
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun clearSearchQuery() {
+        _searchQuery.value = ""
+    }
+
     fun showAddDialog() {
         _editingCategory.value = null
         _showAddEditDialog.value = true
@@ -113,21 +140,99 @@ class CategoriesViewModel @Inject constructor(
         }
     }
     
-    fun deleteCategory(category: CategoryEntity) {
+    fun requestCategoryDeletion(category: CategoryEntity) {
         if (category.isSystem) {
             _snackbarMessage.value = UiText.Res(R.string.categories_msg_system_not_deletable)
             return
         }
-        
+
+        _categoryDeletion.value = CategoryDeletionUiState(
+            category = category,
+            isLoading = true,
+        )
         viewModelScope.launch {
             try {
-                val deleted = categoryRepository.deleteCategory(category.id)
-                if (deleted) {
-                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_deleted)
+                val impact = categoryRepository.getCategoryDeletionImpact(category.id)
+                if (impact == null) {
+                    _categoryDeletion.value = CategoryDeletionUiState()
+                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_not_found)
                 } else {
-                    _snackbarMessage.value = UiText.Res(R.string.categories_msg_cannot_delete)
+                    _categoryDeletion.value = CategoryDeletionUiState(
+                        category = category,
+                        impact = impact,
+                    )
                 }
             } catch (e: Exception) {
+                _categoryDeletion.value = CategoryDeletionUiState()
+                _snackbarMessage.value = UiText.Res(R.string.categories_msg_check_usage_error, listOf("${e.message}"))
+            }
+        }
+    }
+
+    fun dismissCategoryDeletion() {
+        if (!_categoryDeletion.value.isApplying) {
+            _categoryDeletion.value = CategoryDeletionUiState()
+        }
+    }
+
+    fun showReplacementPicker() {
+        val state = _categoryDeletion.value
+        if (state.category != null && state.impact?.hasReferences == true && !state.isApplying) {
+            _categoryDeletion.value = state.copy(showReplacementPicker = true)
+        }
+    }
+
+    fun hideReplacementPicker() {
+        _categoryDeletion.value = _categoryDeletion.value.copy(showReplacementPicker = false)
+    }
+
+    fun confirmCategoryDeletion(targetCategory: CategoryEntity? = null) {
+        val state = _categoryDeletion.value
+        val category = state.category ?: return
+        if (state.isLoading || state.isApplying) return
+
+        _categoryDeletion.value = state.copy(
+            isApplying = true,
+            showReplacementPicker = false,
+        )
+        viewModelScope.launch {
+            try {
+                when (val result = categoryRepository.deleteOrReassignCategory(category.id, targetCategory?.id)) {
+                    is CategoryDeletionResult.Deleted -> {
+                        _categoryDeletion.value = CategoryDeletionUiState()
+                        _snackbarMessage.value = if (result.impact.hasReferences) {
+                            UiText.Res(R.string.categories_msg_reassigned_deleted)
+                        } else {
+                            UiText.Res(R.string.categories_msg_deleted)
+                        }
+                    }
+
+                    is CategoryDeletionResult.TargetRequired -> {
+                        _categoryDeletion.value = state.copy(
+                            impact = result.impact,
+                            showReplacementPicker = true,
+                        )
+                    }
+
+                    is CategoryDeletionResult.TargetBudgetConflict -> {
+                        val budgets = result.conflictingBudgetNames.joinToString()
+                        _categoryDeletion.value = state.copy(impact = result.impact)
+                        _snackbarMessage.value = if (budgets.isBlank()) {
+                            UiText.Res(R.string.categories_msg_budget_conflict_generic)
+                        } else {
+                            UiText.Res(R.string.categories_msg_budget_conflict, listOf(budgets))
+                        }
+                    }
+
+                    is CategoryDeletionResult.Rejected -> {
+                        _categoryDeletion.value = state.copy(
+                            impact = result.impact ?: state.impact,
+                        )
+                        _snackbarMessage.value = UiText.Plain(result.reason)
+                    }
+                }
+            } catch (e: Exception) {
+                _categoryDeletion.value = state
                 _snackbarMessage.value = UiText.Res(R.string.categories_msg_delete_error, listOf("${e.message}"))
             }
         }
@@ -189,3 +294,25 @@ data class CategoriesUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
+
+data class CategoryDeletionUiState(
+    val category: CategoryEntity? = null,
+    val impact: CategoryDeletionImpact? = null,
+    val isLoading: Boolean = false,
+    val isApplying: Boolean = false,
+    val showReplacementPicker: Boolean = false,
+)
+
+internal fun filterCategoriesForQuery(
+    categories: List<CategoryEntity>,
+    query: String
+): List<CategoryEntity> {
+    val normalizedQuery = query.trim()
+    return if (normalizedQuery.isEmpty()) {
+        categories
+    } else {
+        categories.filter { category ->
+            category.name.contains(normalizedQuery, ignoreCase = true)
+        }
+    }
+}

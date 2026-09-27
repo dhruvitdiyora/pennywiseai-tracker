@@ -50,6 +50,13 @@ open class AccountBalanceRepository @Inject constructor(
     fun getAllLatestBalances(): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getAllLatestBalances()
     }
+
+    fun getBalanceTrendRows(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+    ): Flow<List<AccountBalanceEntity>> {
+        return accountBalanceDao.getBalanceTrendRows(startDate, endDate)
+    }
     
     fun getTotalBalance(): Flow<BigDecimal?> {
         return accountBalanceDao.getTotalBalance()

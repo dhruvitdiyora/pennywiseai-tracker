@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,12 +10,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,12 +26,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+
+internal fun filterCategoriesForQuery(
+    categories: List<CategoryEntity>,
+    query: String
+): List<CategoryEntity> {
+    val normalizedQuery = query.trim()
+    return if (normalizedQuery.isEmpty()) {
+        categories
+    } else {
+        categories.filter { it.name.contains(normalizedQuery, ignoreCase = true) }
+    }
+}
 
 /**
  * Modal bottom-sheet picker for changing a transaction's category. Used both
@@ -58,9 +71,19 @@ fun QuickCategoryPickerSheet(
     // also picking a category. In-app call sites omit these and see no change.
     tagSuggestions: List<String> = emptyList(),
     initialTags: List<String> = emptyList(),
-    onTagsChanged: ((List<String>) -> Unit)? = null
+    onTagsChanged: ((List<String>) -> Unit)? = null,
+    title: String? = null,
+    searchPlaceholder: String? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var searchQuery by remember { mutableStateOf("") }
+    val resolvedTitle = title ?: stringResource(R.string.quick_category_title)
+    val resolvedSearchPlaceholder = searchPlaceholder
+        ?: stringResource(R.string.category_picker_search_placeholder)
+    val filteredCategories = remember(categories, searchQuery) {
+        filterCategoriesForQuery(categories, searchQuery)
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
@@ -94,13 +117,23 @@ fun QuickCategoryPickerSheet(
             )
         }
         Text(
-            text = stringResource(R.string.quick_category_title),
+            text = resolvedTitle,
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 bottom = Spacing.sm
             )
+        )
+        TextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text(resolvedSearchPlaceholder) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
         )
         // LazyColumn so long category lists stay reachable when the sheet is
         // fully expanded — a plain Column would render items past the screen
@@ -110,7 +143,7 @@ fun QuickCategoryPickerSheet(
                 .fillMaxWidth()
                 .padding(bottom = Spacing.md)
         ) {
-            items(categories, key = { it.id }) { category ->
+            items(filteredCategories, key = { it.id }) { category ->
                 val selected = currentCategory == category.name
                 Row(
                     modifier = Modifier
@@ -140,6 +173,25 @@ fun QuickCategoryPickerSheet(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
+                }
+            }
+            if (filteredCategories.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(
+                            if (searchQuery.isBlank()) {
+                                R.string.category_picker_empty
+                            } else {
+                                R.string.category_picker_no_results
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            horizontal = Dimensions.Padding.content,
+                            vertical = Spacing.md
+                        )
+                    )
                 }
             }
         }

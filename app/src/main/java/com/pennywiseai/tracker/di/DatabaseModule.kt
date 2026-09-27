@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
+import com.pennywiseai.tracker.data.database.dao.PersonDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
@@ -274,6 +275,12 @@ object DatabaseModule {
     @Singleton
     fun provideProfileDao(database: PennyWiseDatabase): ProfileDao {
         return database.profileDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePersonDao(database: PennyWiseDatabase): PersonDao {
+        return database.personDao()
     }
 
     @Provides

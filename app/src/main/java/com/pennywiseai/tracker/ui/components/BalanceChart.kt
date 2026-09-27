@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -10,9 +8,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -45,9 +45,12 @@ fun BalanceChart(
     primaryCurrency: String,
     balanceHistory: List<BalancePoint>,
     modifier: Modifier = Modifier,
-    height: Int = 200
+    height: Int = 200,
+    seriesLabel: String? = null
 ) {
     if (balanceHistory.isEmpty()) return
+
+    val resolvedSeriesLabel = seriesLabel ?: stringResource(R.string.balance_chart_label)
 
     val sortedHistory = remember(balanceHistory) {
         balanceHistory.sortedBy { it.timestamp }
@@ -91,7 +94,7 @@ fun BalanceChart(
             .padding(horizontal = Spacing.sm, vertical = Spacing.md),
         data = listOf(
             Line(
-                label = stringResource(R.string.balance_chart_label),
+                label = resolvedSeriesLabel,
                 values = chartValues,
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),

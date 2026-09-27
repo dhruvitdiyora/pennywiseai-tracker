@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
 import com.pennywiseai.parser.core.bank.HDFCBankParser
 import com.pennywiseai.parser.core.bank.IndianBankParser
 import com.pennywiseai.parser.core.bank.SBIBankParser
@@ -130,15 +131,7 @@ class SubscriptionRepository @Inject constructor(
      * inserted row never silently advances by 0 days.
      */
     fun advance(date: LocalDate, billingCycle: String, reverse: Boolean = false): LocalDate {
-        val sign = if (reverse) -1L else 1L
-        return when (billingCycle.uppercase()) {
-            "WEEKLY" -> date.plusWeeks(sign)
-            "MONTHLY" -> date.plusMonths(sign)
-            "QUARTERLY" -> date.plusMonths(3L * sign)
-            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * sign)
-            "ANNUAL", "YEARLY" -> date.plusYears(sign)
-            else -> date.plusMonths(sign)
-        }
+        return SubscriptionBillingCycle.advance(date, billingCycle, reverse)
     }
 
     /** Active INCOME subscriptions due on or before [date] (#371). */

@@ -12,6 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
+import com.pennywiseai.tracker.data.database.dao.PersonDao
 import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
@@ -34,6 +35,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.PersonEntity
 import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
@@ -64,7 +66,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 62
+const val SCHEMA_VERSION = 63
 
 /**
  * The PennyWise Room database.
@@ -77,7 +79,7 @@ const val SCHEMA_VERSION = 62
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, PersonEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -130,6 +132,7 @@ const val SCHEMA_VERSION = 62
         // 56→57 adds a nullable account_last4 column to subscriptions — a pure
         // additive change, so Room generates the ALTER TABLE automatically (#570).
         AutoMigration(from = 56, to = 57)
+        // 59→60 is manual because it backfills people and links legacy loans.
     ]
 )
 @TypeConverters(Converters::class)
@@ -150,6 +153,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionSplitDao(): TransactionSplitDao
     abstract fun bankNotificationDao(): BankNotificationDao
     abstract fun loanDao(): LoanDao
+    abstract fun personDao(): PersonDao
     abstract fun transactionGroupDao(): TransactionGroupDao
     abstract fun budgetSnapshotDao(): BudgetSnapshotDao
     abstract fun profileDao(): ProfileDao
@@ -636,6 +640,78 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Creates the people directory and links existing loans by a stable,
+         * case-insensitive trimmed name. The loan's person_name is retained as
+         * a historical snapshot and no transaction rows are rewritten.
+         */
+        val MIGRATION_62_63 = object : Migration(62, 63) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `people` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, " +
+                        "`normalized_name` TEXT NOT NULL, " +
+                        "`phone_number` TEXT, " +
+                        "`notes` TEXT, " +
+                        "`avatar` TEXT, " +
+                        "`category` TEXT, " +
+                        "`color` TEXT NOT NULL DEFAULT '#4CAF50', " +
+                        "`is_archived` INTEGER NOT NULL DEFAULT 0, " +
+                        "`created_at` TEXT NOT NULL, " +
+                        "`updated_at` TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_people_normalized_name` ON `people` (`normalized_name`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_people_is_archived` ON `people` (`is_archived`)")
+
+                // Some development builds shipped the People column under an
+                // earlier schema number. Guard the additive ALTER so those
+                // databases don't crash on a duplicate column.
+                if (!hasColumn(db, "loans", "person_id")) {
+                    db.execSQL("ALTER TABLE `loans` ADD COLUMN `person_id` INTEGER DEFAULT NULL")
+                }
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_loans_person_id` ON `loans` (`person_id`)")
+
+                // Select the first loan's trimmed display name for each key so
+                // duplicate legacy spellings produce one deterministic person.
+                db.execSQL(
+                    "INSERT INTO `people` (`name`, `normalized_name`, `color`, `is_archived`, `created_at`, `updated_at`) " +
+                        "SELECT TRIM(l.`person_name`), LOWER(TRIM(l.`person_name`)), '#4CAF50', 0, datetime('now'), datetime('now') " +
+                        "FROM `loans` l " +
+                        "WHERE TRIM(l.`person_name`) <> '' " +
+                        "AND NOT EXISTS (SELECT 1 FROM `people` p " +
+                        "WHERE p.`normalized_name` = LOWER(TRIM(l.`person_name`))) " +
+                        "AND l.`id` = (SELECT MIN(l2.`id`) FROM `loans` l2 " +
+                        "WHERE LOWER(TRIM(l2.`person_name`)) = LOWER(TRIM(l.`person_name`)))"
+                )
+                db.execSQL(
+                    "UPDATE `loans` SET `person_id` = (" +
+                        "SELECT p.`id` FROM `people` p " +
+                        "WHERE p.`normalized_name` = LOWER(TRIM(`loans`.`person_name`))" +
+                        ") WHERE `person_id` IS NULL AND TRIM(`person_name`) <> ''"
+                )
+            }
+
+            private fun hasColumn(
+                db: SupportSQLiteDatabase,
+                table: String,
+                column: String,
+            ): Boolean {
+                val cursor = db.query("PRAGMA table_info(`$table`)")
+                return try {
+                    val nameIndex = cursor.getColumnIndex("name")
+                    while (cursor.moveToNext()) {
+                        if (nameIndex >= 0 && cursor.getString(nameIndex) == column) {
+                            return true
+                        }
+                    }
+                    false
+                } finally {
+                    cursor.close()
+                }
+            }
+        }
+
         val MIGRATION_38_39 = object : Migration(38, 39) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add receipt_path to transactions if missing
@@ -717,6 +793,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_59_60,
             MIGRATION_60_61,
             MIGRATION_61_62,
+            MIGRATION_62_63,
         )
     }
     

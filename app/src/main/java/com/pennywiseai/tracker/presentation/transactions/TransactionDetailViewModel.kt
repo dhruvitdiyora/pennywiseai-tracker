@@ -1162,6 +1162,10 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
 
+    fun getReceiptShareUri(): Uri? = _transaction.value
+        ?.receiptPath
+        ?.let(receiptManager::getShareableUri)
+
     private fun loadReceiptUri(transaction: TransactionEntity) {
         transaction.receiptPath?.let { path ->
             val file = receiptManager.getReceiptFile(path)

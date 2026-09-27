@@ -34,14 +34,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.*
@@ -53,13 +56,93 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
+import java.util.Locale
+
+/**
+ * The semantic state of a subscription's persisted next-payment date.
+ *
+ * This deliberately does not mutate or roll the date forward. Advancing the
+ * schedule belongs to the domain use case; the screen only presents the date
+ * that was persisted by the domain layer.
+ */
+internal enum class SubscriptionDueStatusKind {
+    NO_DATE,
+    OVERDUE,
+    DUE_TODAY,
+    DUE_TOMORROW,
+    DUE_IN_DAYS,
+    LATER,
+    PAID,
+}
+
+internal data class SubscriptionDueStatus(
+    val kind: SubscriptionDueStatusKind,
+    val date: LocalDate? = null,
+    val daysUntilDue: Long? = null,
+)
+
+internal fun subscriptionDueStatus(
+    nextPaymentDate: LocalDate?,
+    today: LocalDate,
+    isPaidThisCycle: Boolean,
+): SubscriptionDueStatus {
+    if (nextPaymentDate == null) {
+        return SubscriptionDueStatus(SubscriptionDueStatusKind.NO_DATE)
+    }
+
+    val daysUntilDue = ChronoUnit.DAYS.between(today, nextPaymentDate)
+    return when {
+        nextPaymentDate.isBefore(today) && !isPaidThisCycle ->
+            SubscriptionDueStatus(
+                kind = SubscriptionDueStatusKind.OVERDUE,
+                date = nextPaymentDate,
+                daysUntilDue = daysUntilDue,
+            )
+        nextPaymentDate.isBefore(today) && isPaidThisCycle ->
+            SubscriptionDueStatus(
+                kind = SubscriptionDueStatusKind.PAID,
+                date = nextPaymentDate,
+                daysUntilDue = daysUntilDue,
+            )
+        daysUntilDue == 0L ->
+            SubscriptionDueStatus(
+                kind = SubscriptionDueStatusKind.DUE_TODAY,
+                date = nextPaymentDate,
+                daysUntilDue = daysUntilDue,
+            )
+        daysUntilDue == 1L ->
+            SubscriptionDueStatus(
+                kind = SubscriptionDueStatusKind.DUE_TOMORROW,
+                date = nextPaymentDate,
+                daysUntilDue = daysUntilDue,
+            )
+        daysUntilDue in 2L..7L ->
+            SubscriptionDueStatus(
+                kind = SubscriptionDueStatusKind.DUE_IN_DAYS,
+                date = nextPaymentDate,
+                daysUntilDue = daysUntilDue,
+            )
+        else ->
+            SubscriptionDueStatus(
+                kind = SubscriptionDueStatusKind.LATER,
+                date = nextPaymentDate,
+                daysUntilDue = daysUntilDue,
+            )
+    }
+}
+
+private fun formatSubscriptionDate(date: LocalDate): String =
+    date.format(
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(Locale.getDefault())
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,8 +151,8 @@ fun SubscriptionsScreen(
     onNavigateBack: () -> Unit = {},
     onAddSubscriptionClick: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val accounts by viewModel.accounts.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // Subscription currently being marked-as-paid. Null = sheet closed.
     var markPaidTarget by remember { mutableStateOf<SubscriptionEntity?>(null) }
@@ -240,8 +323,8 @@ fun SubscriptionsScreen(
                             onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
-                            onEdit = { merchantName, amount, nextDate, category, account, accountChanged ->
-                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account, accountChanged)
+                            onEdit = { merchantName, amount, nextDate, category, billingCycle, account, accountChanged ->
+                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, billingCycle, account, accountChanged)
                             },
                             onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
@@ -465,40 +548,45 @@ private fun TotalSubscriptionsSummary(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeableSubscriptionItem(
+internal fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     isPaidThisCycle: Boolean = false,
+    today: LocalDate = LocalDate.now(),
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onTap: () -> Unit = {},
+    onEditRequested: (() -> Unit)? = null,
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
-    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, billingCycle: String, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit = { _, _, _, _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val requestEdit = { onEditRequested?.invoke() ?: run { showEditDialog = true } }
     
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            when (dismissValue) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onHide()
-                    true
-                }
-                else -> false
+    val dismissState = rememberSwipeToDismissBoxState()
+    LaunchedEffect(dismissState.settledValue) {
+        when (dismissState.settledValue) {
+            SwipeToDismissBoxValue.StartToEnd -> {
+                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                requestEdit()
             }
+            SwipeToDismissBoxValue.EndToStart -> onHide()
+            SwipeToDismissBoxValue.Settled -> Unit
         }
-    )
+    }
     
     SwipeToDismissBox(
+        modifier = Modifier.testTag("subscription_item_${subscription.id}"),
         state = dismissState,
         backgroundContent = {
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
                     SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
                     else -> Color.Transparent
                 },
@@ -509,12 +597,27 @@ private fun SwipeableSubscriptionItem(
                     .fillMaxSize()
                     .background(color)
                     .padding(horizontal = Dimensions.Padding.content),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                    else -> Alignment.CenterEnd
+                }
             ) {
                 Icon(
-                    imageVector = Icons.Default.VisibilityOff,
-                    contentDescription = stringResource(R.string.subscriptions_hide),
-                    tint = MaterialTheme.colorScheme.onError
+                    imageVector = when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Edit
+                        else -> Icons.Default.VisibilityOff
+                    },
+                    contentDescription = stringResource(
+                        if (dismissState.targetValue == SwipeToDismissBoxValue.StartToEnd) {
+                            R.string.subscription_swipe_edit
+                        } else {
+                            R.string.subscription_swipe_hide
+                        }
+                    ),
+                    tint = when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onError
+                    }
                 )
             }
         },
@@ -580,9 +683,12 @@ private fun SwipeableSubscriptionItem(
                                     )
                                 }
 
-                                val today = LocalDate.now()
-                                val subscriptionDate = subscription.nextPaymentDate
-                                if (subscriptionDate == null) {
+                                val dueStatus = subscriptionDueStatus(
+                                    nextPaymentDate = subscription.nextPaymentDate,
+                                    today = today,
+                                    isPaidThisCycle = isPaidThisCycle,
+                                )
+                                if (dueStatus.kind == SubscriptionDueStatusKind.NO_DATE) {
                                     Text(
                                         text = stringResource(R.string.subscriptions_no_date),
                                         style = MaterialTheme.typography.bodySmall,
@@ -591,34 +697,54 @@ private fun SwipeableSubscriptionItem(
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    var nextPaymentDate: LocalDate = subscriptionDate
-                                    while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
-                                        nextPaymentDate = nextPaymentDate.plusMonths(1)
-                                    }
-                                    val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
-
                                     Icon(
                                         imageVector = Icons.Default.CalendarToday,
                                         contentDescription = null,
                                         modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = when (dueStatus.kind) {
+                                            SubscriptionDueStatusKind.OVERDUE -> MaterialTheme.colorScheme.error
+                                            SubscriptionDueStatusKind.DUE_TODAY,
+                                            SubscriptionDueStatusKind.DUE_TOMORROW,
+                                            SubscriptionDueStatusKind.DUE_IN_DAYS ->
+                                                if (dueStatus.daysUntilDue != null && dueStatus.daysUntilDue <= 3L) {
+                                                    MaterialTheme.colorScheme.warning
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                }
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                     Text(
-                                        text = when {
-                                            daysUntilNext == 0L -> stringResource(R.string.subscriptions_due_today)
-                                            daysUntilNext == 1L -> stringResource(R.string.subscriptions_due_tomorrow)
-                                            daysUntilNext in 2..7 -> pluralStringResource(
-                                                R.plurals.subscriptions_due_in_days,
-                                                daysUntilNext.toInt(),
-                                                daysUntilNext.toInt()
-                                            )
-                                            else -> nextPaymentDate.format(
-                                                DateTimeFormatter.ofPattern("MMM d")
-                                            )
+                                        text = when (dueStatus.kind) {
+                                            SubscriptionDueStatusKind.OVERDUE ->
+                                                stringResource(R.string.subscription_overdue)
+                                            SubscriptionDueStatusKind.DUE_TODAY ->
+                                                stringResource(R.string.subscriptions_due_today)
+                                            SubscriptionDueStatusKind.DUE_TOMORROW ->
+                                                stringResource(R.string.subscriptions_due_tomorrow)
+                                            SubscriptionDueStatusKind.DUE_IN_DAYS ->
+                                                pluralStringResource(
+                                                    R.plurals.subscriptions_due_in_days,
+                                                    (dueStatus.daysUntilDue ?: 0L).toInt(),
+                                                    dueStatus.daysUntilDue ?: 0L,
+                                                )
+                                            SubscriptionDueStatusKind.PAID ->
+                                                dueStatus.date?.let(::formatSubscriptionDate).orEmpty()
+                                            SubscriptionDueStatusKind.LATER ->
+                                                dueStatus.date?.let(::formatSubscriptionDate).orEmpty()
+                                            SubscriptionDueStatusKind.NO_DATE ->
+                                                stringResource(R.string.subscriptions_no_date)
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = when {
-                                            daysUntilNext <= 3 -> MaterialTheme.colorScheme.error
+                                            dueStatus.kind == SubscriptionDueStatusKind.OVERDUE ->
+                                                MaterialTheme.colorScheme.error
+                                            dueStatus.kind in setOf(
+                                                SubscriptionDueStatusKind.DUE_TODAY,
+                                                SubscriptionDueStatusKind.DUE_TOMORROW,
+                                                SubscriptionDueStatusKind.DUE_IN_DAYS,
+                                            ) && dueStatus.daysUntilDue != null && dueStatus.daysUntilDue <= 3L ->
+                                                MaterialTheme.colorScheme.warning
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         },
                                         maxLines = 1,
@@ -635,27 +761,37 @@ private fun SwipeableSubscriptionItem(
                             // important than the category label.
                             if (isPaidThisCycle) {
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall,
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                    Text(
-                                        text = stringResource(
-                                            R.string.subscriptions_paid_on,
-                                            "${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("MMM d"))}"
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = Spacing.xs,
+                                            vertical = Spacing.xxs,
                                         ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    )
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.small),
+                                        )
+                                        Text(
+                                            text = subscription.lastPaidAt?.let {
+                                                stringResource(
+                                                    R.string.subscriptions_paid_on,
+                                                    formatSubscriptionDate(it),
+                                                )
+                                            } ?: stringResource(R.string.subscription_paid),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        )
+                                    }
                                 }
                             }
 
@@ -671,6 +807,13 @@ private fun SwipeableSubscriptionItem(
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 )
                             }
+                            Text(
+                                text = subscriptionBillingCycleLabel(subscription.billingCycle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            )
                         }
                         
                         if (convertedAmount != null && displayCurrency != null) {
@@ -734,7 +877,7 @@ private fun SwipeableSubscriptionItem(
                                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
-                                        showEditDialog = true
+                                        requestEdit()
                                     }
                                 )
                                 DropdownMenuItem(
@@ -826,8 +969,8 @@ private fun SwipeableSubscriptionItem(
             subscription = subscription,
             accounts = accounts,
             onDismiss = { showEditDialog = false },
-            onSave = { merchantName, amount, nextDate, category, account, accountChanged ->
-                onEdit(merchantName, amount, nextDate, category, account, accountChanged)
+            onSave = { merchantName, amount, nextDate, category, billingCycle, account, accountChanged ->
+                onEdit(merchantName, amount, nextDate, category, billingCycle, account, accountChanged)
                 showEditDialog = false
             }
         )
@@ -863,11 +1006,19 @@ private fun EditSubscriptionDialog(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit
+    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, billingCycle: String, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit
 ) {
     var merchantName by remember { mutableStateOf(subscription.merchantName) }
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
     var category by remember { mutableStateOf(subscription.category.orEmpty()) }
+    var billingCycle by remember(subscription.id) { mutableStateOf(subscription.billingCycle) }
+    val parsedCycle = remember(billingCycle) { SubscriptionBillingCycle.parse(billingCycle) }
+    var customCycleCount by remember(subscription.id) {
+        mutableStateOf(parsedCycle.count.coerceIn(1L, Int.MAX_VALUE.toLong()).toInt())
+    }
+    var customCycleCountInput by remember(subscription.id) { mutableStateOf(parsedCycle.count.toString()) }
+    var customCycleUnit by remember(subscription.id) { mutableStateOf(parsedCycle.unit) }
+    var showBillingCycleMenu by remember { mutableStateOf(false) }
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
@@ -897,7 +1048,12 @@ private fun EditSubscriptionDialog(
             try { BigDecimal(it) } catch (_: NumberFormatException) { null }
         }
     }
-    val isValid = merchantName.isNotBlank() && parsedAmount != null && parsedAmount > BigDecimal.ZERO
+    val isValid = merchantName.isNotBlank() &&
+        parsedAmount != null &&
+        parsedAmount > BigDecimal.ZERO &&
+        (!parsedCycle.isCustom || customCycleCountInput.toLongOrNull()?.let {
+            it in 1..Int.MAX_VALUE.toLong()
+        } == true)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -922,7 +1078,7 @@ private fun EditSubscriptionDialog(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
                     ),
                     modifier = Modifier.fillMaxWidth(),
-                    isError = parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO)
+                    isError = parsedAmount == null || parsedAmount <= BigDecimal.ZERO
                 )
                 OutlinedTextField(
                     value = nextDate?.format(DateTimeFormatter.ofPattern("d MMM yyyy")) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
@@ -939,6 +1095,72 @@ private fun EditSubscriptionDialog(
                         }
                     }
                 )
+                ExposedDropdownMenuBox(
+                    expanded = showBillingCycleMenu,
+                    onExpandedChange = { showBillingCycleMenu = it },
+                ) {
+                    OutlinedTextField(
+                        value = if (parsedCycle.isCustom) {
+                            stringResource(R.string.subscription_cycle_custom)
+                        } else {
+                            subscriptionBillingCycleLabel(billingCycle)
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.subscription_cycle_billing_cycle)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showBillingCycleMenu)
+                        },
+                    )
+                    ExposedDropdownMenu(
+                        expanded = showBillingCycleMenu,
+                        onDismissRequest = { showBillingCycleMenu = false },
+                    ) {
+                        listOf(
+                            "Weekly" to R.string.subscription_cycle_weekly,
+                            "Monthly" to R.string.subscription_cycle_monthly,
+                            "Quarterly" to R.string.subscription_cycle_quarterly,
+                            "Semi-Annual" to R.string.subscription_cycle_semi_annual,
+                            "Annual" to R.string.subscription_cycle_annual,
+                            "Custom" to R.string.subscription_cycle_custom,
+                        ).forEach { (cycle, labelResource) ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(labelResource)) },
+                                    onClick = {
+                                        if (cycle == "Custom") {
+                                            billingCycle = SubscriptionBillingCycle.encodeCustom(
+                                                customCycleCount.toLong(),
+                                                customCycleUnit,
+                                            )
+                                        } else {
+                                            billingCycle = cycle
+                                        }
+                                        showBillingCycleMenu = false
+                                    },
+                                )
+                            }
+                    }
+                }
+                if (parsedCycle.isCustom) {
+                    CustomBillingCycleEditor(
+                        countInput = customCycleCountInput,
+                        unit = customCycleUnit,
+                        onCountChanged = { input ->
+                            customCycleCountInput = input
+                            input.toLongOrNull()?.takeIf { it > 0 }?.let { count ->
+                                customCycleCount = count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                                billingCycle = SubscriptionBillingCycle.encodeCustom(count, customCycleUnit)
+                            }
+                        },
+                        onUnitChanged = { unit ->
+                            customCycleUnit = unit
+                            billingCycle = SubscriptionBillingCycle.encodeCustom(customCycleCount.toLong(), unit)
+                        },
+                    )
+                }
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
@@ -1022,7 +1244,7 @@ private fun EditSubscriptionDialog(
                 enabled = isValid,
                 onClick = {
                     parsedAmount?.let { amt ->
-                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
+                        onSave(merchantName, amt, nextDate, category, billingCycle, selectedAccount, accountChanged)
                     }
                 }
             ) { Text(stringResource(R.string.subscriptions_edit_save)) }

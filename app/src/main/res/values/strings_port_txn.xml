@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Cashiro port — strings with no existing upstream/Codex equivalent ══ -->
+
+    <!-- Categories: safe-delete flow (CategoriesViewModel) -->
+    <string name="categories_msg_not_found">Category no longer exists</string>
+    <string name="categories_msg_check_usage_error">Error checking category usage: %1$s</string>
+    <string name="categories_msg_reassigned_deleted">Category reassigned and deleted</string>
+    <string name="categories_msg_budget_conflict">Choose another category or edit %1$s first; both categories already exist there</string>
+    <string name="categories_msg_budget_conflict_generic">Choose another category or edit the active budget first; both categories already exist there</string>
+
+    <!-- Budget history: per-window section header (BudgetHistoryScreen) -->
+    <string name="budget_history_per_window_hint">Tap a window to view its category breakdown</string>
+</resources>

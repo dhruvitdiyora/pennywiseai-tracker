@@ -12,8 +12,8 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
+import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -73,7 +73,9 @@ class SubscriptionsViewModel @Inject constructor(
                     var total = BigDecimal.ZERO
                     for (sub in subscriptions) {
                         total += currencyConversionService.convertAmountOrNull(
-                            sub.amount, sub.currency, displayCurrency
+                            SubscriptionBillingCycle.monthlyEquivalent(sub.amount, sub.billingCycle),
+                            sub.currency,
+                            displayCurrency
                         ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
@@ -83,7 +85,19 @@ class SubscriptionsViewModel @Inject constructor(
                 val totalByCurrency: Map<String, Money> = if (isUnified) {
                     emptyMap()
                 } else {
-                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
+                    subscriptions
+                        .groupBy { it.currency }
+                        .mapValues { (currency, rows) ->
+                            Money(
+                                rows.fold(BigDecimal.ZERO) { total, sub ->
+                                    total + SubscriptionBillingCycle.monthlyEquivalent(
+                                        sub.amount,
+                                        sub.billingCycle
+                                    )
+                                },
+                                currency
+                            )
+                        }
                 }
 
                 val convertedAmounts = if (isUnified) {
@@ -188,6 +202,7 @@ class SubscriptionsViewModel @Inject constructor(
         amount: BigDecimal,
         nextPaymentDate: java.time.LocalDate?,
         category: String?,
+        billingCycle: String,
         account: AccountBalanceEntity?,
         accountChanged: Boolean,
     ) {
@@ -199,6 +214,7 @@ class SubscriptionsViewModel @Inject constructor(
                     amount = amount,
                     nextPaymentDate = nextPaymentDate,
                     category = category?.trim()?.takeIf { it.isNotEmpty() },
+                    billingCycle = billingCycle,
                     // Only re-key the funding account when the user actually touched
                     // the picker. Otherwise keep what's stored — the dialog can't
                     // pre-select an account that isn't in the balance list yet (e.g.

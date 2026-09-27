@@ -98,6 +98,12 @@ class HomeViewModel @Inject constructor(
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
+    // Unset until the base currency loads, so the trend never renders in a
+    // guessed currency first.
+    private val selectedCurrencyForTrend = MutableStateFlow<String?>(null)
+    private val hiddenAccountKeysForTrend = MutableStateFlow(
+        sharedPrefs.getStringSet("hidden_accounts", emptySet())?.toSet().orEmpty()
+    )
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     
@@ -201,6 +207,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val base = userPreferencesRepository.baseCurrency.first()
             baseCurrency = base
+            selectedCurrencyForTrend.value = base
             _uiState.value = _uiState.value.copy(
                 selectedCurrency = base,
                 availableCurrencies = listOf(base)
@@ -528,6 +535,49 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // Build a real cash-account portfolio history for the expanded Home card.
+            // All history stays native unless unified mode is explicitly enabled.
+            val trendEndDate = LocalDate.now()
+            val trendStartDate = trendEndDate.minusDays(BALANCE_TREND_DAYS - 1L)
+            combine(
+                accountBalanceRepository.getBalanceTrendRows(
+                    startDate = trendStartDate.atStartOfDay(),
+                    endDate = trendEndDate.atTime(java.time.LocalTime.MAX),
+                ),
+                userPreferencesRepository.selectedProfileId,
+                userPreferencesRepository.unifiedCurrencyMode,
+                selectedCurrencyForTrend.filterNotNull(),
+                currencyConversionService.getAllRatesFlow(),
+            ) { balances, profileId, unifiedMode, selectedCurrency, _ ->
+                BalanceTrendInputs(
+                    balances = balances,
+                    profileId = profileId,
+                    unifiedMode = unifiedMode,
+                    selectedCurrency = selectedCurrency,
+                )
+            }.combine(hiddenAccountKeysForTrend) { inputs, hiddenAccounts ->
+                inputs.copy(hiddenAccounts = hiddenAccounts)
+            }.collect { inputs ->
+                val trend = buildBalanceTrend(
+                    balances = inputs.balances,
+                    startDate = trendStartDate,
+                    endDate = trendEndDate,
+                    selectedProfileId = inputs.profileId,
+                    hiddenAccounts = inputs.hiddenAccounts,
+                    selectedCurrency = inputs.selectedCurrency,
+                    unifiedMode = inputs.unifiedMode,
+                    convert = { amount, fromCurrency, toCurrency ->
+                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, toCurrency)
+                    },
+                )
+                _uiState.value = _uiState.value.copy(
+                    balanceHistory = trend.values,
+                    isBalanceHistoryApproximate = trend.isApproximate,
+                )
+            }
+        }
+
+        viewModelScope.launch {
             // Load current cycle transactions by type (currency-filtered, business-filtered).
             // Re-fires on cycle-window change via flatMapLatest.
             _currentCycleWindow
@@ -711,7 +761,6 @@ class HomeViewModel @Inject constructor(
 
                     _uiState.value = _uiState.value.copy(
                         spendingHistory = cumulativeList,
-                        balanceHistory = cumulativeList,
                         lastMonthSpendingHistory = lastMonthCumulative
                     )
                     calculateMonthlyChange()
@@ -951,11 +1000,12 @@ class HomeViewModel @Inject constructor(
     
     fun refreshHiddenAccounts() {
         viewModelScope.launch {
+            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            hiddenAccountKeysForTrend.value = hiddenAccounts.toSet()
+
             // Use cached balances instead of re-fetching from the repository
             val allBalances = cachedAccountBalances
             if (allBalances.isEmpty()) return@launch
-
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
             val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
@@ -1057,13 +1107,14 @@ class HomeViewModel @Inject constructor(
 
     fun refreshAccountBalances() {
         viewModelScope.launch {
+            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            hiddenAccountKeysForTrend.value = hiddenAccounts.toSet()
+
             // Use cached balances instead of starting a new .collect — this prevents
             // a race condition where two competing collectors would cause the balance
             // to show with the wrong currency symbol.
             val allBalances = cachedAccountBalances
             if (allBalances.isEmpty()) return@launch
-
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
             val balances = filterVisibleBalances(allBalances, hiddenAccounts)
             val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
@@ -1341,6 +1392,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun updateUIStateForCurrency(selectedCurrency: String, availableCurrencies: List<String>) {
+        selectedCurrencyForTrend.value = selectedCurrency
         if (_uiState.value.isUnifiedMode) {
             // Aggregate all currencies, converting to selectedCurrency (displayCurrency)
             viewModelScope.launch {
@@ -1630,6 +1682,7 @@ class HomeViewModel @Inject constructor(
     private companion object {
         /** Below this the summary is too thin to be worth sending. */
         const val MIN_TRANSACTIONS_FOR_SHARE_PROMPT = 20
+        const val BALANCE_TREND_DAYS = 180L
     }
 
 }
@@ -1670,6 +1723,7 @@ data class HomeUiState(
     val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val spendingHistory: List<BigDecimal> = emptyList(),
     val balanceHistory: List<BigDecimal> = emptyList(),
+    val isBalanceHistoryApproximate: Boolean = false,
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
     val showBreakdownDialog: Boolean = false,
@@ -1695,4 +1749,12 @@ private data class Quad<A, B, C, D>(
     val b: B,
     val c: C,
     val d: D
+)
+
+private data class BalanceTrendInputs(
+    val balances: List<AccountBalanceEntity>,
+    val profileId: Long?,
+    val unifiedMode: Boolean,
+    val selectedCurrency: String,
+    val hiddenAccounts: Set<String> = emptySet(),
 )

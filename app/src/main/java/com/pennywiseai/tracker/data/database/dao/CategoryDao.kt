@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room.*
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 
 @Dao
 interface CategoryDao {
@@ -83,8 +85,147 @@ interface CategoryDao {
     @Update
     suspend fun updateCategory(category: CategoryEntity)
     
+    // Category deletion/reassignment impact queries. These deliberately do
+    // not filter transactions by is_deleted: trash is still user data and
+    // must be retargeted before the category can be removed.
+    @Query("SELECT COUNT(*) FROM transactions WHERE category = :categoryName")
+    suspend fun countTransactionsForCategory(categoryName: String): Int
+
+    @Query("SELECT COUNT(*) FROM transaction_splits WHERE category = :categoryName")
+    suspend fun countTransactionSplitsForCategory(categoryName: String): Int
+
+    @Query("SELECT COUNT(*) FROM subscriptions WHERE category = :categoryName")
+    suspend fun countSubscriptionsForCategory(categoryName: String): Int
+
+    @Query("SELECT COUNT(*) FROM recurring_transactions WHERE category = :categoryName")
+    suspend fun countRecurringTransactionsForCategory(categoryName: String): Int
+
+    @Query("SELECT COUNT(*) FROM merchant_mappings WHERE category = :categoryName")
+    suspend fun countMerchantMappingsForCategory(categoryName: String): Int
+
+    @Query("SELECT COUNT(*) FROM budget_categories bc INNER JOIN budgets b ON b.id = bc.budget_id WHERE bc.category_name = :categoryName AND b.is_active = 1")
+    suspend fun countActiveBudgetCategoriesForCategory(categoryName: String): Int
+
+    @Query("SELECT DISTINCT bc.budget_id FROM budget_categories bc INNER JOIN budgets b ON b.id = bc.budget_id WHERE bc.category_name = :categoryName AND b.is_active = 1 ORDER BY bc.budget_id")
+    suspend fun getActiveBudgetIdsForCategory(categoryName: String): List<Long>
+
+    @Query("""
+        SELECT DISTINCT source.budget_id
+        FROM budget_categories source
+        INNER JOIN budgets b ON b.id = source.budget_id AND b.is_active = 1
+        INNER JOIN budget_categories target
+            ON target.budget_id = source.budget_id
+           AND target.category_name = :targetCategoryName
+        WHERE source.category_name = :sourceCategoryName
+        ORDER BY source.budget_id
+    """)
+    suspend fun getActiveBudgetConflicts(
+        sourceCategoryName: String,
+        targetCategoryName: String
+    ): List<Long>
+
+    @Query("""
+        SELECT b.name
+        FROM budgets b
+        INNER JOIN budget_categories source ON source.budget_id = b.id
+        INNER JOIN budget_categories target
+            ON target.budget_id = source.budget_id
+           AND target.category_name = :targetCategoryName
+        WHERE source.category_name = :sourceCategoryName
+          AND b.is_active = 1
+        ORDER BY b.id
+    """)
+    suspend fun getActiveBudgetConflictNames(
+        sourceCategoryName: String,
+        targetCategoryName: String
+    ): List<String>
+
+    @Query("SELECT * FROM transaction_rules")
+    suspend fun getAllRulesForCategoryDeletion(): List<RuleEntity>
+
+    @Query("UPDATE transactions SET category = :targetCategoryName, updated_at = :updatedAt WHERE category = :sourceCategoryName")
+    suspend fun reassignTransactionCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    @Query("UPDATE transaction_splits SET category = :targetCategoryName WHERE category = :sourceCategoryName")
+    suspend fun reassignTransactionSplitCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String
+    ): Int
+
+    @Query("UPDATE subscriptions SET category = :targetCategoryName, updated_at = :updatedAt WHERE category = :sourceCategoryName")
+    suspend fun reassignSubscriptionCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    @Query("UPDATE recurring_transactions SET category = :targetCategoryName, updated_at = :updatedAt WHERE category = :sourceCategoryName")
+    suspend fun reassignRecurringTransactionCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    @Query("UPDATE merchant_mappings SET category = :targetCategoryName, updated_at = :updatedAt WHERE category = :sourceCategoryName")
+    suspend fun reassignMerchantMappingCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    @Query("UPDATE budget_categories SET category_name = :targetCategoryName WHERE category_name = :sourceCategoryName AND budget_id IN (SELECT id FROM budgets WHERE is_active = 1)")
+    suspend fun reassignActiveBudgetCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String
+    ): Int
+
+    @Update
+    suspend fun updateRulesAfterCategoryReassignment(rules: List<RuleEntity>)
+
     @Query("DELETE FROM categories WHERE id = :categoryId AND is_system = 0")
-    suspend fun deleteCategory(categoryId: Long)
+    suspend fun deleteCustomCategoryForReassignment(categoryId: Long): Int
+
+    /**
+     * Applies all name retargeting and removes the source category atomically.
+     * The conflict check lives inside the transaction as well as in the
+     * repository preflight, so a concurrent budget edit cannot silently merge
+     * two budget rows.
+     */
+    @Transaction
+    suspend fun applyCategoryDeletion(
+        categoryId: Long,
+        sourceCategoryName: String,
+        targetCategoryName: String?,
+        updatedRules: List<RuleEntity>,
+        updatedAt: LocalDateTime
+    ): Boolean {
+        val source = getCategoryById(categoryId)
+        if (source == null || source.isSystem || source.name != sourceCategoryName) return false
+
+        if (targetCategoryName != null &&
+            getActiveBudgetConflicts(sourceCategoryName, targetCategoryName).isNotEmpty()
+        ) {
+            return false
+        }
+
+        if (targetCategoryName != null) {
+            reassignTransactionCategories(sourceCategoryName, targetCategoryName, updatedAt)
+            reassignTransactionSplitCategories(sourceCategoryName, targetCategoryName)
+            reassignSubscriptionCategories(sourceCategoryName, targetCategoryName, updatedAt)
+            reassignRecurringTransactionCategories(sourceCategoryName, targetCategoryName, updatedAt)
+            reassignMerchantMappingCategories(sourceCategoryName, targetCategoryName, updatedAt)
+            reassignActiveBudgetCategories(sourceCategoryName, targetCategoryName)
+            if (updatedRules.isNotEmpty()) updateRulesAfterCategoryReassignment(updatedRules)
+        }
+
+        // Deleting a parent promotes its sub-categories to top level (#374).
+        detachChildren(categoryId)
+        return deleteCustomCategoryForReassignment(categoryId) == 1
+    }
     
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun getCategoryCount(): Int

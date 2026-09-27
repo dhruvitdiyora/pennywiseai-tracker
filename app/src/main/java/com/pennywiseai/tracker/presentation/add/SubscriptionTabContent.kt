@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,21 +21,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.theme.Spacing
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.ui.components.AccountSelectionSheet
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.presentation.subscriptions.CustomBillingCycleEditor
+import com.pennywiseai.tracker.presentation.subscriptions.subscriptionBillingCycleLabel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
-
-private val subTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-private val subBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-private val subMiddleShape = RoundedCornerShape(4.dp)
-private val subFullShape = RoundedCornerShape(16.dp)
+import java.util.Locale
 
 @Composable
 private fun subFilledColors() = TextFieldDefaults.colors(
@@ -60,17 +60,29 @@ fun SubscriptionTabContent(
     viewModel: AddViewModel,
     onSave: () -> Unit
 ) {
-    val uiState by viewModel.subscriptionUiState.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val accounts by viewModel.accounts.collectAsState()
+    val uiState by viewModel.subscriptionUiState.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
-    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
-    var showAccountMenu by remember { mutableStateOf(false) }
+    var showAccountSheet by remember { mutableStateOf(false) }
+    var showAmountCalculator by remember { mutableStateOf(false) }
 
-    val billingCycles = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
+    val topShape = ListItemPosition.Top.toShape()
+    val bottomShape = ListItemPosition.Bottom.toShape()
+    val fullShape = ListItemPosition.Single.toShape()
+
+    val billingCycles = listOf(
+        "Monthly" to R.string.subscription_cycle_monthly,
+        "Quarterly" to R.string.subscription_cycle_quarterly,
+        "Semi-Annual" to R.string.subscription_cycle_semi_annual,
+        "Annual" to R.string.subscription_cycle_annual,
+        "Weekly" to R.string.subscription_cycle_weekly,
+        "Custom" to R.string.subscription_cycle_custom,
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -88,7 +100,7 @@ fun SubscriptionTabContent(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     ),
-                    contentPadding = 12.dp
+                    contentPadding = Dimensions.Padding.cardCompact
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Icon(
@@ -110,56 +122,10 @@ fun SubscriptionTabContent(
             // get phantom-created on schedule (for accounts that don't send
             // SMS — wallets, allowances). Expense subscriptions match
             // incoming bank-debit SMS like today.
-            val isIncome = uiState.direction ==
-                com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = !isIncome,
-                    onClick = {
-                        viewModel.updateSubscriptionDirection(
-                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
-                        )
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    label = { Text(stringResource(R.string.add_sub_direction_expense)) }
-                )
-                SegmentedButton(
-                    selected = isIncome,
-                    onClick = {
-                        viewModel.updateSubscriptionDirection(
-                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
-                        )
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    label = { Text(stringResource(R.string.add_sub_direction_income)) }
-                )
-            }
-
-            // Info Card — copy adapts to the chosen direction.
-            PennyWiseCardV2(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                contentPadding = 12.dp
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                    Text(
-                        text = if (isIncome)
-                            stringResource(R.string.add_sub_info_income)
-                        else
-                            stringResource(R.string.add_sub_info_expense),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
+            SubscriptionDirectionSection(
+                direction = uiState.direction,
+                onDirectionChange = viewModel::updateSubscriptionDirection
+            )
 
             // Amount row: currency + amount
             Row(
@@ -170,7 +136,7 @@ fun SubscriptionTabContent(
                 ExposedDropdownMenuBox(
                     expanded = showCurrencyMenu,
                     onExpandedChange = { showCurrencyMenu = it },
-                    modifier = Modifier.width(130.dp)
+                    modifier = Modifier.width(Dimensions.Component.currencySelectorWidth)
                 ) {
                     TextField(
                         value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
@@ -179,7 +145,7 @@ fun SubscriptionTabContent(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
-                        shape = subFullShape,
+                        shape = fullShape,
                         colors = subFilledColors()
                     )
                     ExposedDropdownMenu(
@@ -208,7 +174,15 @@ fun SubscriptionTabContent(
                     supportingText = uiState.amountError?.let { { Text(it.asString()) } },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    shape = subFullShape,
+                    shape = fullShape,
+                    trailingIcon = {
+                        IconButton(onClick = { showAmountCalculator = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Calculate,
+                                contentDescription = stringResource(R.string.add_open_calculator)
+                            )
+                        }
+                    },
                     colors = subFilledColors()
                 )
             }
@@ -225,7 +199,7 @@ fun SubscriptionTabContent(
                     modifier = Modifier.weight(1f)
                 ) {
                     TextField(
-                        value = billingCycleLabel(uiState.billingCycle),
+                        value = subscriptionBillingCycleLabel(uiState.billingCycle),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(R.string.add_sub_billing_cycle), fontWeight = FontWeight.SemiBold) },
@@ -235,7 +209,7 @@ fun SubscriptionTabContent(
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
-                        shape = subFullShape,
+                        shape = fullShape,
                         colors = subFilledColors()
                     )
 
@@ -243,9 +217,9 @@ fun SubscriptionTabContent(
                         expanded = showBillingCycleMenu,
                         onDismissRequest = { showBillingCycleMenu = false }
                     ) {
-                        billingCycles.forEach { cycle ->
+                        billingCycles.forEach { (cycle, labelResource) ->
                             DropdownMenuItem(
-                                text = { Text(billingCycleLabel(cycle)) },
+                                text = { Text(stringResource(labelResource)) },
                                 onClick = {
                                     viewModel.updateSubscriptionBillingCycle(cycle)
                                     showBillingCycleMenu = false
@@ -263,7 +237,7 @@ fun SubscriptionTabContent(
                         .weight(1f)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                            shape = MaterialTheme.shapes.medium
                         )
                         .padding(Spacing.sm)
                         .clickable(
@@ -286,12 +260,16 @@ fun SubscriptionTabContent(
                         Spacer(Modifier.size(Spacing.sm))
                         Column {
                             Text(
-                                text = uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("yyyy")),
+                                text = uiState.nextPaymentDate.format(
+                                    DateTimeFormatter.ofPattern("yyyy", Locale.getDefault())
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("dd MMMM")),
+                                text = uiState.nextPaymentDate.format(
+                                    DateTimeFormatter.ofPattern("dd MMMM", Locale.getDefault())
+                                ),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
@@ -300,227 +278,182 @@ fun SubscriptionTabContent(
                         }
                     }
                 }
+
             }
 
-            // Service Name + Category + Notes (connected group)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
-            ) {
-                TextField(
-                    value = uiState.serviceName,
-                    onValueChange = viewModel::updateSubscriptionService,
-                    label = { Text(stringResource(R.string.add_sub_service_name), fontWeight = FontWeight.SemiBold) },
-                    singleLine = true,
+            if (uiState.isCustomCycle) {
+                PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = subTopShape,
-                    leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
-                    isError = uiState.serviceError != null,
-                    supportingText = uiState.serviceError?.let { { Text(it.asString()) } },
-                    colors = subFilledColors()
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = showCategoryMenu,
-                    onExpandedChange = { showCategoryMenu = it },
-                    modifier = Modifier.fillMaxWidth()
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    contentPadding = Dimensions.Padding.cardCompact
                 ) {
-                    TextField(
-                        value = uiState.category,
-                        onValueChange = {},
-                        label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
-                        readOnly = true,
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        shape = subMiddleShape,
-                        leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
-                        trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
-                        isError = uiState.categoryError != null,
-                        supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
-                        colors = subFilledColors()
+                    CustomBillingCycleEditor(
+                        countInput = uiState.customCycleCountInput,
+                        unit = uiState.customCycleUnit,
+                        onCountChanged = viewModel::updateSubscriptionCustomCycleCountInput,
+                        onUnitChanged = viewModel::updateSubscriptionCustomCycleUnit,
                     )
-
-                    ExposedDropdownMenu(
-                        expanded = showCategoryMenu,
-                        onDismissRequest = { showCategoryMenu = false }
-                    ) {
-                        categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        category.name,
-                                        modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.updateSubscriptionCategory(category.name)
-                                    showCategoryMenu = false
-                                }
-                            )
-                        }
-                    }
                 }
-
-                TextField(
-                    value = uiState.notes,
-                    onValueChange = viewModel::updateSubscriptionNotes,
-                    label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = subBottomShape,
-                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                    colors = subFilledColors()
-                )
             }
 
             // ── Funding account (optional) ──
             // When set, marking this subscription paid (or an auto-created
             // scheduled income) moves the chosen account's balance. Leaving it
             // unset keeps the subscription unlinked, exactly like before. (#570)
-            Card(
-                onClick = { showAccountMenu = true },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = subFullShape,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                border = null
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Card(
+                    onClick = { showAccountSheet = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = topShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = null
                 ) {
-                    Icon(
-                        when (uiState.selectedAccount?.getAccountType()) {
-                            AccountType.CASH -> Icons.Default.Money
-                            AccountType.CREDIT -> Icons.Default.CreditCard
-                            AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
-                            null -> Icons.Default.AccountBalance
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            // Alias-aware like the dropdown items, so the account
-                            // doesn't change name when the menu closes (#637).
-                            text = uiState.selectedAccount
-                                ?.let { it.alias?.takeIf { a -> a.isNotBlank() } ?: it.bankName }
-                                ?: stringResource(R.string.add_sub_paid_from),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (uiState.selectedAccount != null)
-                                MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = Dimensions.Padding.cardCompact,
+                                vertical = Dimensions.Padding.content
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                    ) {
+                        Icon(
+                            when (uiState.selectedAccount?.getAccountType()) {
+                                AccountType.CASH -> Icons.Default.Money
+                                AccountType.CREDIT -> Icons.Default.CreditCard
+                                AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
+                                null -> Icons.Default.AccountBalance
+                            },
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (uiState.selectedAccount != null &&
-                            uiState.selectedAccount?.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "••${uiState.selectedAccount?.accountLast4}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                // Alias-aware like the dropdown items, so the account
+                                // doesn't change name when the menu closes (#637).
+                                text = uiState.selectedAccount
+                                    ?.let { it.alias?.takeIf { a -> a.isNotBlank() } ?: it.bankName }
+                                    ?: stringResource(R.string.add_sub_paid_from),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (uiState.selectedAccount != null)
+                                    MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (uiState.selectedAccount != null &&
+                                uiState.selectedAccount?.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                                Text(
+                                    text = "••${uiState.selectedAccount?.accountLast4}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
-                    if (uiState.selectedAccount != null) {
-                        IconButton(
-                            onClick = { viewModel.updateSubscriptionAccount(null) },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Clear,
-                                contentDescription = stringResource(R.string.add_clear),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        if (uiState.selectedAccount != null) {
+                            IconButton(
+                                onClick = { viewModel.updateSubscriptionAccount(null) },
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                            ) {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = stringResource(R.string.add_clear_account),
+                                    modifier = Modifier.size(Dimensions.Icon.inline),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                        Icon(
+                            Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Icon(
-                        Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
+
+                AddCategorySelector(
+                    category = uiState.category,
+                    error = uiState.categoryError?.asString(),
+                    position = ListItemPosition.Bottom,
+                    onClick = { showCategoryPicker = true }
+                )
             }
 
-            // Account selection dropdown menu
-            DropdownMenu(
-                expanded = showAccountMenu,
-                onDismissRequest = { showAccountMenu = false }
+            // Service name + notes remain a separate connected group after the
+            // funding context has been chosen.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(stringResource(R.string.add_sub_no_account))
-                            Text(
-                                stringResource(R.string.add_sub_no_account_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    onClick = {
-                        viewModel.updateSubscriptionAccount(null)
-                        showAccountMenu = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
-                )
-                HorizontalDivider()
-                val groupedAccounts = accounts.groupBy { it.getAccountType() }
-                groupedAccounts.forEach { (accountType, accountList) ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = accountType.displayName(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        onClick = {},
-                        enabled = false
-                    )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(account.displayLabel)
-                                    Text(
-                                        CurrencyFormatter.formatCurrency(account.balance, account.currency),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            },
-                            onClick = {
-                                viewModel.updateSubscriptionAccount(account)
-                                showAccountMenu = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    when (accountType) {
-                                        AccountType.CASH -> Icons.Default.Money
-                                        AccountType.CREDIT -> Icons.Default.CreditCard
-                                        else -> Icons.Default.AccountBalance
-                                    },
-                                    contentDescription = null
-                                )
-                            },
-                            trailingIcon = {
-                                if (uiState.selectedAccount?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                TextField(
+                    value = uiState.serviceName,
+                    onValueChange = viewModel::updateSubscriptionService,
+                    label = {
+                        Text(
+                            stringResource(R.string.add_sub_service_name),
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
-                }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = topShape,
+                    leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
+                    isError = uiState.serviceError != null,
+                    supportingText = uiState.serviceError?.let { { Text(it.asString()) } },
+                    colors = subFilledColors()
+                )
+
+                TextField(
+                    value = uiState.notes,
+                    onValueChange = viewModel::updateSubscriptionNotes,
+                    label = {
+                        Text(
+                            stringResource(R.string.add_field_notes),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = bottomShape,
+                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                    colors = subFilledColors()
+                )
+            }
+
+            if (showAccountSheet) {
+                AccountSelectionSheet(
+                    accounts = accounts,
+                    selectedAccount = uiState.selectedAccount,
+                    allowManualEntry = true,
+                    onAccountSelected = { account ->
+                        viewModel.updateSubscriptionAccount(account)
+                        showAccountSheet = false
+                    },
+                    onDismissRequest = { showAccountSheet = false }
+                )
+            }
+
+            if (showCategoryPicker) {
+                QuickCategoryPickerSheet(
+                    currentCategory = uiState.category,
+                    categories = categories,
+                    title = stringResource(R.string.category_picker_select_title),
+                    searchPlaceholder = stringResource(R.string.category_picker_search_placeholder),
+                    onCategorySelected = { category ->
+                        viewModel.updateSubscriptionCategory(category)
+                        showCategoryPicker = false
+                    },
+                    onDismiss = { showCategoryPicker = false }
+                )
             }
 
             // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
         }
 
         // Sticky Save Button
@@ -546,12 +479,12 @@ fun SubscriptionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(Dimensions.Component.listItemMinHeight)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(Dimensions.Icon.small),
-                        strokeWidth = 2.dp
+                        strokeWidth = Spacing.xxs
                     )
                 } else {
                     Icon(Icons.Default.Done, contentDescription = null)
@@ -560,6 +493,17 @@ fun SubscriptionTabContent(
                 }
             }
         }
+    }
+
+    if (showAmountCalculator) {
+        AmountCalculatorSheet(
+            initialAmount = uiState.amount,
+            onDismiss = { showAmountCalculator = false },
+            onApply = { amount ->
+                viewModel.updateSubscriptionAmount(amount)
+                showAmountCalculator = false
+            }
+        )
     }
 
     // Date Picker Dialog
@@ -584,7 +528,9 @@ fun SubscriptionTabContent(
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.add_cancel))
+                }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -592,13 +538,60 @@ fun SubscriptionTabContent(
     }
 }
 
-/** Billing cycles are stored as English keys; only the label is translated. */
 @Composable
-private fun billingCycleLabel(cycle: String): String = when (cycle) {
-    "Monthly" -> stringResource(R.string.add_sub_cycle_monthly)
-    "Quarterly" -> stringResource(R.string.add_sub_cycle_quarterly)
-    "Semi-Annual" -> stringResource(R.string.add_sub_cycle_semi_annual)
-    "Annual" -> stringResource(R.string.add_sub_cycle_annual)
-    "Weekly" -> stringResource(R.string.add_sub_cycle_weekly)
-    else -> cycle
+internal fun SubscriptionDirectionSection(
+    direction: SubscriptionDirection,
+    onDirectionChange: (SubscriptionDirection) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isIncome = direction == SubscriptionDirection.INCOME
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !isIncome,
+                onClick = { onDirectionChange(SubscriptionDirection.EXPENSE) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                modifier = Modifier.heightIn(min = Dimensions.Component.minTouchTarget),
+                label = { Text(stringResource(R.string.add_sub_direction_expense)) }
+            )
+            SegmentedButton(
+                selected = isIncome,
+                onClick = { onDirectionChange(SubscriptionDirection.INCOME) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                modifier = Modifier.heightIn(min = Dimensions.Component.minTouchTarget),
+                label = { Text(stringResource(R.string.add_sub_direction_income)) }
+            )
+        }
+
+        PennyWiseCardV2(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            contentPadding = Dimensions.Padding.cardCompact
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+                Text(
+                    text = stringResource(
+                        if (isIncome) R.string.add_sub_info_income
+                        else R.string.add_subscription_expense_info
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+    }
 }

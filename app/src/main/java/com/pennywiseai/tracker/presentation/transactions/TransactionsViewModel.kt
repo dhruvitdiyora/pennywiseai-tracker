@@ -27,6 +27,11 @@ import com.pennywiseai.tracker.presentation.common.accountOptions
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.presentation.common.AmountRange
+import com.pennywiseai.tracker.presentation.common.AmountRangeValidation
+import com.pennywiseai.tracker.presentation.common.TransactionAmountFilter
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByAmount
+import com.pennywiseai.tracker.presentation.common.parseAmountRange
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -128,6 +133,14 @@ class TransactionsViewModel @Inject constructor(
     // Tag filter — null means "All tags". Matches any transaction that carries the tag.
     private val _tagFilter = MutableStateFlow<String?>(null)
     val tagFilter: StateFlow<String?> = _tagFilter.asStateFlow()
+
+    // Extra More-filters state. Amounts remain BigDecimal from validation to
+    // comparison; originalCurrencies are only meaningful in unified mode.
+    private val _amountFilter = MutableStateFlow(TransactionAmountFilter())
+    val amountFilter: StateFlow<TransactionAmountFilter> = _amountFilter.asStateFlow()
+
+    private val _availableOriginalCurrencies = MutableStateFlow<List<String>>(emptyList())
+    val availableOriginalCurrencies: StateFlow<List<String>> = _availableOriginalCurrencies.asStateFlow()
 
     val availableTags: StateFlow<List<String>> = tagRepository.observeAllTagNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -762,6 +775,12 @@ class TransactionsViewModel @Inject constructor(
                     _selectedCurrency.value = displayCurrency
                 } else {
                     _selectedCurrency.value = baseCurrency
+                    // Native-currency chips are a unified-mode refinement;
+                    // discard them when returning to the existing native
+                    // currency selector so the two controls cannot conflict.
+                    if (_amountFilter.value.originalCurrencies.isNotEmpty()) {
+                        _amountFilter.update { it.copy(originalCurrencies = emptySet()) }
+                    }
                 }
             }
         }
@@ -831,6 +850,7 @@ class TransactionsViewModel @Inject constructor(
             _ignoredAccountKeys.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
+            amountFilter.map { "amountFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -852,6 +872,7 @@ class TransactionsViewModel @Inject constructor(
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
                 val tag = _tagFilter.value
+                val extraFilter = _amountFilter.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
                 // filter helper can reuse it for the cycle-following periods.
@@ -879,9 +900,31 @@ class TransactionsViewModel @Inject constructor(
                         } else {
                             profileAndAccountFiltered
                         }
+
+                        // Keep the currency picker scoped to the same upstream
+                        // result set as the existing filters, including rows
+                        // later removed by an amount range.
+                        _availableOriginalCurrencies.value = CurrencyUtils.sortCurrencies(
+                            transactions.map { it.currency }.distinct()
+                        )
                         if (isUnified) {
-                            // Show all transactions regardless of currency
-                            emit(sortTransactions(transactions, sort))
+                            // Unified mode compares the range after conversion
+                            // to the selected display currency. A missing rate
+                            // deliberately excludes that row when a range is on.
+                            emit(
+                                sortTransactions(
+                                    filterTransactionsByAmount(
+                                        transactions = transactions,
+                                        filter = extraFilter,
+                                        unifiedMode = true,
+                                        displayCurrency = selectedCurrency.value,
+                                        convertAmountOrNull = { amount, from, to ->
+                                            currencyConversionService.convertAmountOrNull(amount, from, to)
+                                        }
+                                    ),
+                                    sort
+                                )
+                            )
                         } else {
                             // Calculate available currencies from ALL filtered transactions (before currency filtering)
                             val allAvailableCurrencies = CurrencyUtils.sortCurrencies(
@@ -915,7 +958,20 @@ class TransactionsViewModel @Inject constructor(
                                 it.currency.equals(finalCurrency, ignoreCase = true)
                             }
 
-                            emit(sortTransactions(currencyFilteredTransactions, sort))
+                            emit(
+                                sortTransactions(
+                                    filterTransactionsByAmount(
+                                        transactions = currencyFilteredTransactions,
+                                        filter = extraFilter,
+                                        unifiedMode = false,
+                                        displayCurrency = finalCurrency,
+                                        convertAmountOrNull = { amount, from, to ->
+                                            currencyConversionService.convertAmountOrNull(amount, from, to)
+                                        }
+                                    ),
+                                    sort
+                                )
+                            )
                         }
                     }
             }
@@ -995,6 +1051,84 @@ class TransactionsViewModel @Inject constructor(
 
     fun clearTagFilter() {
         _tagFilter.value = null
+    }
+
+    /** Validate and apply the More-filters amount range and native currencies. */
+    fun setAmountFilter(
+        minimumText: String,
+        maximumText: String,
+        originalCurrencies: Set<String>
+    ): AmountRangeValidation {
+        val validation = parseAmountRange(minimumText, maximumText)
+        val range = validation.range ?: return validation
+        _amountFilter.value = TransactionAmountFilter(
+            range = range,
+            // The existing non-unified currency selector remains authoritative.
+            originalCurrencies = if (_isUnifiedMode.value) {
+                originalCurrencies.map { it.uppercase() }.toSet()
+            } else {
+                emptySet()
+            }
+        )
+        return validation
+    }
+
+    /** Apply an already validated range; useful for pure callers and tests. */
+    fun setAmountFilter(range: AmountRange, originalCurrencies: Set<String> = emptySet()) {
+        require(range.minimum?.signum() != -1 && range.maximum?.signum() != -1) {
+            "Amount filters cannot be negative"
+        }
+        require(range.minimum == null || range.maximum == null || range.minimum <= range.maximum) {
+            "Minimum amount cannot exceed maximum amount"
+        }
+        _amountFilter.value = TransactionAmountFilter(
+            range = range,
+            originalCurrencies = if (_isUnifiedMode.value) {
+                originalCurrencies.map { it.uppercase() }.toSet()
+            } else {
+                emptySet()
+            }
+        )
+    }
+
+    fun clearAmountFilter() {
+        _amountFilter.value = TransactionAmountFilter()
+    }
+
+    /**
+     * Commits the sheet's complete draft after validating it. Invalid amount
+     * input changes nothing, so Apply never leaves a partially updated filter
+     * bundle behind.
+     */
+    fun applyFilterDraft(draft: TransactionFilterDraft): TransactionFilterDraftValidation {
+        val validation = draft.validation
+        val validatedAmountFilter = draft.validatedAmountFilter(_isUnifiedMode.value)
+            ?: return validation
+
+        if (draft.period == TimePeriod.CUSTOM) {
+            val (start, end) = requireNotNull(draft.customDateRange)
+            savedStateHandle["customDateRange"] = start.toEpochDay() to end.toEpochDay()
+        } else {
+            savedStateHandle["customDateRange"] = null
+        }
+        _selectedPeriod.value = draft.period
+        _categoryFilter.value = draft.category?.takeIf { it.isNotBlank() }
+        _categoriesFilter.value = draft.navigationCategories
+            ?.filter { it.isNotBlank() }
+            ?.takeIf { it.isNotEmpty() }
+        _categoriesFromBudget.value = draft.categoriesFromBudget && _categoriesFilter.value != null
+        _transactionTypeFilter.value = draft.transactionType
+        _accountFilter.value = draft.accountKey
+        _tagFilter.value = draft.tag?.takeIf { it.isNotBlank() }
+        _amountFilter.value = validatedAmountFilter
+
+        if (_selectedProfileId.value != draft.profileId) {
+            _selectedProfileId.value = draft.profileId
+            viewModelScope.launch {
+                userPreferencesRepository.updateSelectedProfileId(draft.profileId)
+            }
+        }
+        return validation
     }
     
     fun setSelectedProfile(profileId: Long?) {
@@ -1096,6 +1230,7 @@ class TransactionsViewModel @Inject constructor(
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
         setAccountFilter(null)
         clearTagFilter()
+        clearAmountFilter()
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
         if (!_isUnifiedMode.value) {
@@ -1103,6 +1238,24 @@ class TransactionsViewModel @Inject constructor(
                 _selectedCurrency.value = userPreferencesRepository.baseCurrency.first()
             }
         }
+    }
+
+    /**
+     * Clears screen-scoped filters before a new drill-down is initialized.
+     * The selected profile is deliberately retained because it is the app-wide
+     * profile scope shared with Home, not an ordinary Transactions-only filter.
+     */
+    private fun resetScopedFiltersForNavigation() {
+        clearCategoryFilter()
+        clearCategoriesFilter()
+        updateSearchQuery("")
+        clearCustomDateRange()
+        selectPeriod(TimePeriod.THIS_MONTH)
+        setTransactionTypeFilter(TransactionTypeFilter.ALL)
+        setAccountFilter(null)
+        clearTagFilter()
+        clearAmountFilter()
+        setSortOption(SortOption.DATE_NEWEST)
     }
     
     private fun decodeUrlParam(value: String): String {
@@ -1121,11 +1274,7 @@ class TransactionsViewModel @Inject constructor(
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
-            clearCategoryFilter()
-            updateSearchQuery("")
-            selectPeriod(TimePeriod.THIS_MONTH)
-            setTransactionTypeFilter(TransactionTypeFilter.ALL)
-            setSortOption(SortOption.DATE_NEWEST)
+            resetScopedFiltersForNavigation()
 
             category?.let {
                 val decoded = decodeUrlParam(it)
@@ -1197,11 +1346,7 @@ class TransactionsViewModel @Inject constructor(
         appliedNavigationParams = currentParams
 
         // Reset filters for new navigation
-        clearCategoryFilter()
-        updateSearchQuery("")
-        selectPeriod(TimePeriod.THIS_MONTH)
-        setTransactionTypeFilter(TransactionTypeFilter.ALL)
-        setSortOption(SortOption.DATE_NEWEST)
+        resetScopedFiltersForNavigation()
 
         category?.let {
             val decoded = decodeUrlParam(it)
@@ -1247,9 +1392,7 @@ class TransactionsViewModel @Inject constructor(
         appliedBudgetParams = currentParams
 
         // Clear existing filters first
-        clearCategoryFilter()
-        updateSearchQuery("")
-        setSortOption(SortOption.DATE_NEWEST)
+        resetScopedFiltersForNavigation()
 
         // Set custom date range
         setCustomDateRange(

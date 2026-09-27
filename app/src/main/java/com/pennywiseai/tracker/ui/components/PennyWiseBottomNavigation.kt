@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.ui.res.stringResource
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -32,10 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavDestination
@@ -50,7 +53,6 @@ import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -75,6 +77,18 @@ fun PennyWiseBottomNavigation(
         BottomNavItem.Chat
     )
     val containerColor = MaterialTheme.colorScheme.surface
+    val view = LocalView.current
+
+    fun navigateTo(item: BottomNavItem) {
+        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        navController.navigate(item.route) {
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Box(modifier = modifier) {
         // NORMAL style NavigationBar
@@ -111,6 +125,7 @@ fun PennyWiseBottomNavigation(
                     )
                 ) {
                     navigationItems.forEach { item ->
+                        val title = stringResource(item.titleRes)
                         val selected = currentDestination?.hierarchy?.any {
                             // Match on the route base so query-arg routes (e.g.
                             // "transactions?type=…") still light up their tab.
@@ -119,18 +134,12 @@ fun PennyWiseBottomNavigation(
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navigateTo(item)
                             },
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
-                                    contentDescription = stringResource(item.titleRes),
+                                    contentDescription = title,
                                     tint = if (selected) {
                                         if (hidePill) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onPrimaryContainer
@@ -147,7 +156,7 @@ fun PennyWiseBottomNavigation(
                             label = if (hideLabels) null else {
                                 {
                                     Text(
-                                        text = stringResource(item.titleRes),
+                                        text = title,
                                         color = if (selected) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.labelMedium
@@ -216,6 +225,7 @@ fun PennyWiseBottomNavigation(
                     expanded = true,
                 ) {
                     navigationItems.forEach { item ->
+                        val title = stringResource(item.titleRes)
                         val selected = currentDestination?.hierarchy?.any {
                             // Match on the route base so query-arg routes (e.g.
                             // "transactions?type=…") still light up their tab.
@@ -225,13 +235,7 @@ fun PennyWiseBottomNavigation(
                         TonalToggleButton(
                             checked = selected,
                             onCheckedChange = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navigateTo(item)
                             },
                             colors = ToggleButtonDefaults.toggleButtonColors(
                                 containerColor = if (blurEffects)
@@ -247,14 +251,14 @@ fun PennyWiseBottomNavigation(
                             ),
                             modifier = Modifier.padding(horizontal = Spacing.xs)
                         ) {
-                            Icon(imageVector = item.icon, contentDescription = stringResource(item.titleRes))
+                            Icon(imageVector = item.icon, contentDescription = title)
                             AnimatedVisibility(
                                 visible = selected,
                                 enter = fadeIn() + expandHorizontally(MaterialTheme.motionScheme.fastSpatialSpec()),
                                 exit = fadeOut() + shrinkHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())
                             ) {
                                 Text(
-                                    text = stringResource(item.titleRes),
+                                    text = title,
                                     modifier = Modifier.padding(start = Spacing.sm)
                                 )
                             }

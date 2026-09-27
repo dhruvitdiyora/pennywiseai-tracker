@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -38,8 +37,6 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,8 +69,6 @@ import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.ui.components.profileIcon
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -139,6 +134,8 @@ fun TransactionsScreen(
     val accountOptions by viewModel.accountOptions.collectAsState()
     val tagFilter by viewModel.tagFilter.collectAsState()
     val availableTags by viewModel.availableTags.collectAsState()
+    val amountFilter by viewModel.amountFilter.collectAsState()
+    val availableOriginalCurrencies by viewModel.availableOriginalCurrencies.collectAsState()
 
     // Bulk-edit selection (#369)
     val selectedIds by viewModel.selectedIds.collectAsState()
@@ -161,12 +158,7 @@ fun TransactionsScreen(
     // current list when rendering the sheet.
     var pendingCategoryEditId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showSortMenu by remember { mutableStateOf(false) } // Menu doesn't need saving
-    var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
-    var showPeriodMenu by remember { mutableStateOf(false) }
-    var showTypeMenu by remember { mutableStateOf(false) }
-    var showMoreFiltersMenu by remember { mutableStateOf(false) }
-    var showAccountMenu by remember { mutableStateOf(false) }
-    var showTagMenu by remember { mutableStateOf(false) }
+    var showFiltersSheet by rememberSaveable { mutableStateOf(false) }
 
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
@@ -188,8 +180,37 @@ fun TransactionsScreen(
         selectedProfileId != null ||
         accountFilter != null ||
         tagFilter != null ||
+        amountFilter.isActive ||
         hasCurrencyFilter ||
         customDateRange != null
+
+    val committedFilterDraft = remember(
+        selectedPeriod,
+        customDateRange,
+        categoryFilter,
+        categoriesFilter,
+        categoriesFromBudget,
+        transactionTypeFilter,
+        selectedProfileId,
+        accountFilter,
+        tagFilter,
+        amountFilter,
+    ) {
+        TransactionFilterDraft(
+            period = selectedPeriod,
+            customDateRange = customDateRange,
+            category = categoryFilter,
+            navigationCategories = categoriesFilter,
+            categoriesFromBudget = categoriesFromBudget,
+            transactionType = transactionTypeFilter,
+            profileId = selectedProfileId,
+            accountKey = accountFilter,
+            tag = tagFilter,
+            minimumText = amountFilter.range.minimum?.toPlainString().orEmpty(),
+            maximumText = amountFilter.range.maximum?.toPlainString().orEmpty(),
+            originalCurrencies = amountFilter.originalCurrencies,
+        )
+    }
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
@@ -204,7 +225,6 @@ fun TransactionsScreen(
     }
 
     // Cache expensive operations
-    val timePeriods = remember { TimePeriod.values().toList() }
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
@@ -415,38 +435,15 @@ fun TransactionsScreen(
                 .hazeSource(hazeState)
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
-        TransactionFilterHeader(
+        UnifiedTransactionFilterHeader(
             searchQuery = searchQuery,
-            categoryFilter = categoryFilter,
             selectedPeriod = selectedPeriod,
-            customRangeLabel = customRangeLabel,
             periodChipLabel = periodChipLabel,
-            transactionTypeFilter = transactionTypeFilter,
-            categoryLabel = categoryFilterLabel(categoryFilter, categoriesFilter, availableCategories),
-            hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
-            selectedCategories = categoriesFilter?.toSet()
-                ?: categoryFilter?.let { setOf(it) }
-                ?: availableCategories.toSet(),
-            onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
-            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.name ?: stringResource(R.string.txn_list_filter_profile),
-            hasProfileFilter = selectedProfileId != null,
+            activeFilterCount = committedFilterDraft.activeFilterCount,
             hasAnyActiveFilter = hasAnyActiveFilter,
             showSortMenu = showSortMenu,
-            showPeriodMenu = showPeriodMenu,
-            showTypeMenu = showTypeMenu,
-            showMoreFiltersMenu = showMoreFiltersMenu,
-            showAccountMenu = showAccountMenu,
-            showTagMenu = showTagMenu,
-            collapsed = collapseTransactionHeader && !showPeriodMenu && !showTypeMenu && !showMoreFiltersMenu && !showAccountMenu && !showTagMenu,
+            collapsed = collapseTransactionHeader,
             sortOption = sortOption,
-            timePeriods = timePeriods,
-            availableCategories = availableCategories,
-            profiles = profiles,
-            selectedProfileId = selectedProfileId,
-            accountOptions = accountOptions,
-            accountFilter = accountFilter,
-            availableTags = availableTags,
-            tagFilter = tagFilter,
             onSearchQueryChange = viewModel::updateSearchQuery,
             onSortClick = { showSortMenu = true },
             onSortDismiss = { showSortMenu = false },
@@ -454,54 +451,7 @@ fun TransactionsScreen(
                 viewModel.setSortOption(option)
                 showSortMenu = false
             },
-            onPeriodClick = { showPeriodMenu = true },
-            onPeriodDismiss = { showPeriodMenu = false },
-            onPeriodSelected = { period ->
-                if (period == TimePeriod.CUSTOM) {
-                    showDateRangePicker = true
-                } else {
-                    viewModel.selectPeriod(period)
-                }
-                showPeriodMenu = false
-            },
-            onTypeClick = { showTypeMenu = true },
-            onTypeDismiss = { showTypeMenu = false },
-            onTransactionTypeSelected = { typeFilter ->
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                viewModel.setTransactionTypeFilter(typeFilter)
-                showTypeMenu = false
-            },
-            onMoreFiltersClick = { showMoreFiltersMenu = true },
-            onMoreFiltersDismiss = { showMoreFiltersMenu = false },
-            onCategorySelected = { category ->
-                if (category == null) {
-                    // "All categories" clears both the single and the ticked-list filter
-                    viewModel.clearCategoryFilter()
-                    viewModel.clearCategoriesFilter()
-                } else {
-                    viewModel.setCategoryFilter(category)
-                }
-                showMoreFiltersMenu = false
-            },
-            onProfileSelected = { profileId ->
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                viewModel.setSelectedProfile(profileId)
-                showMoreFiltersMenu = false
-            },
-            onAccountClick = { showAccountMenu = true },
-            onAccountDismiss = { showAccountMenu = false },
-            onAccountSelected = { accountKey ->
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                viewModel.setAccountFilter(accountKey)
-                showAccountMenu = false
-            },
-            onTagClick = { showTagMenu = true },
-            onTagDismiss = { showTagMenu = false },
-            onTagSelected = { tag ->
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                viewModel.setTagFilter(tag)
-                showTagMenu = false
-            },
+            onFiltersClick = { showFiltersSheet = true },
             onResetFilters = viewModel::resetFilters,
             focusRequester = searchFocusRequester,
             modifier = Modifier
@@ -728,15 +678,24 @@ fun TransactionsScreen(
         )
     }
 
-    if (showDateRangePicker) {
-        CustomDateRangePickerDialog(
-            onDismiss = { showDateRangePicker = false },
-            onConfirm = { startDate, endDate ->
-                viewModel.setCustomDateRange(startDate, endDate)
-                showDateRangePicker = false
+    if (showFiltersSheet) {
+        TransactionFiltersSheet(
+            initialDraft = committedFilterDraft,
+            availableCategories = availableCategories,
+            profiles = profiles,
+            accountOptions = accountOptions,
+            availableTags = availableTags,
+            availableOriginalCurrencies = availableOriginalCurrencies,
+            unifiedMode = isUnifiedMode,
+            displayCurrency = selectedCurrency,
+            onApply = { draft ->
+                val result = viewModel.applyFilterDraft(draft)
+                if (result.isValid) {
+                    showFiltersSheet = false
+                }
+                result
             },
-            initialStartDate = customDateRange?.first,
-            initialEndDate = customDateRange?.second
+            onDismiss = { showFiltersSheet = false },
         )
     }
 
@@ -1032,395 +991,117 @@ private fun TransactionDateHeader(
 }
 
 @Composable
-private fun TransactionFilterHeader(
+private fun UnifiedTransactionFilterHeader(
     searchQuery: String,
-    categoryFilter: String?,
     selectedPeriod: TimePeriod,
-    customRangeLabel: String?,
     periodChipLabel: String,
-    transactionTypeFilter: TransactionTypeFilter,
-    categoryLabel: String?,
-    hasCategoryFilter: Boolean,
-    selectedProfileName: String,
-    hasProfileFilter: Boolean,
+    activeFilterCount: Int,
     hasAnyActiveFilter: Boolean,
     showSortMenu: Boolean,
-    showPeriodMenu: Boolean,
-    showTypeMenu: Boolean,
-    showMoreFiltersMenu: Boolean,
-    showAccountMenu: Boolean,
-    showTagMenu: Boolean,
     collapsed: Boolean,
     sortOption: SortOption,
-    timePeriods: List<TimePeriod>,
-    availableCategories: List<String>,
-    profiles: List<ProfileEntity>,
-    selectedProfileId: Long?,
-    accountOptions: List<com.pennywiseai.tracker.presentation.common.AccountOption>,
-    accountFilter: String?,
-    availableTags: List<String>,
-    tagFilter: String?,
     onSearchQueryChange: (String) -> Unit,
     onSortClick: () -> Unit,
     onSortDismiss: () -> Unit,
     onSortSelected: (SortOption) -> Unit,
-    onPeriodClick: () -> Unit,
-    onPeriodDismiss: () -> Unit,
-    onPeriodSelected: (TimePeriod) -> Unit,
-    onTypeClick: () -> Unit,
-    onTypeDismiss: () -> Unit,
-    onTransactionTypeSelected: (TransactionTypeFilter) -> Unit,
-    onMoreFiltersClick: () -> Unit,
-    onMoreFiltersDismiss: () -> Unit,
-    onCategorySelected: (String?) -> Unit,
-    selectedCategories: Set<String>,
-    onCategoryToggled: (String) -> Unit,
-    onProfileSelected: (Long?) -> Unit,
-    onAccountClick: () -> Unit,
-    onAccountDismiss: () -> Unit,
-    onAccountSelected: (String?) -> Unit,
-    onTagClick: () -> Unit,
-    onTagDismiss: () -> Unit,
-    onTagSelected: (String?) -> Unit,
+    onFiltersClick: () -> Unit,
     onResetFilters: () -> Unit,
     focusRequester: FocusRequester,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TransactionSearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange,
-                categoryFilter = categoryFilter,
-                focusRequester = focusRequester,
-                trailingContent = {
-                    Box {
-                        IconButton(onClick = onSortClick) {
-                            Icon(
-                                imageVector = Icons.Rounded.MoreHoriz,
-                                contentDescription = stringResource(R.string.txn_list_more_options),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+        TransactionSearchBar(
+            query = searchQuery,
+            onQueryChange = onSearchQueryChange,
+            categoryFilter = null,
+            focusRequester = focusRequester,
+            trailingContent = {
+                Box {
+                    IconButton(onClick = onSortClick) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreHoriz,
+                            contentDescription = stringResource(R.string.txn_list_more_options),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = onSortDismiss,
+                        shape = MaterialTheme.shapes.large,
+                    ) {
+                        SortOption.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(
+                                            selected = sortOption == option,
+                                            onClick = null,
+                                            modifier = Modifier.size(Dimensions.Icon.medium),
+                                        )
+                                        Text(stringResource(option.labelRes))
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Sort,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(Dimensions.Icon.small),
+                                    )
+                                },
+                                onClick = { onSortSelected(option) },
                             )
                         }
-
-                        DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = onSortDismiss,
-                            shape = MaterialTheme.shapes.large
-                        ) {
-                            SortOption.values().forEach { option ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            RadioButton(
-                                                selected = sortOption == option,
-                                                onClick = null,
-                                                modifier = Modifier.size(Dimensions.Icon.medium)
-                                            )
-                                            Text(stringResource(option.labelRes))
-                                        }
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.Sort,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                    },
-                                    onClick = { onSortSelected(option) }
-                                )
-                            }
-                            if (hasAnyActiveFilter) {
-                                HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.txn_list_clear_filters)) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        onResetFilters()
-                                        onSortDismiss()
-                                    }
-                                )
-                            }
+                        if (hasAnyActiveFilter) {
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.txn_list_clear_filters))
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                onClick = {
+                                    onResetFilters()
+                                    onSortDismiss()
+                                },
+                            )
                         }
                     }
-                },
-                modifier = Modifier.weight(1f)
-            )
-        }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         AnimatedVisibility(
             visible = !collapsed,
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
         ) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                item {
-                    Box {
-                        ExpressiveFilterChip(
-                            selected = true,
-                            text = periodChipLabel,
-                            icon = Icons.Default.CalendarMonth,
-                            onClick = onPeriodClick
-                        )
-
-                        DropdownMenu(
-                            expanded = showPeriodMenu,
-                            onDismissRequest = onPeriodDismiss
-                        ) {
-                            timePeriods.forEach { period ->
-                                DropdownMenuItem(
-                                    text = { Text(period.label) },
-                                    leadingIcon = {
-                                        if (selectedPeriod == period) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        }
-                                    },
-                                    onClick = { onPeriodSelected(period) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Box {
-                        ExpressiveFilterChip(
-                            selected = transactionTypeFilter != TransactionTypeFilter.ALL,
-                            text = transactionTypeFilter.shortLabel(),
-                            icon = transactionTypeFilter.filterIcon(),
-                            onClick = onTypeClick
-                        )
-
-                        DropdownMenu(
-                            expanded = showTypeMenu,
-                            onDismissRequest = onTypeDismiss,
-                            shape = MaterialTheme.shapes.large
-                        ) {
-                            TransactionTypeFilter.values().forEach { typeFilter ->
-                                DropdownMenuItem(
-                                    text = { Text(typeFilter.label) },
-                                    leadingIcon = {
-                                        if (transactionTypeFilter == typeFilter) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(
-                                                imageVector = typeFilter.filterIcon(),
-                                                contentDescription = null
-                                            )
-                                        }
-                                    },
-                                    onClick = { onTransactionTypeSelected(typeFilter) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Box {
-                        ExpressiveFilterChip(
-                            selected = hasCategoryFilter || hasProfileFilter,
-                            text = moreFiltersLabel(
-                                categoryLabel = categoryLabel,
-                                selectedProfileName = selectedProfileName,
-                                hasCategoryFilter = hasCategoryFilter,
-                                hasProfileFilter = hasProfileFilter
-                            ),
-                            icon = Icons.Default.Tune,
-                            onClick = onMoreFiltersClick,
-                            enabled = availableCategories.isNotEmpty() || profiles.isNotEmpty() ||
-                                    hasCategoryFilter || hasProfileFilter
-                        )
-
-                        DropdownMenu(
-                            expanded = showMoreFiltersMenu,
-                            onDismissRequest = onMoreFiltersDismiss
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.txn_list_all_categories)) },
-                                leadingIcon = {
-                                    if (!hasCategoryFilter) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    } else {
-                                        Icon(Icons.Default.Category, contentDescription = null)
-                                    }
-                                },
-                                onClick = { onCategorySelected(null) }
-                            )
-                            // Tick/untick to include or exclude (#786); the menu stays
-                            // open so several can be changed in one go.
-                            availableCategories.forEach { category ->
-                                DropdownMenuItem(
-                                    text = { Text(category, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                    leadingIcon = {
-                                        Checkbox(
-                                            checked = category in selectedCategories,
-                                            onCheckedChange = null
-                                        )
-                                    },
-                                    trailingIcon = {
-                                        CategoryIcon(category = category, size = Dimensions.Icon.small)
-                                    },
-                                    onClick = { onCategoryToggled(category) }
-                                )
-                            }
-                            if (profiles.isNotEmpty()) {
-                                HorizontalDivider()
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.txn_list_all_profiles)) },
-                                leadingIcon = {
-                                    if (selectedProfileId == null) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    } else {
-                                        Icon(Icons.Outlined.AccountBalance, contentDescription = null)
-                                    }
-                                },
-                                onClick = { onProfileSelected(null) }
-                            )
-                            profiles.forEach { profile ->
-                                DropdownMenuItem(
-                                    text = { Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                    leadingIcon = {
-                                        if (selectedProfileId == profile.id) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(
-                                                profileIcon(profile),
-                                                contentDescription = null
-                                            )
-                                        }
-                                    },
-                                    onClick = { onProfileSelected(profile.id) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (availableTags.isNotEmpty() || tagFilter != null) {
-                    item {
-                        Box {
-                            ExpressiveFilterChip(
-                                selected = tagFilter != null,
-                                text = tagFilter ?: stringResource(R.string.txn_list_filter_tag),
-                                icon = Icons.Default.Sell,
-                                onClick = onTagClick
-                            )
-
-                            DropdownMenu(
-                                expanded = showTagMenu,
-                                onDismissRequest = onTagDismiss
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.txn_list_all_tags)) },
-                                    leadingIcon = {
-                                        if (tagFilter == null) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(Icons.Default.Sell, contentDescription = null)
-                                        }
-                                    },
-                                    onClick = { onTagSelected(null) }
-                                )
-                                availableTags.forEach { tag ->
-                                    DropdownMenuItem(
-                                        text = { Text(tag, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                        leadingIcon = {
-                                            if (tagFilter?.equals(tag, ignoreCase = true) == true) {
-                                                Icon(Icons.Default.Check, contentDescription = null)
-                                            } else {
-                                                Icon(Icons.Default.Sell, contentDescription = null)
-                                            }
-                                        },
-                                        onClick = { onTagSelected(tag) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (accountOptions.isNotEmpty()) {
-                    item {
-                        Box {
-                            val selectedAccountLabel =
-                                accountOptions.firstOrNull { it.key == accountFilter }?.label
-                            ExpressiveFilterChip(
-                                selected = accountFilter != null,
-                                text = selectedAccountLabel ?: stringResource(R.string.txn_list_filter_account),
-                                icon = Icons.Outlined.AccountBalanceWallet,
-                                onClick = onAccountClick
-                            )
-
-                            DropdownMenu(
-                                expanded = showAccountMenu,
-                                onDismissRequest = onAccountDismiss
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.txn_list_all_accounts)) },
-                                    leadingIcon = {
-                                        if (accountFilter == null) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
-                                        }
-                                    },
-                                    onClick = { onAccountSelected(null) }
-                                )
-                                accountOptions.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                        leadingIcon = {
-                                            if (accountFilter == option.key) {
-                                                Icon(Icons.Default.Check, contentDescription = null)
-                                            } else {
-                                                Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
-                                            }
-                                        },
-                                        onClick = { onAccountSelected(option.key) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            val summary = when {
+                activeFilterCount == 0 -> periodChipLabel
+                activeFilterCount == 1 && selectedPeriod != TimePeriod.THIS_MONTH -> periodChipLabel
+                else -> stringResource(
+                    R.string.transactions_filters_summary_count,
+                    activeFilterCount,
+                )
             }
+            ExpressiveFilterChip(
+                selected = activeFilterCount > 0,
+                text = summary,
+                icon = Icons.Default.Tune,
+                onClick = onFiltersClick,
+            )
         }
-    }
-}
-
-@Composable
-private fun moreFiltersLabel(
-    categoryLabel: String?,
-    selectedProfileName: String,
-    hasCategoryFilter: Boolean,
-    hasProfileFilter: Boolean
-): String {
-    return when {
-        hasCategoryFilter && hasProfileFilter -> stringResource(R.string.txn_list_filters_two)
-        hasCategoryFilter -> categoryLabel ?: stringResource(R.string.txn_list_filter_category)
-        hasProfileFilter -> selectedProfileName
-        else -> stringResource(R.string.txn_list_filters)
     }
 }
 
@@ -1534,20 +1215,3 @@ private val DATE_MARKER_WIDTH = Spacing.xs
 /** Height of that marker — set to the cap height of the header text so the two
  *  read as one unit rather than a bar next to a label. */
 private val DATE_MARKER_HEIGHT = Spacing.md + Spacing.xxs
-
-/** "All categories", one name, "All except X, Y", or "N categories" (#786). */
-@Composable
-private fun categoryFilterLabel(
-    single: String?,
-    selected: List<String>?,
-    available: List<String>
-): String? {
-    if (single != null) return single
-    if (selected == null) return null
-    val excluded = available - selected.toSet()
-    return when {
-        selected.size == 1 -> selected.first()
-        excluded.size in 1..2 && selected.size >= 2 -> stringResource(R.string.txn_list_categories_all_except, excluded.joinToString(", "))
-        else -> pluralStringResource(R.plurals.txn_list_categories_count, selected.size, selected.size)
-    }
-}

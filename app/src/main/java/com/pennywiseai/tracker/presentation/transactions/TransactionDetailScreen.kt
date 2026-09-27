@@ -5,6 +5,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -112,6 +113,14 @@ private val editTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, 
 private val editMiddleShape = RoundedCornerShape(4.dp)
 private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
 private val editFullShape = RoundedCornerShape(16.dp)
+
+internal fun buildReceiptShareIntent(receiptUri: Uri, subject: String): Intent =
+    Intent(Intent.ACTION_SEND).apply {
+        type = "image/jpeg"
+        putExtra(Intent.EXTRA_STREAM, receiptUri)
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -554,6 +563,7 @@ private fun TransactionReceipt(
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long? = null
 ) {
+    val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
         TransactionType.INCOME -> if (isDark) income_dark else income_light
@@ -978,49 +988,35 @@ private fun TransactionReceipt(
         // ── Receipt Section ──
         val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
         receiptUri?.let { uri ->
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { viewModel.showFullScreenReceipt() },
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(Spacing.md)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Icon(
-                            Icons.Default.Receipt,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.medium),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.txn_detail_receipt),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = stringResource(R.string.txn_detail_receipt_tap_to_view),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            ReceiptAttachmentCard(
+                model = uri,
+                onView = viewModel::showFullScreenReceipt,
+                onShare = {
+                    val shareUri = viewModel.getReceiptShareUri()
+                    if (shareUri == null) {
+                        Toast.makeText(
+                            context,
+                            R.string.receipt_unavailable,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    } else {
+                        runCatching {
+                            context.startActivity(
+                                Intent.createChooser(
+                                    buildReceiptShareIntent(shareUri, transaction.merchantName),
+                                    context.getString(R.string.share_receipt),
+                                )
+                            )
+                        }.onFailure {
+                            Toast.makeText(
+                                context,
+                                R.string.receipt_share_failed,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
                     }
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = stringResource(R.string.txn_detail_receipt),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 200.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
+                },
+            )
         }
 
         // ── SMS Section ──

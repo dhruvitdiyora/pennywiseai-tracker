@@ -18,6 +18,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -131,6 +132,8 @@ class BackupImporter @Inject constructor(
                 database.exchangeRateDao().deleteAllRates()
                 database.bankNotificationDao().deleteAllNotifications()
                 database.loanDao().deleteAllLoans()
+                // Loans reference people, so remove the children first.
+                database.personDao().deleteAllPeople()
                 database.transactionGroupDao().deleteAllGroups()
                 database.budgetSnapshotDao().deleteAllGroupSnapshots()
                 database.budgetSnapshotDao().deleteAllCategorySnapshots()
@@ -143,10 +146,33 @@ class BackupImporter @Inject constructor(
                 // Profiles deliberately preserved — defaults (Personal=1, Business=2)
                 // are seeded on first launch and we don't want to wipe them.
 
-                // Import loans / groups / profiles BEFORE transactions and
+                // Import people, loans / groups / profiles BEFORE transactions and
                 // account balances so the foreign-key references on those
-                // children (loan_id, group_id, profile_id) resolve.
+                // children (person_id, loan_id, group_id, profile_id) resolve.
                 //
+                // People, loans & groups: their DAOs respect the explicit `id`
+                // field on @Insert when non-zero/non-blank, so backup IDs are
+                // preserved in REPLACE_ALL.
+                val sourcePersonIdMap = mutableMapOf<Long, Long>()
+                backup.database.people.insertEachCounting({ skippedRows++ }) { person ->
+                    val sourceId = person.id
+                    val normalized = person.normalizedForImport()
+                    val localId = database.personDao().insertPerson(normalized)
+                    if (sourceId > 0L) sourcePersonIdMap[sourceId] = localId
+                }
+                val personIdByLegacyName = database.personDao().getAllPeopleSync()
+                    .associateByTo(mutableMapOf()) { it.normalizedName }
+                suspend fun resolveOrCreatePerson(loan: LoanEntity): Long? {
+                    loan.personId?.let { sourcePersonIdMap[it] }?.let { return it }
+                    val normalizedName = normalizePersonNameForImport(loan.personName)
+                    if (normalizedName.isBlank()) return null
+                    personIdByLegacyName[normalizedName]?.let { return it.id }
+                    val displayName = loan.personName.trim()
+                    val person = PersonEntity(name = displayName, normalizedName = normalizedName)
+                    val localId = database.personDao().insertPerson(person)
+                    personIdByLegacyName[normalizedName] = person.copy(id = localId)
+                    return localId
+                }
                 // Loans & groups: both DAOs respect the explicit `id` field on
                 // @Insert when non-zero, so backup IDs are preserved.
                 // Profiles: explicit primary key, but local defaults (1, 2)
@@ -154,7 +180,13 @@ class BackupImporter @Inject constructor(
                 // returns a backup-id → final-local-id map so callers can
                 // remap each entity's profileId field.
                 backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
-                    database.loanDao().insertLoan(loan)
+                    database.loanDao().insertLoan(
+                        loan.copy(
+                            personName = loan.personName.trim(),
+                            currency = normalizeCurrencyForImport(loan.currency),
+                            personId = resolveOrCreatePerson(loan),
+                        )
+                    )
                 }
                 backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     database.transactionGroupDao().insertGroup(group)
@@ -352,6 +384,27 @@ class BackupImporter @Inject constructor(
                     }
                 }
 
+                // Import people before loans so every loan's person_id can be
+                // remapped to the local identity without breaking its link.
+                val personIdMap = importPeopleAndBuildMap(backup.database.people) { skippedRows++ }
+                val personIdByLegacyName = database.personDao().getAllPeopleSync()
+                    .associateByTo(mutableMapOf()) { it.normalizedName }
+                // Only trust ids this backup's own people mapped. A bare local id
+                // match could belong to an unrelated person, so anything else
+                // falls back to the loan's name below.
+                fun resolvePersonId(oldId: Long?): Long? = oldId?.let { personIdMap[it] }
+                suspend fun resolveOrCreatePerson(loan: LoanEntity): Long? {
+                    resolvePersonId(loan.personId)?.let { return it }
+                    val normalizedName = normalizePersonNameForImport(loan.personName)
+                    if (normalizedName.isBlank()) return null
+                    personIdByLegacyName[normalizedName]?.let { return it.id }
+                    val displayName = loan.personName.trim()
+                    val person = PersonEntity(name = displayName, normalizedName = normalizedName)
+                    val localId = database.personDao().insertPerson(person)
+                    personIdByLegacyName[normalizedName] = person.copy(id = localId)
+                    return localId
+                }
+
                 // Import loans / groups BEFORE transactions so we can remap
                 // TransactionEntity.loan_id and group_id to the new local IDs
                 // (Room hands us fresh IDs because we insert with id = 0 in
@@ -368,14 +421,21 @@ class BackupImporter @Inject constructor(
                 // imports don't break the match.
                 val existingLoans = database.loanDao().getAllLoans().first()
                 val existingLoanKeyToId = existingLoans.associate {
-                    Triple(it.personName, it.direction, it.createdAt) to it.id
-                }
+                    it.importIdentityKey() to it.id
+                }.toMutableMap()
                 val oldToNewLoanIdMap = mutableMapOf<Long, Long>()
                 backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
-                    val key = Triple(loan.personName, loan.direction, loan.createdAt)
+                    val key = loan.importIdentityKey()
                     val existingId = existingLoanKeyToId[key]
                     val newId = existingId
-                        ?: database.loanDao().insertLoan(loan.copy(id = 0))
+                        ?: database.loanDao().insertLoan(
+                            loan.copy(
+                                id = 0,
+                                personName = loan.personName.trim(),
+                                currency = normalizeCurrencyForImport(loan.currency),
+                                personId = resolveOrCreatePerson(loan),
+                            )
+                        ).also { existingLoanKeyToId[key] = it }
                     if (loan.id != 0L) oldToNewLoanIdMap[loan.id] = newId
                 }
 
@@ -733,6 +793,42 @@ class BackupImporter @Inject constructor(
             }
         }
     }
+
+    /**
+     * Insert people and return a backup-id → local-id map. Stable IDs are
+     * preferred. An ID collision with a different identity gets a generated
+     * local ID; an exact identity match keeps repeated merge restores idempotent.
+     */
+    private suspend fun importPeopleAndBuildMap(
+        people: List<PersonEntity>,
+        onSkip: () -> Unit
+    ): Map<Long, Long> {
+        if (people.isEmpty()) return emptyMap()
+
+        val existing = database.personDao().getAllPeopleSync()
+        val existingById = existing.associateByTo(mutableMapOf()) { it.id }
+        val existingByIdentity = existing.associateByTo(mutableMapOf()) { it.importIdentityKey() }
+        val map = mutableMapOf<Long, Long>()
+
+        people.insertEachCounting(onSkip) { source ->
+            val person = source.normalizedForImport()
+            val local = existingById[source.id]
+            val identity = person.importIdentityKey()
+            val finalId = when {
+                source.id > 0L && local?.importIdentityKey() == identity -> local.id
+                existingByIdentity[identity] != null -> existingByIdentity.getValue(identity).id
+                source.id > 0L && local == null -> database.personDao().insertPerson(person)
+                else -> {
+                    database.personDao().insertPerson(person.copy(id = 0))
+                }
+            }
+            val imported = person.copy(id = finalId)
+            existingById[finalId] = imported
+            existingByIdentity[identity] = imported
+            if (source.id > 0L) map[source.id] = finalId
+        }
+        return map
+    }
     
     /**
      * Insert backup profiles and return a `backup-id → local-id` map so other
@@ -852,3 +948,48 @@ class BackupImporter @Inject constructor(
         }
     }
 }
+
+private data class ImportedPersonIdentity(
+    val normalizedName: String,
+    val normalizedPhone: String?,
+    val createdAt: LocalDateTime,
+)
+
+private data class ImportedLoanIdentity(
+    val normalizedName: String,
+    val direction: LoanDirection,
+    val currency: String,
+    val createdAt: LocalDateTime,
+)
+
+private fun PersonEntity.normalizedForImport(): PersonEntity {
+    val displayName = name.trim()
+    return copy(
+        name = displayName,
+        normalizedName = normalizePersonNameForImport(displayName),
+        phoneNumber = phoneNumber?.trim()?.takeIf(String::isNotBlank),
+        notes = notes?.trim()?.takeIf(String::isNotBlank),
+        avatar = avatar?.trim()?.takeIf(String::isNotBlank),
+        category = category?.trim()?.takeIf(String::isNotBlank),
+        color = color.trim().takeIf(String::isNotBlank) ?: "#4CAF50",
+    )
+}
+
+private fun PersonEntity.importIdentityKey() = ImportedPersonIdentity(
+    normalizedName = normalizePersonNameForImport(name),
+    normalizedPhone = phoneNumber?.filter(Char::isDigit)?.takeIf(String::isNotBlank),
+    createdAt = createdAt,
+)
+
+private fun LoanEntity.importIdentityKey() = ImportedLoanIdentity(
+    normalizedName = normalizePersonNameForImport(personName),
+    direction = direction,
+    currency = normalizeCurrencyForImport(currency),
+    createdAt = createdAt,
+)
+
+private fun normalizePersonNameForImport(name: String): String =
+    name.trim().lowercase(Locale.ROOT)
+
+private fun normalizeCurrencyForImport(currency: String): String =
+    currency.trim().uppercase(Locale.ROOT)

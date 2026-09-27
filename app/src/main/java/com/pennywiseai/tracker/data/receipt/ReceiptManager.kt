@@ -63,6 +63,19 @@ class ReceiptManager @Inject constructor(
         return File(context.filesDir, receiptPath)
     }
 
+    /** Returns a temporary read-only content URI suitable for an Android share intent. */
+    fun getShareableUri(receiptPath: String): Uri? {
+        val file = getReceiptFile(receiptPath)
+        if (!file.isFile) return null
+        return runCatching {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+        }.getOrNull()
+    }
+
     fun createCameraUri(): Uri {
         val file = File(cameraTempDir, "camera_${System.currentTimeMillis()}.jpg")
         return FileProvider.getUriForFile(

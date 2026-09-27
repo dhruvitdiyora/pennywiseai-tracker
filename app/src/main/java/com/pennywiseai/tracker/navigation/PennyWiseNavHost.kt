@@ -134,7 +134,10 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToTransactionGroups = {
                     navController.navigate(TransactionGroups) { launchSingleTop = true }
-                }
+                },
+                onNavigateToPersonalDashboard = {
+                    navController.navigate(PersonalDashboard) { launchSingleTop = true }
+                },
             )
         }
 
@@ -278,6 +281,7 @@ fun PennyWiseNavHost(
                 else -> null
             }
             val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
+            val categories by rulesViewModel.categories.collectAsStateWithLifecycle()
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
@@ -294,7 +298,8 @@ fun PennyWiseNavHost(
                 },
                 existingRule = prefillRule,
                 isEditing = isEditing,
-                allAccounts = accounts
+                allAccounts = accounts,
+                categories = categories
             )
         }
         
@@ -334,11 +339,48 @@ fun PennyWiseNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDetail = { groupId, year, month ->
+                    navController.navigate(BudgetDetail(groupId, year, month)) {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToCategory = { category, yearMonth, currency ->
                     navController.navigate(TransactionsWithFilter(category, yearMonth, currency)) {
                         launchSingleTop = true
                     }
                 }
+            )
+        }
+
+        composable<BudgetDetail>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) { backStackEntry ->
+            val args = backStackEntry.toRoute<BudgetDetail>()
+            val budgetGroupsEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(BudgetGroups)
+            }
+            val budgetGroupsViewModel:
+                com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsViewModel =
+                hiltViewModel(budgetGroupsEntry)
+            com.pennywiseai.tracker.presentation.budgetgroups.BudgetDetailScreen(
+                groupId = args.groupId,
+                year = args.year,
+                month = args.month,
+                viewModel = budgetGroupsViewModel,
+                onNavigateBack = { navController.safePopBackStack() },
+                onEdit = { groupId ->
+                    navController.navigate(BudgetGroupEdit(groupId)) {
+                        launchSingleTop = true
+                    }
+                },
+                onTransactionClick = { transactionId ->
+                    navController.navigate(TransactionDetail(transactionId)) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 
@@ -380,7 +422,58 @@ fun PennyWiseNavHost(
                     navController.navigate(LoanDetail(loanId)) {
                         launchSingleTop = true
                     }
-                }
+                },
+                onNavigateToContacts = {
+                    navController.navigate(Contacts) { launchSingleTop = true }
+                },
+            )
+        }
+
+        composable<Contacts>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.people.ContactsScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateToPerson = { personId ->
+                    navController.navigate(PersonDetail(personId)) { launchSingleTop = true }
+                },
+            )
+        }
+
+        composable<PersonalDashboard>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.people.PersonalDashboardScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateToContacts = {
+                    navController.navigate(Contacts) { launchSingleTop = true }
+                },
+                onNavigateToLoans = {
+                    navController.navigate(Loans) { launchSingleTop = true }
+                },
+                onNavigateToPerson = { personId ->
+                    navController.navigate(PersonDetail(personId)) { launchSingleTop = true }
+                },
+            )
+        }
+
+        composable<PersonDetail>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.people.PersonDetailScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateToLoan = { loanId ->
+                    navController.navigate(LoanDetail(loanId)) { launchSingleTop = true }
+                },
             )
         }
 

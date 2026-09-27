@@ -100,6 +100,15 @@ data class BudgetGroupSpending(
      */
     val previousWindows: List<PastWindowSpending> = emptyList(),
     /**
+     * Transactions from [windowStart]..[windowEnd] that participate in this
+     * budget's existing aggregation rules. This is presentation data for the
+     * detail screen; totals continue to come from the established aggregation
+     * above, so exposing the rows cannot change budget math.
+     */
+    val matchingTransactions: List<TransactionWithSplits> = emptyList(),
+    /** Converted whole-transaction amounts for unified-currency list rows. */
+    val matchingTransactionDisplayAmounts: Map<Long, BigDecimal> = emptyMap(),
+    /**
      * "As of" date the displayed window's spend was summed up to.
      * For the current month: `today` if the displayed window is the
      * current week; the page's month end otherwise. For a historical

@@ -82,6 +82,7 @@ fun BalanceCard(
     currentMonthLent: BigDecimal = BigDecimal.ZERO,
     currentMonthTotal: BigDecimal,
     balanceHistory: List<BigDecimal>,
+    isBalanceHistoryApproximate: Boolean = false,
     spendingHistory: List<BigDecimal> = emptyList(),
     lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
     lastMonthSpending: BigDecimal = BigDecimal.ZERO,
@@ -96,11 +97,12 @@ fun BalanceCard(
     creditCards: List<AccountBalanceEntity> = emptyList(),
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
+    initiallyExpanded: Boolean = false,
     modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
     hazeState: HazeState = remember { HazeState() },
 ) {
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    var isExpanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
     val view = LocalView.current
 
     val chevronRotation by animateFloatAsState(
@@ -345,6 +347,20 @@ fun BalanceCard(
                             )
                         }
 
+                        if (accountBalances.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.md))
+                            BalanceTrendSection(
+                                balanceHistory = balanceHistory,
+                                currency = currency,
+                                isBalanceHidden = isBalanceHidden,
+                                isApproximate = isBalanceHistoryApproximate,
+                            )
+                        }
+
                         // Accounts section (only if accounts exist)
                         if (accountBalances.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.sm))
@@ -487,6 +503,72 @@ fun BalanceCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun BalanceTrendSection(
+    balanceHistory: List<BigDecimal>,
+    currency: String,
+    isBalanceHidden: Boolean,
+    isApproximate: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column {
+            Text(
+                text = stringResource(R.string.balance_trend_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.balance_trend_period),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (isApproximate) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            ) {
+                Text(
+                    text = stringResource(R.string.balance_trend_approximate),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                )
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(Spacing.sm))
+    if (balanceHistory.size >= 2) {
+        BalanceSparkline(
+            data = balanceHistory,
+            lineColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(SPARKLINE_HEIGHT),
+            currency = currency,
+            isBalanceHidden = isBalanceHidden,
+        )
+    } else {
+        Text(
+            text = stringResource(R.string.balance_trend_empty),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (isApproximate) {
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Text(
+            text = stringResource(R.string.balance_trend_approximate_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
