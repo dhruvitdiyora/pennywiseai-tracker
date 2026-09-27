@@ -49,6 +49,8 @@ material3 = "1.5.0-alpha12"
 haze = "1.7.1"
 composeCharts = "0.2.5"
 billingKtx = "9.0.0"
+roborazzi = "1.72.0"
+robolectric = "4.16.1"
 
 [libraries]
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
@@ -109,6 +111,9 @@ vision-internal-vkp = { group = "com.google.mlkit", name = "vision-internal-vkp"
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
+roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -117,3 +122,4 @@ android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

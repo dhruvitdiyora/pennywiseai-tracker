@@ -7,6 +7,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -168,12 +169,19 @@ android {
             // Allow JVM unit tests to exercise code that touches android.util.Log
             // and other Android framework stubs without Robolectric.
             isReturnDefaultValues = true
+            // Roborazzi renders Compose through Robolectric and needs merged
+            // Android resources for themes, fonts, and drawables.
+            isIncludeAndroidResources = true
         }
     }
     lint {
         abortOnError = false
         checkReleaseBuilds = false
     }
+}
+
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
 
 kotlin {
@@ -300,6 +308,11 @@ dependencies {
     "standardImplementation"(libs.review.ktx)
     
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.junit)
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.robolectric)
     testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.junit)
