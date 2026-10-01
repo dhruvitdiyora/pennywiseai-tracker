@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Appearance: sample text drawn inside each accent colour preview tile.
+         A specimen of the accent on text, not translated copy. -->
+    <string name="appearance_accent_preview_sample" translatable="false">Abc</string>
+</resources>

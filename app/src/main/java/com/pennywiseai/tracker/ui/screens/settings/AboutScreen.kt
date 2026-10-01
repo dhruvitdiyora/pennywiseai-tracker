@@ -8,29 +8,23 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -48,19 +42,22 @@ import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.components.cards.RowLabels
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.icons.iconax.CodeCircle
+import com.pennywiseai.tracker.ui.icons.iconax.ExportArrow02
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.SecuritySafe
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+import com.pennywiseai.tracker.ui.theme.green_dark
+import com.pennywiseai.tracker.ui.theme.green_light
+import com.pennywiseai.tracker.ui.theme.orange_dark
+import com.pennywiseai.tracker.ui.theme.orange_light
+import com.pennywiseai.tracker.ui.theme.purple_dark
+import com.pennywiseai.tracker.ui.theme.purple_light
 
 @Composable
 fun AboutScreen(
@@ -84,7 +81,12 @@ fun AboutScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * About, in Cashiro's layout: an identity header (round icon, name, version)
+ * followed by grouped link rows with tonal icon tiles. Only PennyWise's own
+ * identity, source link and credits are shown; Cashiro's developer card,
+ * website, community and legal links are not carried over.
+ */
 @Composable
 internal fun AboutScreenContent(
     versionName: String,
@@ -93,179 +95,121 @@ internal fun AboutScreenContent(
     onNavigateToLicenses: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val hazeState = remember { HazeState() }
-
-    PennyWiseScaffold(
+    SettingsSubScreen(
+        title = stringResource(R.string.about_title),
+        backContentDescription = stringResource(R.string.about_back),
+        onNavigateBack = onNavigateBack,
         modifier = modifier,
-        containerColor = Color.Transparent,
-        customTopBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehavior,
-                scrollBehaviorLarge = scrollBehavior,
-                title = stringResource(R.string.about_title),
-                hasBackButton = true,
-                navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.about_back),
-                        )
-                    }
-                },
-                hazeState = hazeState,
-            )
-        },
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(paddingValues),
-            contentPadding = PaddingValues(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                top = Spacing.md,
-                bottom = Spacing.Layout.scrollBottomPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.sectionGap),
-        ) {
-            item {
-                AboutHero(versionName = versionName)
-            }
+    ) {
+        AboutHeader(versionName = versionName)
 
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.about_privacy_section),
-                        topSpacing = Spacing.none,
-                    )
-                    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                IconTile(
-                                    icon = Icons.Default.Security,
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                )
-                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                    Text(
-                                        text = stringResource(R.string.about_privacy_title),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.about_privacy_summary),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
+        SettingsSection(title = stringResource(R.string.about_privacy_section)) {
+            PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconTile(
+                            icon = Iconax.SecuritySafe,
+                            containerColor = green_light,
+                            contentColor = green_dark,
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        ) {
                             Text(
-                                text = stringResource(R.string.about_privacy_exceptions),
+                                text = stringResource(R.string.about_privacy_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = stringResource(R.string.about_privacy_summary),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
+                    Text(
+                        text = stringResource(R.string.about_privacy_exceptions),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
+        }
 
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.about_project_section),
-                        topSpacing = Spacing.none,
-                    )
-                    GroupedList {
-                        AboutNavigationRow(
-                            title = stringResource(R.string.about_source_code),
-                            subtitle = stringResource(R.string.about_source_code_subtitle),
-                            icon = Icons.Default.Code,
-                            trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
-                            position = ListItemPosition.Top,
-                            onClick = onOpenSourceCode,
-                        )
-                        AboutNavigationRow(
-                            title = stringResource(R.string.about_selected_dependencies),
-                            subtitle = stringResource(R.string.about_selected_dependencies_subtitle),
-                            icon = Icons.AutoMirrored.Filled.LibraryBooks,
-                            trailingIcon = Icons.Default.ChevronRight,
-                            position = ListItemPosition.Bottom,
-                            onClick = onNavigateToLicenses,
-                        )
-                    }
-                }
+        SettingsSection(title = stringResource(R.string.about_project_section)) {
+            GroupedList {
+                SettingsIconRow(
+                    icon = Iconax.CodeCircle,
+                    iconContainerColor = green_light,
+                    iconContentColor = green_dark,
+                    title = stringResource(R.string.about_source_code),
+                    subtitle = stringResource(R.string.about_source_code_subtitle),
+                    trailingIcon = Iconax.ExportArrow02,
+                    position = ListItemPosition.Top,
+                    onClick = onOpenSourceCode,
+                )
+                SettingsIconRow(
+                    icon = Icons.AutoMirrored.Filled.LibraryBooks,
+                    iconContainerColor = purple_light,
+                    iconContentColor = purple_dark,
+                    title = stringResource(R.string.about_selected_dependencies),
+                    subtitle = stringResource(R.string.about_selected_dependencies_subtitle),
+                    trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    position = ListItemPosition.Bottom,
+                    onClick = onNavigateToLicenses,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AboutHero(versionName: String) {
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentPadding = Spacing.lg,
+private fun AboutHeader(versionName: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimensions.Padding.card),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        // PennyWise's own launcher mark on a tonal disc. The name below
+        // already labels it, so the image itself is decorative.
+        Box(
+            modifier = Modifier
+                .size(Dimensions.Icon.extraLarge)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(R.mipmap.ic_launcher_foreground),
-                contentDescription = stringResource(R.string.app_name),
-                modifier = Modifier.size(Dimensions.Icon.extraLarge),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
             )
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.about_version, versionName),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Text(
-                text = stringResource(R.string.about_open_source_license),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-            )
         }
-    }
-}
-
-@Composable
-private fun AboutNavigationRow(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    trailingIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    position: ListItemPosition,
-    onClick: () -> Unit,
-) {
-    GroupedRow(position = position, onClick = onClick) {
-        IconTile(
-            icon = icon,
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
         )
-        RowLabels(title = title, subtitle = subtitle)
-        Icon(
-            imageVector = trailingIcon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(Dimensions.Icon.inline),
+        Text(
+            text = stringResource(R.string.about_version, versionName),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.about_open_source_license),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -319,84 +263,37 @@ fun LicensesScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LicensesScreenContent(
     onNavigateBack: () -> Unit,
     onDependencyClick: (DependencyNotice) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val hazeState = remember { HazeState() }
     val notices = selectedDependencyNotices()
 
-    PennyWiseScaffold(
+    SettingsSubScreen(
+        title = stringResource(R.string.licenses_title),
+        backContentDescription = stringResource(R.string.licenses_back),
+        onNavigateBack = onNavigateBack,
         modifier = modifier,
-        containerColor = Color.Transparent,
-        customTopBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehavior,
-                scrollBehaviorLarge = scrollBehavior,
-                title = stringResource(R.string.licenses_title),
-                hasBackButton = true,
-                navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.licenses_back),
-                        )
-                    }
-                },
-                hazeState = hazeState,
-            )
-        },
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(paddingValues),
-            contentPadding = PaddingValues(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                top = Spacing.md,
-                bottom = Spacing.Layout.scrollBottomPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent),
-        ) {
-            item {
-                Text(
-                    text = stringResource(R.string.licenses_intro),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
+        Text(
+            text = stringResource(R.string.licenses_intro),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        GroupedList {
+            notices.forEachIndexed { index, notice ->
+                SettingsIconRow(
+                    icon = Icons.AutoMirrored.Filled.LibraryBooks,
+                    iconContainerColor = orange_light,
+                    iconContentColor = orange_dark,
+                    title = notice.name,
+                    subtitle = notice.purpose,
+                    trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    position = ListItemPosition.from(index, notices.size),
+                    onClick = { onDependencyClick(notice) },
                 )
-            }
-            item {
-                GroupedList {
-                    notices.forEachIndexed { index, notice ->
-                        GroupedRow(
-                            position = ListItemPosition.from(index, notices.size),
-                            onClick = { onDependencyClick(notice) },
-                        ) {
-                            IconTile(
-                                icon = Icons.AutoMirrored.Filled.LibraryBooks,
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                            RowLabels(
-                                title = notice.name,
-                                subtitle = notice.purpose,
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(Dimensions.Icon.inline),
-                            )
-                        }
-                    }
-                }
             }
         }
     }
@@ -431,7 +328,7 @@ private fun selectedDependencyNotices(): List<DependencyNotice> = listOf(
     ),
 )
 
-private fun openExternalLink(
+internal fun openExternalLink(
     context: Context,
     url: String,
     errorMessage: String,

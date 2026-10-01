@@ -8,8 +8,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -26,36 +23,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,15 +61,12 @@ import com.pennywiseai.tracker.data.preferences.AppFont
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.getCoverGradientColors
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Dawn_Foam
 import com.pennywiseai.tracker.ui.theme.Dawn_Foam_secondary
@@ -157,206 +143,189 @@ import com.pennywiseai.tracker.ui.theme.RosePine_Text_tertiary
 import com.pennywiseai.tracker.ui.theme.SNProFontFamily
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Appearance settings, in Cashiro's layout: theme mode, theme style, accent
+ * palette and the AMOLED / blur toggles first, then navigation style, cover
+ * style and font. The choice rows are rounded connected tiles; the toggles are
+ * a grouped list with tonal icon tiles, like the main Settings screen.
+ *
+ * Cashiro's launcher-logo switcher, Catppuccin palette and navigation label /
+ * pill toggles are intentionally not here (see docs/cashiro-port-decisions.md).
+ */
 @Composable
 fun AppearanceScreen(
     onNavigateBack: () -> Unit,
     themeViewModel: ThemeViewModel = hiltViewModel()
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
+    val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
 
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val hazeState = remember { HazeState() }
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
-        topBar = {
-            CustomTitleTopAppBar(
-                title = stringResource(R.string.appearance_title),
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                hazeState = hazeState,
-                hasBackButton = true,
-                navigationContent = { NavigationContent(onNavigateBack) }
-            )
-        }
-    ) { paddingValues ->
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+    // The choice tiles and previews carry their own gutter, so the accent and
+    // cover rows can scroll to the screen edge instead of stopping at it.
+    SettingsSubScreen(
+        title = stringResource(R.string.appearance_title),
+        backContentDescription = stringResource(R.string.appearance_back),
+        onNavigateBack = onNavigateBack,
+        horizontalPadding = Spacing.none,
+    ) {
+        // Theme group: Mode + Style + Accent + AMOLED/Blur toggles
+        Column(
+            modifier = Modifier.animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(state = hazeState)
-                    .overScrollVertical()
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        top = Dimensions.Padding.content + paddingValues.calculateTopPadding()
-                    ),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            // Theme Mode Selector (System / Light / Dark)
+            ThemeModeSelector(
+                currentMode = themeUiState.isDarkTheme,
+                onModeSelected = { themeViewModel.updateDarkTheme(it) }
+            )
+
+            // Theme Style Selector (Dynamic / Branded)
+            ThemeStyleSelector(
+                currentStyle = themeUiState.themeStyle,
+                onStyleSelected = { themeViewModel.updateThemeStyle(it) }
+            )
+
+            // Accent Color Picker with ColorSchemeBox (only when branded)
+            BlurredAnimatedVisibility(
+                visible = themeUiState.themeStyle == ThemeStyle.BRANDED,
+                enter = fadeIn() + slideInVertically { -it },
+                exit = fadeOut() + slideOutVertically { -it },
+                modifier = Modifier.animateContentSize().zIndex(-1f)
             ) {
-                // Theme section: Mode + Style + Accent + AMOLED/Blur toggles
-                Column(
-                    modifier = Modifier.animateContentSize(),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                LazyRow(
+                    modifier = Modifier.selectableGroup(),
+                    contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
-                    // Theme Mode Selector (System / Light / Dark)
-                    ThemeModeSelector(
-                        currentMode = themeUiState.isDarkTheme,
-                        onModeSelected = { themeViewModel.updateDarkTheme(it) }
-                    )
+                    items(AccentColor.entries) { accent ->
+                        val color = getAccentColorForDisplay(accent, isDark)
+                        val secondary = getSecondaryColorForDisplay(accent, isDark)
+                        val tertiary = getTertiaryColorForDisplay(accent, isDark)
+                        val isSelected = themeUiState.accentColor == accent
 
-                    // Theme Style Selector (Dynamic / Branded)
-                    ThemeStyleSelector(
-                        currentStyle = themeUiState.themeStyle,
-                        onStyleSelected = { themeViewModel.updateThemeStyle(it) }
-                    )
-
-                    // Accent Color Picker with ColorSchemeBox (only when branded)
-                    BlurredAnimatedVisibility(
-                        visible = themeUiState.themeStyle == ThemeStyle.BRANDED,
-                        enter = fadeIn() + slideInVertically { -it },
-                        exit = fadeOut() + slideOutVertically { -it },
-                        modifier = Modifier.animateContentSize().zIndex(-1f)
-                    ) {
-                        val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
-
-                        LazyRow(
-                            contentPadding = PaddingValues(Spacing.md),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            items(AccentColor.entries) { accent ->
-                                val color = getAccentColorForDisplay(accent, isDark)
-                                val secondary = getSecondaryColorForDisplay(accent, isDark)
-                                val tertiary = getTertiaryColorForDisplay(accent, isDark)
-                                val isSelected = themeUiState.accentColor == accent
-
-                                ColorSchemeBox(
-                                    accent = color,
-                                    secondary = secondary,
-                                    tertiary = tertiary,
-                                    label = accentColorLabel(accent),
-                                    onClick = { themeViewModel.updateAccentColor(accent) },
-                                    isSelected = isSelected
-                                )
-                            }
-                        }
-                    }
-
-                    // AMOLED + Blur grouped toggles. Both rows are conditional,
-                    // so positions are derived from which ones are actually
-                    // showing — a hand-maintained isFirst/isLast pair got this
-                    // wrong whenever only one row was visible.
-                    val showAmoled = themeUiState.isDarkTheme != false
-                    val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0)
-                    GroupedList {
-                        if (showAmoled) {
-                            PreferenceSwitch(
-                                title = stringResource(R.string.appearance_amoled_title),
-                                subtitle = stringResource(R.string.appearance_amoled_subtitle),
-                                checked = themeUiState.isAmoledMode,
-                                onCheckedChange = { themeViewModel.updateAmoledMode(it) },
-                                leadingIcon = {
-                                    IconTile(
-                                        icon = Icons.Default.DarkMode,
-                                        containerColor = if (themeUiState.isAmoledMode) {
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        } else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        contentColor = if (themeUiState.isAmoledMode) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                position = ListItemPosition.from(0, toggleCount)
-                            )
-                        }
-
-                        if (showBlur) {
-                            PreferenceSwitch(
-                                title = stringResource(R.string.appearance_blur_title),
-                                subtitle = stringResource(R.string.appearance_blur_subtitle),
-                                checked = themeUiState.blurEffectsEnabled,
-                                onCheckedChange = { themeViewModel.updateBlurEffects(it) },
-                                position = ListItemPosition.from(toggleCount - 1, toggleCount)
-                            )
-                        }
+                        ColorSchemeBox(
+                            accent = color,
+                            secondary = secondary,
+                            tertiary = tertiary,
+                            label = accentColorLabel(accent),
+                            onClick = { themeViewModel.updateAccentColor(accent) },
+                            isSelected = isSelected
+                        )
                     }
                 }
+            }
 
-                // Navigation Style Section
-                SectionHeaderV2(
-                    title = stringResource(R.string.appearance_navigation_section),
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
-                )
-                NavBarStyleSelector(
-                    currentStyle = themeUiState.navBarStyle,
-                    onStyleSelected = { themeViewModel.updateNavBarStyle(it) }
-                )
+            // AMOLED + Blur grouped toggles. Both rows are conditional,
+            // so positions are derived from which ones are actually
+            // showing — a hand-maintained isFirst/isLast pair got this
+            // wrong whenever only one row was visible.
+            val showAmoled = themeUiState.isDarkTheme != false
+            val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+            val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0)
+            if (toggleCount > 0) {
+                GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                    if (showAmoled) {
+                        PreferenceSwitch(
+                            title = stringResource(R.string.appearance_amoled_title),
+                            subtitle = stringResource(R.string.appearance_amoled_subtitle),
+                            checked = themeUiState.isAmoledMode,
+                            onCheckedChange = { themeViewModel.updateAmoledMode(it) },
+                            leadingIcon = {
+                                IconTile(
+                                    icon = Icons.Default.DarkMode,
+                                    containerColor = if (themeUiState.isAmoledMode) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = if (themeUiState.isAmoledMode) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            position = ListItemPosition.from(0, toggleCount)
+                        )
+                    }
 
-                // Cover Style Section
-                SectionHeaderV2(
-                    title = stringResource(R.string.appearance_cover_section),
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
-                )
-                CoverStyleSelector(
-                    currentStyle = themeUiState.coverStyle,
-                    isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme(),
-                    onStyleSelected = { themeViewModel.updateCoverStyle(it) }
-                )
-
-                // Font Selection Section
-                SectionHeaderV2(
-                    title = stringResource(R.string.appearance_fonts_section),
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
-                )
-                FontSelector(
-                    currentFont = themeUiState.appFont,
-                    onFontSelected = { themeViewModel.updateAppFont(it) }
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.xl))
+                    if (showBlur) {
+                        PreferenceSwitch(
+                            title = stringResource(R.string.appearance_blur_title),
+                            subtitle = stringResource(R.string.appearance_blur_subtitle),
+                            checked = themeUiState.blurEffectsEnabled,
+                            onCheckedChange = { themeViewModel.updateBlurEffects(it) },
+                            leadingIcon = {
+                                IconTile(
+                                    icon = Icons.Default.BlurOn,
+                                    containerColor = if (themeUiState.blurEffectsEnabled) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = if (themeUiState.blurEffectsEnabled) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            position = ListItemPosition.from(toggleCount - 1, toggleCount)
+                        )
+                    }
+                }
             }
         }
-    }
-}
 
-// --- Navigation back button ---
-
-@Composable
-private fun NavigationContent(onNavigateBack: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .animateContentSize()
-            .padding(start = Dimensions.Padding.content)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onNavigateBack,
-            ),
-    ) {
-        IconButton(
-            onClick = onNavigateBack,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onBackground
-            )
+        // Navigation Style Section
+        SettingsSection(
+            title = stringResource(R.string.appearance_navigation_section),
+            headerHorizontalPadding = Dimensions.Padding.content
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.appearance_back),
-                modifier = Modifier.size(Dimensions.Icon.medium)
+            NavBarStyleSelector(
+                currentStyle = themeUiState.navBarStyle,
+                onStyleSelected = { themeViewModel.updateNavBarStyle(it) }
+            )
+        }
+
+        // Cover Style Section
+        SettingsSection(
+            title = stringResource(R.string.appearance_cover_section),
+            headerHorizontalPadding = Dimensions.Padding.content
+        ) {
+            CoverStyleSelector(
+                currentStyle = themeUiState.coverStyle,
+                isDark = isDark,
+                onStyleSelected = { themeViewModel.updateCoverStyle(it) }
+            )
+        }
+
+        // Font Selection Section
+        SettingsSection(
+            title = stringResource(R.string.appearance_fonts_section),
+            headerHorizontalPadding = Dimensions.Padding.content
+        ) {
+            FontSelector(
+                currentFont = themeUiState.appFont,
+                onFontSelected = { themeViewModel.updateAppFont(it) }
             )
         }
     }
 }
 
-// --- Theme Mode Selector (System / Light / Dark) ---
+// --- Choice tile (shared by every mutually exclusive selector) ---
+
+/**
+ * The corner shape of one tile in a row of [count] choice tiles: the row's
+ * outer corners are fully rounded and the joins nearly square, matching the
+ * grouped-list rows. A single tile (`count == 1`) is fully rounded, so a
+ * selector can also render as separate tiles. Start/end corners follow the
+ * layout direction.
+ */
+@Composable
+private fun appearanceChoiceShape(index: Int, count: Int): CornerBasedShape {
+    val outer = MaterialTheme.shapes.large
+    val inner = MaterialTheme.shapes.extraSmall
+    return when {
+        count <= 1 -> outer
+        index == 0 -> outer.copy(topEnd = inner.topEnd, bottomEnd = inner.bottomEnd)
+        index == count - 1 -> outer.copy(topStart = inner.topStart, bottomStart = inner.bottomStart)
+        else -> inner
+    }
+}
 
 @Composable
 internal fun AppearanceChoiceTile(
@@ -367,19 +336,22 @@ internal fun AppearanceChoiceTile(
     count: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    icon: ImageVector? = null,
     fontFamily: FontFamily = FontFamily.Default,
+    selectedContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    selectedContentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    minHeight: Dp = Dimensions.Component.appearanceChoiceHeight,
 ) {
     val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+        selectedContentColor
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val shape = SegmentedButtonDefaults.itemShape(index = index, count = count)
+    val shape = appearanceChoiceShape(index = index, count = count)
 
     Surface(
         modifier = modifier
-            .heightIn(min = Dimensions.Component.appearanceChoiceHeight)
+            .heightIn(min = minHeight)
             .clip(shape)
             .selectable(
                 selected = selected,
@@ -388,7 +360,7 @@ internal fun AppearanceChoiceTile(
             ),
         shape = shape,
         color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
+            selectedContainerColor
         } else {
             MaterialTheme.colorScheme.surfaceContainerLow
         }
@@ -433,6 +405,8 @@ internal fun AppearanceChoiceTile(
     }
 }
 
+// --- Theme Mode Selector (System / Light / Dark) ---
+
 @Composable
 internal fun ThemeModeSelector(
     currentMode: Boolean?,
@@ -447,7 +421,7 @@ internal fun ThemeModeSelector(
     ) {
         data class ModeOption(
             val label: String,
-            val icon: androidx.compose.ui.graphics.vector.ImageVector,
+            val icon: ImageVector,
             val value: Boolean?
         )
 
@@ -458,6 +432,8 @@ internal fun ThemeModeSelector(
         )
 
         options.forEachIndexed { index, option ->
+            // Cashiro fills the active mode with the solid secondary colour,
+            // which is what separates this row from the style tiles below it.
             AppearanceChoiceTile(
                 title = option.label,
                 subtitle = null,
@@ -466,6 +442,9 @@ internal fun ThemeModeSelector(
                 count = options.size,
                 onClick = { onModeSelected(option.value) },
                 icon = option.icon,
+                selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                selectedContentColor = MaterialTheme.colorScheme.onSecondary,
+                minHeight = Dimensions.Component.listItemMinHeight,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -497,20 +476,21 @@ internal fun ThemeStyleSelector(
             )
         )
     }
+    // Two separate rounded tiles (not a joined pair), as in Cashiro.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Dimensions.Padding.content)
             .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        options.forEachIndexed { index, (style, title, subtitle) ->
+        options.forEach { (style, title, subtitle) ->
             AppearanceChoiceTile(
                 title = stringResource(title),
                 subtitle = stringResource(subtitle),
                 selected = currentStyle == style,
-                index = index,
-                count = options.size,
+                index = 0,
+                count = 1,
                 onClick = { onStyleSelected(style) },
                 modifier = Modifier.weight(1f)
             )
@@ -575,7 +555,7 @@ private fun ColorSchemeBox(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
-                text = "Abc",
+                text = stringResource(R.string.appearance_accent_preview_sample),
                 style = MaterialTheme.typography.labelMedium,
                 color = accent,
                 textAlign = TextAlign.Center,
@@ -623,16 +603,30 @@ internal fun NavBarStyleSelector(
     currentStyle: NavBarStyle,
     onStyleSelected: (NavBarStyle) -> Unit
 ) {
+    data class NavOption(
+        val style: NavBarStyle,
+        val title: Int,
+        val subtitle: Int,
+        val selectedContainer: Color,
+        val selectedContent: Color,
+    )
+
+    // Floating takes the tertiary tint and Normal the secondary one, so the
+    // two halves of the joined pair read as distinct choices (as in Cashiro).
     val options = listOf(
-        Triple(
+        NavOption(
             NavBarStyle.FLOATING,
             R.string.appearance_nav_floating,
-            R.string.appearance_nav_floating_subtitle
+            R.string.appearance_nav_floating_subtitle,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer
         ),
-        Triple(
+        NavOption(
             NavBarStyle.NORMAL,
             R.string.appearance_nav_normal,
-            R.string.appearance_nav_normal_subtitle
+            R.string.appearance_nav_normal_subtitle,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer
         )
     )
     Row(
@@ -642,14 +636,16 @@ internal fun NavBarStyleSelector(
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
     ) {
-        options.forEachIndexed { index, (style, title, subtitle) ->
+        options.forEachIndexed { index, option ->
             AppearanceChoiceTile(
-                title = stringResource(title),
-                subtitle = stringResource(subtitle),
-                selected = currentStyle == style,
+                title = stringResource(option.title),
+                subtitle = stringResource(option.subtitle),
+                selected = currentStyle == option.style,
                 index = index,
                 count = options.size,
-                onClick = { onStyleSelected(style) },
+                onClick = { onStyleSelected(option.style) },
+                selectedContainerColor = option.selectedContainer,
+                selectedContentColor = option.selectedContent,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -664,12 +660,15 @@ private fun CoverStyleSelector(
     isDark: Boolean,
     onStyleSelected: (CoverStyle) -> Unit
 ) {
+    // The gutter lives in contentPadding (not an outer padding) so the row
+    // scrolls under the screen edge like the accent palette above it.
     LazyRow(
-        modifier = Modifier
-            .padding(horizontal = Dimensions.Padding.content)
-            .selectableGroup(),
+        modifier = Modifier.selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(vertical = Spacing.xs)
+        contentPadding = PaddingValues(
+            horizontal = Dimensions.Padding.content,
+            vertical = Spacing.xs
+        )
     ) {
         items(CoverStyle.entries.toList()) { style ->
             val isSelected = currentStyle == style
@@ -738,19 +737,26 @@ internal fun FontSelector(
         val title: Int,
         val subtitle: Int,
         val family: FontFamily,
+        val selectedContainer: Color,
+        val selectedContent: Color,
     )
+    // System keeps the primary tint and SN Pro takes the tertiary one, as in Cashiro.
     val options = listOf(
         FontOption(
             AppFont.SYSTEM,
             R.string.appearance_font_default,
             R.string.appearance_font_default_subtitle,
-            FontFamily.Default
+            FontFamily.Default,
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer
         ),
         FontOption(
             AppFont.SN_PRO,
             R.string.appearance_font_sn_pro,
             R.string.appearance_font_sn_pro_subtitle,
-            SNProFontFamily
+            SNProFontFamily,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer
         )
     )
     Row(
@@ -769,6 +775,8 @@ internal fun FontSelector(
                 count = options.size,
                 onClick = { onFontSelected(option.font) },
                 fontFamily = option.family,
+                selectedContainerColor = option.selectedContainer,
+                selectedContentColor = option.selectedContent,
                 modifier = Modifier.weight(1f)
             )
         }
