@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -34,12 +36,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import coil.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +52,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
@@ -145,6 +151,8 @@ fun SettingsScreen(
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
+    val userPreferences by settingsViewModel.userPreferences.collectAsStateWithLifecycle()
+    val transactionCount by settingsViewModel.transactionCount.collectAsStateWithLifecycle(initialValue = 0)
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
@@ -250,6 +258,16 @@ fun SettingsScreen(
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            // ── Profile Header Card ──
+            // Cashiro-style profile row at the very top, before Pro section.
+            SettingsProfileHeaderCard(
+                userName = userPreferences?.userName ?: stringResource(R.string.greeting_default_user_name),
+                profileImageUri = userPreferences?.profileImageUri,
+                profileBackgroundColor = userPreferences?.profileBackgroundColor ?: 0,
+                transactionCount = transactionCount,
+                onClick = onNavigateToPersonalDashboard
+            )
+
             // ── PennyWise Pro / Support development ──
             // Top of Settings on purpose: highest-discoverability slot.
             // F-Droid builds have no Play billing (everything is already
@@ -300,22 +318,13 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_personalization_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.Person,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
-                    title = stringResource(R.string.personal_dashboard_title),
-                    subtitle = stringResource(R.string.personal_dashboard_settings_subtitle),
-                    onClick = onNavigateToPersonalDashboard,
-                    position = ListItemPosition.Top,
-                )
-                SettingsNavItem(
                     icon = Icons.Default.Palette,
                     iconBgColor = orange_light,
                     iconTint = orange_dark,
                     title = stringResource(R.string.settings_appearance_title),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
                     onClick = onNavigateToAppearance,
-                    position = ListItemPosition.Middle
+                    position = ListItemPosition.Top
                 )
                 SettingsNavItem(
                     icon = Icons.Default.People,
@@ -1468,6 +1477,107 @@ internal fun SettingsDataSections(
 // `GroupedList` / `GroupedRow` / `IconTile` / `RowLabels` primitives, so a
 // settings row and a grouped row on any other screen are literally the same
 // object. These wrappers only add the settings-specific trailing affordance.
+
+@Composable
+private fun SettingsProfileHeaderCard(
+    userName: String,
+    profileImageUri: String?,
+    profileBackgroundColor: Int,
+    transactionCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val profileBgColor = if (profileBackgroundColor != 0) {
+        Color(profileBackgroundColor)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable(onClick = onClick)
+            .padding(Spacing.md),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            // Avatar
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Component.minTouchTarget)
+                    .clip(CircleShape)
+                    .background(profileBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
+                if (avatarResId != null) {
+                    Image(
+                        painter = painterResource(id = avatarResId),
+                        contentDescription = userName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (profileImageUri != null) {
+                    AsyncImage(
+                        model = profileImageUri,
+                        contentDescription = userName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initials = remember(userName) {
+                        val parts = userName.trim().split("\\s+".toRegex())
+                        if (parts.size >= 2) {
+                            "${parts.first().first()}${parts.last().first()}".uppercase()
+                        } else {
+                            userName.trim().take(2).uppercase()
+                        }
+                    }
+                    Text(
+                        text = initials,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            // Text Content
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = pluralStringResource(R.plurals.settings_profile_header_subtitle, transactionCount, transactionCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.8f)
+                )
+            }
+
+            // Chevron
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(Dimensions.Icon.inline)
+            )
+        }
+    }
+}
 
 @Composable
 private fun SettingsGroup(

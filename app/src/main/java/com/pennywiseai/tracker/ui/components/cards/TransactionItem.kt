@@ -4,18 +4,29 @@ import android.content.res.Resources
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.R
@@ -27,13 +38,24 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
-import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.icons.iconax.Card
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
+/**
+ * A transaction row: brand logo, merchant, one metadata line, and a trailing
+ * trend icon beside the coloured amount.
+ *
+ * The visible metadata line is plain text with `•` separators
+ * ("27 Feb • 4:36 PM • Recurring"). The accessible description keeps its own
+ * `·`-joined sentence ("date · category · Recurring · Business · Excluded ·
+ * Bal …") so the contract asserted by `TransactionItemScreenshotTest` does not
+ * depend on how the line is drawn.
+ */
 @Composable
 fun TransactionItem(
     transaction: TransactionEntity,
@@ -48,6 +70,12 @@ fun TransactionItem(
     onLongClick: (() -> Unit)? = null,
     /** Overrides the row's container colour (e.g. for selected state). */
     containerColor: androidx.compose.ui.graphics.Color? = null,
+    /**
+     * Bulk-selection mode: the brand logo is swapped for a selection
+     * indicator reflecting [isSelected]. Tapping still goes through [onClick].
+     */
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -63,7 +91,7 @@ fun TransactionItem(
     }
 
     val dateTimeFormatter = remember(showDate) {
-        DateTimeFormatter.ofPattern(if (showDate) "d MMM \u00B7 h:mm a" else "h:mm a")
+        DateTimeFormatter.ofPattern(if (showDate) "d MMM · h:mm a" else "h:mm a")
     }
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
         transaction.dateTime.format(dateTimeFormatter)
@@ -109,8 +137,9 @@ fun TransactionItem(
         )
     }
 
-    val subtitle = buildList {
-        add(dateTimeText)
+    // The same metadata, in the same order, feeds both renderings below.
+    fun metadataParts(dateTimePart: String): List<String> = buildList {
+        add(dateTimePart)
         if (hasCategory) add(transaction.category)
         typeLabel?.let(::add)
         if (transaction.isRecurring) add(recurringLabel)
@@ -118,7 +147,13 @@ fun TransactionItem(
         if (transaction.excludedFromAnalytics) add(excludedLabel)
         balanceAfterText?.let(::add)
         description?.let(::add)
-    }.joinToString(" \u00B7 ")
+    }
+
+    // Accessibility sentence (also the contract the screenshot test asserts).
+    val subtitle = metadataParts(dateTimeText).joinToString(" · ")
+    // What is drawn: "27 Feb • 4:36 PM • Recurring".
+    val visibleSubtitle = metadataParts(dateTimeText.replace(" · ", " • "))
+        .joinToString(" • ")
 
     val amountPrefix = remember(transaction.transactionType) {
         when (transaction.transactionType) {
@@ -146,63 +181,15 @@ fun TransactionItem(
         title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
         subtitleContent = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clipToBounds(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SubtitleTag(
-                    text = dateTimeText,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (hasCategory) {
-                    SubtitleTag(
-                        text = transaction.category,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                typeLabel?.let {
-                    val typeColor = when (transaction.transactionType) {
-                        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
-                        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
-                        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
-                        else -> MaterialTheme.colorScheme.secondary
-                    }
-                    SubtitleTag(text = it, color = typeColor)
-                }
-                if (transaction.isRecurring) {
-                    SubtitleTag(
-                        text = recurringLabel,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-                if (isEffectivelyBusiness) {
-                    SubtitleTag(
-                        text = businessLabel,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                }
-                if (transaction.excludedFromAnalytics) {
-                    SubtitleTag(
-                        text = excludedLabel,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                balanceAfterText?.let {
-                    SubtitleTag(
-                        text = it,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                description?.let {
-                    SubtitleTag(
-                        text = it,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            // Plain, wrapping text rather than clipped tags: a long category or
+            // note flows onto a second line instead of being cut off.
+            Text(
+                text = visibleSubtitle,
+                style = PennyWiseText.metadata,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         },
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
@@ -216,56 +203,102 @@ fun TransactionItem(
         containerColor = containerColor,
         modifier = modifier,
         leadingContent = {
-            val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                with(sharedTransitionScope) {
-                    sharedElementIcon(
-                        key = "brand_icon_${transaction.id}",
-                        animatedVisibilityScope = animatedVisibilityScope
+            if (isSelectionMode) {
+                Box(
+                    modifier = Modifier
+                        .size(Dimensions.Icon.list)
+                        .semantics { selected = isSelected },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (isSelected) {
+                            Icons.Filled.CheckCircle
+                        } else {
+                            Icons.Outlined.RadioButtonUnchecked
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium),
+                        tint = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outline
+                        },
                     )
                 }
             } else {
-                Modifier
+                val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                    with(sharedTransitionScope) {
+                        sharedElementIcon(
+                            key = "brand_icon_${transaction.id}",
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
+                } else {
+                    Modifier
+                }
+                BrandIcon(
+                    merchantName = transaction.merchantName,
+                    modifier = iconModifier,
+                    size = Dimensions.Icon.list,
+                    showBackground = true,
+                    category = transaction.category
+                )
             }
-            BrandIcon(
-                merchantName = transaction.merchantName,
-                modifier = iconModifier,
-                size = Dimensions.Icon.list,
-                showBackground = true,
-                category = transaction.category
-            )
         },
         trailingContent = {
-            if (convertedAmount != null && displayCurrency != null) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
-                ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                // Decorative: the sign, colour and type label already carry the
+                // direction, so the glyph adds no announcement of its own.
+                Icon(
+                    imageVector = transactionTypeIcon(transaction.transactionType),
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small),
+                    tint = amountColor,
+                )
+                if (convertedAmount != null && displayCurrency != null) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                    ) {
+                        Text(
+                            text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
+                            style = PennyWiseText.amountRow,
+                            color = amountColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "(${transaction.formatAmount()})",
+                            style = PennyWiseText.amountSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
                     Text(
-                        text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
+                        text = "$amountPrefix$formattedAmount",
                         style = PennyWiseText.amountRow,
                         color = amountColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "(${transaction.formatAmount()})",
-                        style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
-            } else {
-                Text(
-                    text = "$amountPrefix$formattedAmount",
-                    style = PennyWiseText.amountRow,
-                    color = amountColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     )
+}
+
+/** The glyph shown beside a row's amount, by transaction type. */
+private fun transactionTypeIcon(type: TransactionType): ImageVector = when (type) {
+    TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
+    TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
+    TransactionType.CREDIT -> Iconax.Card
+    TransactionType.TRANSFER -> Icons.Filled.SwapHoriz
+    TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
 }
 
 /**

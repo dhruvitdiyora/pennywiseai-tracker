@@ -28,7 +28,6 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.activity.compose.BackHandler
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
@@ -45,7 +44,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -71,10 +75,12 @@ import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import androidx.compose.foundation.shape.CircleShape
+import com.pennywiseai.tracker.ui.icons.iconax.CloseCircle
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Search
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
@@ -159,6 +165,7 @@ fun TransactionsScreen(
     var pendingCategoryEditId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showSortMenu by remember { mutableStateOf(false) } // Menu doesn't need saving
     var showFiltersSheet by rememberSaveable { mutableStateOf(false) }
+    var showCustomRangePicker by rememberSaveable { mutableStateOf(false) }
 
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
@@ -228,11 +235,10 @@ fun TransactionsScreen(
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
-    val periodLabel = selectedPeriod.label
-    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel, periodLabel) {
-        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel, periodLabel)
-    }
-    
+    // True when the period differs from the default; it is the one dimension of
+    // the draft that has inline chips rather than living only in the sheet.
+    val periodFilterActive = selectedPeriod != TimePeriod.THIS_MONTH || customDateRange != null
+
     // Apply initial filters only once when screen is first created
     LaunchedEffect(Unit) {
         viewModel.applyInitialFilters(
@@ -313,9 +319,10 @@ fun TransactionsScreen(
         }
     }
 
-    // Scroll behaviors for collapsible TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // One pinned behaviour for both slots of CustomTitleTopAppBar: it then
+    // renders only the compact, centre-aligned bar (round back button, title
+    // in the middle) instead of a large collapsing header.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     // When the app bottom nav is overlaid on this screen (#635), it sits over an
@@ -326,21 +333,23 @@ fun TransactionsScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             if (selectionMode) {
                 // Contextual top bar for bulk-edit (#369): close left, count as title,
                 // Change Category + Delete on the right.
                 CustomTitleTopAppBar(
-                    scrollBehaviorSmall = scrollBehaviorSmall,
-                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    scrollBehaviorSmall = scrollBehavior,
+                    scrollBehaviorLarge = scrollBehavior,
                     title = stringResource(R.string.txn_list_selected_count, selectedIds.size),
                     hasBackButton = true,
                     navigationContent = {
-                        IconButton(onClick = { viewModel.clearSelection() }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_list_exit_selection))
-                        }
+                        TonalNavigationButton(
+                            onClick = { viewModel.clearSelection() },
+                            contentDescription = stringResource(R.string.txn_list_exit_selection),
+                            icon = Icons.Default.Close,
+                        )
                     },
                     actionContent = {
                         // Wrap explicitly in a Row so both action IconButtons render
@@ -379,17 +388,15 @@ fun TransactionsScreen(
                 )
             } else {
                 CustomTitleTopAppBar(
-                    scrollBehaviorSmall = scrollBehaviorSmall,
-                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    scrollBehaviorSmall = scrollBehavior,
+                    scrollBehaviorLarge = scrollBehavior,
                     title = stringResource(R.string.txn_list_title),
                     hasBackButton = showBackButton,
                     navigationContent = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.txn_list_back)
-                            )
-                        }
+                        TonalNavigationButton(
+                            onClick = onNavigateBack,
+                            contentDescription = stringResource(R.string.txn_list_back),
+                        )
                     },
                     hazeState = hazeState
                 )
@@ -398,14 +405,16 @@ fun TransactionsScreen(
         floatingActionButton = {
             Column(
                 modifier = Modifier.padding(bottom = bottomBarClearance),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                // Export FAB (only show if transactions exist)
+                // Export FAB (only show if transactions exist): a small tonal
+                // button stacked above the primary add action.
                 if (uiState.transactions.isNotEmpty()) {
                     SmallFloatingActionButton(
                         onClick = { showExportDialog = true },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     ) {
                         Icon(
                             imageVector = Icons.Default.FileDownload,
@@ -414,12 +423,12 @@ fun TransactionsScreen(
                         )
                     }
                 }
-                
-                // Add Transaction FAB (consistent with Home screen)
-                SmallFloatingActionButton(
+
+                // Add Transaction FAB
+                FloatingActionButton(
                     onClick = onAddTransactionClick,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -438,8 +447,13 @@ fun TransactionsScreen(
         UnifiedTransactionFilterHeader(
             searchQuery = searchQuery,
             selectedPeriod = selectedPeriod,
-            periodChipLabel = periodChipLabel,
-            activeFilterCount = committedFilterDraft.activeFilterCount,
+            customDateRangeSelected = customDateRange != null,
+            customRangeLabel = customRangeLabel,
+            budgetCycleStartDay = budgetCycleStartDay,
+            // The period has its own inline chips, so "More Filters" counts
+            // everything else the unified sheet can narrow by.
+            moreFilterCount = committedFilterDraft.activeFilterCount -
+                if (periodFilterActive) 1 else 0,
             hasAnyActiveFilter = hasAnyActiveFilter,
             showSortMenu = showSortMenu,
             collapsed = collapseTransactionHeader,
@@ -451,12 +465,22 @@ fun TransactionsScreen(
                 viewModel.setSortOption(option)
                 showSortMenu = false
             },
+            onPeriodSelected = { period ->
+                if (period == TimePeriod.CUSTOM) {
+                    // Keep the current period until the user confirms dates.
+                    showCustomRangePicker = true
+                } else {
+                    viewModel.selectPeriod(period)
+                    // Drop a leftover custom range so it no longer counts as an
+                    // active filter once a preset period is chosen again.
+                    if (customDateRange != null) viewModel.clearCustomDateRange()
+                }
+            },
             onFiltersClick = { showFiltersSheet = true },
             onResetFilters = viewModel::resetFilters,
             focusRequester = searchFocusRequester,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
                 .padding(top = Spacing.sm)
         )
         
@@ -614,14 +638,15 @@ fun TransactionsScreen(
                                 if (selectionMode) {
                                     com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                         transaction = transaction,
-                                        showDate = dateGroup == DateGroup.EARLIER,
                                         listItemPosition = ListItemPosition.from(index, transactions.size),
                                         convertedAmount = convertedAmounts[transaction.id],
                                         displayCurrency = if (isUnifiedMode) selectedCurrency else null,
                                         profileAccountKeys = profileAccountKeys,
                                         onClick = { viewModel.toggleSelection(transaction.id) },
                                         onLongClick = longPressToggle,
-                                        containerColor = rowContainerColor
+                                        containerColor = rowContainerColor,
+                                        isSelectionMode = true,
+                                        isSelected = isSelected
                                     )
                                 } else {
                                     Column {
@@ -631,7 +656,6 @@ fun TransactionsScreen(
                                         ) {
                                             com.pennywiseai.tracker.ui.components.cards.TransactionItem(
                                                 transaction = transaction,
-                                                showDate = dateGroup == DateGroup.EARLIER,
                                                 listItemPosition = ListItemPosition.from(index, transactions.size),
                                                 convertedAmount = convertedAmounts[transaction.id],
                                                 displayCurrency = if (isUnifiedMode) selectedCurrency else null,
@@ -675,6 +699,20 @@ fun TransactionsScreen(
         ExportTransactionsDialog(
             transactions = uiState.transactions,
             onDismiss = { showExportDialog = false }
+        )
+    }
+
+    // Custom range picked from the inline "Custom Range" chip. Confirming sets
+    // both the dates and the CUSTOM period in one ViewModel call.
+    if (showCustomRangePicker) {
+        CustomDateRangePickerDialog(
+            onDismiss = { showCustomRangePicker = false },
+            onConfirm = { start, end ->
+                viewModel.setCustomDateRange(start, end)
+                showCustomRangePicker = false
+            },
+            initialStartDate = customDateRange?.first,
+            initialEndDate = customDateRange?.second,
         )
     }
 
@@ -954,9 +992,16 @@ private fun TransactionDateHeader(
     // `background` is true-black but `surface` is tinted — paints a visible
     // dark slab behind every date header.
     val pageBg = MaterialTheme.colorScheme.background
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    // Accent-coloured label inset to line up with the row content below it.
+    // Deliberately `primary` rather than SectionHeaderV2's neutral title: in
+    // this list the heading is the only accent text, so it reads as the
+    // anchor for the group of rows that follows.
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .fillMaxWidth()
             .background(
@@ -969,33 +1014,25 @@ private fun TransactionDateHeader(
                     )
                 )
             )
-            .padding(top = Spacing.md, bottom = Spacing.sm)
-    ) {
-        Spacer(
-            modifier = Modifier
-                .width(DATE_MARKER_WIDTH)
-                .height(DATE_MARKER_HEIGHT)
-                .background(
-                    color = MaterialTheme.colorScheme.tertiary,
-                    shape = CircleShape
-                )
-        )
-        SectionHeaderV2(
-            title = title,
-            modifier = Modifier.weight(1f),
-            // The Row already supplies the gap above; a second inset here
-            // would push the marker out of line with the title.
-            topSpacing = Spacing.none
-        )
-    }
+            .padding(start = Spacing.md, top = Spacing.md, bottom = Spacing.sm)
+            .semantics { heading() }
+    )
 }
 
+/**
+ * The Transactions header: search field with its "…" menu, the scrolling
+ * period chips, and the "More Filters" row that opens the unified filter
+ * sheet. The chips and the row fold away as the list scrolls; the search
+ * field stays put.
+ */
 @Composable
 private fun UnifiedTransactionFilterHeader(
     searchQuery: String,
     selectedPeriod: TimePeriod,
-    periodChipLabel: String,
-    activeFilterCount: Int,
+    customDateRangeSelected: Boolean,
+    customRangeLabel: String?,
+    budgetCycleStartDay: Int,
+    moreFilterCount: Int,
     hasAnyActiveFilter: Boolean,
     showSortMenu: Boolean,
     collapsed: Boolean,
@@ -1004,6 +1041,7 @@ private fun UnifiedTransactionFilterHeader(
     onSortClick: () -> Unit,
     onSortDismiss: () -> Unit,
     onSortSelected: (SortOption) -> Unit,
+    onPeriodSelected: (TimePeriod) -> Unit,
     onFiltersClick: () -> Unit,
     onResetFilters: () -> Unit,
     focusRequester: FocusRequester,
@@ -1079,7 +1117,9 @@ private fun UnifiedTransactionFilterHeader(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content),
         )
 
         AnimatedVisibility(
@@ -1087,21 +1127,92 @@ private fun UnifiedTransactionFilterHeader(
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
         ) {
-            val summary = when {
-                activeFilterCount == 0 -> periodChipLabel
-                activeFilterCount == 1 && selectedPeriod != TimePeriod.THIS_MONTH -> periodChipLabel
-                else -> stringResource(
-                    R.string.transactions_filters_summary_count,
-                    activeFilterCount,
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.sm),
+                    // The row bleeds to the screen edge so chips scroll under
+                    // the gutter, but the first one lines up with the content.
+                    contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    items(TimePeriod.entries.toList(), key = { it.name }) { period ->
+                        PeriodFilterChip(
+                            // CUSTOM only reads as selected once dates exist.
+                            selected = if (period == TimePeriod.CUSTOM) {
+                                selectedPeriod == period && customDateRangeSelected
+                            } else {
+                                selectedPeriod == period
+                            },
+                            // Budget-cycle-aware: a cycle that does not start on
+                            // the 1st shows its resolved dates, not "This Month".
+                            label = period.chipLabel(
+                                budgetCycleStartDay,
+                                customRangeLabel,
+                                period.label,
+                            ),
+                            onClick = { onPeriodSelected(period) },
+                        )
+                    }
+                }
+                TransactionMoreFiltersRow(
+                    activeCount = moreFilterCount,
+                    onClick = onFiltersClick,
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                 )
             }
-            ExpressiveFilterChip(
-                selected = activeFilterCount > 0,
-                text = summary,
-                icon = Icons.Default.Tune,
-                onClick = onFiltersClick,
-            )
         }
+    }
+}
+
+/** "More Filters" row with a filter glyph and chevron; opens the unified sheet. */
+@Composable
+private fun TransactionMoreFiltersRow(
+    activeCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val active = activeCount > 0
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Icon(
+            imageVector = Icons.Default.FilterList,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.inline),
+            tint = if (active) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
+        Text(
+            text = if (active) {
+                pluralStringResource(R.plurals.filter_row_more_active, activeCount, activeCount)
+            } else {
+                stringResource(R.string.filter_row_more)
+            },
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (active) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.Default.ExpandMore,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.medium),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -1116,10 +1227,12 @@ private fun TransactionSearchBar(
     modifier: Modifier = Modifier
 ) {
     val textColor = MaterialTheme.colorScheme.onSurface
+    // A tall, fully rounded field on the quiet `surfaceContainerLow` tone, so it
+    // reads as the primary control of the screen without needing a border.
     Surface(
-        modifier = modifier.height(Dimensions.Component.minTouchTarget),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        modifier = modifier.height(Dimensions.Component.listItemMinHeight),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Row(
             modifier = Modifier
@@ -1129,7 +1242,7 @@ private fun TransactionSearchBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = Iconax.Search,
                 contentDescription = stringResource(R.string.txn_list_search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1162,7 +1275,7 @@ private fun TransactionSearchBar(
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
-                        imageVector = Icons.Default.Clear,
+                        imageVector = Iconax.CloseCircle,
                         contentDescription = stringResource(R.string.txn_list_clear_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1208,10 +1321,3 @@ private fun EmptyTransactionsState(
         )
     }
 }
-
-/** Width of the tertiary-coloured marker beside a sticky date header. */
-private val DATE_MARKER_WIDTH = Spacing.xs
-
-/** Height of that marker — set to the cap height of the header text so the two
- *  read as one unit rather than a bar next to a label. */
-private val DATE_MARKER_HEIGHT = Spacing.md + Spacing.xxs

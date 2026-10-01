@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,16 +16,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,17 +36,28 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import coil.compose.AsyncImage
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
-import coil.compose.AsyncImage
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 
+/**
+ * The expanded Home header — avatar, name with a one-line greeting beneath it,
+ * and the profile / overflow actions — drawn straight onto the cover banner.
+ *
+ * Styled after Cashiro's greeting row: a bold name, a quieter subtitle and
+ * plain (background-less) trailing icons, so the banner stays the hero.
+ */
 @Composable
 fun GreetingCard(
     modifier: Modifier = Modifier,
@@ -89,46 +98,139 @@ fun GreetingCard(
         )
     }
 
-    val avatarBackground = if (profileBackgroundColor != 0) {
-        Color(profileBackgroundColor)
-    } else {
-        MaterialTheme.colorScheme.primaryContainer
-    }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Profile Avatar wrapped in a "membership ring" — the only Pro signal,
-        // no pill, no label. Solid gold = Pro member; dashed gold = free user
-        // (reads as "not yet filled / tap to unlock"). For free users tapping
-        // opens the upgrade sheet; Pro members tap through to settings.
-        val ringColor = yellow_dark
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Icon.avatarLarge)
-                // Clip to a circle before clickable so the tap ripple stays
-                // within the ring instead of rendering as a square.
-                .clip(CircleShape)
-                .drawBehind {
-                    val stroke = 2.dp.toPx()
-                    val dash = if (!isProEntitled) {
-                        PathEffect.dashPathEffect(floatArrayOf(stroke * 2.5f, stroke * 2f), 0f)
-                    } else null
-                    drawCircle(
-                        color = ringColor,
-                        radius = (size.minDimension - stroke) / 2f,
-                        style = Stroke(width = stroke, pathEffect = dash)
+        // For free users tapping the ring opens the upgrade sheet; Pro members
+        // tap through to their dashboard.
+        ProfileAvatar(
+            userName = userName,
+            profileImageUri = profileImageUri,
+            profileBackgroundColor = profileBackgroundColor,
+            isProEntitled = isProEntitled,
+            onClick = if (isProEntitled) onAvatarClick else onUpgradeClick,
+            size = Dimensions.Icon.avatarLarge
+        )
+
+        Spacer(modifier = Modifier.width(Spacing.smd))
+
+        // Text Column
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = userName.ifBlank { stringResource(R.string.greeting_default_user_name) },
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Profile filter button
+        if (profiles.isNotEmpty()) {
+            var showProfileMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { showProfileMenu = true },
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                ) {
+                    Icon(
+                        imageVector = profileFilterIcon(profiles, selectedProfileId),
+                        contentDescription = stringResource(R.string.greeting_profile_filter),
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-                .clickable(onClick = if (isProEntitled) onAvatarClick else onUpgradeClick),
-            contentAlignment = Alignment.Center
+                ProfileFilterDropdown(
+                    expanded = showProfileMenu,
+                    profiles = profiles,
+                    selectedProfileId = selectedProfileId,
+                    onProfileSelected = onProfileSelected,
+                    onDismiss = { showProfileMenu = false }
+                )
+            }
+        }
+
+        // Menu button — plain IconButton, no circular background
+        IconButton(
+            onClick = onMenuClick,
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = stringResource(R.string.greeting_more_options),
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+}
+
+/**
+ * The profile avatar wrapped in a "membership ring" — the only Pro signal,
+ * no pill, no label. Solid gold = Pro member; dashed gold = free user (reads
+ * as "not yet filled / tap to unlock").
+ *
+ * Shared by the expanded [GreetingCard] and the compact Home top bar so the
+ * ring and its tap behaviour are identical in both scroll states.
+ *
+ * @param size Outer diameter, ring included. The touch target is always at
+ *   least the 48dp minimum, however small the visible avatar is.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileAvatar(
+    userName: String,
+    profileImageUri: String?,
+    profileBackgroundColor: Int,
+    isProEntitled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = Dimensions.Icon.avatarLarge
+) {
+    val avatarBackground = if (profileBackgroundColor != 0) {
+        Color(profileBackgroundColor)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
+    }
+    val ringColor = yellow_dark
+    val ringWidth = Spacing.xxs
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .size(size)
+            // Clip to a circle before clickable so the tap ripple stays
+            // within the ring instead of rendering as a square.
+            .clip(CircleShape)
+            .drawBehind {
+                val stroke = ringWidth.toPx()
+                val dash = if (!isProEntitled) {
+                    PathEffect.dashPathEffect(floatArrayOf(stroke * 2.5f, stroke * 2f), 0f)
+                } else null
+                drawCircle(
+                    color = ringColor,
+                    radius = (this.size.minDimension - stroke) / 2f,
+                    style = Stroke(width = stroke, pathEffect = dash)
+                )
+            }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(size - Spacing.xs)
                 .clip(CircleShape)
                 .background(avatarBackground),
             contentAlignment = Alignment.Center
@@ -166,66 +268,5 @@ fun GreetingCard(
                 )
             }
         }
-        }
-
-        Spacer(modifier = Modifier.width(Spacing.sm))
-
-        // Text Column
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = userName.ifBlank { stringResource(R.string.greeting_default_user_name) },
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Profile filter button
-        if (profiles.isNotEmpty()) {
-            var showProfileMenu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(
-                    onClick = { showProfileMenu = true },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = profileFilterIcon(profiles, selectedProfileId),
-                        contentDescription = stringResource(R.string.greeting_profile_filter),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                ProfileFilterDropdown(
-                    expanded = showProfileMenu,
-                    profiles = profiles,
-                    selectedProfileId = selectedProfileId,
-                    onProfileSelected = onProfileSelected,
-                    onDismiss = { showProfileMenu = false }
-                )
-            }
-        }
-
-        // Menu button — plain IconButton, no circular background
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreHoriz,
-                contentDescription = stringResource(R.string.greeting_more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
-

@@ -7,6 +7,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -46,12 +49,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.LongArrow
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import dev.chrisbanes.haze.HazeDefaults
@@ -125,6 +136,10 @@ fun BalanceCard(
     val absPercent = kotlin.math.abs(monthlyChangePercent)
     val changeText = if (isPositive) stringResource(R.string.balance_card_change_more, absPercent) else stringResource(R.string.balance_card_change_less, absPercent)
 
+    // The summary card is a hero card like the account card, so it takes the
+    // same rounder (extraLarge) corners rather than the standard-card radius.
+    val cardShape = MaterialTheme.shapes.extraLarge
+
     Box(modifier = modifier.fillMaxWidth()) {
         PennyWiseCardV2(
             modifier = Modifier
@@ -134,7 +149,7 @@ fun BalanceCard(
                 )
                 .then(
                     if (blurEffects) Modifier
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
+                        .clip(cardShape)
                         .hazeEffect(
                             state = hazeState,
                             block = fun HazeEffectScope.() {
@@ -153,6 +168,7 @@ fun BalanceCard(
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 isExpanded = !isExpanded
             },
+            shape = cardShape,
             colors = CardDefaults.cardColors(
                 containerColor = if (blurEffects) containerColor.copy(alpha = 0.5f) else containerColor.copy(alpha = 0.92f)
             )
@@ -162,31 +178,56 @@ fun BalanceCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (!isExpanded) {
-                    // ── Collapsed View ── Spending is the hero, no sparkline
+                    // ── Collapsed View ── Spending is the hero, with a mini
+                    // sparkline beside it (Cashiro's summary-card layout).
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = Spacing.xs)
                     ) {
-                        SpendingAmountHeader(
-                            amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                            amountStyle = PennyWiseText.amountLarge,
-                            isBalanceHidden = isBalanceHidden,
-                            onToggleBalanceVisibility = {
-                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                onToggleBalanceVisibility()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                SpendingAmountHeader(
+                                    amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
+                                    amountStyle = PennyWiseText.amountLarge,
+                                    isBalanceHidden = isBalanceHidden,
+                                    onToggleBalanceVisibility = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        onToggleBalanceVisibility()
+                                    },
+                                    // The sparkline takes the right-hand third, so the
+                                    // eye moves up beside the label to leave the amount
+                                    // the full column width.
+                                    eyeBesideLabel = true
+                                )
+
+                                Spacer(modifier = Modifier.height(Spacing.xs))
+
+                                SpendingMetaRow(
+                                    currency = currency,
+                                    showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
+                                    onCurrencyClick = onCurrencyClick,
+                                    changeText = if (isBalanceHidden) "••••" else changeText,
+                                    changeColor = changeColor,
+                                    isIncrease = isPositive
+                                )
                             }
-                        )
 
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-
-                        SpendingMetaRow(
-                            currency = currency,
-                            showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
-                            onCurrencyClick = onCurrencyClick,
-                            changeText = if (isBalanceHidden) "••••" else changeText,
-                            changeColor = changeColor
-                        )
+                            // Decorative: the figures it plots are all in the card.
+                            if (spendingHistory.size >= 2) {
+                                MiniSparkline(
+                                    data = spendingHistory,
+                                    lineColor = if (isDark) expense_dark else expense_light,
+                                    modifier = Modifier
+                                        .width(MINI_SPARKLINE_WIDTH)
+                                        .height(MINI_SPARKLINE_HEIGHT)
+                                )
+                            }
+                        }
 
                         // Balance line (only if accounts exist)
                         if (accountBalances.isNotEmpty()) {
@@ -234,7 +275,8 @@ fun BalanceCard(
                             showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
                             onCurrencyClick = onCurrencyClick,
                             changeText = if (isBalanceHidden) "••••" else changeText,
-                            changeColor = changeColor
+                            changeColor = changeColor,
+                            isIncrease = isPositive
                         )
                         // Spending sparkline
                         if (spendingHistory.isNotEmpty()) {
@@ -324,24 +366,24 @@ fun BalanceCard(
                             }
 
                             SummaryItem(
-                                label = "Income",
+                                label = stringResource(R.string.home_breakdown_income),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
                                 accentColor = incomeColor
                             )
                             SummaryItem(
-                                label = "Expenses",
+                                label = stringResource(R.string.home_breakdown_expenses),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
                                 accentColor = expenseColor
                             )
                             if (currentMonthLent > BigDecimal.ZERO) {
                                 SummaryItem(
-                                    label = "Lent",
+                                    label = stringResource(R.string.loans_direction_lent),
                                     value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
                                     accentColor = MaterialTheme.colorScheme.tertiary
                                 )
                             }
                             SummaryItem(
-                                label = "Saved",
+                                label = stringResource(R.string.home_summary_saved),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
                                 accentColor = netColor
                             )
@@ -492,13 +534,17 @@ fun BalanceCard(
                     }
                 }
 
-                // Chevron indicator
+                // Expand / collapse affordance — Cashiro's wide, shallow chevron.
+                // Kept in the card's own column (not overlaid) so it stays part
+                // of the card's accessibility node.
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
+                    imageVector = Iconax.LongArrow,
                     contentDescription = if (isExpanded) stringResource(R.string.card_collapse) else stringResource(R.string.card_expand),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    // Decorative, so it recedes: a strong role at a reduced alpha.
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.disabled),
                     modifier = Modifier
-                        .size(Dimensions.Icon.small)
+                        .width(Dimensions.Icon.list)
+                        .height(CHEVRON_HEIGHT)
                         .rotate(chevronRotation)
                 )
             }
@@ -578,34 +624,45 @@ private fun SpendingAmountHeader(
     amountStyle: TextStyle,
     isBalanceHidden: Boolean,
     onToggleBalanceVisibility: () -> Unit,
-    supportingText: String? = null
+    supportingText: String? = null,
+    /** Put the show/hide eye next to the label instead of the amount. */
+    eyeBesideLabel: Boolean = false
 ) {
-    Text(
-        text = stringResource(R.string.balance_card_spent_this_month),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-        fontWeight = FontWeight.Medium
-    )
-    Spacer(modifier = Modifier.height(Spacing.xs))
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-    ) {
+    if (eyeBesideLabel) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            SpentThisMonthLabel()
+            BalanceVisibilityToggle(
+                isBalanceHidden = isBalanceHidden,
+                onToggle = onToggleBalanceVisibility,
+                buttonSize = Dimensions.Component.iconButton
+            )
+        }
         AnimatedCurrencyText(
             text = amountText,
             style = amountStyle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
-        IconButton(
-            onClick = onToggleBalanceVisibility,
-            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+    } else {
+        SpentThisMonthLabel()
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            Icon(
-                imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                contentDescription = if (isBalanceHidden) stringResource(R.string.balance_show) else stringResource(R.string.balance_hide),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimensions.Icon.medium)
+            AnimatedCurrencyText(
+                text = amountText,
+                style = amountStyle,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            BalanceVisibilityToggle(
+                isBalanceHidden = isBalanceHidden,
+                onToggle = onToggleBalanceVisibility,
+                buttonSize = Dimensions.Component.minTouchTarget
             )
         }
     }
@@ -619,12 +676,48 @@ private fun SpendingAmountHeader(
 }
 
 @Composable
+private fun SpentThisMonthLabel() {
+    Text(
+        text = stringResource(R.string.balance_card_spent_this_month),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        fontWeight = FontWeight.Medium
+    )
+}
+
+@Composable
+private fun BalanceVisibilityToggle(
+    isBalanceHidden: Boolean,
+    onToggle: () -> Unit,
+    buttonSize: Dp
+) {
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.size(buttonSize)
+    ) {
+        Icon(
+            imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+            contentDescription = if (isBalanceHidden) stringResource(R.string.balance_show) else stringResource(R.string.balance_hide),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(Dimensions.Icon.medium)
+        )
+    }
+}
+
+/**
+ * "▲ 12% more vs last month" — a coloured direction triangle beside plain
+ * text, as in Cashiro's summary card. [isIncrease] is about *spending*, so the
+ * triangle takes [changeColor] (red for more, green for less); the wording
+ * carries the meaning for anyone who can't rely on colour.
+ */
+@Composable
 private fun SpendingMetaRow(
     currency: String,
     showCurrencyChip: Boolean,
     onCurrencyClick: () -> Unit,
     changeText: String,
-    changeColor: Color
+    changeColor: Color,
+    isIncrease: Boolean
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -636,21 +729,74 @@ private fun SpendingMetaRow(
                 onClick = onCurrencyClick
             )
         }
-        Surface(
-            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (isIncrease) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = changeColor,
+                modifier = Modifier.size(Dimensions.Icon.inline)
+            )
             Text(
                 text = changeText,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = changeColor,
-                modifier = Modifier.padding(
-                    horizontal = Spacing.sm,
-                    vertical = Spacing.xs
-                )
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+/**
+ * The small trend line beside the collapsed hero figure. No axes, labels or
+ * touch handling — the expanded card carries the full, annotated chart.
+ */
+@Composable
+private fun MiniSparkline(
+    data: List<BigDecimal>,
+    lineColor: Color,
+    modifier: Modifier = Modifier
+) {
+    if (data.size < 2) return
+    val strokeWidth = Dimensions.Component.chartStroke
+
+    Canvas(modifier = modifier) {
+        val max = data.maxOf { it }.toFloat()
+        val min = data.minOf { it }.toFloat()
+        val range = (max - min).takeIf { it > 0f } ?: 1f
+        val width = size.width
+        val height = size.height
+        // Keep the round-capped stroke fully inside the canvas at the extremes.
+        val inset = strokeWidth.toPx() / 2f
+        val usableHeight = height - inset * 2f
+
+        val linePath = Path()
+        data.forEachIndexed { index, value ->
+            val x = index.toFloat() / (data.size - 1) * width
+            val y = inset + usableHeight - ((value.toFloat() - min) / range * usableHeight)
+            if (index == 0) linePath.moveTo(x, y) else linePath.lineTo(x, y)
+        }
+
+        val fillPath = Path().apply {
+            addPath(linePath)
+            lineTo(width, height)
+            lineTo(0f, height)
+            close()
+        }
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(lineColor.copy(alpha = 0.3f), lineColor.copy(alpha = 0f))
+            )
+        )
+        drawPath(
+            path = linePath,
+            color = lineColor,
+            style = Stroke(
+                width = strokeWidth.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
     }
 }
 
@@ -733,3 +879,10 @@ private fun SummaryItem(
 
 /** Height of the inline spending sparkline inside the expanded balance card. */
 private val SPARKLINE_HEIGHT = Spacing.xxl + Spacing.xl
+
+/** Footprint of the mini trend line beside the collapsed hero figure. */
+private val MINI_SPARKLINE_WIDTH = Spacing.xxxl + Spacing.xl
+private val MINI_SPARKLINE_HEIGHT = Dimensions.Component.iconButton
+
+/** Height of the wide expand / collapse chevron (its width is [Dimensions.Icon.list]). */
+private val CHEVRON_HEIGHT = Dimensions.Icon.large - Spacing.xs

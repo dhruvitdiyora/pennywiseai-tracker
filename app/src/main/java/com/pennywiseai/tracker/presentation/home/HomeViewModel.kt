@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.home
 
+import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import android.content.Context
@@ -919,7 +921,15 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.displayCurrency
             ) { subscriptions, isUnified, displayCurrency ->
                 Triple(subscriptions, isUnified, displayCurrency)
-            }.collect { (subscriptions, isUnified, displayCurrency) ->
+            }.collect { (allSubscriptions, isUnified, displayCurrency) ->
+                // The Home card reads "N subscriptions · ₹x / month": only money
+                // going out, each charge scaled to its monthly equivalent so a
+                // yearly plan doesn't count as twelve months' spend in one.
+                val subscriptions = allSubscriptions.filter {
+                    it.direction == SubscriptionDirection.EXPENSE
+                }
+                fun SubscriptionEntity.monthlyAmount() =
+                    SubscriptionBillingCycle.monthlyEquivalent(amount, billingCycle)
                 // Unified mode collapses to one converted figure. Native mode keeps
                 // currencies apart — summing ₹ + $ into one figure mislabels it — so
                 // we expose a per-currency map the card renders as "₹499 · $10".
@@ -927,7 +937,7 @@ class HomeViewModel @Inject constructor(
                     var total = java.math.BigDecimal.ZERO
                     for (sub in subscriptions) {
                         total += currencyConversionService.convertAmountOrNull(
-                            sub.amount, sub.currency, displayCurrency
+                            sub.monthlyAmount(), sub.currency, displayCurrency
                         ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
@@ -937,7 +947,7 @@ class HomeViewModel @Inject constructor(
                 val totalByCurrency: Map<String, Money> = if (isUnified) {
                     emptyMap()
                 } else {
-                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
+                    subscriptions.sumByCurrency({ it.currency }, { it.monthlyAmount() })
                 }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,

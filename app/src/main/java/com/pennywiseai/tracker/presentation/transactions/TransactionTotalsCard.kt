@@ -46,6 +46,9 @@ fun TransactionTotalsCard(
     credit: BigDecimal? = null,
     // Optional heading, e.g. "3 selected".
     title: String? = null,
+    // The figures were converted across currencies, so they are approximate:
+    // each is shown as "est. …". Only for callers that already convert.
+    isEstimated: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val incomeAlpha by animateFloatAsState(
@@ -82,7 +85,9 @@ fun TransactionTotalsCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ),
-            shape = MaterialTheme.shapes.large
+            // A pill: the tiles' outer corners (Spacing.lg) plus the card
+            // padding (Spacing.sm) give the concentric outer radius.
+            shape = RoundedCornerShape(Spacing.xl)
         ) {
             Column(
                 modifier = Modifier
@@ -113,9 +118,9 @@ fun TransactionTotalsCard(
                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                 shape = RoundedCornerShape(
                                     topEnd = Spacing.xs,
-                                    topStart = Spacing.md,
+                                    topStart = Spacing.lg,
                                     bottomEnd = Spacing.xs,
-                                    bottomStart = Spacing.md
+                                    bottomStart = Spacing.lg
                                 )
                             )
                             .padding(Spacing.sm),
@@ -131,7 +136,10 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = stringResource(R.string.txn_totals_income),
-                            amount = CurrencyFormatter.formatCurrency(income, currency),
+                            amount = totalAmountText(
+                                CurrencyFormatter.formatCurrency(income, currency),
+                                isEstimated
+                            ),
                             color = if (!isSystemInDarkTheme()) income_light else income_dark,
                             modifier = Modifier.alpha(incomeAlpha)
                         )
@@ -167,7 +175,10 @@ fun TransactionTotalsCard(
                             },
                             // Four tiles leave no room for the plural — it wraps.
                             label = if (credit != null) stringResource(R.string.txn_totals_expense) else stringResource(R.string.txn_totals_expenses),
-                            amount = CurrencyFormatter.formatCurrency(expenses, currency),
+                            amount = totalAmountText(
+                                CurrencyFormatter.formatCurrency(expenses, currency),
+                                isEstimated
+                            ),
                             color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
                             modifier = Modifier.alpha(expenseAlpha)
                         )
@@ -227,9 +238,9 @@ fun TransactionTotalsCard(
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                                 shape = RoundedCornerShape(
-                                    topEnd = Spacing.md,
+                                    topEnd = Spacing.lg,
                                     topStart = Spacing.xs,
-                                    bottomEnd = Spacing.md,
+                                    bottomEnd = Spacing.lg,
                                     bottomStart = Spacing.xs
                                 )
                             )
@@ -246,7 +257,10 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = stringResource(R.string.txn_totals_net),
-                            amount = "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
+                            amount = totalAmountText(
+                                "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
+                                isEstimated
+                            ),
                             color = netColor,
                             modifier = Modifier.alpha(netAlpha)
                         )
@@ -265,6 +279,15 @@ fun TransactionTotalsCard(
         }
     }
 }
+
+/** [formatted], prefixed "est." when the figure comes from converted currencies. */
+@Composable
+private fun totalAmountText(formatted: String, isEstimated: Boolean): String =
+    if (isEstimated) {
+        stringResource(R.string.account_detail_estimated_amount, formatted)
+    } else {
+        formatted
+    }
 
 @Composable
 private fun TotalColumn(

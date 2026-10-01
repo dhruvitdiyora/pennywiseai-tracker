@@ -6,20 +6,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.*
@@ -27,25 +23,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.transactions.TransactionTotalsCard
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +57,17 @@ fun AccountDetailScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
+    // The user's own name for the account wins; the masked number lives on the
+    // balance card, so the title does not need to repeat it.
+    val accountAlias = uiState.currentBalance?.alias?.trim()?.takeIf { it.isNotEmpty() }
+    val screenTitle = accountAlias ?: uiState.bankName
+
+    val gutter = Dimensions.Padding.content
+    // Sections sit `Spacing.md` apart while transaction rows keep the tiny
+    // grouped-list gap, so the list's own spacing is the small one and every
+    // non-row item adds the difference below itself.
+    val sectionGap = Spacing.md - Spacing.Layout.groupedListGap
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -68,12 +75,13 @@ fun AccountDetailScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = AccountBalanceEntity.accountLabel(uiState.bankName, uiState.accountLast4),
+                title = screenTitle,
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
-                    }
+                    TonalNavigationButton(
+                        onClick = onNavigateBack,
+                        contentDescription = stringResource(R.string.accounts_back),
+                    )
                 },
                 hazeState = hazeState
             )
@@ -87,25 +95,29 @@ fun AccountDetailScreen(
                 .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
+            // Horizontal inset is applied per item so the period chips can
+            // scroll all the way to the screen edge.
             contentPadding = PaddingValues(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = 0.dp
+                bottom = paddingValues.calculateBottomPadding() + Spacing.Layout.scrollBottomPadding
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
-            // Current Balance Card
+            // Balance card: tiled bank logo, balance, bank name + masked number
             item {
-                CurrentBalanceCard(
+                AccountBalanceCard(
                     balance = uiState.currentBalance?.balance ?: BigDecimal.ZERO,
                     creditLimit = uiState.currentBalance?.creditLimit,
                     bankName = uiState.bankName,
+                    alias = accountAlias,
                     accountLast4 = uiState.accountLast4,
                     primaryCurrency = uiState.primaryCurrency,
                     billedOutstanding = uiState.billedOutstanding,
-                    unbilledOutstanding = uiState.unbilledOutstanding
+                    unbilledOutstanding = uiState.unbilledOutstanding,
+                    modifier = Modifier
+                        .padding(horizontal = gutter)
+                        .padding(bottom = sectionGap)
                 )
             }
 
@@ -113,7 +125,8 @@ fun AccountDetailScreen(
             item {
                 DateRangeFilter(
                     selectedRange = selectedDateRange,
-                    onRangeSelected = viewModel::selectDateRange
+                    onRangeSelected = viewModel::selectDateRange,
+                    modifier = Modifier.padding(bottom = sectionGap)
                 )
             }
 
@@ -123,56 +136,69 @@ fun AccountDetailScreen(
                     ExpandableBalanceChart(
                         primaryCurrency = uiState.primaryCurrency,
                         balanceHistory = uiState.balanceChartData,
-                        selectedTimeframe = stringResource(selectedDateRange.labelRes)
+                        selectedTimeframe = stringResource(selectedDateRange.labelRes),
+                        modifier = Modifier
+                            .padding(horizontal = gutter)
+                            .padding(bottom = sectionGap)
                     )
                 }
             }
 
-            // Summary Statistics
+            // Summary: one currency (the account's, or the display currency in
+            // unified mode); figures are "est." when they were converted.
             item {
-                SummaryStatistics(
-                    totalIncome = uiState.totalIncome,
-                    totalExpenses = uiState.totalExpenses,
+                TransactionTotalsCard(
+                    income = uiState.totalIncome,
+                    expenses = uiState.totalExpenses,
                     netBalance = uiState.netBalance,
-                    period = stringResource(selectedDateRange.labelRes),
-                    primaryCurrency = uiState.primaryCurrency,
-                    hasMultipleCurrencies = uiState.hasMultipleCurrencies
+                    currency = uiState.primaryCurrency,
+                    isEstimated = uiState.hasMultipleCurrencies,
+                    isLoading = uiState.isLoading,
+                    modifier = Modifier
+                        .padding(horizontal = gutter)
+                        .padding(bottom = sectionGap)
                 )
             }
-            
+
             // Transactions Header
             item {
                 SectionHeaderV2(
-                    title = stringResource(R.string.account_detail_transactions_header, uiState.transactions.size)
+                    title = stringResource(R.string.account_detail_transactions_header, uiState.transactions.size),
+                    modifier = Modifier
+                        .padding(horizontal = gutter + Spacing.sm)
+                        .padding(bottom = Spacing.sm)
                 )
             }
-            
+
             // Transaction List
             if (uiState.transactions.isEmpty() && !uiState.isLoading) {
                 item {
                     PennyWiseEmptyState(
                         icon = Icons.Outlined.Receipt,
                         headline = stringResource(R.string.account_detail_empty_title),
-                        description = stringResource(R.string.account_detail_empty_description)
+                        description = stringResource(R.string.account_detail_empty_description),
+                        modifier = Modifier.padding(horizontal = gutter)
                     )
                 }
             } else {
-                items(
+                itemsIndexed(
                     items = uiState.transactions,
-                    key = { it.id }
-                ) { transaction ->
-                    AccountTransactionItem(
+                    key = { _, transaction -> transaction.id }
+                ) { index, transaction ->
+                    TransactionItem(
                         transaction = transaction,
-                        primaryCurrency = uiState.primaryCurrency,
-                        onClick = { onTransactionClick(transaction.id) }
+                        listItemPosition = ListItemPosition.from(index, uiState.transactions.size),
+                        onClick = { onTransactionClick(transaction.id) },
+                        modifier = Modifier.padding(horizontal = gutter)
                     )
                 }
             }
-            
+
             // Loading State
             if (uiState.isLoading) {
                 item {
                     Column(
+                        modifier = Modifier.padding(horizontal = gutter),
                         verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         repeat(5) {
@@ -189,243 +215,69 @@ fun AccountDetailScreen(
 private fun ExpandableBalanceChart(
     primaryCurrency: String,
     balanceHistory: List<BalancePoint>,
-    selectedTimeframe: String
+    selectedTimeframe: String,
+    modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    
-    PennyWiseCardV2(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { isExpanded = !isExpanded }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                        Text(
-                            text = stringResource(R.string.account_detail_balance_trend),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text(
-                        text = selectedTimeframe,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 28.dp)
-                    )
-                }
-                
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (isExpanded) stringResource(R.string.accounts_collapse) else stringResource(R.string.accounts_expand),
-                    modifier = Modifier
-                        .size(Dimensions.Icon.medium)
-                        .rotate(if (isExpanded) 180f else 0f),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                    BalanceChart(
-                        primaryCurrency = primaryCurrency,
-                        balanceHistory = balanceHistory,
-                        height = 180
-                    )
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun CurrentBalanceCard(
-    balance: BigDecimal,
-    creditLimit: BigDecimal? = null,
-    bankName: String,
-    accountLast4: String,
-    primaryCurrency: String,
-    billedOutstanding: BigDecimal? = null,
-    unbilledOutstanding: BigDecimal? = null
-) {
-    val isCreditCard = creditLimit != null
-    
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        onClick = { isExpanded = !isExpanded },
+        contentPadding = Dimensions.Padding.content
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isCreditCard) {
-                // Credit card layout
-                Text(
-                    text = stringResource(R.string.account_detail_available_credit),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = CurrencyFormatter.formatCurrency(creditLimit, primaryCurrency),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                // Show outstanding balance if any
-                if (balance > BigDecimal.ZERO) {
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Text(
-                        text = stringResource(R.string.account_detail_outstanding, CurrencyFormatter.formatCurrency(balance, primaryCurrency)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+            Column {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimensions.Icon.inline)
                     )
-                    // Show billed/unbilled split when statement day is configured
-                    if (billedOutstanding != null && unbilledOutstanding != null) {
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = CurrencyFormatter.formatCurrency(billedOutstanding, primaryCurrency),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Text(
-                                    text = stringResource(R.string.account_detail_billed),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = CurrencyFormatter.formatCurrency(unbilledOutstanding, primaryCurrency),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                                Text(
-                                    text = stringResource(R.string.account_detail_unbilled),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        text = stringResource(R.string.account_detail_balance_trend),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-            } else {
-                // Regular account layout
                 Text(
-                    text = stringResource(R.string.account_detail_current_balance),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = CurrencyFormatter.formatCurrency(balance, primaryCurrency),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = if (isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
+                    text = selectedTimeframe,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Line the subtitle up with the title, past the leading icon.
+                    modifier = Modifier.padding(start = Dimensions.Icon.inline + Spacing.sm)
                 )
             }
-        }
-    }
-}
 
-@Composable
-private fun SummaryStatistics(
-    totalIncome: BigDecimal,
-    totalExpenses: BigDecimal,
-    netBalance: BigDecimal,
-    period: String,
-    primaryCurrency: String,
-    hasMultipleCurrencies: Boolean = false
-) {
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Text(
-                text = period,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) stringResource(R.string.accounts_collapse) else stringResource(R.string.accounts_expand),
+                modifier = Modifier
+                    .size(Dimensions.Icon.medium)
+                    .rotate(if (isExpanded) 180f else 0f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(Spacing.md))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatisticItem(
-                    label = stringResource(R.string.account_detail_income),
-                    value = formatWithEstimatedDisplay(totalIncome, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = if (!isSystemInDarkTheme()) income_light else income_dark
-                )
-                StatisticItem(
-                    label = stringResource(R.string.account_detail_expenses),
-                    value = formatWithEstimatedDisplay(totalExpenses, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = if (!isSystemInDarkTheme()) expense_light else expense_dark
-                )
-                StatisticItem(
-                    label = stringResource(R.string.account_detail_net),
-                    value = formatWithEstimatedDisplay(netBalance, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.Default.AccountBalanceWallet,
-                    color = if (netBalance >= BigDecimal.ZERO) {
-                        if (!isSystemInDarkTheme()) income_light else income_dark
-                    } else {
-                        if (!isSystemInDarkTheme()) expense_light else expense_dark
-                    }
+        }
+
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(Spacing.md))
+                BalanceChart(
+                    primaryCurrency = primaryCurrency,
+                    balanceHistory = balanceHistory,
+                    height = 180
                 )
             }
         }
@@ -433,187 +285,194 @@ private fun SummaryStatistics(
 }
 
 /**
- * Formats currency with estimated display for multi-currency accounts
+ * The account's identity card: the bank's logo tiled faintly behind the
+ * balance, with the bank (or the user's alias) and a masked number plus the
+ * logo along the bottom edge. Credit cards swap the headline for available
+ * credit and keep their outstanding / billed / unbilled breakdown.
+ *
+ * The headline is formatted in [primaryCurrency], the account's own currency
+ * (or the display currency in unified mode), so no amounts are ever summed
+ * across currencies here.
  */
 @Composable
-private fun formatWithEstimatedDisplay(
-    amount: BigDecimal,
-    currency: String,
-    hasMultipleCurrencies: Boolean
-): String {
-    val formattedAmount = CurrencyFormatter.formatCurrency(amount, currency)
-    return if (hasMultipleCurrencies) {
-        stringResource(R.string.account_detail_estimated_amount, formattedAmount)
-    } else {
-        formattedAmount
-    }
-}
-
-@Composable
-private fun StatisticItem(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color
+private fun AccountBalanceCard(
+    balance: BigDecimal,
+    creditLimit: BigDecimal?,
+    bankName: String,
+    alias: String?,
+    accountLast4: String,
+    primaryCurrency: String,
+    modifier: Modifier = Modifier,
+    billedOutstanding: BigDecimal? = null,
+    unbilledOutstanding: BigDecimal? = null
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+    val isCreditCard = creditLimit != null
+    val headlineLabel = if (isCreditCard) {
+        stringResource(R.string.account_detail_available_credit)
+    } else {
+        stringResource(R.string.account_detail_current_balance)
+    }
+    val headlineAmount = creditLimit ?: balance
+
+    val cardColor = MaterialTheme.colorScheme.surfaceContainer
+    val stripColor = MaterialTheme.colorScheme.surfaceContainerLow
+
+    // Wallets have no number to mask. With an alias on top, the bank name moves
+    // to the supporting line so the card still says which bank it is.
+    val maskedNumber = accountLast4
+        .takeIf { it.isNotBlank() && it != AccountBalanceEntity.WALLET_ACCOUNT_MARKER }
+        ?.let { "•••• •••• •••• $it" }
+    val supportingLine = listOfNotNull(bankName.takeIf { alias != null }, maskedNumber)
+        .joinToString(" · ")
+        .ifBlank { null }
+
+    PennyWiseCardV2(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = cardColor,
+        // Full-bleed layers: the watermark and the bottom strip reach the edge.
+        contentPadding = Dimensions.Padding.none
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.medium),
-            tint = color
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            TiledIconBackground(
+                merchantName = bankName,
+                modifier = Modifier.matchParentSize()
+            )
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Text(
+                    text = headlineLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Spacing.md, end = Spacing.md, top = Spacing.md)
+                )
+                Text(
+                    text = CurrencyFormatter.formatCurrency(headlineAmount, primaryCurrency),
+                    style = PennyWiseText.heroAmount,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = Spacing.md)
+                )
+
+                // Credit cards: what is owed, and how much of it is billed.
+                if (isCreditCard && balance > BigDecimal.ZERO) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.account_detail_outstanding,
+                                CurrencyFormatter.formatCurrency(balance, primaryCurrency)
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        if (billedOutstanding != null && unbilledOutstanding != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.lg)
+                            ) {
+                                Column {
+                                    Text(
+                                        text = CurrencyFormatter.formatCurrency(billedOutstanding, primaryCurrency),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.account_detail_billed),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = CurrencyFormatter.formatCurrency(unbilledOutstanding, primaryCurrency),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.account_detail_unbilled),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Identity strip: fades the watermark out under the text.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, stripColor, stripColor)
+                            )
+                        )
+                        .padding(Spacing.md)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = alias ?: bankName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            supportingLine?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        BrandIcon(
+                            merchantName = bankName,
+                            size = Dimensions.Icon.avatarLarge,
+                            showBackground = true
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateRangeFilter(
     selectedRange: DateRange,
-    onRangeSelected: (DateRange) -> Unit
+    onRangeSelected: (DateRange) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(horizontal = 0.dp)
+        contentPadding = PaddingValues(horizontal = Dimensions.Padding.content)
     ) {
-        items(DateRange.values().toList()) { range ->
-            FilterChip(
+        items(DateRange.entries.toList(), key = { it.name }) { range ->
+            PeriodFilterChip(
                 selected = selectedRange == range,
-                onClick = { onRangeSelected(range) },
-                label = { Text(stringResource(range.labelRes)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                label = stringResource(range.labelRes),
+                onClick = { onRangeSelected(range) }
             )
         }
     }
 }
-
-@Composable
-private fun AccountTransactionItem(
-    transaction: TransactionEntity,
-    primaryCurrency: String,
-    onClick: () -> Unit
-) {
-    val amountColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (!isSystemInDarkTheme()) income_light else income_dark
-        TransactionType.EXPENSE -> if (!isSystemInDarkTheme()) expense_light else expense_dark
-        TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
-        TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-        TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
-    }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BrandIcon(
-                    merchantName = transaction.merchantName,
-                    category = transaction.category,
-                    size = 48.dp,
-                    showBackground = true
-                )
-                
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = transaction.merchantName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = transaction.dateTime.format(
-                                DateTimeFormatter.ofPattern("MMM d, h:mm a")
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
-                        // Show balance after if available
-                        transaction.balanceAfter?.let { balance ->
-                            Text(
-                                text = stringResource(R.string.account_detail_balance_after, CurrencyFormatter.formatCurrency(balance, primaryCurrency)),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-            
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    text = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = amountColor
-                )
-                
-                // Transaction type indicator
-                when (transaction.transactionType) {
-                    TransactionType.CREDIT -> Icon(
-                        Icons.Default.CreditCard,
-                        contentDescription = stringResource(R.string.account_detail_type_credit),
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = amountColor
-                    )
-                    TransactionType.TRANSFER -> Icon(
-                        Icons.Default.SwapHoriz,
-                        contentDescription = stringResource(R.string.account_detail_type_transfer),
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = amountColor
-                    )
-                    TransactionType.INVESTMENT -> Icon(
-                        Icons.AutoMirrored.Filled.ShowChart,
-                        contentDescription = stringResource(R.string.account_detail_type_investment),
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = amountColor
-                    )
-                    else -> {}
-                }
-            }
-        }
-    }
-}
-

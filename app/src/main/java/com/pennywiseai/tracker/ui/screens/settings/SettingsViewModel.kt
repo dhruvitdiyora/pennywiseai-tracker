@@ -99,6 +99,14 @@ class SettingsViewModel @Inject constructor(
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
 
+    // User preferences (including name, avatar, etc.)
+    val userPreferences = userPreferencesRepository.userPreferences
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.pennywiseai.tracker.data.preferences.UserPreferences())
+
+    // Total transaction count for the profile header
+    val transactionCount: StateFlow<Int> = transactionRepository.observeAllTransactionCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     // "Delete all transactions": null while the confirmation isn't open, else the
     // number of rows the delete would remove — observed, not snapshotted, so the
     // figure the user is consenting to stays the one the delete will act on even

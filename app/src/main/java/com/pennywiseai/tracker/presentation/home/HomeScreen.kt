@@ -20,7 +20,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -39,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Add
@@ -47,7 +47,6 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -64,15 +63,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -83,7 +85,6 @@ import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
@@ -104,10 +105,14 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
 import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.GreetingCard
+import com.pennywiseai.tracker.ui.components.HomeTopBar
+import com.pennywiseai.tracker.ui.components.ProfileAvatar
+import com.pennywiseai.tracker.ui.components.SubscriptionIconsStack
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Search
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeDefaults
@@ -121,16 +126,6 @@ import java.time.LocalDate
 
 /** Distance each card travels on the first-composition entrance animation. */
 private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
-
-/** Diameter of one avatar in the overlapping subscription stack. */
-private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
-
-/** Horizontal step between stacked avatars — less than the diameter, so they
- *  overlap and read as a group. */
-private val STACKED_AVATAR_STEP = Spacing.lg - Spacing.xs
-
-/** The surface-coloured ring that separates one stacked avatar from the next. */
-private val STACKED_AVATAR_RING = Spacing.xxs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,6 +272,16 @@ fun HomeScreen(
         }
     }
     
+    // Avatar tap, shared by the compact bar: free users get the upgrade sheet
+    // (the ring is their "tap to unlock" cue), Pro members their dashboard.
+    val onAvatarClick: () -> Unit = {
+        if (isProEntitled) {
+            onNavigateToPersonalDashboard()
+        } else {
+            showUpgradeSheet = true
+        }
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -290,99 +295,86 @@ fun HomeScreen(
             )
         },
         topBar = {
-            CustomTitleTopAppBar(
+            HomeTopBar(
+                title = stringResource(R.string.home_top_bar_title),
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "PennyWise",
-                isHomeScreen = true,
-                userName = uiState.userName,
-                profileImageUri = uiState.profileImageUri,
-                profileBackgroundColor = uiState.profileBackgroundColor,
                 hazeState = hazeState,
                 blurEffects = blurEffects,
+                // Compact bar, leading: the avatar with its Pro ring. Same tap
+                // behaviour as the expanded greeting row — free users get the
+                // upgrade sheet, Pro members their dashboard.
+                navigationContent = {
+                    ProfileAvatar(
+                        userName = uiState.userName,
+                        profileImageUri = uiState.profileImageUri,
+                        profileBackgroundColor = uiState.profileBackgroundColor,
+                        isProEntitled = isProEntitled,
+                        onClick = onAvatarClick,
+                        // The bar already insets its icons by 4dp; this brings the
+                        // avatar to the 16dp screen gutter the cards below use.
+                        modifier = Modifier.padding(start = Spacing.smd),
+                        size = Dimensions.Component.iconButton
+                    )
+                },
+                // Compact bar, trailing: round buttons (Cashiro's "…" menu, plus the
+                // PennyWise-only Pro chip and profile switcher).
                 actionContent = {
                     val containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    val buttonColor = if (blurEffects) containerColor.copy(alpha = 0.5f) else containerColor
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = Dimensions.Padding.content),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        modifier = Modifier.padding(end = Spacing.smd),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         // Subtle Pro discovery chip — yellow sparkle that ties
                         // back to the Settings → PennyWise Pro entry. Hidden
                         // for already-entitled users so it's never pushy.
                         // Tap → opens the same UpgradeSheet as Settings.
                         if (!isProEntitled) {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = com.pennywiseai.tracker.ui.theme.yellow_light,
-                                        shape = CircleShape,
-                                    )
-                                    .clickable(
-                                        onClick = { showUpgradeSheet = true },
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center,
+                            HomeBarCircleButton(
+                                onClick = { showUpgradeSheet = true },
+                                containerColor = yellow_light
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.AutoAwesome,
                                     contentDescription = stringResource(R.string.home_upgrade_pro),
-                                    tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
+                                    tint = yellow_dark,
                                     modifier = Modifier.size(Dimensions.Icon.inline),
                                 )
                             }
                         }
 
-                        // Business/Personal filter dropdown
-                        Box {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                        shape = CircleShape
+                        // Business/Personal filter dropdown. Nothing to switch
+                        // between until a profile exists, so no button either
+                        // (the expanded greeting row follows the same rule).
+                        if (uiState.profiles.isNotEmpty()) {
+                            Box {
+                                HomeBarCircleButton(
+                                    onClick = { showProfileFilterMenu = true },
+                                    containerColor = buttonColor
+                                ) {
+                                    Icon(
+                                        imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
+                                        contentDescription = stringResource(R.string.home_profile_filter),
+                                        tint = MaterialTheme.colorScheme.inverseSurface,
+                                        modifier = Modifier.size(Dimensions.Icon.inline)
                                     )
-                                    .clickable(
-                                        onClick = { showProfileFilterMenu = true },
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
-                                    contentDescription = stringResource(R.string.home_profile_filter),
-                                    tint = MaterialTheme.colorScheme.inverseSurface,
-                                    modifier = Modifier.size(Dimensions.Icon.inline)
+                                }
+                                ProfileFilterDropdown(
+                                    expanded = showProfileFilterMenu,
+                                    profiles = uiState.profiles,
+                                    selectedProfileId = uiState.selectedProfileId,
+                                    onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                                    onDismiss = { showProfileFilterMenu = false }
                                 )
                             }
-                            ProfileFilterDropdown(
-                                expanded = showProfileFilterMenu,
-                                profiles = uiState.profiles,
-                                selectedProfileId = uiState.selectedProfileId,
-                                onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                                onDismiss = { showProfileFilterMenu = false }
-                            )
                         }
+
                         // More options button
-                        Box(
-                            modifier = Modifier
-                                .size(Dimensions.Component.iconButton)
-                                .clip(CircleShape)
-                                .background(
-                                    color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                    shape = CircleShape
-                                )
-                                .clickable(
-                                    onClick = { showMenuSheet = true },
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                ),
-                            contentAlignment = Alignment.Center
+                        HomeBarCircleButton(
+                            onClick = { showMenuSheet = true },
+                            containerColor = buttonColor
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreHoriz,
@@ -393,7 +385,7 @@ fun HomeScreen(
                         }
                     }
                 },
-                extraInfoCard = {
+                expandedContent = {
                     GreetingCard(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
@@ -712,39 +704,12 @@ fun HomeScreen(
                                     animationSpec = tween(300)
                                 )
                             ) {
-                                Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                    SectionHeaderV2(
-                                        title = stringResource(R.string.home_section_recent_transactions),
-                                        action = {
-                                            Row(
-                                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                // Search button
-                                                IconButton(
-                                                    onClick = onNavigateToTransactionsWithSearch,
-                                                    modifier = Modifier.size(Dimensions.Component.iconButton)
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Search,
-                                                        contentDescription = stringResource(R.string.home_search_transactions),
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-
-                                                // View All button
-                                                TextButton(onClick = onNavigateToTransactions) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
+                                // "Recent" in the accent colour with a Search action; the
+                                // "View All" link now sits under the list (Cashiro layout).
+                                RecentSectionHeader(
+                                    onSearchClick = onNavigateToTransactionsWithSearch,
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                )
                             }
                         }
 
@@ -830,6 +795,12 @@ fun HomeScreen(
                                                 )
                                             }
                                         }
+
+                                        ViewAllPill(
+                                            onClick = onNavigateToTransactions,
+                                            blurEffects = blurEffects,
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        )
                                     }
                                 }
                             }
@@ -850,41 +821,27 @@ fun HomeScreen(
                                         animationSpec = tween(300)
                                     )
                                 ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_accounts),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToManageAccounts) {
-                                                    Text(stringResource(R.string.home_manage))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        AccountCarousel(
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            bankAccounts = uiState.accountBalances,
-                                            creditCards = uiState.creditCards,
-                                            onAccountClick = { bankName, accountLast4 ->
-                                                navController.navigate(
-                                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                                        bankName = bankName,
-                                                        accountLast4 = accountLast4
-                                                    )
-                                                ) { launchSingleTop = true }
-                                            },
-                                            isUnifiedMode = uiState.isUnifiedMode,
-                                            selectedCurrency = uiState.selectedCurrency,
-                                            blurEffects = blurEffects,
-                                            hazeState = hazeStateBanner
-                                        )
-                                    }
+                                    // No section header: like Cashiro, the account card sits
+                                    // straight under the summary — its logo, "BANK ••1234" and
+                                    // "View details" pill already say what it is. The old
+                                    // "Manage" link moved to the More-options sheet.
+                                    AccountCarousel(
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                        bankAccounts = uiState.accountBalances,
+                                        creditCards = uiState.creditCards,
+                                        onAccountClick = { bankName, accountLast4 ->
+                                            navController.navigate(
+                                                com.pennywiseai.tracker.navigation.AccountDetail(
+                                                    bankName = bankName,
+                                                    accountLast4 = accountLast4
+                                                )
+                                            ) { launchSingleTop = true }
+                                        },
+                                        isUnifiedMode = uiState.isUnifiedMode,
+                                        selectedCurrency = uiState.selectedCurrency,
+                                        blurEffects = blurEffects,
+                                        hazeState = hazeStateBanner
+                                    )
                                 }
                             }
                         }
@@ -904,35 +861,19 @@ fun HomeScreen(
                                         animationSpec = tween(300)
                                     )
                                 ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_subscriptions),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToSubscriptions) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
+                                    // Header-less, as in Cashiro: the card states its own count
+                                    // and total, and tapping anywhere on it opens Subscriptions.
+                                    Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                                        UpcomingSubscriptionsCard(
+                                            subscriptions = uiState.upcomingSubscriptions,
+                                            totalAmount = uiState.upcomingSubscriptionsTotal,
+                                            totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
+                                            isUnified = uiState.isUnifiedMode,
+                                            currency = uiState.selectedCurrency,
+                                            onClick = onNavigateToSubscriptions,
+                                            blurEffects = blurEffects,
+                                            hazeState = hazeStateBanner
                                         )
-                                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                            UpcomingSubscriptionsCard(
-                                                subscriptions = uiState.upcomingSubscriptions,
-                                                totalAmount = uiState.upcomingSubscriptionsTotal,
-                                                totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
-                                                isUnified = uiState.isUnifiedMode,
-                                                currency = uiState.selectedCurrency,
-                                                onClick = onNavigateToSubscriptions,
-                                                blurEffects = blurEffects,
-                                                hazeState = hazeStateBanner
-                                            )
-                                        }
                                     }
                                 }
                             }
@@ -991,7 +932,8 @@ fun HomeScreen(
         )
         val scanRotation = if (uiState.isScanning) continuousRotation else 0f
 
-        // FABs - Direct access (no speed dial)
+        // FABs - Direct access (no speed dial). Stacked as in Cashiro: a small
+        // secondary Sync FAB above the large primary Add FAB.
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -1002,28 +944,26 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.smd),
             horizontalAlignment = Alignment.End
         ) {
-            // Add FAB (top, small)
-            SmallFloatingActionButton(
-                onClick = onNavigateToAddScreen,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.home_fab_add)
-                )
-            }
-            
-            // Sync FAB (bottom, primary)
+            // Sync FAB (top, small, secondary)
             // Single tap: incremental scan, Long press: full resync
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
+                // Hint for long-press functionality - only show for new users (no transactions yet)
+                if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
+                    Text(
+                        text = stringResource(R.string.home_fab_sync_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Surface(
                     modifier = Modifier
+                        // The spotlight tutorial points at the scan action, so it
+                        // follows the Sync FAB to its new position.
                         .spotlightTarget(onFabPositioned)
-                        .size(Dimensions.Component.fab)
+                        .size(Dimensions.Component.iconButton)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = { viewModel.scanSmsMessages() },
@@ -1034,7 +974,7 @@ fun HomeScreen(
                             )
                         },
                     shape = FloatingActionButtonDefaults.shape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
                     shadowElevation = Dimensions.Elevation.fab,
                     tonalElevation = Dimensions.Elevation.fab,
                 ) {
@@ -1045,19 +985,25 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.Sync,
                             contentDescription = stringResource(R.string.home_fab_sync),
-                            modifier = if (uiState.isScanning) Modifier.rotate(scanRotation) else Modifier,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            modifier = Modifier
+                                .size(Dimensions.Icon.inline)
+                                .then(if (uiState.isScanning) Modifier.rotate(scanRotation) else Modifier),
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }
                 }
-                // Hint for long-press functionality - only show for new users (no transactions yet)
-                if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
-                    Text(
-                        text = stringResource(R.string.home_fab_sync_hint),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            }
+
+            // Add FAB (bottom, large, primary)
+            FloatingActionButton(
+                onClick = onNavigateToAddScreen,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.home_fab_add)
+                )
             }
         }
         
@@ -1176,6 +1122,19 @@ fun HomeScreen(
                     onClick = {
                         showMenuSheet = false
                         onNavigateToSettings()
+                    }
+                )
+
+                // Manage accounts (Middle) — the Accounts section on Home no longer
+                // carries its own "Manage" header link (the Cashiro-style card sits
+                // header-less under the summary), so the entry point lives here.
+                MenuListItem(
+                    headline = stringResource(R.string.settings_manage_accounts_title),
+                    icon = { Icon(Icons.Default.AccountBalance, contentDescription = null) },
+                    position = ListItemPosition.Middle,
+                    onClick = {
+                        showMenuSheet = false
+                        onNavigateToManageAccounts()
                     }
                 )
 
@@ -1462,6 +1421,14 @@ private fun BreakdownRow(
     }
 }
 
+/**
+ * "2 active subscriptions · ₹198 / MONTH" with the brands' logos stacked on
+ * the right — Cashiro's subscriptions card. The whole card opens the
+ * Subscriptions screen, so it needs no section header or "View" link of its own.
+ *
+ * The total is never summed across currencies: unified mode shows the single
+ * converted figure, native mode lists one figure per currency.
+ */
 @Composable
 private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
@@ -1473,16 +1440,16 @@ private fun UpcomingSubscriptionsCard(
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.secondaryContainer
+    val baseColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val containerColor = if (blurEffects) baseColor.copy(alpha = 0.5f) else baseColor
+    val cardShape = MaterialTheme.shapes.extraLarge
 
     PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
             .then(
                 if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
+                    .clip(cardShape)
                     .hazeEffect(
                         state = hazeState,
                         block = fun HazeEffectScope.() {
@@ -1498,118 +1465,78 @@ private fun UpcomingSubscriptionsCard(
                 else Modifier
             ),
         onClick = onClick,
+        shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = containerColor
         ),
         contentPadding = Dimensions.Padding.content
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                if (subscriptions.isNotEmpty()) {
-                    val maxIcons = 4
-                    val visibleSubs = subscriptions.take(maxIcons)
-                    val extraCount = subscriptions.size - maxIcons
-                    // Overlapping avatar stack. The trailing Spacer reserves the
-                    // stack's true width, since the offset children don't
-                    // contribute to the Box's measured size — derive it from the
-                    // same constants rather than restating the numbers.
-                    val stackedCount = visibleSubs.size + if (extraCount > 0) 1 else 0
-                    Box {
-                        visibleSubs.forEachIndexed { index, sub ->
-                            BrandIcon(
-                                merchantName = sub.merchantName,
-                                size = STACKED_AVATAR_SIZE,
-                                modifier = Modifier
-                                    .offset(x = STACKED_AVATAR_STEP * index)
-                                    .zIndex((maxIcons - index).toFloat())
-                                    .border(
-                                        width = STACKED_AVATAR_RING,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = CircleShape
-                                    )
-                                    .clip(CircleShape)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.home_active_subscriptions,
+                        subscriptions.size,
+                        subscriptions.size
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        // Unified mode: one converted figure. Native mode:
+                        // per-currency ("₹499 · $10") so a mixed set isn't summed
+                        // into a mislabel.
+                        text = if (isUnified) {
+                            CurrencyFormatter.formatCurrency(totalAmount, currency)
+                        } else {
+                            CurrencyFormatter.formatByCurrency(
+                                totalByCurrency,
+                                fallbackCurrency = currency
                             )
-                        }
-                        if (extraCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = STACKED_AVATAR_STEP * visibleSubs.size)
-                                    .zIndex(0f)
-                                    .size(STACKED_AVATAR_SIZE)
-                                    .border(
-                                        width = STACKED_AVATAR_RING,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = CircleShape
-                                    )
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+$extraCount",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Spacer(
-                            modifier = Modifier
-                                .width(
-                                    STACKED_AVATAR_SIZE +
-                                        STACKED_AVATAR_STEP * (stackedCount - 1).coerceAtLeast(0)
-                                )
-                                .height(STACKED_AVATAR_SIZE)
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                }
-                Column {
-                    Text(
-                        text = pluralStringResource(R.plurals.home_active_subscriptions, subscriptions.size, subscriptions.size),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        },
+                        style = PennyWiseText.amountLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        // A mixed-currency list can be long; let it wrap rather
+                        // than shove the unit off the card.
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     Text(
-                        // Unified mode: one converted figure. Native mode: per-currency
-                        // ("₹499 · $10") so a mixed set isn't summed into a mislabel.
-                        text = stringResource(
-                            R.string.home_subscriptions_monthly_total,
-                            if (isUnified) {
-                                CurrencyFormatter.formatCurrency(totalAmount, currency)
-                            } else {
-                                CurrencyFormatter.formatByCurrency(
-                                    totalByCurrency,
-                                    fallbackCurrency = currency
-                                )
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
+                        text = stringResource(R.string.home_subscriptions_per_month).uppercase(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.xxs)
                     )
                 }
             }
-            Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
+
+            if (subscriptions.isNotEmpty()) {
+                SubscriptionIconsStack(
+                    subscriptions = subscriptions,
+                    modifier = Modifier.padding(start = Spacing.sm),
+                    // Ring each logo in the surface it sits on so the overlap
+                    // reads as a cut-out (the card is translucent over a blur,
+                    // so use the opaque base tone).
+                    borderColor = baseColor
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
         }
     }
 }
@@ -1692,6 +1619,105 @@ private fun HomeLoanSummaryItem(
             color = color,
         )
     }
+}
+
+/**
+ * The "Recent" header: the title in the accent colour, with a Search action on
+ * the right. Cashiro's section-header treatment — the accent marks the heading
+ * of the one section that has transactions under it, and the action stays a
+ * plain text button.
+ */
+@Composable
+private fun RecentSectionHeader(
+    onSearchClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.sm)
+            .defaultMinSize(minHeight = Dimensions.Component.iconButton)
+            .semantics { heading() },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.home_recent_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        TextButton(onClick = onSearchClick) {
+            Icon(
+                imageVector = Iconax.Search,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.small)
+            )
+            Spacer(modifier = Modifier.width(Spacing.xs))
+            Text(stringResource(R.string.txn_list_search))
+        }
+    }
+}
+
+/** The small centred "View All ›" pill under the recent-transactions list. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ViewAllPill(
+    onClick: () -> Unit,
+    blurEffects: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val baseColor = MaterialTheme.colorScheme.surfaceContainerLow
+    Surface(
+        onClick = onClick,
+        modifier = modifier.minimumInteractiveComponentSize(),
+        shape = CircleShape,
+        // Over the translucent banner a solid pill would look pasted on.
+        color = if (blurEffects) baseColor.copy(alpha = 0.7f) else baseColor,
+        contentColor = MaterialTheme.colorScheme.primary
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(
+                text = stringResource(R.string.home_view_all),
+                style = MaterialTheme.typography.labelLarge
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.small)
+            )
+        }
+    }
+}
+
+/**
+ * A 40dp round button for the compact Home bar — the "…" menu, the profile
+ * filter and the Pro chip all share this shell so they line up. The touch
+ * target is still padded out to the 48dp minimum.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeBarCircleButton(
+    onClick: () -> Unit,
+    containerColor: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .size(Dimensions.Component.iconButton)
+            .clip(CircleShape)
+            .background(color = containerColor, shape = CircleShape)
+            .clickable(onClick = onClick, role = Role.Button),
+        contentAlignment = Alignment.Center
+    ) { content() }
 }
 
 /**

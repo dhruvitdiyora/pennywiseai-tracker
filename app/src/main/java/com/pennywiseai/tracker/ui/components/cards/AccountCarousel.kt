@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,15 +9,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CardDefaults
@@ -103,6 +105,16 @@ fun AccountCarousel(
     }
 }
 
+/** Share of the card height the surface fade covers, measured up from the bottom. */
+private const val ACCOUNT_CARD_FADE_FRACTION = 0.6f
+
+/**
+ * Cashiro-style account card: bank logo top-left, the faint tilted logo
+ * pattern behind, then "BANK ••1234", the balance, the account type and an
+ * outlined "View details" pill. The balance stays hidden until the eye is
+ * tapped (privacy default), and a low-balance / outstanding qualifier rides
+ * on the type line so no PennyWise state is lost.
+ */
 @Composable
 private fun AccountCarouselCard(
     account: AccountBalanceEntity,
@@ -137,10 +149,20 @@ private fun AccountCarouselCard(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val pillBorderColor = if (isLowBalance) {
+        MaterialTheme.colorScheme.onErrorContainer.copy(alpha = Dimensions.Alpha.medium)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
 
     val cardShape = MaterialTheme.shapes.extraLarge
     val accountAlias = account.alias?.trim()?.takeIf(String::isNotEmpty)
-    val accountNumber = AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4)
+    // "BANK ••1234" (or just the name for a wallet, which has no number). An
+    // alias the user chose replaces the bank name, as it does everywhere else.
+    val captionText = AccountBalanceEntity.accountLabel(
+        accountAlias ?: account.bankName,
+        account.accountLast4
+    ).uppercase()
     val accountTypeLabel = when {
         isCreditCard || account.accountType.equals("CREDIT", ignoreCase = true) -> {
             stringResource(R.string.account_type_credit)
@@ -152,6 +174,11 @@ private fun AccountCarouselCard(
             stringResource(R.string.account_type_cash)
         }
         else -> stringResource(R.string.account_type_savings)
+    }
+    val balanceQualifier: String? = when {
+        isLowBalance -> stringResource(R.string.account_card_low_balance)
+        isCreditCard -> stringResource(R.string.account_card_outstanding)
+        else -> null
     }
 
     PennyWiseCardV2(
@@ -190,14 +217,20 @@ private fun AccountCarouselCard(
                 merchantName = account.bankName,
                 modifier = Modifier.matchParentSize()
             )
+            // Fade the pattern out toward the bottom so the balance text sits on
+            // a calm surface. The gradient starts from the container colour at
+            // zero alpha (not Color.Transparent, which would tint the blend
+            // toward black).
             Box(
                 modifier = Modifier
-                    .matchParentSize()
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(ACCOUNT_CARD_FADE_FRACTION)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.Transparent,
-                                containerColor.copy(alpha = 0.72f),
+                                containerColor.copy(alpha = 0f),
+                                containerColor,
                                 containerColor
                             )
                         )
@@ -210,9 +243,6 @@ private fun AccountCarouselCard(
                     .padding(Dimensions.Padding.card),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // The top edge is intentionally quiet: the brand mark and type
-                // establish identity while the account name remains in the lower
-                // content area where it can be read alongside the balance.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Top,
@@ -224,112 +254,131 @@ private fun AccountCarouselCard(
                         showBackground = true
                     )
 
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.secondaryContainer
+                    // The eye lives apart from the card's own tap target, so
+                    // revealing a balance never navigates.
+                    IconButton(
+                        onClick = { isAmountHidden = !isAmountHidden },
+                        modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                     ) {
-                        Text(
-                            text = accountTypeLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(
-                                horizontal = Spacing.sm,
-                                vertical = Spacing.xs
-                            )
+                        Icon(
+                            imageVector = if (isAmountHidden) Icons.Default.VisibilityOff
+                            else Icons.Default.Visibility,
+                            contentDescription = if (isAmountHidden) {
+                                stringResource(R.string.balance_show)
+                            } else {
+                                stringResource(R.string.balance_hide)
+                            },
+                            modifier = Modifier.size(Dimensions.Icon.inline),
+                            tint = secondaryContentColor
                         )
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = accountAlias ?: account.bankName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = primaryContentColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    val supportingText = when {
-                        accountAlias != null -> accountNumber
-                        account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER -> {
-                            "••${account.accountLast4}"
-                        }
-                        else -> null
-                    }
-                    supportingText?.let {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
+                            text = captionText,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
                             color = secondaryContentColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-
-                    // The label is deliberately non-clickable: the entire card is
-                    // the navigation target, so there is no competing nested action.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = when {
-                                    isLowBalance -> stringResource(
-                                        R.string.account_card_low_balance
-                                    )
-                                    isCreditCard -> stringResource(
-                                        R.string.account_card_outstanding
-                                    )
-                                    else -> stringResource(R.string.account_card_balance)
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (isLowBalance) FontWeight.Medium else null,
-                                color = secondaryContentColor
-                            )
-                            Text(
-                                // The amount remains hidden by default. In unified
-                                // mode the entity already holds the display currency,
-                                // so account.formatBalance() preserves its semantics.
-                                text = if (isAmountHidden) "••••••" else account.formatBalance(),
-                                style = PennyWiseText.amountLarge,
-                                color = primaryContentColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { isAmountHidden = !isAmountHidden },
-                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
-                        ) {
-                            Icon(
-                                imageVector = if (isAmountHidden) Icons.Default.VisibilityOff
-                                else Icons.Default.Visibility,
-                                contentDescription = if (isAmountHidden) {
-                                    stringResource(R.string.balance_show)
-                                } else {
-                                    stringResource(R.string.balance_hide)
-                                },
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = secondaryContentColor
-                            )
-                        }
-
+                        Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
-                            text = stringResource(R.string.account_carousel_view_details),
-                            style = MaterialTheme.typography.labelLarge,
+                            // The amount remains hidden by default. In unified
+                            // mode the entity already holds the display currency,
+                            // so account.formatBalance() preserves its semantics.
+                            text = if (isAmountHidden) "••••••" else account.formatBalance(),
+                            style = PennyWiseText.amountLarge,
+                            fontWeight = FontWeight.ExtraBold,
                             color = primaryContentColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = accountTypeLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = secondaryContentColor,
+                                maxLines = 1
+                            )
+                            if (balanceQualifier != null) {
+                                Text(
+                                    text = "·",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = secondaryContentColor
+                                )
+                                Text(
+                                    text = balanceQualifier,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isLowBalance) {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    } else {
+                                        secondaryContentColor
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
                     }
+
+                    ViewDetailsPill(
+                        onClick = onClick,
+                        contentColor = primaryContentColor,
+                        borderColor = pillBorderColor
+                    )
                 }
             }
+        }
+    }
+}
+
+/** The outlined "View details ›" pill at the card's bottom-end corner. */
+@Composable
+private fun ViewDetailsPill(
+    onClick: () -> Unit,
+    contentColor: Color,
+    borderColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = Color.Transparent,
+        contentColor = contentColor,
+        border = BorderStroke(Dimensions.Component.hairline, borderColor)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(
+                text = stringResource(R.string.account_carousel_view_details),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                maxLines = 1
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.small),
+                tint = contentColor
+            )
         }
     }
 }

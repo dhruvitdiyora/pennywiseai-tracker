@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Home screen, Cashiro-style layout ══ -->
+
+    <!-- Compact top bar title. The product name is a brand, not a translation. -->
+    <string name="home_top_bar_title" translatable="false">PennyWise</string>
+
+    <!-- Accent-coloured section header above the latest transactions. -->
+    <string name="home_recent_title">Recent</string>
+
+    <!-- Unit beside the subscriptions total, e.g. "₹198 / MONTH" (shown upper-case). -->
+    <string name="home_subscriptions_per_month">/ month</string>
+
+    <!-- "Saved" figure (income minus spending) in the expanded summary card. -->
+    <string name="home_summary_saved">Saved</string>
+</resources>
