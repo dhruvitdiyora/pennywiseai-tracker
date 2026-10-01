@@ -7,26 +7,37 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Receipt1
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.Spacing
 import java.math.BigDecimal
+import java.util.Locale
 
+/** How strongly the top category's colour washes its chip. */
+private const val CATEGORY_CHIP_ALPHA = 0.2f
+
+/**
+ * The Analytics headline card, laid out like Cashiro's: a small "TOTAL" label
+ * over the big figure with the transaction count as a tonal pill beside it,
+ * a divider, then the daily average on the left and the top category (with its
+ * share of the total) on the right.
+ *
+ * [totalAmount], [averageAmount] and [currency] describe one currency — the
+ * caller has already filtered or converted to it.
+ */
 @Composable
 fun AnalyticsSummaryCard(
     totalAmount: BigDecimal,
@@ -49,21 +60,21 @@ fun AnalyticsSummaryCard(
     )
 
     PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = Dimensions.Padding.card
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
                 .alpha(loadAlpha)
         ) {
-            // Top Row - Total and Transaction Count Badge
+            // Top row: total on the left, transaction-count pill on the right,
+            // sitting level with the figure rather than with the label.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Bottom
             ) {
-                // Total Amount - bolder typography
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.analytics_summary_total),
@@ -72,70 +83,69 @@ fun AnalyticsSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
                     val formattedTotal = CurrencyFormatter.formatCurrency(totalAmount, currency)
-                    val isLongAmount = formattedTotal.length > 14
+                    // The pill takes a fixed share of the row, so a long figure
+                    // steps down a size rather than being cut off.
+                    val totalStyle = when {
+                        formattedTotal.length > 13 -> MaterialTheme.typography.headlineSmall
+                        formattedTotal.length > 10 -> MaterialTheme.typography.headlineMedium
+                        else -> MaterialTheme.typography.headlineLarge
+                    }
                     Text(
                         text = formattedTotal,
-                        style = if (isLongAmount) {
-                            MaterialTheme.typography.headlineMedium
-                        } else {
-                            MaterialTheme.typography.headlineLarge
-                        },
+                        style = totalStyle,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Clip
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // Transaction Count - styled pill badge
-                Box(
+                Row(
                     modifier = Modifier
+                        .padding(start = Spacing.sm)
                         .background(
                             color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = RoundedCornerShape(Spacing.sm)
+                            shape = MaterialTheme.shapes.medium
                         )
-                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                        .padding(horizontal = Spacing.smd, vertical = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Receipt,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        Text(
-                            text = pluralStringResource(R.plurals.analytics_summary_txns, transactionCount, transactionCount),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
+                    Icon(
+                        imageVector = Iconax.Receipt1,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        text = pluralStringResource(R.plurals.analytics_summary_txns, transactionCount, transactionCount),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        maxLines = 1
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.md))
+            Spacer(modifier = Modifier.height(Spacing.lg))
             HorizontalDivider(
-                thickness = 1.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                thickness = Dimensions.Component.dividerThickness,
+                color = MaterialTheme.colorScheme.outlineVariant
             )
-            Spacer(modifier = Modifier.height(Spacing.md))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-            // Bottom Row - Average and Top Category
+            // Bottom row: average per day on the left, top category on the right.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Average Amount with /day suffix
-                Column {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = stringResource(R.string.analytics_summary_average),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 1.sp
@@ -147,51 +157,68 @@ fun AnalyticsSummaryCard(
                             } else {
                                 CurrencyFormatter.formatCurrency(BigDecimal.ZERO, currency)
                             },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                         Text(
                             text = stringResource(R.string.analytics_summary_per_day),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            maxLines = 1,
+                            modifier = Modifier.padding(bottom = Spacing.xs)
                         )
                     }
                 }
 
-                // Top Category Pill
                 if (topCategory != null && topCategoryPercentage > 0) {
-                    val categoryInfo = CategoryMapping.categories[topCategory]
-                        ?: CategoryMapping.categories["Others"]!!
+                    val categoryColor = CategoryMapping.colorFor(topCategory)
 
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(
+                        modifier = Modifier
+                            .padding(start = Spacing.md)
+                            .weight(1f, fill = false),
+                        horizontalAlignment = Alignment.End
+                    ) {
                         Text(
-                            text = stringResource(R.string.analytics_summary_percent_of_total, topCategoryPercentage.toInt()),
+                            text = stringResource(
+                                R.string.analytics_summary_percent_of_total,
+                                topCategoryPercentage.toInt()
+                            ).uppercase(Locale.getDefault()),
                             style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.padding(
+                                end = Spacing.sm,
+                                bottom = Spacing.xs
+                            )
                         )
                         Row(
                             modifier = Modifier
                                 .background(
-                                    color = CategoryMapping.colorFor(topCategory).copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(8.dp)
+                                    color = categoryColor.copy(alpha = CATEGORY_CHIP_ALPHA),
+                                    shape = MaterialTheme.shapes.small
                                 )
                                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             CategoryIcon(
                                 category = topCategory,
-                                size = 16.dp,
-                                tint = CategoryMapping.colorFor(topCategory)
+                                size = Dimensions.Icon.small,
+                                tint = categoryColor
                             )
                             Text(
                                 text = topCategory,
                                 style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
                     }

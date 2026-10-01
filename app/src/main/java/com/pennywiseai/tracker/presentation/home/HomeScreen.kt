@@ -105,6 +105,7 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
 import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
+import com.pennywiseai.tracker.ui.components.HomeBannerImage
 import com.pennywiseai.tracker.ui.components.GreetingCard
 import com.pennywiseai.tracker.ui.components.HomeTopBar
 import com.pennywiseai.tracker.ui.components.ProfileAvatar
@@ -404,8 +405,16 @@ fun HomeScreen(
         }
     ) { paddingValues ->
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Banner gradient at y=0 — paints behind the transparent TopAppBar
-        if (coverStyle != CoverStyle.NONE) {
+        // Banner at y=0 — paints behind the transparent TopAppBar. A user-chosen
+        // image wins over the cover style; with none set the cover style draws.
+        val homeBannerUri = uiState.homeBannerUri
+        if (homeBannerUri != null) {
+            HomeBannerImage(
+                imageUri = homeBannerUri,
+                hazeStateBanner = hazeStateBanner,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        } else if (coverStyle != CoverStyle.NONE) {
             CoverGradientBanner(
                 coverStyle = coverStyle,
                 hazeStateBanner = hazeStateBanner,

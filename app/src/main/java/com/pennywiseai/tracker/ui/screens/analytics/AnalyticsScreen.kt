@@ -55,6 +55,9 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.filterIcon
 import com.pennywiseai.tracker.ui.components.shortLabel
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Menu
+import com.pennywiseai.tracker.ui.icons.iconax.Status
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
@@ -100,7 +103,9 @@ fun AnalyticsScreen(
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var showChartTypeSelector by remember { mutableStateOf(false) }
-    var showPeriodMenu by remember { mutableStateOf(false) }
+    // The profile / type / currency / category / account chips fold away behind
+    // "More Filters"; the period chips above it are always visible.
+    var showMoreFilters by rememberSaveable { mutableStateOf(false) }
     var showTypeMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
@@ -113,13 +118,8 @@ fun AnalyticsScreen(
     }
 
     // Cache expensive operations
-    val timePeriods = remember { TimePeriod.values().toList() }
     val customRangeLabel = remember(customDateRange) {
         DateRangeUtils.formatDateRange(customDateRange)
-    }
-    val periodLabel = selectedPeriod.label
-    val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel, periodLabel) {
-        selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel, periodLabel)
     }
     // Carry the custom range through drill-down navigation so the Transactions
     // screen (and its CSV export) shows exactly the slice being viewed here.
@@ -136,6 +136,15 @@ fun AnalyticsScreen(
             categoryFilter != null ||
             accountFilter != null ||
             hasCurrencyFilter
+    // What the "More Filters" row counts: everything except the period, which
+    // has its own always-visible chips.
+    val moreFilterCount = listOf(
+        selectedProfileId != null,
+        transactionTypeFilter != TransactionTypeFilter.EXPENSE,
+        hasCurrencyFilter,
+        categoryFilter != null,
+        accountFilter != null,
+    ).count { it }
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -162,8 +171,8 @@ fun AnalyticsScreen(
             .hazeSource(hazeState)
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(
-            start = Dimensions.Padding.content,
-            end = Dimensions.Padding.content,
+            // No side padding on the list itself: the period chips bleed to the
+            // screen edge, so every other item carries its own gutter.
             top = paddingValues.calculateTopPadding() + Spacing.md,
             bottom = Dimensions.Component.bottomBarHeight + Spacing.md
         ),
@@ -171,87 +180,97 @@ fun AnalyticsScreen(
         flingBehavior = rememberOverscrollFlingBehavior { listState }
     ) {
         item {
-            AnalyticsFilterBar(
-                selectedPeriod = selectedPeriod,
-                customRangeLabel = customRangeLabel,
-                periodChipLabel = periodChipLabel,
-                timePeriods = timePeriods,
-                transactionTypeFilter = transactionTypeFilter,
-                selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies,
-                isUnifiedMode = isUnifiedMode,
-                categoryFilter = categoryFilter,
-                availableCategories = uiState.availableCategories,
-                profiles = profiles,
-                selectedProfileId = selectedProfileId,
-                accountOptions = accountOptions,
-                accountFilter = accountFilter,
-                showPeriodMenu = showPeriodMenu,
-                showTypeMenu = showTypeMenu,
-                showCurrencyMenu = showCurrencyMenu,
-                showCategoryMenu = showCategoryMenu,
-                showProfileMenu = showProfileMenu,
-                showAccountMenu = showAccountMenu,
-                hasActiveFilter = hasActiveAnalyticsFilter,
-                onPeriodClick = { showPeriodMenu = true },
-                onPeriodDismiss = { showPeriodMenu = false },
-                onPeriodSelected = { period ->
-                    if (period == TimePeriod.CUSTOM) {
-                        showDateRangePicker = true
-                    } else {
-                        viewModel.selectPeriod(period)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                AnalyticsPeriodChips(
+                    selectedPeriod = selectedPeriod,
+                    customDateRangeSelected = customDateRange != null,
+                    customRangeLabel = customRangeLabel,
+                    budgetCycleStartDay = budgetCycleStartDay,
+                    onPeriodSelected = { period ->
+                        if (period == TimePeriod.CUSTOM) {
+                            // Keep the current period until the user confirms dates.
+                            showDateRangePicker = true
+                        } else {
+                            viewModel.selectPeriod(period)
+                            // Drop a leftover custom range so it no longer counts
+                            // as an active filter once a preset is chosen again.
+                            if (customDateRange != null) viewModel.clearCustomDateRange()
+                        }
                     }
-                    showPeriodMenu = false
-                },
-                onTypeClick = { showTypeMenu = true },
-                onTypeDismiss = { showTypeMenu = false },
-                onTypeSelected = { typeFilter ->
-                    viewModel.setTransactionTypeFilter(typeFilter)
-                    showTypeMenu = false
-                },
-                onCurrencyClick = { showCurrencyMenu = true },
-                onCurrencyDismiss = { showCurrencyMenu = false },
-                onCurrencySelected = { currency ->
-                    viewModel.selectCurrency(currency)
-                    showCurrencyMenu = false
-                },
-                onCategoryClick = { showCategoryMenu = true },
-                onCategoryDismiss = { showCategoryMenu = false },
-                onCategorySelected = { category ->
-                    if (category == null) {
-                        viewModel.clearCategoryFilter()
-                    } else {
-                        viewModel.setCategoryFilter(category)
-                    }
-                    showCategoryMenu = false
-                },
-                onProfileClick = { showProfileMenu = true },
-                onProfileDismiss = { showProfileMenu = false },
-                onProfileSelected = { profileId ->
-                    viewModel.selectProfile(profileId)
-                    showProfileMenu = false
-                },
-                onAccountClick = { showAccountMenu = true },
-                onAccountDismiss = { showAccountMenu = false },
-                onAccountSelected = { accountKey ->
-                    viewModel.setAccountFilter(accountKey)
-                    showAccountMenu = false
-                },
-                onResetFilters = {
-                    viewModel.selectPeriod(TimePeriod.THIS_MONTH)
-                    viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE)
-                    viewModel.clearCategoryFilter()
-                    viewModel.setAccountFilter(null)
-                    if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
-                        viewModel.selectCurrency(primaryVisibleCurrency)
-                    }
-                    showPeriodMenu = false
-                    showTypeMenu = false
-                    showCurrencyMenu = false
-                    showCategoryMenu = false
-                    showAccountMenu = false
+                )
+                AnalyticsMoreFilters(
+                    expanded = showMoreFilters,
+                    activeCount = moreFilterCount,
+                    onToggle = { showMoreFilters = !showMoreFilters }
+                ) {
+                    AnalyticsFilterBar(
+                        transactionTypeFilter = transactionTypeFilter,
+                        selectedCurrency = selectedCurrency,
+                        availableCurrencies = availableCurrencies,
+                        isUnifiedMode = isUnifiedMode,
+                        categoryFilter = categoryFilter,
+                        availableCategories = uiState.availableCategories,
+                        profiles = profiles,
+                        selectedProfileId = selectedProfileId,
+                        accountOptions = accountOptions,
+                        accountFilter = accountFilter,
+                        showTypeMenu = showTypeMenu,
+                        showCurrencyMenu = showCurrencyMenu,
+                        showCategoryMenu = showCategoryMenu,
+                        showProfileMenu = showProfileMenu,
+                        showAccountMenu = showAccountMenu,
+                        hasActiveFilter = hasActiveAnalyticsFilter,
+                        onTypeClick = { showTypeMenu = true },
+                        onTypeDismiss = { showTypeMenu = false },
+                        onTypeSelected = { typeFilter ->
+                            viewModel.setTransactionTypeFilter(typeFilter)
+                            showTypeMenu = false
+                        },
+                        onCurrencyClick = { showCurrencyMenu = true },
+                        onCurrencyDismiss = { showCurrencyMenu = false },
+                        onCurrencySelected = { currency ->
+                            viewModel.selectCurrency(currency)
+                            showCurrencyMenu = false
+                        },
+                        onCategoryClick = { showCategoryMenu = true },
+                        onCategoryDismiss = { showCategoryMenu = false },
+                        onCategorySelected = { category ->
+                            if (category == null) {
+                                viewModel.clearCategoryFilter()
+                            } else {
+                                viewModel.setCategoryFilter(category)
+                            }
+                            showCategoryMenu = false
+                        },
+                        onProfileClick = { showProfileMenu = true },
+                        onProfileDismiss = { showProfileMenu = false },
+                        onProfileSelected = { profileId ->
+                            viewModel.selectProfile(profileId)
+                            showProfileMenu = false
+                        },
+                        onAccountClick = { showAccountMenu = true },
+                        onAccountDismiss = { showAccountMenu = false },
+                        onAccountSelected = { accountKey ->
+                            viewModel.setAccountFilter(accountKey)
+                            showAccountMenu = false
+                        },
+                        onResetFilters = {
+                            viewModel.selectPeriod(TimePeriod.THIS_MONTH)
+                            if (customDateRange != null) viewModel.clearCustomDateRange()
+                            viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE)
+                            viewModel.clearCategoryFilter()
+                            viewModel.setAccountFilter(null)
+                            if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
+                                viewModel.selectCurrency(primaryVisibleCurrency)
+                            }
+                            showTypeMenu = false
+                            showCurrencyMenu = false
+                            showCategoryMenu = false
+                            showAccountMenu = false
+                        }
+                    )
                 }
-            )
+            }
         }
 
         // Analytics Summary Card
@@ -264,7 +283,8 @@ fun AnalyticsScreen(
                     topCategory = uiState.topCategory,
                     topCategoryPercentage = uiState.topCategoryPercentage,
                     currency = uiState.currency,
-                    isLoading = uiState.isLoading
+                    isLoading = uiState.isLoading,
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                 )
             }
         }
@@ -272,37 +292,17 @@ fun AnalyticsScreen(
         // Chart Section with Type Selector
         if (uiState.spendingTrend.size >= 2) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    SectionHeaderV2(
+                Column(
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    AnalyticsSectionHeader(
                         title = stringResource(R.string.analytics_trends),
                         action = {
-                            Button(
-                                onClick = { showChartTypeSelector = !showChartTypeSelector },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs)
-                            ) {
-                                Icon(
-                                    imageVector = when (chartType) {
-                                        ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                        ChartType.BAR -> Icons.Default.BarChart
-                                        ChartType.HEATMAP -> Icons.Default.GridView
-                                    },
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(
-                                    text = when (chartType) {
-                                        ChartType.LINE -> stringResource(R.string.analytics_chart_line)
-                                        ChartType.BAR -> stringResource(R.string.analytics_chart_bar)
-                                        ChartType.HEATMAP -> stringResource(R.string.analytics_chart_heatmap)
-                                    },
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            }
+                            AnalyticsChartTypePill(
+                                chartType = chartType,
+                                onClick = { showChartTypeSelector = !showChartTypeSelector }
+                            )
                         }
                     )
 
@@ -335,22 +335,15 @@ fun AnalyticsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = when (type) {
-                                                ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                                ChartType.BAR -> Icons.Default.BarChart
-                                                ChartType.HEATMAP -> Icons.Default.GridView
-                                            },
+                                            imageVector = type.icon(),
                                             contentDescription = null,
+                                            modifier = Modifier.size(Dimensions.Icon.inline),
                                             tint = if (chartType == type)
                                                 MaterialTheme.colorScheme.primary
                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = when (type) {
-                                                ChartType.LINE -> stringResource(R.string.analytics_chart_line_full)
-                                                ChartType.BAR -> stringResource(R.string.analytics_chart_bar_full)
-                                                ChartType.HEATMAP -> stringResource(R.string.analytics_chart_heatmap)
-                                            },
+                                            text = type.fullLabel(),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = if (chartType == type)
                                                 MaterialTheme.colorScheme.primary
@@ -382,8 +375,11 @@ fun AnalyticsScreen(
         // Category Breakdown Section with Pie/List toggle
         if (uiState.categoryBreakdown.isNotEmpty()) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    SectionHeaderV2(
+                Column(
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    AnalyticsSectionHeader(
                         title = stringResource(R.string.analytics_top_categories),
                         action = {
                             IconButton(onClick = {
@@ -395,9 +391,10 @@ fun AnalyticsScreen(
                             }) {
                                 Icon(
                                     imageVector = if (categoryViewType == CategoryViewType.CHART)
-                                        Icons.AutoMirrored.Filled.List
-                                    else Icons.Default.PieChart,
+                                        Iconax.Menu
+                                    else Iconax.Status,
                                     contentDescription = stringResource(R.string.analytics_toggle_view),
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -458,8 +455,11 @@ fun AnalyticsScreen(
         // Tag Breakdown Section with Pie/List toggle
         if (uiState.tagBreakdown.isNotEmpty()) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    SectionHeaderV2(
+                Column(
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    AnalyticsSectionHeader(
                         title = stringResource(R.string.analytics_top_tags),
                         action = {
                             // View-toggle only makes sense once the breakdown is
@@ -474,9 +474,10 @@ fun AnalyticsScreen(
                                 }) {
                                     Icon(
                                         imageVector = if (tagViewType == CategoryViewType.CHART)
-                                            Icons.AutoMirrored.Filled.List
-                                        else Icons.Default.PieChart,
+                                            Iconax.Menu
+                                        else Iconax.Status,
                                         contentDescription = stringResource(R.string.analytics_toggle_view),
+                                        modifier = Modifier.size(Dimensions.Icon.medium),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -531,8 +532,9 @@ fun AnalyticsScreen(
         // Top Merchants Section
         if (uiState.topMerchants.isNotEmpty()) {
             item {
-                SectionHeaderV2(
-                    title = stringResource(R.string.analytics_top_merchants)
+                AnalyticsSectionHeader(
+                    title = stringResource(R.string.analytics_top_merchants),
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                 )
             }
 
@@ -541,7 +543,9 @@ fun AnalyticsScreen(
                 ExpandableList(
                     items = uiState.topMerchants,
                     visibleItemCount = 3,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.Padding.content)
                 ) { merchant ->
                     MerchantListItem(
                         merchant = merchant,
@@ -558,8 +562,9 @@ fun AnalyticsScreen(
         // By Account Section
         if (uiState.accountBreakdown.isNotEmpty()) {
             item {
-                SectionHeaderV2(
-                    title = stringResource(R.string.analytics_by_account)
+                AnalyticsSectionHeader(
+                    title = stringResource(R.string.analytics_by_account),
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                 )
             }
 
@@ -567,7 +572,9 @@ fun AnalyticsScreen(
                 ExpandableList(
                     items = uiState.accountBreakdown,
                     visibleItemCount = 3,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.Padding.content)
                 ) { account ->
                     AccountBreakdownListItem(
                         account = account,
@@ -580,7 +587,9 @@ fun AnalyticsScreen(
         // Empty state
         if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
             item {
-                EmptyAnalyticsState(onScanSmsClick = onNavigateToHome)
+                Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                    EmptyAnalyticsState(onScanSmsClick = onNavigateToHome)
+                }
             }
         }
     }
@@ -679,12 +688,12 @@ private fun TagBreakdownLockedCard(onClick: () -> Unit) {
     }
 }
 
+/**
+ * The profile / type / currency / category / account chips (plus "Clear"),
+ * shown when "More Filters" is expanded. The period has its own chip row above.
+ */
 @Composable
 private fun AnalyticsFilterBar(
-    selectedPeriod: TimePeriod,
-    customRangeLabel: String?,
-    periodChipLabel: String,
-    timePeriods: List<TimePeriod>,
     transactionTypeFilter: TransactionTypeFilter,
     selectedCurrency: String,
     availableCurrencies: List<String>,
@@ -695,16 +704,12 @@ private fun AnalyticsFilterBar(
     selectedProfileId: Long?,
     accountOptions: List<com.pennywiseai.tracker.presentation.common.AccountOption>,
     accountFilter: String?,
-    showPeriodMenu: Boolean,
     showTypeMenu: Boolean,
     showCurrencyMenu: Boolean,
     showCategoryMenu: Boolean,
     showProfileMenu: Boolean,
     showAccountMenu: Boolean,
     hasActiveFilter: Boolean,
-    onPeriodClick: () -> Unit,
-    onPeriodDismiss: () -> Unit,
-    onPeriodSelected: (TimePeriod) -> Unit,
     onTypeClick: () -> Unit,
     onTypeDismiss: () -> Unit,
     onTypeSelected: (TransactionTypeFilter) -> Unit,
@@ -725,6 +730,8 @@ private fun AnalyticsFilterBar(
 ) {
     LazyRow(
         modifier = modifier.fillMaxWidth(),
+        // Bleeds to the screen edge like the period chips above it.
+        contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         if (hasActiveFilter) {
@@ -767,39 +774,6 @@ private fun AnalyticsFilterBar(
                         onProfileSelected = onProfileSelected,
                         onDismiss = onProfileDismiss
                     )
-                }
-            }
-        }
-
-        item {
-            Box {
-                ExpressiveFilterChip(
-                    colors = analyticsFilterChipColors(),
-                    border = analyticsFilterChipBorder(
-                        selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null
-                    ),
-                    selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null,
-                    text = periodChipLabel,
-                    icon = Icons.Default.CalendarMonth,
-                    onClick = onPeriodClick
-                )
-
-                DropdownMenu(
-                    expanded = showPeriodMenu,
-                    onDismissRequest = onPeriodDismiss,
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    timePeriods.forEach { period ->
-                        DropdownMenuItem(
-                            text = { Text(period.label) },
-                            leadingIcon = {
-                                if (selectedPeriod == period) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                }
-                            },
-                            onClick = { onPeriodSelected(period) }
-                        )
-                    }
                 }
             }
         }

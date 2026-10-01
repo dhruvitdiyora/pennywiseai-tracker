@@ -29,7 +29,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,6 +58,9 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.parseProfileColor
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.iconax.Edit2
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.screens.profile.EditProfileSheet
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -73,14 +79,19 @@ fun PersonalDashboardScreen(
     viewModel: PersonalDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showEditProfile by rememberSaveable { mutableStateOf(false) }
     PersonalDashboardContent(
         state = state,
         onNavigateBack = onNavigateBack,
         onNavigateToContacts = onNavigateToContacts,
         onNavigateToLoans = onNavigateToLoans,
         onNavigateToPerson = onNavigateToPerson,
+        onEditProfile = { showEditProfile = true },
         modifier = modifier,
     )
+    if (showEditProfile) {
+        EditProfileSheet(onDismiss = { showEditProfile = false })
+    }
 }
 
 @Composable
@@ -91,6 +102,7 @@ internal fun PersonalDashboardContent(
     onNavigateToLoans: () -> Unit,
     onNavigateToPerson: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onEditProfile: () -> Unit = {},
 ) {
     PennyWiseScaffold(
         modifier = modifier,
@@ -122,7 +134,7 @@ internal fun PersonalDashboardContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent),
             flingBehavior = rememberOverscrollFlingBehavior { listState },
         ) {
-            item { DashboardHero(state) }
+            item { DashboardHero(state, onEditProfile) }
 
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
@@ -191,7 +203,7 @@ internal fun PersonalDashboardContent(
 }
 
 @Composable
-private fun DashboardHero(state: PersonalDashboardUiState) {
+private fun DashboardHero(state: PersonalDashboardUiState, onEditProfile: () -> Unit) {
     val background = if (state.profileBackgroundColor != 0) {
         Color(state.profileBackgroundColor)
     } else {
@@ -234,7 +246,10 @@ private fun DashboardHero(state: PersonalDashboardUiState) {
                     }
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
                 Text(
                     text = state.userName.ifBlank { stringResource(R.string.app_name) },
                     style = MaterialTheme.typography.headlineSmall,
@@ -244,6 +259,15 @@ private fun DashboardHero(state: PersonalDashboardUiState) {
                     text = stringResource(R.string.personal_dashboard_hero_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            // Edit identity: name, avatar, avatar colour and the Home banner.
+            IconButton(onClick = onEditProfile) {
+                Icon(
+                    imageVector = Iconax.Edit2,
+                    contentDescription = stringResource(R.string.edit_profile_title),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(Dimensions.Icon.inline),
                 )
             }
         }

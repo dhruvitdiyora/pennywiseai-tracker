@@ -11,7 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.effects.bottomFade
 import dev.chrisbanes.haze.HazeState
@@ -43,6 +47,34 @@ fun CoverGradientBanner(
                 )
         )
     }
+}
+
+/**
+ * The user's own banner image, drawn where [CoverGradientBanner] would be: full-bleed
+ * behind the transparent top bar, same height, softened and faded into the background
+ * so the cards below stay readable.
+ */
+@Composable
+fun HomeBannerImage(
+    imageUri: String,
+    modifier: Modifier = Modifier,
+    hazeStateBanner: HazeState? = null
+) {
+    val request = ImageRequest.Builder(LocalContext.current)
+        .data(imageUri)
+        .crossfade(true)
+        .build()
+    AsyncImage(
+        model = request,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(300.dp)
+            .then(if (hazeStateBanner != null) Modifier.hazeSource(hazeStateBanner) else Modifier)
+            .alpha(0.5f)
+            .bottomFade(0.4f)
+    )
 }
 
 fun getCoverGradientColors(

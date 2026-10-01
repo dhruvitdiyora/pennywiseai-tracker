@@ -62,6 +62,9 @@ import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.icons.iconax.Edit2
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.screens.profile.EditProfileSheet
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.amber_light
@@ -155,6 +158,7 @@ fun SettingsScreen(
     val transactionCount by settingsViewModel.transactionCount.collectAsStateWithLifecycle(initialValue = 0)
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
+    var showEditProfile by rememberSaveable { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
@@ -265,7 +269,8 @@ fun SettingsScreen(
                 profileImageUri = userPreferences?.profileImageUri,
                 profileBackgroundColor = userPreferences?.profileBackgroundColor ?: 0,
                 transactionCount = transactionCount,
-                onClick = onNavigateToPersonalDashboard
+                onClick = onNavigateToPersonalDashboard,
+                onEditClick = { showEditProfile = true }
             )
 
             // ── PennyWise Pro / Support development ──
@@ -1242,6 +1247,10 @@ fun SettingsScreen(
     if (showSupportDialog) {
         SupportDevelopmentDialog(onDismiss = { showSupportDialog = false })
     }
+
+    if (showEditProfile) {
+        EditProfileSheet(onDismiss = { showEditProfile = false })
+    }
 }
 
 @Composable
@@ -1485,6 +1494,7 @@ private fun SettingsProfileHeaderCard(
     profileBackgroundColor: Int,
     transactionCount: Int,
     onClick: () -> Unit,
+    onEditClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val profileBgColor = if (profileBackgroundColor != 0) {
@@ -1565,6 +1575,16 @@ private fun SettingsProfileHeaderCard(
                     text = pluralStringResource(R.plurals.settings_profile_header_subtitle, transactionCount, transactionCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.8f)
+                )
+            }
+
+            // Edit: opens the profile sheet; the rest of the card still opens the dashboard.
+            IconButton(onClick = onEditClick) {
+                Icon(
+                    Iconax.Edit2,
+                    contentDescription = stringResource(R.string.edit_profile_title),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(Dimensions.Icon.inline)
                 )
             }
 

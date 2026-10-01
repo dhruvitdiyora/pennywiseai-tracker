@@ -247,7 +247,8 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     userName = prefs.userName,
                     profileImageUri = prefs.profileImageUri,
-                    profileBackgroundColor = prefs.profileBackgroundColor
+                    profileBackgroundColor = prefs.profileBackgroundColor,
+                    homeBannerUri = prefs.homeBannerUri
                 )
             }
             .launchIn(viewModelScope)
@@ -1701,6 +1702,8 @@ data class HomeUiState(
     val userName: String = "User",
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
+    /** User-chosen banner image (private file URI); null keeps the cover style. */
+    val homeBannerUri: String? = null,
     val currentMonthTotal: BigDecimal = BigDecimal.ZERO,
     val currentMonthIncome: BigDecimal = BigDecimal.ZERO,
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,

@@ -1,13 +1,18 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import android.content.res.Resources
+import android.text.format.DateFormat
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -22,12 +27,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
@@ -38,24 +46,40 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.EmojiGlyph
+import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
+import com.pennywiseai.tracker.ui.components.legibleOn
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.IconProvider
+import com.pennywiseai.tracker.ui.icons.IconResource
+import com.pennywiseai.tracker.ui.icons.iconax.Calendar
 import com.pennywiseai.tracker.ui.icons.iconax.Card
+import com.pennywiseai.tracker.ui.icons.iconax.Clock
+import com.pennywiseai.tracker.ui.icons.iconax.DocumentText2
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
- * A transaction row: brand logo, merchant, one metadata line, and a trailing
- * trend icon beside the coloured amount.
+ * A transaction row: a 48dp leading avatar, the merchant, a line of tinted
+ * metadata chips, and a trailing trend icon beside the coloured amount.
  *
- * The visible metadata line is plain text with `•` separators
- * ("27 Feb • 4:36 PM • Recurring"). The accessible description keeps its own
- * `·`-joined sentence ("date · category · Recurring · Business · Excluded ·
- * Bal …") so the contract asserted by `TransactionItemScreenshotTest` does not
- * depend on how the line is drawn.
+ * The chip line reads `[calendar Oct 1] • [Category] [Recurring] ...`: a date
+ * chip, a `•`, the category named in its own colour, then any further tags
+ * (type, Recurring, Business, Excluded, balance, note) as neutral-text chips
+ * that wrap onto a second line rather than being cut off. A merchant with no
+ * brand logo gets its category colour at low alpha with the category icon in
+ * that colour. The accessible description keeps its own `·`-joined sentence
+ * ("date · category · Recurring · Business · Excluded · Bal …") so the contract
+ * asserted by `TransactionItemScreenshotTest` does not depend on how the chips
+ * are drawn.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TransactionItem(
     transaction: TransactionEntity,
@@ -90,11 +114,29 @@ fun TransactionItem(
         }
     }
 
+    // Accessibility sentence: the full date (and time) in the app's long-standing format.
     val dateTimeFormatter = remember(showDate) {
         DateTimeFormatter.ofPattern(if (showDate) "d MMM · h:mm a" else "h:mm a")
     }
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
         transaction.dateTime.format(dateTimeFormatter)
+    }
+    // Date chip: a short, locale-ordered date ("Oct 1"); only the time when the
+    // surrounding list already shows the day (showDate = false).
+    val chipDateFormatter = remember(showDate) {
+        if (showDate) shortDateFormatter() else DateTimeFormatter.ofPattern("h:mm a")
+    }
+    val dateChipText = remember(transaction.dateTime, chipDateFormatter) {
+        transaction.dateTime.format(chipDateFormatter)
+    }
+    // Like Cashiro, tint the date chip by day so a run of rows reads in blocks.
+    val dateChipTint = remember(transaction.dateTime, isDark) {
+        val palette = if (isDark) {
+            listOf(income_dark, expense_dark, credit_dark, transfer_dark, investment_dark)
+        } else {
+            listOf(income_light, expense_light, credit_light, transfer_light, investment_light)
+        }
+        palette[transaction.dateTime.toLocalDate().hashCode().mod(palette.size)]
     }
 
     val isEffectivelyBusiness = remember(transaction, profileAccountKeys) {
@@ -137,9 +179,10 @@ fun TransactionItem(
         )
     }
 
-    // The same metadata, in the same order, feeds both renderings below.
-    fun metadataParts(dateTimePart: String): List<String> = buildList {
-        add(dateTimePart)
+    // Accessibility sentence (also the contract the screenshot test asserts).
+    // It mirrors, in order, the chips drawn below.
+    val subtitle = buildList {
+        add(dateTimeText)
         if (hasCategory) add(transaction.category)
         typeLabel?.let(::add)
         if (transaction.isRecurring) add(recurringLabel)
@@ -147,13 +190,16 @@ fun TransactionItem(
         if (transaction.excludedFromAnalytics) add(excludedLabel)
         balanceAfterText?.let(::add)
         description?.let(::add)
-    }
+    }.joinToString(" · ")
 
-    // Accessibility sentence (also the contract the screenshot test asserts).
-    val subtitle = metadataParts(dateTimeText).joinToString(" · ")
-    // What is drawn: "27 Feb • 4:36 PM • Recurring".
-    val visibleSubtitle = metadataParts(dateTimeText.replace(" · ", " • "))
-        .joinToString(" • ")
+    val colors = MaterialTheme.colorScheme
+    // The category colour (the user's own if they set one) names the category on
+    // its chip; nudged only when it would not read on the row's own background.
+    val rowBackground = containerColor ?: colors.surfaceContainerLow
+    val categoryColor = CategoryMapping.colorFor(transaction.category)
+    val categoryTextColor = remember(categoryColor, rowBackground, colors.onSurface) {
+        categoryColor.legibleOn(rowBackground, towards = colors.onSurface)
+    }
 
     val amountPrefix = remember(transaction.transactionType) {
         when (transaction.transactionType) {
@@ -181,15 +227,56 @@ fun TransactionItem(
         title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
         subtitle = subtitle,
         subtitleContent = {
-            // Plain, wrapping text rather than clipped tags: a long category or
-            // note flows onto a second line instead of being cut off.
-            Text(
-                text = visibleSubtitle,
-                style = PennyWiseText.metadata,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Chips wrap (up to two lines) rather than being clipped, so a long
+            // category or note flows onto a second line instead of being cut off.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                itemVerticalAlignment = Alignment.CenterVertically,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            ) {
+                // Date and category travel together so a wrap never strands the dot.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    SubtitleTag(
+                        text = dateChipText,
+                        color = dateChipTint,
+                        icon = if (showDate) Iconax.Calendar else Iconax.Clock,
+                    )
+                    if (hasCategory) {
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                        )
+                        SubtitleTag(
+                            text = transaction.category,
+                            color = categoryColor,
+                            textColor = categoryTextColor,
+                        )
+                    }
+                }
+                typeLabel?.let { SubtitleTag(text = it, color = amountColor) }
+                if (transaction.isRecurring) {
+                    SubtitleTag(text = recurringLabel, color = colors.primary)
+                }
+                if (isEffectivelyBusiness) {
+                    SubtitleTag(text = businessLabel, color = colors.tertiary)
+                }
+                if (transaction.excludedFromAnalytics) {
+                    SubtitleTag(text = excludedLabel, color = colors.onSurfaceVariant)
+                }
+                balanceAfterText?.let { SubtitleTag(text = it, color = colors.secondary) }
+                description?.let {
+                    SubtitleTag(
+                        text = it,
+                        color = colors.onSurfaceVariant,
+                        icon = Iconax.DocumentText2,
+                    )
+                }
+            }
         },
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
@@ -206,7 +293,7 @@ fun TransactionItem(
             if (isSelectionMode) {
                 Box(
                     modifier = Modifier
-                        .size(Dimensions.Icon.list)
+                        .size(Dimensions.Icon.avatarLarge)
                         .semantics { selected = isSelected },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -236,13 +323,41 @@ fun TransactionItem(
                 } else {
                     Modifier
                 }
-                BrandIcon(
-                    merchantName = transaction.merchantName,
-                    modifier = iconModifier,
-                    size = Dimensions.Icon.list,
-                    showBackground = true,
-                    category = transaction.category
-                )
+                val avatarSize = Dimensions.Icon.avatarLarge
+                // IconProvider decides logo vs category icon vs the user's emoji.
+                // A real brand logo keeps BrandIcon's brand-coloured tile; every
+                // other merchant gets its category colour at low alpha instead of
+                // a neutral placeholder.
+                when (val icon = IconProvider.getTransactionIcon(transaction.merchantName, transaction.category)) {
+                    is IconResource.DrawableResource -> BrandIcon(
+                        merchantName = transaction.merchantName,
+                        modifier = iconModifier,
+                        size = avatarSize,
+                        showBackground = true,
+                        category = transaction.category
+                    )
+                    is IconResource.VectorIcon -> CategoryAvatar(
+                        tint = icon.tint,
+                        rowBackground = rowBackground,
+                        size = avatarSize,
+                        modifier = iconModifier,
+                    ) { legibleTint ->
+                        Icon(
+                            imageVector = icon.icon,
+                            contentDescription = transaction.merchantName,
+                            tint = legibleTint,
+                            modifier = Modifier.size(avatarSize * CATEGORY_GLYPH_FRACTION),
+                        )
+                    }
+                    is IconResource.Emoji -> CategoryAvatar(
+                        tint = icon.tint,
+                        rowBackground = rowBackground,
+                        size = avatarSize,
+                        modifier = iconModifier,
+                    ) { _ ->
+                        EmojiGlyph(icon.emoji, avatarSize * CATEGORY_GLYPH_FRACTION)
+                    }
+                }
             }
         },
         trailingContent = {
@@ -290,6 +405,51 @@ fun TransactionItem(
             }
         }
     )
+}
+
+/** The category glyph fills this share of the avatar circle (24dp in 48dp). */
+private const val CATEGORY_GLYPH_FRACTION = 0.5f
+
+/**
+ * Leading circle for a merchant with no brand logo: the category colour at low
+ * alpha, with the category glyph drawn in that colour ([content] receives it,
+ * already nudged to stay legible on [rowBackground]).
+ */
+@Composable
+private fun CategoryAvatar(
+    tint: Color,
+    rowBackground: Color,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable (glyphColor: Color) -> Unit,
+) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val glyphColor = remember(tint, rowBackground, onSurface) {
+        tint.legibleOn(rowBackground, towards = onSurface)
+    }
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(tint.copy(alpha = TINTED_CONTAINER_ALPHA)),
+        contentAlignment = Alignment.Center,
+    ) {
+        content(glyphColor)
+    }
+}
+
+/**
+ * Short day-and-month formatter in the user's locale order and month names
+ * ("Oct 1" in en-US, "1 Oct" in en-IN). Falls back to "MMM d" if the platform
+ * has no pattern for the locale.
+ */
+private fun shortDateFormatter(locale: Locale = Locale.getDefault()): DateTimeFormatter {
+    val pattern = runCatching { DateFormat.getBestDateTimePattern(locale, "MMMd") }
+        .getOrNull()
+        ?.takeIf { it.isNotBlank() }
+        ?: "MMM d"
+    return runCatching { DateTimeFormatter.ofPattern(pattern, locale) }
+        .getOrElse { DateTimeFormatter.ofPattern("MMM d", locale) }
 }
 
 /** The glyph shown beside a row's amount, by transaction type. */

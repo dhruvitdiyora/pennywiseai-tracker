@@ -158,6 +158,9 @@ open class UserPreferencesRepository @Inject constructor(
         val USER_NAME = stringPreferencesKey("user_name")
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
+        // file:// URI of the user's Home banner image (a private copy in filesDir).
+        // Not part of backups: the image file itself isn't in the backup archive.
+        val HOME_BANNER_URI = stringPreferencesKey("home_banner_uri")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
         // True once the user explicitly picks a currency in the Settings selector.
@@ -213,6 +216,7 @@ open class UserPreferencesRepository @Inject constructor(
                 profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI]
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
+                homeBannerUri = preferences[PreferencesKeys.HOME_BANNER_URI],
                 hasCompletedOnboarding = preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false,
                 mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY]
             )
@@ -937,6 +941,41 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Sets (or, with null, removes) the Home banner image URI. */
+    suspend fun updateHomeBannerUri(uri: String?) {
+        context.dataStore.edit { preferences ->
+            if (uri == null) {
+                preferences.remove(PreferencesKeys.HOME_BANNER_URI)
+            } else {
+                preferences[PreferencesKeys.HOME_BANNER_URI] = uri
+            }
+        }
+    }
+
+    suspend fun clearHomeBannerUri() = updateHomeBannerUri(null)
+
+    /**
+     * Writes name, avatar, avatar colour and banner in a single DataStore edit so the
+     * profile sheet's Save is atomic (observers never see a half-applied profile).
+     */
+    suspend fun saveProfileIdentity(
+        name: String,
+        profileImageUri: String,
+        profileBackgroundColor: Int,
+        homeBannerUri: String?,
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_NAME] = name
+            preferences[PreferencesKeys.PROFILE_IMAGE_URI] = profileImageUri
+            preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = profileBackgroundColor
+            if (homeBannerUri == null) {
+                preferences.remove(PreferencesKeys.HOME_BANNER_URI)
+            } else {
+                preferences[PreferencesKeys.HOME_BANNER_URI] = homeBannerUri
+            }
+        }
+    }
+
     suspend fun updateHasCompletedOnboarding(completed: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
@@ -1016,6 +1055,8 @@ data class UserPreferences(
     val userName: String = "User",
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
+    /** Private file:// URI of the user-chosen Home banner, or null for the cover style. */
+    val homeBannerUri: String? = null,
     val hasCompletedOnboarding: Boolean = false,
     val mainAccountKey: String? = null,
     val selectedProfileId: Long? = null,

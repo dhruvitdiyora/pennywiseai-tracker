@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Edit profile sheet (name, avatar, avatar colour and Home banner) -->
+    <string name="edit_profile_title">Edit profile</string>
+    <string name="edit_profile_name_label">Name</string>
+    <string name="edit_profile_clear_photo">Clear</string>
+    <string name="edit_profile_change_banner">Change banner</string>
+    <string name="edit_profile_remove_banner">Remove banner</string>
+    <string name="edit_profile_colors">Colors</string>
+    <string name="edit_profile_banner_description">Profile banner</string>
+    <string name="edit_profile_photo_description">Profile photo</string>
+    <string name="edit_profile_image_error">That image could not be loaded. Try another one.</string>
+</resources>

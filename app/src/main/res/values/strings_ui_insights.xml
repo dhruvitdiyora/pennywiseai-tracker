@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Budget overview cards, Cashiro-style layout ══
+         The small labels above the figures are shown in upper case; the
+         resources stay in sentence case so each language can upper-case them
+         correctly. -->
+
+    <!-- Hero figure on a spending-limit card: what can still be spent per day. -->
+    <string name="budgets_card_daily_left">Daily budget left</string>
+    <!-- Hero label when the card shows what is left of the whole budget. -->
+    <string name="budgets_card_remaining_label">Remaining</string>
+    <!-- Hero label when the budget has been overspent. -->
+    <string name="budgets_card_over_label">Over budget</string>
+    <!-- Hero label on a budget that only tracks spending (no limit). -->
+    <string name="budgets_card_spent_label">Spent</string>
+    <!-- Right-hand label above "spent / limit", by budget type. -->
+    <string name="budgets_card_spent_limit">Spent / limit</string>
+    <string name="budgets_card_spent_expected">Spent / expected</string>
+    <string name="budgets_card_actual_target">Actual / target</string>
+
+    <!-- ══ Subscriptions header, Cashiro-style layout ══ -->
+    <string name="subscriptions_back">Back</string>
+    <string name="subscriptions_total_title">Total Subscriptions</string>
+    <!-- Tile labels above the monthly and yearly cost (shown in upper case). -->
+    <string name="subscriptions_monthly_label">Monthly</string>
+    <string name="subscriptions_yearly_label">Yearly</string>
+</resources>
