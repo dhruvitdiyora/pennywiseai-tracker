@@ -1,11 +1,15 @@
 package com.pennywiseai.tracker.presentation.people
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,10 +24,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,13 +37,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.PersonEntity
 import com.pennywiseai.tracker.ui.components.ColorPickerContent
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.parseProfileColor
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -72,12 +81,17 @@ fun PersonEditorSheet(
         stringResource(R.string.people_category_other),
     )
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scheme = MaterialTheme.colorScheme
+    val chosenColor = parseProfileColor(color, scheme.primary)
 
     fun changed() = onInputChanged()
 
     ModalBottomSheet(
         onDismissRequest = { if (!state.isSaving) onDismiss() },
         sheetState = sheetState,
+        // The fields are tonal (surfaceContainerLow), so the sheet sits one step
+        // lighter to let them read as raised fields.
+        containerColor = scheme.surface,
     ) {
         Column(
             modifier = Modifier
@@ -89,49 +103,78 @@ fun PersonEditorSheet(
                     end = Dimensions.Padding.dialog,
                     bottom = Spacing.lg,
                 ),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Text(
-                text = stringResource(
-                    if (person == null) R.string.people_add_person else R.string.people_edit_person,
-                ),
-                style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = stringResource(R.string.people_editor_description),
-                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it; changed() },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSaving,
-                label = { Text(stringResource(R.string.people_name)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                isError = state.error == PersonSaveError.NAME_REQUIRED,
-                supportingText = state.error?.let { error ->
-                    { Text(stringResource(error.messageResource)) }
-                },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(
+                    text = stringResource(
+                        if (person == null) R.string.people_add_person else R.string.people_edit_person,
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = stringResource(R.string.people_editor_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            // Live preview: the avatar updates with the name and the chosen colour.
+            PersonAvatar(
+                initials = initialsOf(name),
+                color = chosenColor,
+                size = Dimensions.Icon.extraLarge,
+                textStyle = MaterialTheme.typography.headlineMedium,
             )
 
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it; changed() },
+            // Name, phone and notes read as one connected block of fields.
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)) {
+                TonalTextField(
+                    value = name,
+                    onValueChange = { name = it; changed() },
+                    label = stringResource(R.string.people_name),
+                    position = ListItemPosition.Top,
+                    enabled = !state.isSaving,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    isError = state.error == PersonSaveError.NAME_REQUIRED,
+                    supportingText = state.error?.let { error -> stringResource(error.messageResource) },
+                )
+                TonalTextField(
+                    value = phone,
+                    onValueChange = { phone = it; changed() },
+                    label = stringResource(R.string.people_phone_optional),
+                    position = ListItemPosition.Middle,
+                    enabled = !state.isSaving,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                )
+                TonalTextField(
+                    value = notes,
+                    onValueChange = { notes = it; changed() },
+                    label = stringResource(R.string.people_notes_optional),
+                    position = ListItemPosition.Bottom,
+                    enabled = !state.isSaving,
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 4,
+                )
+            }
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSaving,
-                label = { Text(stringResource(R.string.people_phone_optional)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 Text(
                     text = stringResource(R.string.people_category),
-                    style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = scheme.onSurfaceVariant,
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -146,38 +189,51 @@ fun PersonEditorSheet(
                             },
                             enabled = !state.isSaving,
                             label = { Text(option) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = scheme.surfaceContainerLow,
+                                selectedContainerColor = scheme.tertiaryContainer,
+                                selectedLabelColor = scheme.onTertiaryContainer,
+                            ),
+                            // The tonal fill is the container; no outline.
+                            border = null,
                         )
                     }
                 }
             }
 
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { notes = it; changed() },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSaving,
-                label = { Text(stringResource(R.string.people_notes_optional)) },
-                minLines = 2,
-                maxLines = 4,
-            )
-
-            OutlinedButton(
+            Surface(
                 onClick = { showColorPicker = true },
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !state.isSaving,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = scheme.surfaceContainerLow,
             ) {
-                Surface(
-                    modifier = Modifier.size(Dimensions.Icon.medium),
-                    shape = CircleShape,
-                    color = parseProfileColor(
-                        color,
-                        androidx.compose.material3.MaterialTheme.colorScheme.primary,
-                    ),
-                ) {}
-                Spacer(modifier = Modifier.size(Spacing.sm))
-                Icon(Icons.Default.Palette, contentDescription = null)
-                Spacer(modifier = Modifier.size(Spacing.sm))
-                Text(stringResource(R.string.people_choose_color))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = Dimensions.Component.listItemMinHeight)
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(Dimensions.Icon.medium)
+                            .clip(CircleShape)
+                            .background(chosenColor),
+                    )
+                    Text(
+                        text = stringResource(R.string.people_choose_color),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = scheme.onSurface,
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = scheme.onSurfaceVariant,
+                    )
+                }
             }
 
             Button(
@@ -190,16 +246,22 @@ fun PersonEditorSheet(
                         color,
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Dimensions.Component.fab),
                 enabled = name.isNotBlank() && !state.isSaving,
             ) {
                 if (state.isSaving) {
                     CircularProgressIndicator(
+                        color = scheme.onPrimary,
                         modifier = Modifier.size(Dimensions.Icon.inline),
                         strokeWidth = Dimensions.Component.progressRingStroke,
                     )
                 } else {
-                    Text(stringResource(R.string.people_save))
+                    Text(
+                        text = stringResource(R.string.people_save),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                 }
             }
         }
@@ -208,6 +270,7 @@ fun PersonEditorSheet(
     if (showColorPicker) {
         AlertDialog(
             onDismissRequest = { showColorPicker = false },
+            shape = MaterialTheme.shapes.extraLarge,
             title = { Text(stringResource(R.string.people_choose_color)) },
             text = {
                 ColorPickerContent(

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Add transaction / subscription: strings added by the Cashiro-style restyle. The rest live in strings_transactions.xml. -->
+    <string name="add_amount_label">Amount</string>
+    <string name="add_calculator_chip">Calculator</string>
+    <string name="add_currency_picker_desc">Currency, %1$s</string>
+    <string name="add_txn_type_label">Transaction type</string>
+    <string name="add_sub_direction_label">Subscription type</string>
+    <string name="add_pick_date">Select date</string>
+</resources>

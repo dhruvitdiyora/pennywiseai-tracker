@@ -297,16 +297,16 @@ private fun DashboardBalanceRows(summary: PersonLoanSummary) {
                     Text(currency, style = MaterialTheme.typography.titleSmall)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         DashboardBalanceFigure(
-                            stringResource(R.string.home_loans_owed_to_you),
+                            stringResource(R.string.home_loans_label_owed_to_you),
                             summary.lentByCurrency[currency] ?: BigDecimal.ZERO,
                             currency,
-                            MaterialTheme.colorScheme.expense,
+                            MaterialTheme.colorScheme.income,
                         )
                         DashboardBalanceFigure(
-                            stringResource(R.string.home_loans_you_owe),
+                            stringResource(R.string.home_loans_label_you_owe),
                             summary.borrowedByCurrency[currency] ?: BigDecimal.ZERO,
                             currency,
-                            MaterialTheme.colorScheme.income,
+                            MaterialTheme.colorScheme.expense,
                             true,
                         )
                     }

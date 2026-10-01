@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -14,13 +16,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -28,12 +33,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.presentation.people.TonalTextField
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Information
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -69,6 +81,9 @@ fun LendBorrowEntrySheet(
     ModalBottomSheet(
         onDismissRequest = { if (!isSaving) onDismiss() },
         sheetState = sheetState,
+        // The fields are tonal (surfaceContainerLow), so the sheet sits one step
+        // lighter to let them read as raised fields.
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         LendBorrowEntryForm(
             initialDraft = LoanEntryDraft(
@@ -135,83 +150,103 @@ internal fun LendBorrowEntryForm(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
             Text(
                 text = stringResource(R.string.lend_borrow_entry_title),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = stringResource(R.string.lend_borrow_entry_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
 
-        OutlinedTextField(
-            value = personName,
-            onValueChange = {
-                personName = it
-                changed()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isSaving && isPersonEditable,
-            singleLine = true,
-            label = { Text(stringResource(R.string.lend_borrow_entry_person)) },
-            placeholder = {
-                Text(stringResource(R.string.lend_borrow_entry_person_placeholder))
-            },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-            isError = error == LoanEntryError.PERSON_REQUIRED,
+        val directions = listOf(
+            LoanDirection.LENT to R.string.lend_borrow_entry_lent,
+            LoanDirection.BORROWED to R.string.lend_borrow_entry_borrowed,
         )
-
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = stringResource(R.string.lend_borrow_entry_direction),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                FilterChip(
-                    selected = direction == LoanDirection.LENT,
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            directions.forEachIndexed { index, (option, label) ->
+                SegmentedButton(
+                    selected = direction == option,
                     onClick = {
-                        direction = LoanDirection.LENT
+                        direction = option
                         changed()
                     },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = directions.size),
+                    modifier = Modifier.heightIn(min = Dimensions.Component.minTouchTarget),
                     enabled = !isSaving,
-                    label = { Text(stringResource(R.string.lend_borrow_entry_lent)) },
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    selected = direction == LoanDirection.BORROWED,
-                    onClick = {
-                        direction = LoanDirection.BORROWED
-                        changed()
+                    label = {
+                        Text(
+                            text = stringResource(label),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
                     },
-                    enabled = !isSaving,
-                    label = { Text(stringResource(R.string.lend_borrow_entry_borrowed)) },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
 
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = Dimensions.Alpha.medium),
+        ) {
+            Row(
+                modifier = Modifier.padding(Spacing.smd),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Iconax.Information,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.inline),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(
+                        if (direction == LoanDirection.LENT) {
+                            R.string.lend_borrow_entry_hint_lent
+                        } else {
+                            R.string.lend_borrow_entry_hint_borrowed
+                        },
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        // The amount leads: a large figure with its currency sign, and the
+        // currency picker beside it.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            OutlinedTextField(
+            TonalTextField(
                 value = amountText,
                 onValueChange = {
                     amountText = it
                     changed()
                 },
+                label = stringResource(R.string.lend_borrow_entry_amount),
                 modifier = Modifier.weight(1f),
                 enabled = !isSaving,
-                singleLine = true,
-                label = { Text(stringResource(R.string.lend_borrow_entry_amount)) },
+                textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                prefix = {
+                    Text(
+                        text = CurrencyFormatter.getCurrencySymbol(currency),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                },
                 isError = error == LoanEntryError.AMOUNT_REQUIRED ||
                     (amountText.isNotBlank() && (amount == null || amount <= BigDecimal.ZERO)),
             )
@@ -219,22 +254,19 @@ internal fun LendBorrowEntryForm(
             ExposedDropdownMenuBox(
                 expanded = currencyMenuExpanded,
                 onExpandedChange = { if (!isSaving) currencyMenuExpanded = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(Dimensions.Component.currencySelectorWidth),
             ) {
-                OutlinedTextField(
+                TonalTextField(
                     value = currency,
                     onValueChange = {},
+                    label = stringResource(R.string.lend_borrow_entry_currency),
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     readOnly = true,
                     enabled = !isSaving,
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.lend_borrow_entry_currency)) },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(currencyMenuExpanded)
                     },
                     isError = error == LoanEntryError.CURRENCY_REQUIRED,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(
                     expanded = currencyMenuExpanded,
@@ -254,18 +286,35 @@ internal fun LendBorrowEntryForm(
             }
         }
 
-        OutlinedTextField(
-            value = note,
-            onValueChange = {
-                note = it
-                changed()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isSaving,
-            label = { Text(stringResource(R.string.lend_borrow_entry_note)) },
-            minLines = 2,
-            maxLines = 3,
-        )
+        // Person and note read as one connected pair of fields.
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)) {
+            TonalTextField(
+                value = personName,
+                onValueChange = {
+                    personName = it
+                    changed()
+                },
+                label = stringResource(R.string.lend_borrow_entry_person),
+                position = ListItemPosition.Top,
+                enabled = !isSaving && isPersonEditable,
+                placeholder = stringResource(R.string.lend_borrow_entry_person_placeholder),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                isError = error == LoanEntryError.PERSON_REQUIRED,
+            )
+            TonalTextField(
+                value = note,
+                onValueChange = {
+                    note = it
+                    changed()
+                },
+                label = stringResource(R.string.lend_borrow_entry_note),
+                position = ListItemPosition.Bottom,
+                enabled = !isSaving,
+                singleLine = false,
+                minLines = 2,
+                maxLines = 3,
+            )
+        }
 
         error?.let {
             Text(
@@ -285,7 +334,9 @@ internal fun LendBorrowEntryForm(
                     note.trim().ifBlank { null },
                 )
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Dimensions.Component.fab),
             enabled = !isSaving && validateLoanEntry(personName, amount, currency) == null,
         ) {
             if (isSaving) {
@@ -295,7 +346,10 @@ internal fun LendBorrowEntryForm(
                     strokeWidth = Dimensions.Component.progressRingStroke,
                 )
             } else {
-                Text(stringResource(R.string.lend_borrow_entry_save))
+                Text(
+                    text = stringResource(R.string.lend_borrow_entry_save),
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
         }
     }

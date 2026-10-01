@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Lend & Borrow overview, Cashiro-style layout ══ -->
+
+    <!-- Title of the summary card on the Lend & Borrow screen. -->
+    <string name="loans_hero_net_title">Net balance</string>
+    <!-- Status pill beside the net balance: the net total is in the user's favour. -->
+    <string name="loans_hero_status_get">You get</string>
+    <!-- Status pill beside the net balance: the user owes more than they are owed. -->
+    <string name="loans_hero_status_owe">You owe</string>
+    <!-- Heading above the per-currency breakdown shown when loans span several currencies. -->
+    <string name="loans_hero_by_currency">By currency</string>
+    <!-- Heading above the balances that a settle-up will close. -->
+    <string name="loans_settle_up_sheet_balance">Open balance</string>
+
+    <!-- ══ Add lend or borrow entry, Cashiro-style layout ══ -->
+
+    <!-- Hint under the direction switch when "I lent" is selected. -->
+    <string name="lend_borrow_entry_hint_lent">They owe you this amount.</string>
+    <!-- Hint under the direction switch when "I borrowed" is selected. -->
+    <string name="lend_borrow_entry_hint_borrowed">You owe them this amount.</string>
+
+    <!-- ══ Contacts, Cashiro-style layout ══ -->
+
+    <!-- Shown on a contact tile when more currencies are open than fit: %1$d = how many are hidden. -->
+    <string name="people_more_balances">+%1$d more</string>
+</resources>
