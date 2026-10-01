@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -102,8 +101,6 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
-import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
-import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
 import com.pennywiseai.tracker.ui.components.HomeBannerImage
 import com.pennywiseai.tracker.ui.components.GreetingCard
@@ -177,8 +174,6 @@ fun HomeScreen(
     var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
-    // Profile filter dropdown state
-    var showProfileFilterMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val deletedMessage = stringResource(R.string.home_transaction_deleted)
     val undoLabel = stringResource(R.string.home_undo)
@@ -318,72 +313,23 @@ fun HomeScreen(
                         size = Dimensions.Component.iconButton
                     )
                 },
-                // Compact bar, trailing: round buttons (Cashiro's "…" menu, plus the
-                // PennyWise-only Pro chip and profile switcher).
+                // Compact bar, trailing: just Cashiro's "…" menu. The Pro chip and
+                // the profile switcher live in the expanded greeting row, so the
+                // centred title never has to share the bar with them.
                 actionContent = {
                     val containerColor = MaterialTheme.colorScheme.surfaceContainer
                     val buttonColor = if (blurEffects) containerColor.copy(alpha = 0.5f) else containerColor
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = Spacing.smd),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    HomeBarCircleButton(
+                        onClick = { showMenuSheet = true },
+                        containerColor = buttonColor,
+                        modifier = Modifier.padding(end = Spacing.smd)
                     ) {
-                        // Subtle Pro discovery chip — yellow sparkle that ties
-                        // back to the Settings → PennyWise Pro entry. Hidden
-                        // for already-entitled users so it's never pushy.
-                        // Tap → opens the same UpgradeSheet as Settings.
-                        if (!isProEntitled) {
-                            HomeBarCircleButton(
-                                onClick = { showUpgradeSheet = true },
-                                containerColor = yellow_light
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = stringResource(R.string.home_upgrade_pro),
-                                    tint = yellow_dark,
-                                    modifier = Modifier.size(Dimensions.Icon.inline),
-                                )
-                            }
-                        }
-
-                        // Business/Personal filter dropdown. Nothing to switch
-                        // between until a profile exists, so no button either
-                        // (the expanded greeting row follows the same rule).
-                        if (uiState.profiles.isNotEmpty()) {
-                            Box {
-                                HomeBarCircleButton(
-                                    onClick = { showProfileFilterMenu = true },
-                                    containerColor = buttonColor
-                                ) {
-                                    Icon(
-                                        imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
-                                        contentDescription = stringResource(R.string.home_profile_filter),
-                                        tint = MaterialTheme.colorScheme.inverseSurface,
-                                        modifier = Modifier.size(Dimensions.Icon.inline)
-                                    )
-                                }
-                                ProfileFilterDropdown(
-                                    expanded = showProfileFilterMenu,
-                                    profiles = uiState.profiles,
-                                    selectedProfileId = uiState.selectedProfileId,
-                                    onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                                    onDismiss = { showProfileFilterMenu = false }
-                                )
-                            }
-                        }
-
-                        // More options button
-                        HomeBarCircleButton(
-                            onClick = { showMenuSheet = true },
-                            containerColor = buttonColor
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreHoriz,
-                                contentDescription = stringResource(R.string.home_more_options),
-                                tint = MaterialTheme.colorScheme.inverseSurface,
-                                modifier = Modifier.size(Dimensions.Icon.medium)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.MoreHoriz,
+                            contentDescription = stringResource(R.string.home_more_options),
+                            tint = MaterialTheme.colorScheme.inverseSurface,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
                     }
                 },
                 expandedContent = {
@@ -1706,8 +1652,7 @@ private fun ViewAllPill(
 }
 
 /**
- * A 40dp round button for the compact Home bar — the "…" menu, the profile
- * filter and the Pro chip all share this shell so they line up. The touch
+ * A 40dp round button for the compact Home bar (the "…" menu). The touch
  * target is still padded out to the 48dp minimum.
  */
 @OptIn(ExperimentalMaterial3Api::class)

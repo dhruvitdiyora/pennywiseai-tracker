@@ -46,6 +46,28 @@ class HomeSectionLayoutTest {
     fun `blank or absent pref yields the default layout`() {
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode(null))
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode("  "))
-        assertEquals(HomeSection.entries.map { it to true }, HomeSectionLayout.DEFAULT)
+        assertEquals(
+            listOf(
+                HomeSection.RECENT_TRANSACTIONS, HomeSection.ACCOUNTS, HomeSection.SUBSCRIPTIONS,
+                HomeSection.BUDGETS, HomeSection.LOANS, HomeSection.GROUPS, HomeSection.ACTIVITY,
+            ).map { it to true },
+            HomeSectionLayout.DEFAULT,
+        )
+        // Every section appears exactly once.
+        assertEquals(HomeSection.entries.toSet(), HomeSectionLayout.DEFAULT.map { it.first }.toSet())
+        assertEquals(HomeSection.entries.size, HomeSectionLayout.DEFAULT.size)
+    }
+
+    @Test
+    fun `a stored layout in the previous default order decodes unchanged`() {
+        val stored = "BUDGETS,LOANS,GROUPS,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,ACTIVITY"
+        assertEquals(
+            listOf(
+                HomeSection.BUDGETS, HomeSection.LOANS, HomeSection.GROUPS,
+                HomeSection.RECENT_TRANSACTIONS, HomeSection.ACCOUNTS,
+                HomeSection.SUBSCRIPTIONS, HomeSection.ACTIVITY,
+            ).map { it to true },
+            HomeSectionLayout.decode(stored),
+        )
     }
 }

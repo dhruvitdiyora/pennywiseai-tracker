@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Budget detail, Cashiro-style layout ══ -->
+
+    <!-- Legend line beside the category donut: %1$s = amount spent, %2$d = share of the budget's spending. -->
+    <string name="budget_detail_legend_amount">%1$s (%2$d%%)</string>
+
+    <!-- ══ Budget history, Cashiro-style layout ══ -->
+
+    <!-- Large screen title: %1$s = budget name. -->
+    <string name="budget_history_title_format">%1$s History</string>
+    <!-- Legend beside the spending line chart. -->
+    <string name="budget_history_trend_title">Spending trend</string>
+    <!-- Second line of a history row: %1$s = the window's budget amount. -->
+    <string name="budget_history_row_of">of %1$s</string>
+
+    <!-- ══ Categories, Cashiro-style layout ══ -->
+
+    <!-- Subtitle under a parent category: %d = number of sub-categories. -->
+    <plurals name="categories_subcategory_count">
+        <item quantity="one">%d sub-category</item>
+        <item quantity="other">%d sub-categories</item>
+    </plurals>
+</resources>

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -56,7 +57,9 @@ import java.time.temporal.ChronoUnit
  * and the profile / overflow actions — drawn straight onto the cover banner.
  *
  * Styled after Cashiro's greeting row: a bold name, a quieter subtitle and
- * plain (background-less) trailing icons, so the banner stays the hero.
+ * plain (background-less) trailing icons, so the banner stays the hero. The
+ * compact scrolled bar carries only the "…" menu, so the Pro sparkle (free
+ * users) and the profile filter live here.
  */
 @Composable
 fun GreetingCard(
@@ -138,6 +141,21 @@ fun GreetingCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+
+        // Pro discovery sparkle — hidden for entitled users so it's never pushy.
+        // Opens the same upgrade sheet as the avatar ring and Settings.
+        if (!isProEntitled) {
+            IconButton(
+                onClick = onUpgradeClick,
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = stringResource(R.string.home_upgrade_pro),
+                    tint = yellow_dark
+                )
+            }
         }
 
         // Profile filter button

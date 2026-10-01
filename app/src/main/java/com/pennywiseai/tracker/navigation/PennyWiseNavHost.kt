@@ -381,6 +381,11 @@ fun PennyWiseNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToHistory = { groupId, year, month ->
+                    navController.navigate(BudgetHistory(groupId, year, month)) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 

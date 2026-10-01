@@ -1,9 +1,13 @@
 package com.pennywiseai.tracker.data.preferences
 
 /**
- * The toggleable / reorderable sections of the Home screen (#770). Declaration
- * order is the default display order. The fixed header (balance, share prompt,
- * cash-flow) is deliberately not here.
+ * The toggleable / reorderable sections of the Home screen (#770). The fixed
+ * header (balance, share prompt, cash-flow) is deliberately not here.
+ *
+ * Declaration order is NOT the display order: [HomeSectionLayout.DEFAULT] is.
+ * Declaration order only decides where a section missing from a stored layout
+ * is appended by [HomeSectionLayout.decode], so keep it stable - reordering it
+ * would shift existing users' saved layouts.
  */
 enum class HomeSection(val label: String) {
     BUDGETS("Budgets"),
@@ -21,7 +25,20 @@ enum class HomeSection(val label: String) {
  * Pure so it is unit-testable without DataStore.
  */
 object HomeSectionLayout {
-    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to true }
+    /**
+     * Order for installs with no saved layout (Cashiro's): recent transactions
+     * right after the summary card, then accounts and subscriptions, then the
+     * rest. Only affects a blank preference - a stored layout decodes as saved.
+     */
+    val DEFAULT: List<Pair<HomeSection, Boolean>> = listOf(
+        HomeSection.RECENT_TRANSACTIONS,
+        HomeSection.ACCOUNTS,
+        HomeSection.SUBSCRIPTIONS,
+        HomeSection.BUDGETS,
+        HomeSection.LOANS,
+        HomeSection.GROUPS,
+        HomeSection.ACTIVITY,
+    ).map { it to true }
 
     fun encode(layout: List<Pair<HomeSection, Boolean>>): String =
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }
