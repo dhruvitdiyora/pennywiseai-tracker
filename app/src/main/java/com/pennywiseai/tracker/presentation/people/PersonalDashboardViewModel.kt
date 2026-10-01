@@ -2,6 +2,9 @@ package com.pennywiseai.tracker.presentation.people
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanStatus
+import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.PersonLoanSummary
@@ -22,6 +25,14 @@ data class PersonalDashboardUiState(
     val people: List<PersonWithSummary> = emptyList(),
     val loanSummary: PersonLoanSummary = PersonLoanSummary(-1L, ""),
     val isLoading: Boolean = true,
+    /** The user's own Home banner (a private file URI); null falls back to [coverStyle]. */
+    val homeBannerUri: String? = null,
+    val coverStyle: CoverStyle = CoverStyle.AURORA,
+    /** Open records where the user is owed money. */
+    val lentRecordCount: Int = 0,
+    /** Open records where the user owes money. */
+    val borrowedRecordCount: Int = 0,
+    val settledRecordCount: Int = 0,
 )
 
 @HiltViewModel
@@ -35,6 +46,7 @@ class PersonalDashboardViewModel @Inject constructor(
         loanRepository.getAllLoans(),
         userPreferencesRepository.userPreferences,
     ) { people, loans, preferences ->
+        val openLoans = loans.filter { it.status == LoanStatus.ACTIVE }
         PersonalDashboardUiState(
             userName = preferences.userName,
             profileImageUri = preferences.profileImageUri,
@@ -45,6 +57,11 @@ class PersonalDashboardViewModel @Inject constructor(
             ),
             loanSummary = summarizePersonLoans(-1L, "", loans),
             isLoading = false,
+            homeBannerUri = preferences.homeBannerUri,
+            coverStyle = preferences.coverStyle,
+            lentRecordCount = openLoans.count { it.direction == LoanDirection.LENT },
+            borrowedRecordCount = openLoans.count { it.direction == LoanDirection.BORROWED },
+            settledRecordCount = loans.count { it.status == LoanStatus.SETTLED },
         )
     }.stateIn(
         scope = viewModelScope,

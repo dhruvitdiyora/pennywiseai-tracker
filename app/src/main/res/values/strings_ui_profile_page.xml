@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Personal dashboard (profile page), Cashiro-style layout ══ -->
+
+    <!-- Heading of the tile card under the profile header. -->
+    <string name="profile_page_glance_title">At a glance</string>
+    <!-- Tile label: the number of open lend & borrow records where the user is owed money. -->
+    <string name="profile_page_stat_lent">Lent records</string>
+    <!-- Tile label: the number of open lend & borrow records where the user owes money. -->
+    <string name="profile_page_stat_borrowed">Borrowed records</string>
+    <!-- Tile label: the number of lend & borrow records that are fully settled. -->
+    <string name="profile_page_stat_settled">Settled records</string>
+    <!-- Tile label: how many different currencies have an open balance. -->
+    <string name="profile_page_stat_currencies">Currencies</string>
+</resources>

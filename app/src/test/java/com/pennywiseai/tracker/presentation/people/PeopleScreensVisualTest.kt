@@ -5,12 +5,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -95,14 +99,21 @@ class PeopleScreensVisualTest {
             )
         }
 
+        // The banner header pushes the lower sections below the first screen, and a
+        // lazy list only composes what is on screen: capture the top, then scroll to
+        // each section before asserting on it.
+        composeTestRule.onRoot().captureRoboImage()
+
+        scrollDashboardTo("INR")
         composeTestRule.onNodeWithText("INR").assertIsDisplayed()
         composeTestRule.onNodeWithText("USD").assertIsDisplayed()
         composeTestRule.onNodeWithText(money("800", "INR")).assertIsDisplayed()
         composeTestRule.onNodeWithText(money("25", "USD")).assertIsDisplayed()
-        composeTestRule.onRoot().captureRoboImage()
 
+        scrollDashboardTo("Contacts")
         composeTestRule.onNodeWithText("Contacts").performClick()
         composeTestRule.onNodeWithText("Lend & Borrow").performClick()
+        scrollDashboardTo("Household contact")
         composeTestRule.onNodeWithText("Household contact").performClick()
         assertTrue(contactsRequested)
         assertTrue(loansRequested)
@@ -199,6 +210,11 @@ class PeopleScreensVisualTest {
 
     private fun money(amount: String, currency: String): String =
         CurrencyFormatter.formatCurrency(BigDecimal(amount), currency)
+
+    /** Scrolls the dashboard's outer list (the first scrollable; the contact carousel nests inside it) to [text]. */
+    private fun scrollDashboardTo(text: String) {
+        composeTestRule.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText(text))
+    }
 
     private fun setContent(
         darkTheme: Boolean,
