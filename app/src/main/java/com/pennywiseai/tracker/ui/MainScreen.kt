@@ -638,6 +638,13 @@ fun MainScreen(
                                 ) {
                                     launchSingleTop = true
                                 }
+                            },
+                            onNavigateToAccountDetail = rootNavController?.let { root ->
+                                { bankName, accountLast4 ->
+                                    root.navigate(
+                                        com.pennywiseai.tracker.navigation.AccountDetail(bankName, accountLast4)
+                                    ) { launchSingleTop = true }
+                                }
                             }
                         )
                     }

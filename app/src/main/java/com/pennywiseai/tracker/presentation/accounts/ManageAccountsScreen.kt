@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.accounts
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -75,7 +77,8 @@ fun ManageAccountsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddAccount: () -> Unit,
     onNavigateToBalanceHistory: (bankName: String, accountLast4: String) -> Unit,
-    viewModel: ManageAccountsViewModel = hiltViewModel()
+    viewModel: ManageAccountsViewModel = hiltViewModel(),
+    onNavigateToAccountDetail: ((bankName: String, accountLast4: String) -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showUpdateDialog by remember { mutableStateOf(false) }
@@ -108,6 +111,10 @@ fun ManageAccountsScreen(
     }
     val openHistory: (AccountBalanceEntity) -> Unit = { account ->
         onNavigateToBalanceHistory(account.bankName, account.accountLast4)
+    }
+    // Tapping a card opens Account Detail, as in Cashiro.
+    val openDetail: ((AccountBalanceEntity) -> Unit)? = onNavigateToAccountDetail?.let { navigate ->
+        { account -> navigate(account.bankName, account.accountLast4) }
     }
     val askDelete: (AccountBalanceEntity) -> Unit = { account ->
         accountToDelete = account.bankName to account.accountLast4
@@ -269,6 +276,7 @@ fun ManageAccountsScreen(
                             viewModel = viewModel,
                             onUpdateBalance = { openUpdateBalance(account) },
                             onViewHistory = { openHistory(account) },
+                            onOpenDetail = openDetail,
                             onDelete = { askDelete(account) },
                             onEdit = { openEdit(account) },
                         )
@@ -286,6 +294,7 @@ fun ManageAccountsScreen(
                             viewModel = viewModel,
                             onUpdateBalance = { openUpdateBalance(account) },
                             onViewHistory = { openHistory(account) },
+                            onOpenDetail = openDetail,
                             onDelete = { askDelete(account) },
                             onEdit = { openEdit(account) },
                         )
@@ -323,6 +332,7 @@ fun ManageAccountsScreen(
                             viewModel = viewModel,
                             onUpdateBalance = { openUpdateBalance(card) },
                             onViewHistory = { openHistory(card) },
+                            onOpenDetail = openDetail,
                             onDelete = { askDelete(card) },
                             onEdit = { openEdit(card) },
                         )
@@ -354,6 +364,7 @@ fun ManageAccountsScreen(
                                 viewModel = viewModel,
                                 onUpdateBalance = { openUpdateBalance(account) },
                                 onViewHistory = { openHistory(account) },
+                                onOpenDetail = openDetail,
                                 onDelete = { askDelete(account) },
                                 onEdit = { openEdit(account) },
                             )
@@ -367,6 +378,7 @@ fun ManageAccountsScreen(
                                 viewModel = viewModel,
                                 onUpdateBalance = { openUpdateBalance(card) },
                                 onViewHistory = { openHistory(card) },
+                                onOpenDetail = openDetail,
                                 onDelete = { askDelete(card) },
                                 onEdit = { openEdit(card) },
                             )
@@ -552,6 +564,7 @@ private fun ManageBankAccountRow(
     onViewHistory: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
+    onOpenDetail: ((AccountBalanceEntity) -> Unit)? = null,
 ) {
     AccountItem(
         account = account,
@@ -576,7 +589,9 @@ private fun ManageBankAccountRow(
         onSetLowBalanceThreshold = { threshold ->
             viewModel.setLowBalanceThreshold(account.bankName, account.accountLast4, threshold)
         },
-        modifier = Modifier.padding(bottom = Spacing.md),
+        modifier = Modifier
+            .padding(bottom = Spacing.md)
+            .openDetailOnClick(onOpenDetail?.let { open -> { open(account) } }),
     )
 }
 
@@ -590,6 +605,7 @@ private fun ManageCreditCardRow(
     onViewHistory: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
+    onOpenDetail: ((AccountBalanceEntity) -> Unit)? = null,
 ) {
     CreditCardItem(
         card = card,
@@ -604,9 +620,25 @@ private fun ManageCreditCardRow(
         onSetStatementDay = { day ->
             viewModel.setStatementDay(card.bankName, card.accountLast4, day)
         },
-        modifier = Modifier.padding(bottom = Spacing.md),
+        modifier = Modifier
+            .padding(bottom = Spacing.md)
+            .openDetailOnClick(onOpenDetail?.let { open -> { open(card) } }),
     )
 }
+
+/** Makes an account card open Account Detail; a no-op when [onClick] is null. */
+@Composable
+private fun Modifier.openDetailOnClick(onClick: (() -> Unit)?): Modifier =
+    if (onClick == null) {
+        this
+    } else {
+        this
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(
+                onClickLabel = stringResource(R.string.manage_accounts_open_detail),
+                onClick = onClick,
+            )
+    }
 
 /** A rounded tonal message strip for a success or error from the last action. */
 @Composable
