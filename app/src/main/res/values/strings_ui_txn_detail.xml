@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Transaction detail: strings added by the Cashiro-style restyle. The rest live in strings_transactions.xml. -->
+
+    <!-- Supporting line on the "linked loan" row; tapping it opens that loan. -->
+    <string name="txn_detail_ui_loan_view">View loan details</string>
+    <!-- Supporting line on the "Mark as loan" row. -->
+    <string name="txn_detail_ui_loan_mark_hint">Track this as money lent or borrowed</string>
+    <!-- Label of the row showing the sender id the bank SMS came from. -->
+    <string name="txn_detail_ui_label_sms_sender">SMS sender</string>
+    <!-- Supporting line under the Recurring switch in edit mode. -->
+    <string name="txn_detail_ui_recurring_subtitle">Marks this as a repeating payment</string>
+</resources>

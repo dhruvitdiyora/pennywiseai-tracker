@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Manage accounts, Cashiro-style layout ══ -->
+
+    <!-- Section heading for manually added cash accounts and mobile-money wallets. -->
+    <string name="manage_accounts_section_cash">Cash &amp; Wallets</string>
+
+    <!-- ══ Add / edit account, Cashiro-style layout ══ -->
+
+    <!-- Small caption under the live account card shown while adding or editing an account. -->
+    <string name="account_editor_preview_caption">Preview</string>
+    <!-- Name shown on the live preview card until the user has typed an account name. -->
+    <string name="account_editor_preview_name">Account name</string>
+    <!-- Title of the bottom sheet that lists currencies for an account. -->
+    <string name="account_editor_currency_sheet_title">Select currency</string>
+</resources>

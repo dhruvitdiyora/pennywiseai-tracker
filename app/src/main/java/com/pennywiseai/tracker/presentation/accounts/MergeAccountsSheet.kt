@@ -1,29 +1,24 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -35,9 +30,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.icons.iconax.Danger
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -73,36 +75,46 @@ fun MergeAccountsSheet(
         sourceTxnCount = source?.let { countTransactionsOn(it.bankName, it.accountLast4) }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        // The account rows are tonal, so the sheet sits one step lighter.
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
         // A single LazyColumn drives the whole sheet so that, with many accounts,
         // the source and target lists share one scroll surface — the second list
         // stays reachable instead of being pushed off-screen (#624). Previously
         // two nested LazyColumns competed for height inside a non-scrolling Column.
-        // No list-wide verticalArrangement: structural items (header, section
-        // labels) keep their own paddings, while account rows carry an xs top
-        // gap so the inter-row rhythm matches the original two-picker layout
-        // instead of spacing every item uniformly.
+        // Rows form a connected 2dp-gap block; structural items (header, section
+        // labels) carry their own paddings.
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = Dimensions.Padding.content,
-                    end = Dimensions.Padding.content,
-                    bottom = Spacing.lg
-                )
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.dialog,
+                end = Dimensions.Padding.dialog,
+                bottom = Spacing.lg
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
             item(key = "header") {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Spacing.md),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
                     Text(
                         text = stringResource(R.string.merge_accounts_title),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
                     Text(
                         text = stringResource(R.string.merge_accounts_description),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.md)
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -127,7 +139,7 @@ fun MergeAccountsSheet(
                     item(key = "no-targets") {
                         Text(
                             text = stringResource(R.string.merge_accounts_no_targets),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = Spacing.md)
                         )
@@ -138,17 +150,18 @@ fun MergeAccountsSheet(
                             SectionLabel(stringResource(R.string.merge_accounts_into))
                             Row(
                                 modifier = Modifier.padding(bottom = Spacing.xs),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowDownward,
                                     contentDescription = null,
-                                    modifier = Modifier.padding(end = Spacing.xs),
+                                    modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = AccountBalanceEntity.accountLabel(src.bankName, src.accountLast4),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -172,6 +185,9 @@ fun MergeAccountsSheet(
     if (s != null && t != null) {
         AlertDialog(
             onDismissRequest = { target = null },
+            shape = MaterialTheme.shapes.extraLarge,
+            iconContentColor = MaterialTheme.colorScheme.error,
+            icon = { Icon(Iconax.Danger, contentDescription = null) },
             title = { Text(stringResource(R.string.merge_accounts_confirm_title)) },
             text = {
                 val n = sourceTxnCount
@@ -195,11 +211,10 @@ fun MergeAccountsSheet(
 @Composable
 private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.Medium,
-        modifier = modifier.padding(bottom = Spacing.xs)
+        modifier = modifier.padding(bottom = Spacing.sm)
     )
 }
 
@@ -215,76 +230,63 @@ private fun LazyListScope.accountPickerItems(
     selected: AccountBalanceEntity?,
     onSelect: (AccountBalanceEntity) -> Unit
 ) {
-    items(
+    itemsIndexed(
         accounts,
-        key = { "$idPrefix|${it.bankName}|${it.accountLast4}|${it.id}" }
-    ) { acct ->
+        key = { _, account -> "$idPrefix|${account.bankName}|${account.accountLast4}|${account.id}" }
+    ) { index, acct ->
         val isSelected = selected?.bankName == acct.bankName &&
             selected.accountLast4 == acct.accountLast4
-        AccountPickerRow(acct = acct, isSelected = isSelected, onClick = { onSelect(acct) })
+        AccountPickerRow(
+            acct = acct,
+            position = ListItemPosition.from(index, accounts.size),
+            isSelected = isSelected,
+            onClick = { onSelect(acct) }
+        )
     }
 }
 
 @Composable
 private fun AccountPickerRow(
     acct: AccountBalanceEntity,
+    position: ListItemPosition,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = Modifier
-            .padding(top = Spacing.xs)
-            .fillMaxWidth()
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = acct.bankName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                )
-                val creditTag = stringResource(R.string.merge_accounts_credit_tag)
-                Text(
-                    text = buildString {
-                        if (acct.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
-                            append("••")
-                            append(acct.accountLast4)
-                            append(" · ")
-                        }
-                        append(acct.currency)
-                        if (acct.isCreditCard) append(" · $creditTag")
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (isSelected) {
-                AssistChip(
-                    onClick = {},
-                    label = { Text(stringResource(R.string.merge_accounts_selected)) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 2.dp)
-                        )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        labelColor = MaterialTheme.colorScheme.onPrimary,
-                        leadingIconContentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                )
-            }
+    AccountChoiceRow(
+        selected = isSelected,
+        onClick = onClick,
+        position = position
+    ) { titleColor, supportingColor ->
+        AccountAvatar(account = acct, size = Dimensions.Icon.list)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = acct.bankName,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = titleColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            val creditTag = stringResource(R.string.merge_accounts_credit_tag)
+            Text(
+                text = buildString {
+                    if (acct.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                        append("••")
+                        append(acct.accountLast4)
+                        append(" · ")
+                    }
+                    append(acct.currency)
+                    if (acct.isCreditCard) append(" · $creditTag")
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = supportingColor
+            )
         }
+        Icon(
+            imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = if (isSelected) titleColor else supportingColor
+        )
     }
 }
 

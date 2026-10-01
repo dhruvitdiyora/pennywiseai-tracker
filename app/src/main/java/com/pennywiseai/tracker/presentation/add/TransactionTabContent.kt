@@ -474,9 +474,9 @@ internal fun AddCategorySelector(
 
 /**
  * Receipt attachment: a thumbnail with a remove button, or Gallery / Camera
- * buttons. Also used by the transaction detail screen, which keeps the default
- * outlined buttons; the add screen passes [tonal] = true so the buttons read as
- * part of its tonal field cards.
+ * buttons. Also used by the transaction detail edit form. Both screens pass
+ * [tonal] = true so the buttons read as part of their tonal field cards; the
+ * default keeps the outlined buttons.
  */
 @Composable
 fun ReceiptPickerSection(
