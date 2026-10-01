@@ -7,5 +7,10 @@
             android:name="com.pennywiseai.tracker.debug.LlmProbeReceiver"
             android:exported="true"
             android:permission="android.permission.DUMP" />
+        <!-- Debug-only demo data seeder; see DemoDataReceiver. -->
+        <receiver
+            android:name="com.pennywiseai.tracker.debug.DemoDataReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>
