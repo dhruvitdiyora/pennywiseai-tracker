@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ First-run screens (Onboarding, Permission), Cashiro-style layout ══ -->
+
+    <!-- Welcome step, "What you'll set up" list. Row 1 title: the profile step. -->
+    <string name="onboarding_ui_setup_profile_title">Your profile</string>
+    <!-- Row 1 supporting line: what the profile step lets you choose. -->
+    <string name="onboarding_ui_setup_profile_body">Choose a name, avatar and colour.</string>
+    <!-- Row 2 title: the SMS permission step. -->
+    <string name="onboarding_ui_setup_sms_title">SMS permissions</string>
+    <!-- Row 2 supporting line: the step can be skipped. -->
+    <string name="onboarding_ui_setup_sms_body">Optional, so transactions can be detected automatically.</string>
+    <!-- Row 3 title: the first message scan. -->
+    <string name="onboarding_ui_setup_scan_title">Message scan</string>
+    <!-- Row 3 supporting line: what the first scan does. -->
+    <string name="onboarding_ui_setup_scan_body">Import the bank transactions already on your phone.</string>
+    <!-- Row 4 title: choosing the main account. -->
+    <string name="onboarding_ui_setup_account_title">Main account</string>
+    <!-- Row 4 supporting line: what the main account is for. -->
+    <string name="onboarding_ui_setup_account_body">Pick the account you use most.</string>
+
+    <!-- Permission list shared by the onboarding permission step and the Permission screen. Row 1 title. -->
+    <string name="first_run_permission_read_title">Read SMS</string>
+    <!-- Row 1 supporting line: why the app reads messages. -->
+    <string name="first_run_permission_read_body">Finds bank transaction messages already on your phone.</string>
+    <!-- Row 2 title. -->
+    <string name="first_run_permission_receive_title">Receive SMS</string>
+    <!-- Row 2 supporting line: why the app listens for new messages. -->
+    <string name="first_run_permission_receive_body">Notices new bank messages as they arrive.</string>
+    <!-- Row 3 title: shown only on Android versions that ask for the notification permission. -->
+    <string name="first_run_permission_notifications_title">Notifications</string>
+    <!-- Row 3 supporting line: why the app shows notifications. -->
+    <string name="first_run_permission_notifications_body">Lets PennyWise tell you when a transaction is recorded.</string>
+</resources>

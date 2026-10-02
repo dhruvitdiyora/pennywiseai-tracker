@@ -1,29 +1,41 @@
 package com.pennywiseai.tracker.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.security.BiometricCapability
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.IconTile
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.icons.iconax.Danger
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Padlock
+import com.pennywiseai.tracker.ui.icons.iconax.SecuritySafe
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
-import dagger.hilt.android.EntryPointAccessors
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The blocking lock screen. Cashiro-style layout over the existing behaviour:
+ * a padlock hero, a bold heading, a large Unlock action (or, where the device
+ * can't authenticate, an explanatory notice), and a tonal row stating how the
+ * data is protected. Authentication, back-blocking and navigation are unchanged.
+ */
 @Composable
 fun AppLockScreen(
     onUnlocked: () -> Unit,
@@ -56,120 +68,82 @@ fun AppLockScreen(
 
     PennyWiseScaffold(
         modifier = modifier,
-        transparentTopBar = true
+        customTopBar = {}
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(Spacing.lg),
-            contentAlignment = Alignment.Center
+        FirstRunColumn(
+            modifier = Modifier.padding(innerPadding),
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Lock icon
-                Icon(
-                    imageVector = Icons.Filled.Lock,
-                    contentDescription = stringResource(R.string.applock_icon_cd),
-                    modifier = Modifier.size(120.dp),
-                    tint = MaterialTheme.colorScheme.primary
+            // Lock icon
+            FirstRunHero {
+                FirstRunHeroIcon(
+                    icon = Iconax.Padlock,
+                    contentDescription = stringResource(R.string.applock_icon_cd)
                 )
+            }
 
-                Spacer(modifier = Modifier.height(Spacing.xl))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-                // Title
-                Text(
-                    text = stringResource(R.string.applock_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
+            // Title and description
+            FirstRunHeading(
+                title = stringResource(R.string.applock_title),
+                body = stringResource(R.string.applock_subtitle),
+                titleStyle = MaterialTheme.typography.headlineMedium
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            // Show error if authentication failed
+            val authenticationError = uiState.authenticationError
+            if (authenticationError != null) {
+                FirstRunBanner(
+                    icon = Iconax.Danger,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    message = authenticationError.asString()
                 )
-
                 Spacer(modifier = Modifier.height(Spacing.md))
+            }
 
-                // Description
-                Text(
-                    text = stringResource(R.string.applock_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.xl))
-
-                // Show error if authentication failed
-                if (uiState.authenticationError != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = uiState.authenticationError!!.asString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(Spacing.md),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                }
-
-                // Show capability-specific message
-                when (uiState.biometricCapability) {
-                    BiometricCapability.Available -> {
-                        // Unlock button
-                        Button(
-                            onClick = {
-                                if (context is FragmentActivity) {
-                                    viewModel.clearAuthError()
-                                    triggerAuthentication(context, viewModel)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(stringResource(R.string.applock_unlock))
-                        }
-                    }
-                    else -> {
-                        // Show error for unavailable biometric
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.md)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.applock_biometric_unavailable),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Spacer(modifier = Modifier.height(Spacing.sm))
-                                Text(
-                                    text = uiState.biometricCapability.errorMessageRes?.let { stringResource(it) }.orEmpty(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Spacer(modifier = Modifier.height(Spacing.sm))
-                                Text(
-                                    text = stringResource(R.string.applock_unavailable_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
+            // Show capability-specific message
+            when (uiState.biometricCapability) {
+                BiometricCapability.Available -> {
+                    // Unlock button
+                    FirstRunPrimaryButton(
+                        text = stringResource(R.string.applock_unlock),
+                        onClick = {
+                            if (context is FragmentActivity) {
+                                viewModel.clearAuthError()
+                                triggerAuthentication(context, viewModel)
                             }
-                        }
-                    }
+                        },
+                        trailingIcon = null
+                    )
                 }
+                else -> {
+                    // Show error for unavailable biometric
+                    FirstRunBanner(
+                        icon = Iconax.Danger,
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        title = stringResource(R.string.applock_biometric_unavailable),
+                        message = uiState.biometricCapability.errorMessageRes
+                            ?.let { stringResource(it) }
+                            .orEmpty(),
+                        hint = stringResource(R.string.applock_unavailable_hint)
+                    )
+                }
+            }
 
-                Spacer(modifier = Modifier.height(Spacing.md))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
-                // Privacy note
+            // Privacy note
+            GroupedRow(position = ListItemPosition.Single) {
+                IconTile(
+                    icon = Iconax.SecuritySafe,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
                 Text(
                     text = when (uiState.timeoutMinutes) {
                         0 -> stringResource(R.string.applock_protected_immediate)
@@ -179,9 +153,9 @@ fun AppLockScreen(
                             uiState.timeoutMinutes
                         )
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

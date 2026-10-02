@@ -6,23 +6,18 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,16 +30,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.cards.IconTile
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.icons.iconax.Danger
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Messages
+import com.pennywiseai.tracker.ui.icons.iconax.NotificationBing
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The standalone SMS-access screen. Same Cashiro-style layout as the onboarding
+ * permission step (hero, grouped permission rows, privacy card, large action);
+ * the permission requests and the notification-access hand-off are unchanged.
+ */
 @Composable
 fun PermissionScreen(
     onPermissionGranted: () -> Unit,
@@ -82,142 +88,135 @@ fun PermissionScreen(
 
     PennyWiseScaffold(
         modifier = modifier,
-        transparentTopBar = true
+        customTopBar = {},
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .navigationBarsPadding()
+                    .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
+            ) {
+                FirstRunPrimaryButton(
+                    text = stringResource(R.string.permission_enable_button),
+                    onClick = {
+                        val permissions = mutableListOf(
+                            Manifest.permission.READ_SMS,
+                            Manifest.permission.RECEIVE_SMS
+                        )
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+
+                        multiplePermissionLauncher.launch(permissions.toTypedArray())
+                    }
+                )
+            }
+        }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(innerPadding)
-                .padding(Spacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        FirstRunColumn(
+            modifier = Modifier.padding(innerPadding),
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Filled.MailOutline,
-                contentDescription = null,
-                modifier = Modifier.size(120.dp),
-                tint = MaterialTheme.colorScheme.primary
+            FirstRunHero {
+                FirstRunHeroIcon(icon = Iconax.Messages)
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            FirstRunHeading(
+                title = stringResource(R.string.permission_title),
+                body = stringResource(R.string.permission_description),
+                titleStyle = MaterialTheme.typography.headlineMedium
             )
 
-            Spacer(modifier = Modifier.height(Spacing.xl))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-            Text(
-                text = stringResource(R.string.permission_title),
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
+            FirstRunPermissionRows()
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            FirstRunInfoCard(
+                title = stringResource(R.string.permission_privacy_title),
+                body = stringResource(R.string.permission_privacy_points)
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            Text(
-                text = stringResource(R.string.permission_description),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            NotificationAccessCard(
+                hasNotificationAccess = uiState.hasNotificationAccess,
+                onOpenSettings = {
+                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    notificationAccessLauncher.launch(intent)
+                }
             )
 
-            Spacer(modifier = Modifier.height(Spacing.lg))
-
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(Spacing.md)
-                ) {
-                    Text(
-                        text = stringResource(R.string.permission_privacy_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    Text(
-                        text = stringResource(R.string.permission_privacy_points),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.lg))
-
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(Spacing.md)) {
-                    Text(
-                        text = stringResource(R.string.permission_notification_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Text(
-                        text = stringResource(R.string.permission_notification_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    if (uiState.hasNotificationAccess) {
-                        AssistChip(
-                            onClick = {},
-                            enabled = false,
-                            label = { Text(stringResource(R.string.permission_notification_enabled)) }
-                        )
-                    } else {
-                        Button(
-                            onClick = {
-                                val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                                notificationAccessLauncher.launch(intent)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(stringResource(R.string.permission_notification_open_settings))
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.xl))
-
             if (uiState.showRationale) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = stringResource(R.string.permission_rationale),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(Spacing.md)
-                    )
-                }
                 Spacer(modifier = Modifier.height(Spacing.md))
+                FirstRunBanner(
+                    icon = Iconax.Danger,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    message = stringResource(R.string.permission_rationale)
+                )
             }
+        }
+    }
+}
 
-            Button(
-                onClick = {
-                    val permissions = mutableListOf(
-                        Manifest.permission.READ_SMS,
-                        Manifest.permission.RECEIVE_SMS
-                    )
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-
-                    multiplePermissionLauncher.launch(permissions.toTypedArray())
-                },
-                modifier = Modifier.fillMaxWidth()
+/**
+ * Bank-app notification access is a separate system setting from the SMS
+ * permission, so it gets its own card: what it does, then either the state
+ * ("enabled") or the button that opens the system screen to turn it on.
+ */
+@Composable
+private fun NotificationAccessCard(
+    hasNotificationAccess: Boolean,
+    onOpenSettings: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.Top
+        ) {
+            IconTile(
+                icon = Iconax.NotificationBing,
+                containerColor = scheme.secondaryContainer,
+                contentColor = scheme.onSecondaryContainer
+            )
+            RowLabels(
+                title = stringResource(R.string.permission_notification_title),
+                subtitle = stringResource(R.string.permission_notification_description),
+                titleMaxLines = 2,
+                subtitleMaxLines = Int.MAX_VALUE
+            )
+        }
+        Spacer(modifier = Modifier.height(Spacing.md))
+        if (hasNotificationAccess) {
+            val incomeColor = scheme.income
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Text(stringResource(R.string.permission_enable_button))
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = incomeColor,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+                Text(
+                    text = stringResource(R.string.permission_notification_enabled),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = incomeColor
+                )
             }
+        } else {
+            FirstRunSecondaryButton(
+                text = stringResource(R.string.permission_notification_open_settings),
+                onClick = onOpenSettings
+            )
         }
     }
 }
