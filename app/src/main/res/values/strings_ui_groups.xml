@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Budget editor, Cashiro-style layout ══ -->
+
+    <!-- Small label above the large amount field on the budget editor; also its accessibility description. -->
+    <string name="budget_edit_amount_label">Budget amount</string>
+
+    <!-- ══ Transaction groups, Cashiro-style layout ══ -->
+
+    <!-- Heading of the summary card above the list of groups. -->
+    <string name="groups_summary_title">All groups</string>
+    <!-- How many groups the summary card covers. -->
+    <plurals name="groups_group_count">
+        <item quantity="one">%1$d group</item>
+        <item quantity="other">%1$d groups</item>
+    </plurals>
+
+    <!-- ══ Recurring transactions, Cashiro-style layout ══ -->
+
+    <!-- Heading of the summary card above the recurring list. -->
+    <string name="recurring_summary_title">Overview</string>
+    <!-- Label of the extended add button; it collapses to the "+" glyph once the list scrolls. -->
+    <string name="recurring_fab_label">Add recurring</string>
+    <!-- Summary card subtitle when nothing is paused: %1$d = active templates. -->
+    <string name="recurring_summary_active">%1$d active</string>
+    <!-- Summary card subtitle: %1$d = active templates, %2$d = paused templates. -->
+    <string name="recurring_summary_active_paused">%1$d active · %2$d paused</string>
+    <!-- Figure under "Expense" / "Income" on the summary card: %1$d = active templates of that kind. -->
+    <string name="recurring_tile_scheduled">%1$d scheduled</string>
+</resources>

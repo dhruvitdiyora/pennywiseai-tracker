@@ -1,43 +1,76 @@
 package com.pennywiseai.tracker.presentation.groups
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.people.PeopleExtendedFab
+import com.pennywiseai.tracker.presentation.people.PeopleSearchField
+import com.pennywiseai.tracker.presentation.people.PeopleTonalActionButton
 import com.pennywiseai.tracker.presentation.transactions.ExportTransactionsDialog
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.TonalNavigationButton
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
-import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.ui.theme.investment
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +83,9 @@ fun TransactionGroupDetailScreen(
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val lazyListState = rememberLazyListState()
+    // The add button carries its label only while the list is at the top.
+    val fabExpanded by remember { derivedStateOf { lazyListState.firstVisibleItemIndex == 0 } }
     var showExportDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isDeleted) {
@@ -68,43 +104,56 @@ fun TransactionGroupDetailScreen(
                 title = group?.name ?: stringResource(R.string.group_detail_title_fallback),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
-                    }
+                    TonalNavigationButton(
+                        onClick = onNavigateBack,
+                        contentDescription = stringResource(R.string.group_back)
+                    )
                 },
                 actionContent = {
                     if (group != null) {
                         var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_detail_more))
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.group_detail_edit)) },
-                                onClick = { showMenu = false; viewModel.showEditDialog() },
-                                leadingIcon = { Icon(Icons.Default.Edit, null) }
+                        // The menu is anchored to the button; the screen gutter sits on
+                        // the box so the menu lines up with the button itself.
+                        Box(modifier = Modifier.padding(end = Dimensions.Padding.content)) {
+                            PeopleTonalActionButton(
+                                onClick = { showMenu = true },
+                                icon = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.group_detail_more),
+                                endPadding = Dimensions.Padding.none
                             )
-                            if (uiState.linkedTransactions.isNotEmpty()) {
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.group_detail_export_csv)) },
-                                    onClick = { showMenu = false; showExportDialog = true },
-                                    leadingIcon = { Icon(Icons.Default.FileDownload, null) }
+                                    text = { Text(stringResource(R.string.group_detail_edit)) },
+                                    onClick = { showMenu = false; viewModel.showEditDialog() },
+                                    leadingIcon = { Icon(Icons.Default.Edit, null) }
                                 )
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.group_delete), color = MaterialTheme.colorScheme.error) },
-                                onClick = { showMenu = false; viewModel.showDeleteDialog() },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.error
+                                if (uiState.linkedTransactions.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.group_detail_export_csv)) },
+                                        onClick = { showMenu = false; showExportDialog = true },
+                                        leadingIcon = { Icon(Icons.Default.FileDownload, null) }
                                     )
                                 }
-                            )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(R.string.group_delete),
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = { showMenu = false; viewModel.showDeleteDialog() },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 },
@@ -112,25 +161,25 @@ fun TransactionGroupDetailScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showAddSheet() }) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.group_detail_add_transaction))
-            }
+            PeopleExtendedFab(
+                label = stringResource(R.string.group_detail_add_transaction),
+                onClick = { viewModel.showAddSheet() },
+                expanded = fabExpanded
+            )
         }
     ) { paddingValues ->
         if (uiState.isLoading || group == null) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
             return@Scaffold
         }
-
-        val isDark = isSystemInDarkTheme()
-        val accentColor = if (isDark) income_dark else income_light
-        val expenseColor = if (isDark) expense_dark else expense_light
-        val lazyListState = rememberLazyListState()
 
         LazyColumn(
             state = lazyListState,
@@ -143,148 +192,61 @@ fun TransactionGroupDetailScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = paddingValues.calculateBottomPadding() + 80.dp
+                bottom = paddingValues.calculateBottomPadding() +
+                    Dimensions.Component.fabScrollClearance
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            // Transaction rows sit 2dp apart as one connected list; the summary and
+            // heading carry their own spacing.
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
-            // Summary card
-            item {
-                PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Text(
-                            group.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        if (!group.note.isNullOrBlank()) {
-                            Text(
-                                group.note,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
-                        // Up to four figures (count, spent, invested, received),
-                        // each possibly listing several currencies — wrap onto a
-                        // second line on narrow screens instead of squeezing.
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    stringResource(R.string.group_detail_transactions),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    "${uiState.linkedTransactions.size}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            if (uiState.expenseByCurrency.values.any { it.isPositive }) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.group_detail_expenses),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        CurrencyFormatter.formatByCurrency(uiState.expenseByCurrency),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = expenseColor
-                                    )
-                                }
-                            }
-                            if (uiState.investedByCurrency.values.any { it.isPositive }) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.group_detail_invested),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        CurrencyFormatter.formatByCurrency(uiState.investedByCurrency),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.investment
-                                    )
-                                }
-                            }
-                            if (uiState.incomeByCurrency.values.any { it.isPositive }) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.group_detail_income),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        CurrencyFormatter.formatByCurrency(uiState.incomeByCurrency),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = accentColor
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            // Summary card: the group's name and note, then its figures, each
+            // possibly listing several currencies.
+            item(key = "summary") {
+                GroupSummaryCard(
+                    title = group.name,
+                    subtitle = group.note,
+                    expenseByCurrency = uiState.expenseByCurrency,
+                    investedByCurrency = uiState.investedByCurrency,
+                    incomeByCurrency = uiState.incomeByCurrency,
+                    transactionCount = uiState.linkedTransactions.size,
+                    modifier = Modifier.padding(bottom = Spacing.sm)
+                )
             }
 
             if (uiState.linkedTransactions.isNotEmpty()) {
-                item {
-                    Text(
-                        stringResource(R.string.group_detail_transactions),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                item(key = "transactions-header") {
+                    SectionHeaderV2(
+                        title = stringResource(R.string.group_detail_transactions),
+                        modifier = Modifier.padding(bottom = Spacing.Layout.headerToContent)
                     )
                 }
-                items(uiState.linkedTransactions, key = { it.id }) { txn ->
-                    GroupTransactionItem(
+                itemsIndexed(
+                    uiState.linkedTransactions,
+                    key = { _, txn -> txn.id }
+                ) { index, txn ->
+                    GroupTransactionRow(
                         transaction = txn,
-                        onRemove = { viewModel.removeTransaction(txn.id) },
+                        position = ListItemPosition.from(index, uiState.linkedTransactions.size),
                         onClick = { onNavigateToTransactionDetail(txn.id) }
-                    )
-                }
-            } else {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = Spacing.xl),
-                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
+                        IconButton(onClick = { viewModel.removeTransaction(txn.id) }) {
                             Icon(
-                                Icons.Default.AddCircleOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                stringResource(R.string.group_detail_empty_title),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                stringResource(R.string.group_detail_empty_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                Icons.Default.RemoveCircleOutline,
+                                contentDescription = stringResource(R.string.group_detail_remove_from_group),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(Dimensions.Icon.inline)
                             )
                         }
                     }
+                }
+            } else {
+                item(key = "empty") {
+                    PennyWiseEmptyState(
+                        icon = Icons.Default.AddCircleOutline,
+                        headline = stringResource(R.string.group_detail_empty_title),
+                        description = stringResource(R.string.group_detail_empty_hint)
+                    )
                 }
             }
         }
@@ -301,13 +263,15 @@ fun TransactionGroupDetailScreen(
         )
     }
 
-    // Edit dialog
+    // Edit sheet
     if (uiState.showEditDialog && group != null) {
-        EditGroupDialog(
-            currentName = group.name,
-            currentNote = group.note,
+        GroupEditorSheet(
+            title = stringResource(R.string.group_detail_edit_title),
+            confirmLabel = stringResource(R.string.group_save),
+            initialName = group.name,
+            initialNote = group.note,
             onDismiss = { viewModel.hideEditDialog() },
-            onSave = { name, note -> viewModel.updateGroupName(name, note) }
+            onConfirm = { name, note -> viewModel.updateGroupName(name, note) }
         )
     }
 
@@ -340,75 +304,11 @@ fun TransactionGroupDetailScreen(
     }
 }
 
-@Composable
-private fun GroupTransactionItem(
-    transaction: TransactionEntity,
-    onRemove: () -> Unit,
-    onClick: () -> Unit
-) {
-    val isDark = isSystemInDarkTheme()
-    val color = when (transaction.transactionType) {
-        TransactionType.EXPENSE, TransactionType.CREDIT -> if (isDark) expense_dark else expense_light
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val sign = when (transaction.transactionType) {
-        TransactionType.EXPENSE, TransactionType.CREDIT -> "-"
-        TransactionType.INCOME -> "+"
-        else -> ""
-    }
-
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Prefer the user-written description as the heading; fall back to the
-            // (often cryptic) merchant name. (#383)
-            val description = transaction.description?.takeIf { it.isNotBlank() }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    description ?: transaction.merchantName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                val secondary = buildString {
-                    if (description != null) {
-                        append(transaction.merchantName)
-                        append(" · ")
-                    }
-                    append(transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy")))
-                }
-                Text(
-                    secondary,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                "$sign${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = color
-            )
-            Spacer(modifier = Modifier.width(Spacing.xs))
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Default.RemoveCircleOutline,
-                    contentDescription = stringResource(R.string.group_detail_remove_from_group),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
+/**
+ * Bottom sheet listing ungrouped transactions to add to the group: a rounded
+ * search pill over a connected list of the same tonal rows the group itself
+ * uses, so what you pick looks like what you get.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddTransactionToGroupSheet(
@@ -423,6 +323,9 @@ private fun AddTransactionToGroupSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        // The rows are tonal (surfaceContainerLow), so the sheet sits one step
+        // lighter to let them read as raised.
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(
@@ -434,24 +337,17 @@ private fun AddTransactionToGroupSheet(
                 .imePadding()
         ) {
             Text(
-                stringResource(R.string.group_detail_picker_title),
+                text = stringResource(R.string.group_detail_picker_title),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
 
-            TextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = { Text(stringResource(R.string.group_detail_picker_search)) },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier.fillMaxWidth()
+            PeopleSearchField(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                placeholder = stringResource(R.string.group_detail_picker_search),
+                clearDescription = stringResource(R.string.people_clear_search)
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
 
@@ -461,7 +357,11 @@ private fun AddTransactionToGroupSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (searchQuery.isBlank()) stringResource(R.string.group_detail_picker_empty) else stringResource(R.string.group_detail_picker_no_results),
+                        text = if (searchQuery.isBlank()) {
+                            stringResource(R.string.group_detail_picker_empty)
+                        } else {
+                            stringResource(R.string.group_detail_picker_no_results)
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -469,132 +369,29 @@ private fun AddTransactionToGroupSheet(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     contentPadding = PaddingValues(bottom = Spacing.md)
                 ) {
-                    items(ungroupedTransactions, key = { it.id }) { txn ->
-                        val isDark = isSystemInDarkTheme()
-                        val color = when (txn.transactionType) {
-                            TransactionType.EXPENSE, TransactionType.CREDIT ->
-                                if (isDark) expense_dark else expense_light
-                            TransactionType.INCOME -> if (isDark) income_dark else income_light
-                            else -> MaterialTheme.colorScheme.onSurface
-                        }
-                        val sign = when (txn.transactionType) {
-                            TransactionType.EXPENSE, TransactionType.CREDIT -> "-"
-                            TransactionType.INCOME -> "+"
-                            else -> ""
-                        }
-
-                        PennyWiseCardV2(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { onAdd(txn.id) }
+                    itemsIndexed(
+                        ungroupedTransactions,
+                        key = { _, txn -> txn.id }
+                    ) { index, txn ->
+                        GroupTransactionRow(
+                            transaction = txn,
+                            position = ListItemPosition.from(index, ungroupedTransactions.size),
+                            onClick = { onAdd(txn.id) },
+                            showYear = false
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Match the description-first heading used on the group's
-                                // own rows so the picker label is consistent with what
-                                // the user will see once the txn is added. (#383)
-                                val txnDescription = txn.description?.takeIf { it.isNotBlank() }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        txnDescription ?: txn.merchantName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    val pickerSecondary = buildString {
-                                        if (txnDescription != null) {
-                                            append(txn.merchantName)
-                                            append(" · ")
-                                        }
-                                        append(txn.dateTime.format(DateTimeFormatter.ofPattern("d MMM")))
-                                    }
-                                    Text(
-                                        pickerSecondary,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Text(
-                                    "$sign${CurrencyFormatter.formatCurrency(txn.amount, txn.currency)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = color
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Icon(
-                                    Icons.Default.AddCircleOutline,
-                                    contentDescription = stringResource(R.string.group_detail_picker_add),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Icon(
+                                Icons.Default.AddCircleOutline,
+                                contentDescription = stringResource(R.string.group_detail_picker_add),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(Dimensions.Icon.inline)
+                            )
                         }
                     }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun EditGroupDialog(
-    currentName: String,
-    currentNote: String?,
-    onDismiss: () -> Unit,
-    onSave: (String, String?) -> Unit
-) {
-    var name by remember { mutableStateOf(currentName) }
-    var note by remember { mutableStateOf(currentNote ?: "") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.group_detail_edit_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                TextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.group_name)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text(stringResource(R.string.group_note)) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onSave(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank()
-            ) {
-                Text(stringResource(R.string.group_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.group_cancel))
-            }
-        }
-    )
 }
