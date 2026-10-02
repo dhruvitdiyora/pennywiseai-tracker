@@ -18,4 +18,6 @@
         <item quantity="one">%1$d open record</item>
         <item quantity="other">%1$d open records</item>
     </plurals>
+    <!-- Suffix after the analytics average: the figure is total ÷ transaction count, not per day. -->
+    <string name="analytics_summary_per_txn">" /txn"</string>
 </resources>

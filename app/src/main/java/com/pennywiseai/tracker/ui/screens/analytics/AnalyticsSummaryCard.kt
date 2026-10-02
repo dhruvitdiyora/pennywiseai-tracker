@@ -32,7 +32,7 @@ private const val CATEGORY_CHIP_ALPHA = 0.2f
 /**
  * The Analytics headline card, laid out like Cashiro's: a small "TOTAL" label
  * over the big figure with the transaction count as a tonal pill beside it,
- * a divider, then the daily average on the left and the top category (with its
+ * a divider, then the average per transaction on the left and the top category (with its
  * share of the total) on the right.
  *
  * [totalAmount], [averageAmount] and [currency] describe one currency — the
@@ -136,7 +136,7 @@ fun AnalyticsSummaryCard(
             )
             Spacer(modifier = Modifier.height(Spacing.lg))
 
-            // Bottom row: average per day on the left, top category on the right.
+            // Bottom row: average per transaction on the left, top category on the right.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -165,7 +165,7 @@ fun AnalyticsSummaryCard(
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         Text(
-                            text = stringResource(R.string.analytics_summary_per_day),
+                            text = stringResource(R.string.analytics_summary_per_txn),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
