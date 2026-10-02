@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -287,7 +288,7 @@ private fun DashboardBody(
                             )
                             RowLabels(
                                 title = stringResource(R.string.people_contacts_title),
-                                subtitle = stringResource(R.string.personal_dashboard_contacts_subtitle, state.people.size),
+                                subtitle = pluralStringResource(R.plurals.personal_dashboard_contacts_count, state.people.size, state.people.size),
                             )
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -303,7 +304,7 @@ private fun DashboardBody(
                             )
                             RowLabels(
                                 title = stringResource(R.string.lend_borrow_title),
-                                subtitle = stringResource(R.string.personal_dashboard_records_subtitle, state.loanSummary.activeLoanCount),
+                                subtitle = pluralStringResource(R.plurals.personal_dashboard_records_count, state.loanSummary.activeLoanCount, state.loanSummary.activeLoanCount),
                             )
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,

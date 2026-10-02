@@ -308,8 +308,6 @@
     <string name="personal_dashboard_hero_subtitle">Your private people and money overview</string>
     <string name="personal_dashboard_overview">Lend &amp; borrow overview</string>
     <string name="personal_dashboard_shortcuts">Shortcuts</string>
-    <string name="personal_dashboard_contacts_subtitle">%1$d active contacts</string>
-    <string name="personal_dashboard_records_subtitle">%1$d open records</string>
     <string name="personal_dashboard_people">People</string>
     <string name="personal_dashboard_view_all">View all</string>
     <string name="personal_dashboard_clear">You are settled up with everyone.</string>

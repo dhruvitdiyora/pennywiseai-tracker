@@ -658,9 +658,10 @@ internal fun AddErrorBanner(message: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Sticky Save button over a short fade, pinned to the bottom of the form. The
- * fade ends in the page background so scrolled content dissolves into it
- * rather than meeting a visible band.
+ * Sticky Save button pinned to the bottom of the form. A short fade above it
+ * dissolves scrolled content into the page background, and the button itself
+ * sits on a solid band so a disabled (translucent) button never shows the
+ * fields scrolling behind it.
  */
 @Composable
 internal fun BoxScope.AddSaveBar(
@@ -670,29 +671,31 @@ internal fun BoxScope.AddSaveBar(
     label: String = stringResource(R.string.add_save),
 ) {
     val background = MaterialTheme.colorScheme.background
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .align(Alignment.BottomCenter)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, background, background)
-                )
-            ),
-        contentAlignment = Alignment.BottomCenter
     ) {
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Spacing.lg)
+                .background(
+                    brush = Brush.verticalGradient(listOf(Color.Transparent, background))
+                )
+        )
         Button(
             onClick = onClick,
             enabled = enabled,
             modifier = Modifier
+                .fillMaxWidth()
+                .background(background)
                 .navigationBarsPadding()
                 .padding(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
-                    top = Spacing.lg,
                     bottom = Spacing.sm
                 )
-                .fillMaxWidth()
                 .height(Dimensions.Component.listItemMinHeight)
         ) {
             if (isLoading) {

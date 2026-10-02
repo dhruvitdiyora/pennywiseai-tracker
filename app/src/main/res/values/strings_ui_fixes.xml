@@ -9,4 +9,13 @@
     <string name="categories_msg_target_not_found">Replacement category no longer exists</string>
     <string name="categories_msg_type_mismatch">Replacement must be the same type (income or expense)</string>
     <string name="categories_msg_changed_concurrently">Category changed before it could be deleted. Try again.</string>
+    <!-- Personal dashboard shortcut subtitles. -->
+    <plurals name="personal_dashboard_contacts_count">
+        <item quantity="one">%1$d active contact</item>
+        <item quantity="other">%1$d active contacts</item>
+    </plurals>
+    <plurals name="personal_dashboard_records_count">
+        <item quantity="one">%1$d open record</item>
+        <item quantity="other">%1$d open records</item>
+    </plurals>
 </resources>
