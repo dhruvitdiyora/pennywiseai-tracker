@@ -666,7 +666,8 @@ internal fun AddErrorBanner(message: String, modifier: Modifier = Modifier) {
 internal fun BoxScope.AddSaveBar(
     enabled: Boolean,
     isLoading: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    label: String = stringResource(R.string.add_save),
 ) {
     val background = MaterialTheme.colorScheme.background
     Box(
@@ -703,7 +704,7 @@ internal fun BoxScope.AddSaveBar(
                 Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(
-                    text = stringResource(R.string.add_save),
+                    text = label,
                     style = MaterialTheme.typography.titleMedium
                 )
             }

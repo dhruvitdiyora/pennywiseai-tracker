@@ -1,37 +1,84 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.items
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
+import com.pennywiseai.tracker.presentation.people.TonalTextField
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.components.TonalNavigationButton
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.iconax.Convertshape2
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.RefreshArrow01
+import com.pennywiseai.tracker.ui.screens.rules.UtilityHeroCard
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+
+/*
+ * Exchange rates, in the Cashiro style (there is no Cashiro counterpart, so it
+ * follows the other utility screens): a large collapsing title with tonal back
+ * and refresh buttons, a primary hero card with the last-updated time and the
+ * hint, the currency pairs as one connected group, and a tonal "reset all".
+ * Rates are never combined or converted here; each row is one pair's rate.
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,17 +104,16 @@ fun ExchangeRatesScreen(
                 title = stringResource(R.string.exchange_rates_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
-                    }
+                    TonalNavigationButton(
+                        onClick = onNavigateBack,
+                        contentDescription = stringResource(R.string.accounts_back)
+                    )
                 },
                 actionContent = {
-                    IconButton(
-                        onClick = { viewModel.refreshRates() },
-                        enabled = !uiState.isRefreshing
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
-                    }
+                    RefreshButton(
+                        enabled = !uiState.isRefreshing,
+                        onClick = { viewModel.refreshRates() }
+                    )
                 },
                 hazeState = hazeState
             )
@@ -78,6 +124,7 @@ fun ExchangeRatesScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
@@ -89,27 +136,21 @@ fun ExchangeRatesScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(R.string.exchange_rates_empty_title),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                        Text(
-                            text = stringResource(R.string.exchange_rates_empty_description),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    PennyWiseEmptyState(
+                        icon = Iconax.Convertshape2,
+                        headline = stringResource(R.string.exchange_rates_empty_title),
+                        description = stringResource(R.string.exchange_rates_empty_description)
+                    )
                 }
             }
 
             else -> {
                 val lazyListState = rememberLazyListState()
+                val hasCustomRates = uiState.rates.any { it.isCustomRate }
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier
@@ -121,63 +162,67 @@ fun ExchangeRatesScreen(
                         start = Dimensions.Padding.content,
                         end = Dimensions.Padding.content,
                         top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                        bottom = 0.dp
+                        bottom = paddingValues.calculateBottomPadding() +
+                            Spacing.Layout.scrollBottomPadding
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    // The rates are one connected group, so the list itself uses the
+                    // grouped gutter; the blocks around the group add their own gap.
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
                 ) {
-                    // Last updated
-                    uiState.lastUpdated?.let { lastUpdated ->
-                        item {
-                            Text(
-                                text = stringResource(R.string.exchange_rates_last_updated, lastUpdated.format(DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(Spacing.sm))
+                    // Last updated, the hint, and the refreshing indicator
+                    item(key = "hero") {
+                        UtilityHeroCard(
+                            icon = Iconax.Convertshape2,
+                            title = uiState.lastUpdated?.let { lastUpdated ->
+                                stringResource(
+                                    R.string.exchange_rates_last_updated,
+                                    lastUpdated.format(DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                                )
+                            } ?: stringResource(R.string.exchange_rates_title),
+                            body = stringResource(R.string.exchange_rates_hint),
+                            modifier = Modifier.padding(bottom = Spacing.md)
+                        ) {
+                            if (uiState.isRefreshing) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(CircleShape)
+                                )
+                            }
                         }
                     }
 
-                    // Refreshing indicator
-                    if (uiState.isRefreshing) {
-                        item {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-                        }
-                    }
-
-                    // Rate cards
-                    items(
+                    // Rate rows
+                    itemsIndexed(
                         items = uiState.rates,
-                        key = { "${it.fromCurrency}_${it.toCurrency}" }
-                    ) { rate ->
-                        ExchangeRateCard(
+                        key = { _, rate -> "${rate.fromCurrency}_${rate.toCurrency}" }
+                    ) { index, rate ->
+                        ExchangeRateRow(
                             rate = rate,
+                            position = ListItemPosition.from(index, uiState.rates.size),
                             onClick = { editingRate = rate }
                         )
                     }
 
-                    // Bottom info + reset button
-                    val hasCustomRates = uiState.rates.any { it.isCustomRate }
-                    item {
-                        Spacer(modifier = Modifier.height(Spacing.md))
-                        Text(
-                            text = stringResource(R.string.exchange_rates_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        if (hasCustomRates) {
-                            Spacer(modifier = Modifier.height(Spacing.md))
-                            OutlinedButton(
+                    // Reset button
+                    if (hasCustomRates) {
+                        item(key = "reset_all") {
+                            FilledTonalButton(
                                 onClick = { viewModel.clearAllCustomRates() },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = Spacing.md)
                             ) {
+                                Icon(
+                                    imageVector = Iconax.RefreshArrow01,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(stringResource(R.string.exchange_rates_reset_all))
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(Spacing.md))
                     }
                 }
             }
@@ -201,59 +246,91 @@ fun ExchangeRatesScreen(
     }
 }
 
+/** The round, tonal refresh button of the top bar; disabled while a refresh runs. */
 @Composable
-private fun ExchangeRateCard(
-    rate: ExchangeRateEntity,
+private fun RefreshButton(
+    enabled: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val scheme = MaterialTheme.colorScheme
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.padding(end = Dimensions.Padding.content),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = scheme.surfaceContainer,
+            contentColor = scheme.onBackground,
+            disabledContainerColor = scheme.surfaceContainer,
+            disabledContentColor = scheme.onSurfaceVariant
         )
     ) {
+        Icon(
+            imageVector = Iconax.RefreshArrow01,
+            contentDescription = stringResource(R.string.exchange_rates_refresh),
+            modifier = Modifier.size(Dimensions.Icon.inline)
+        )
+    }
+}
+
+/**
+ * One currency pair: "$ USD → ₹ INR" on the left, the rate on the right with a
+ * tag saying whether it came from the API or was set by hand. The row opens the
+ * custom-rate dialog.
+ */
+@Composable
+private fun ExchangeRateRow(
+    rate: ExchangeRateEntity,
+    position: ListItemPosition,
+    onClick: () -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        minHeight = Dimensions.Component.listItemMinHeight
+    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${CurrencyFormatter.getCurrencySymbol(rate.fromCurrency)} ${rate.fromCurrency}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "  \u2192  ",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${CurrencyFormatter.getCurrencySymbol(rate.toCurrency)} ${rate.toCurrency}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
+            Text(
+                text = "${CurrencyFormatter.getCurrencySymbol(rate.fromCurrency)} ${rate.fromCurrency}",
+                style = PennyWiseText.rowTitle,
+                color = scheme.onSurface
+            )
+            // Mirrors in RTL, unlike the arrow character it replaces.
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.small),
+                tint = scheme.onSurfaceVariant
+            )
+            Text(
+                text = "${CurrencyFormatter.getCurrencySymbol(rate.toCurrency)} ${rate.toCurrency}",
+                style = PennyWiseText.rowTitle,
+                color = scheme.onSurface
+            )
+        }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = rate.rate.setScale(4, java.math.RoundingMode.HALF_UP).toPlainString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+        ) {
+            Text(
+                text = rate.rate.setScale(4, java.math.RoundingMode.HALF_UP).toPlainString(),
+                style = PennyWiseText.amountRow,
+                color = scheme.onSurface
+            )
+            if (rate.isCustomRate) {
+                SubtitleTag(
+                    text = stringResource(R.string.exchange_rates_badge_custom),
+                    color = scheme.primary
                 )
-                Text(
-                    text = if (rate.isCustomRate) stringResource(R.string.exchange_rates_badge_custom) else stringResource(R.string.exchange_rates_badge_api),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (rate.isCustomRate)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                SubtitleTag(
+                    text = stringResource(R.string.exchange_rates_badge_api),
+                    color = scheme.onSurfaceVariant
                 )
             }
         }
@@ -274,37 +351,42 @@ private fun EditRateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
+        icon = { Icon(Iconax.Convertshape2, contentDescription = null) },
         title = {
-            Text("${rate.fromCurrency} \u2192 ${rate.toCurrency}")
+            Text(
+                stringResource(
+                    R.string.utility_exchange_rates_pair,
+                    rate.fromCurrency,
+                    rate.toCurrency
+                )
+            )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
-                    text = "1 ${rate.fromCurrency} = ? ${rate.toCurrency}",
+                    text = stringResource(
+                        R.string.utility_exchange_rates_prompt,
+                        rate.fromCurrency,
+                        rate.toCurrency
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextField(
+                TonalTextField(
                     value = rateText,
                     onValueChange = {
                         rateText = it
                         isError = it.toBigDecimalOrNull() == null || (it.toBigDecimalOrNull() ?: BigDecimal.ZERO) <= BigDecimal.ZERO
                     },
-                    label = { Text(stringResource(R.string.exchange_rates_rate_label)) },
+                    label = stringResource(R.string.exchange_rates_rate_label),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = isError,
                     supportingText = if (isError) {
-                        { Text(stringResource(R.string.exchange_rates_invalid_rate)) }
-                    } else null,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-                    )
+                        stringResource(R.string.exchange_rates_invalid_rate)
+                    } else {
+                        null
+                    }
                 )
 
                 if (rate.isCustomRate) {
@@ -312,7 +394,10 @@ private fun EditRateDialog(
                         onClick = onResetToAuto,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.exchange_rates_reset))
+                        Text(
+                            text = stringResource(R.string.exchange_rates_reset),
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }

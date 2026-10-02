@@ -2,40 +2,67 @@ package com.pennywiseai.tracker.presentation.statement
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.statement.StatementImportResult
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.icons.iconax.DocumentText2
+import com.pennywiseai.tracker.ui.icons.iconax.Danger
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.ImportArrow01
+import com.pennywiseai.tracker.ui.icons.iconax.RefreshArrow01
+import com.pennywiseai.tracker.ui.screens.rules.UtilityHeroCard
+import com.pennywiseai.tracker.ui.screens.settings.SettingsSubScreen
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
-@OptIn(ExperimentalMaterial3Api::class)
+/*
+ * Import Statement, in the Cashiro style (there is no Cashiro counterpart, so it
+ * follows the other utility screens): a large collapsing title with a tonal back
+ * button, then one calm block per state: a hero card and a primary action when
+ * idle, a tonal progress card while importing, a status badge with the result
+ * counts as a connected group when done, and a retry when it failed. The import
+ * flow and the monthly free-tier gate are unchanged.
+ */
+
 @Composable
 fun ImportStatementScreen(
     onNavigateBack: () -> Unit,
@@ -62,87 +89,36 @@ fun ImportStatementScreen(
         else showUpgradeSheet = true
     }
 
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
-        containerColor = Color.Transparent,
-        topBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.import_statement_title),
-                hasBackButton = true,
-                navigationContent = {
-                    Box(
-                        modifier = Modifier
-                            .animateContentSize()
-                            .padding(start = 16.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = onNavigateBack,
-                            ),
-                    ) {
-                        IconButton(
-                            onClick = onNavigateBack,
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                contentColor = MaterialTheme.colorScheme.onBackground
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.import_statement_back),
-                                modifier = Modifier.size(Dimensions.Icon.small)
-                            )
-                        }
-                    }
-                },
-                hazeState = hazeState
+    SettingsSubScreen(
+        title = stringResource(R.string.import_statement_title),
+        backContentDescription = stringResource(R.string.import_statement_back),
+        onNavigateBack = onNavigateBack,
+    ) {
+        when (val state = uiState) {
+            is ImportStatementUiState.Idle -> IdleContent(
+                onSelectPdf = onTryLaunchPicker
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .background(MaterialTheme.colorScheme.background)
-                .overScrollVertical()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-                .padding(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            when (val state = uiState) {
-                is ImportStatementUiState.Idle -> IdleContent(
-                    onSelectPdf = onTryLaunchPicker
-                )
-                is ImportStatementUiState.Loading -> LoadingContent()
-                is ImportStatementUiState.Success -> SuccessContent(
-                    result = state.result,
-                    showSupportNudge = showSupportNudge,
-                    onSupportClick = {
-                        showSupportDialog = true
-                        viewModel.dismissSupportNudge()
-                    },
-                    onImportAnother = {
-                        viewModel.resetState()
-                        onTryLaunchPicker()
-                    },
-                    onDone = onNavigateBack
-                )
-                is ImportStatementUiState.Error -> ErrorContent(
-                    message = state.message,
-                    onTryAgain = {
-                        viewModel.resetState()
-                        onTryLaunchPicker()
-                    }
-                )
-            }
+            is ImportStatementUiState.Loading -> LoadingContent()
+            is ImportStatementUiState.Success -> SuccessContent(
+                result = state.result,
+                showSupportNudge = showSupportNudge,
+                onSupportClick = {
+                    showSupportDialog = true
+                    viewModel.dismissSupportNudge()
+                },
+                onImportAnother = {
+                    viewModel.resetState()
+                    onTryLaunchPicker()
+                },
+                onDone = onNavigateBack
+            )
+            is ImportStatementUiState.Error -> ErrorContent(
+                message = state.message,
+                onTryAgain = {
+                    viewModel.resetState()
+                    onTryLaunchPicker()
+                }
+            )
         }
     }
 
@@ -157,228 +133,277 @@ fun ImportStatementScreen(
     }
 }
 
+/** The primary full-width action of the screen. */
 @Composable
-private fun IdleContent(onSelectPdf: () -> Unit) {
-    Spacer(modifier = Modifier.height(Spacing.xl))
-
-    Icon(
-        imageVector = Icons.Default.Description,
-        contentDescription = null,
-        modifier = Modifier.size(80.dp),
-        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-    )
-
-    Spacer(modifier = Modifier.height(Spacing.md))
-
-    Text(
-        text = stringResource(R.string.import_statement_title),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground
-    )
-
-    Text(
-        text = stringResource(R.string.import_statement_description),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(horizontal = Spacing.md)
-    )
-
-    Spacer(modifier = Modifier.height(Spacing.lg))
-
-    Button(
-        onClick = onSelectPdf,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.buttonHeight),
-        shape = RoundedCornerShape(Dimensions.CornerRadius.large)
-    ) {
+private fun StatementActionButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tonal: Boolean = false
+) {
+    val content: @Composable () -> Unit = {
         Icon(
-            imageVector = Icons.Default.PictureAsPdf,
+            imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
-        Text(stringResource(R.string.import_statement_select_pdf))
+        Text(text = text, style = MaterialTheme.typography.titleMedium)
+    }
+    if (tonal) {
+        FilledTonalButton(
+            onClick = onClick,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(Dimensions.Component.listItemMinHeight)
+        ) { content() }
+    } else {
+        Button(
+            onClick = onClick,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(Dimensions.Component.listItemMinHeight)
+        ) { content() }
+    }
+}
+
+/** A round tonal badge that states how the import ended (done, failed). */
+@Composable
+private fun StatusBadge(
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .size(Dimensions.Icon.emptyStateContainer)
+            .background(color = containerColor, shape = CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.emptyStateGlyph),
+            tint = contentColor
+        )
+    }
+}
+
+@Composable
+private fun IdleContent(onSelectPdf: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+    ) {
+        UtilityHeroCard(
+            icon = Iconax.DocumentText2,
+            title = stringResource(R.string.import_statement_title),
+            body = stringResource(R.string.import_statement_description)
+        )
+
+        StatementActionButton(
+            text = stringResource(R.string.import_statement_select_pdf),
+            icon = Iconax.ImportArrow01,
+            onClick = onSelectPdf
+        )
     }
 }
 
 @Composable
 private fun LoadingContent() {
-    Spacer(modifier = Modifier.height(Spacing.xxxl))
+    PennyWiseCardV2(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        contentPadding = Spacing.lg
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(Dimensions.Icon.avatarLarge),
+                strokeWidth = Dimensions.Component.progressRingStroke
+            )
 
-    CircularProgressIndicator(
-        modifier = Modifier.size(48.dp),
-        strokeWidth = 4.dp
-    )
+            Text(
+                text = stringResource(R.string.import_statement_loading_title),
+                modifier = Modifier.padding(top = Spacing.sm),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
 
-    Spacer(modifier = Modifier.height(Spacing.md))
-
-    Text(
-        text = stringResource(R.string.import_statement_loading_title),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-
-    Text(
-        text = stringResource(R.string.import_statement_loading_body),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+            Text(
+                text = stringResource(R.string.import_statement_loading_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
+
+/** One label / count line of the result summary. */
+private data class ResultLine(
+    val label: String,
+    val value: String,
+    val isHighlighted: Boolean = false
+)
 
 @Composable
 private fun SuccessContent(
-    result: com.pennywiseai.tracker.data.statement.StatementImportResult.Success,
+    result: StatementImportResult.Success,
     showSupportNudge: Boolean = false,
     onSupportClick: () -> Unit = {},
     onImportAnother: () -> Unit,
     onDone: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(Spacing.lg))
+    val scheme = MaterialTheme.colorScheme
 
-    Icon(
-        imageVector = Icons.Default.CheckCircle,
-        contentDescription = null,
-        modifier = Modifier.size(64.dp),
-        tint = MaterialTheme.colorScheme.primary
-    )
-
-    Spacer(modifier = Modifier.height(Spacing.md))
-
-    Text(
-        text = stringResource(R.string.import_statement_complete),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground
-    )
-
-    Spacer(modifier = Modifier.height(Spacing.sm))
-
-    // Results card
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(Dimensions.CornerRadius.large)
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            ResultRow(
-                label = stringResource(R.string.import_statement_result_imported),
-                value = "${result.imported}",
+    val summaryLines = listOfNotNull(
+        ResultLine(
+            label = stringResource(R.string.import_statement_result_imported),
+            value = "${result.imported}",
+            isHighlighted = true
+        ),
+        if (result.enriched > 0) {
+            ResultLine(
+                label = stringResource(R.string.import_statement_result_enriched),
+                value = "${result.enriched}",
                 isHighlighted = true
             )
+        } else {
+            null
+        },
+        ResultLine(
+            label = stringResource(R.string.import_statement_result_total_parsed),
+            value = "${result.totalParsed}"
+        )
+    )
+    val duplicateLines = listOfNotNull(
+        if (result.skippedByHash > 0) {
+            ResultLine(
+                label = stringResource(R.string.import_statement_result_exact),
+                value = "${result.skippedByHash}"
+            )
+        } else {
+            null
+        },
+        if (result.skippedByReference > 0) {
+            ResultLine(
+                label = stringResource(R.string.import_statement_result_by_reference),
+                value = "${result.skippedByReference}"
+            )
+        } else {
+            null
+        },
+        if (result.skippedByAmountDate > 0) {
+            ResultLine(
+                label = stringResource(R.string.import_statement_result_by_amount_date),
+                value = "${result.skippedByAmountDate}"
+            )
+        } else {
+            null
+        }
+    )
 
-            if (result.enriched > 0) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        StatusBadge(
+            icon = Icons.Default.CheckCircle,
+            containerColor = scheme.primaryContainer,
+            contentColor = scheme.onPrimaryContainer
+        )
+
+        Text(
+            text = stringResource(R.string.import_statement_complete),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+
+        // Results, as one connected group
+        GroupedList {
+            summaryLines.forEachIndexed { index, line ->
                 ResultRow(
-                    label = stringResource(R.string.import_statement_result_enriched),
-                    value = "${result.enriched}",
-                    isHighlighted = true
+                    line = line,
+                    position = ListItemPosition.from(index, summaryLines.size)
                 )
             }
+        }
 
-            ResultRow(
-                label = stringResource(R.string.import_statement_result_total_parsed),
-                value = "${result.totalParsed}"
-            )
-
-            if (result.skippedDuplicates > 0) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
-
-                Text(
-                    text = stringResource(R.string.import_statement_result_duplicates, result.skippedDuplicates),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        if (result.skippedDuplicates > 0) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+            ) {
+                SectionHeaderV2(
+                    title = stringResource(
+                        R.string.import_statement_result_duplicates,
+                        result.skippedDuplicates
+                    ),
+                    topSpacing = Spacing.none
                 )
-
-                if (result.skippedByHash > 0) {
-                    ResultRow(
-                        label = stringResource(R.string.import_statement_result_exact),
-                        value = "${result.skippedByHash}",
-                        indent = true
-                    )
-                }
-                if (result.skippedByReference > 0) {
-                    ResultRow(
-                        label = stringResource(R.string.import_statement_result_by_reference),
-                        value = "${result.skippedByReference}",
-                        indent = true
-                    )
-                }
-                if (result.skippedByAmountDate > 0) {
-                    ResultRow(
-                        label = stringResource(R.string.import_statement_result_by_amount_date),
-                        value = "${result.skippedByAmountDate}",
-                        indent = true
-                    )
+                if (duplicateLines.isNotEmpty()) {
+                    GroupedList {
+                        duplicateLines.forEachIndexed { index, line ->
+                            ResultRow(
+                                line = line,
+                                position = ListItemPosition.from(index, duplicateLines.size)
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
 
-    if (showSupportNudge) {
-        Spacer(modifier = Modifier.height(Spacing.md))
-        SupportNudgeCard(onClick = onSupportClick)
-    }
+        if (showSupportNudge) {
+            SupportNudgeCard(onClick = onSupportClick)
+        }
 
-    Spacer(modifier = Modifier.height(Spacing.lg))
-
-    Button(
-        onClick = onImportAnother,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.buttonHeight),
-        shape = RoundedCornerShape(Dimensions.CornerRadius.large)
-    ) {
-        Icon(
-            imageVector = Icons.Default.Add,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.medium)
+        StatementActionButton(
+            text = stringResource(R.string.import_statement_import_another),
+            icon = Iconax.ImportArrow01,
+            onClick = onImportAnother,
+            modifier = Modifier.padding(top = Spacing.sm)
         )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Text(stringResource(R.string.import_statement_import_another))
-    }
 
-    OutlinedButton(
-        onClick = onDone,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.buttonHeight),
-        shape = RoundedCornerShape(Dimensions.CornerRadius.large)
-    ) {
-        Text(stringResource(R.string.import_statement_done))
+        StatementActionButton(
+            text = stringResource(R.string.import_statement_done),
+            icon = Icons.Default.CheckCircle,
+            onClick = onDone,
+            tonal = true
+        )
     }
 }
 
 @Composable
 private fun ResultRow(
-    label: String,
-    value: String,
-    isHighlighted: Boolean = false,
-    indent: Boolean = false
+    line: ResultLine,
+    position: ListItemPosition
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (indent) Modifier.padding(start = Spacing.md) else Modifier),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    GroupedRow(
+        position = position,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = label,
-            style = if (isHighlighted) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
-            color = if (isHighlighted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (isHighlighted) FontWeight.Medium else FontWeight.Normal
+            text = line.label,
+            modifier = Modifier.weight(1f),
+            style = if (line.isHighlighted) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
+            color = if (line.isHighlighted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (line.isHighlighted) FontWeight.Medium else FontWeight.Normal
         )
         Text(
-            text = value,
-            style = if (isHighlighted) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-            color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Medium
+            text = line.value,
+            style = if (line.isHighlighted) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            color = if (line.isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (line.isHighlighted) FontWeight.Bold else FontWeight.Medium
         )
     }
 }
@@ -388,47 +413,39 @@ private fun ErrorContent(
     message: String,
     onTryAgain: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(Spacing.xxxl))
-
-    Icon(
-        imageVector = Icons.Default.Error,
-        contentDescription = null,
-        modifier = Modifier.size(64.dp),
-        tint = MaterialTheme.colorScheme.error
-    )
-
-    Spacer(modifier = Modifier.height(Spacing.md))
-
-    Text(
-        text = stringResource(R.string.import_statement_failed),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground
-    )
-
-    Text(
-        text = message,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(horizontal = Spacing.md)
-    )
-
-    Spacer(modifier = Modifier.height(Spacing.lg))
-
-    Button(
-        onClick = onTryAgain,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.buttonHeight),
-        shape = RoundedCornerShape(Dimensions.CornerRadius.large)
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        Icon(
-            imageVector = Icons.Default.Refresh,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.medium)
+        StatusBadge(
+            icon = Iconax.Danger,
+            containerColor = scheme.errorContainer,
+            contentColor = scheme.onErrorContainer
         )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Text(stringResource(R.string.import_statement_try_again))
+
+        Text(
+            text = stringResource(R.string.import_statement_failed),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = scheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = Spacing.md)
+        )
+
+        StatementActionButton(
+            text = stringResource(R.string.import_statement_try_again),
+            icon = Iconax.RefreshArrow01,
+            onClick = onTryAgain,
+            modifier = Modifier.padding(top = Spacing.sm)
+        )
     }
 }

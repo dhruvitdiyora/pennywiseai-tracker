@@ -2,41 +2,103 @@ package com.pennywiseai.tracker.ui.screens.rules
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
+import com.pennywiseai.tracker.presentation.accounts.AccountMenuItem
+import com.pennywiseai.tracker.presentation.people.PeopleExtendedFab
+import com.pennywiseai.tracker.presentation.people.PeopleTonalActionButton
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.components.TonalNavigationButton
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.iconax.Bag
+import com.pennywiseai.tracker.ui.icons.iconax.Copy
+import com.pennywiseai.tracker.ui.icons.iconax.Danger
+import com.pennywiseai.tracker.ui.icons.iconax.Edit2
+import com.pennywiseai.tracker.ui.icons.iconax.ExportArrow01
+import com.pennywiseai.tracker.ui.icons.iconax.Eye
+import com.pennywiseai.tracker.ui.icons.iconax.History
+import com.pennywiseai.tracker.ui.icons.iconax.ImportArrow01
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Information
+import com.pennywiseai.tracker.ui.icons.iconax.Magicpen
+import com.pennywiseai.tracker.ui.icons.iconax.RefreshArrow01
+import com.pennywiseai.tracker.ui.screens.settings.SettingsSection
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+
+/*
+ * Smart Rules, in the Cashiro style: a large collapsing title with tonal back and
+ * overflow buttons, a primary hero card, rules grouped by purpose into connected
+ * rows (name, description, switch and the per-rule menu), and a tonal extended
+ * "create" button. Rule behaviour (toggle, edit, duplicate, apply to past,
+ * delete, export/import/reset, the free-tier rule cap) is unchanged.
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,14 +129,26 @@ fun RulesScreen(
     ) { uri -> uri?.let { viewModel.importRules(it) } }
 
     var showBatchApplyDialog by remember { mutableStateOf(false) }
-    var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
+    var selectedRuleForBatch by remember { mutableStateOf<TransactionRule?>(null) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
+    val lazyListState = rememberLazyListState()
+    // The create button carries its label only while the list is at the top.
+    val fabExpanded by remember { derivedStateOf { lazyListState.firstVisibleItemIndex == 0 } }
 
-    // Reset dialog state needs to be outside the lambda
     var showResetDialog by remember { mutableStateOf(false) }
+
+    val onCreateRule: () -> Unit = {
+        if (canCreateMoreRules) onNavigateToCreateRule()
+        else showUpgradeSheet = true
+    }
+
+    // Group rules by purpose for better organisation (same matching as before).
+    val ruleGroups = remember(rules) {
+        rules.groupBy { ruleGroupTitle(it) }.entries.toList()
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -86,28 +160,29 @@ fun RulesScreen(
                 title = stringResource(R.string.rules_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.rules_navigate_back)
-                        )
-                    }
+                    TonalNavigationButton(
+                        onClick = onNavigateBack,
+                        contentDescription = stringResource(R.string.rules_navigate_back),
+                    )
                 },
                 actionContent = {
-                    Box {
-                        IconButton(onClick = { showOverflowMenu = true }) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = stringResource(R.string.rules_more_options)
-                            )
-                        }
+                    // The menu is anchored to the button; the screen gutter sits on
+                    // the box so the menu lines up with the button itself.
+                    Box(modifier = Modifier.padding(end = Dimensions.Padding.content)) {
+                        PeopleTonalActionButton(
+                            onClick = { showOverflowMenu = true },
+                            icon = Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.rules_more_options),
+                            endPadding = Dimensions.Padding.none,
+                        )
                         DropdownMenu(
                             expanded = showOverflowMenu,
-                            onDismissRequest = { showOverflowMenu = false }
+                            onDismissRequest = { showOverflowMenu = false },
+                            shape = MaterialTheme.shapes.large,
                         ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_export)) },
-                                leadingIcon = { Icon(Icons.Default.Upload, contentDescription = null) },
+                            AccountMenuItem(
+                                text = stringResource(R.string.rules_menu_export),
+                                icon = Iconax.ExportArrow01,
                                 onClick = {
                                     showOverflowMenu = false
                                     if (RuleSharingCodec.exportable(rules).isEmpty()) {
@@ -117,26 +192,26 @@ fun RulesScreen(
                                             "pennywise-rules.${RuleSharingCodec.FILE_EXTENSION}"
                                         )
                                     }
-                                }
+                                },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_import)) },
-                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                            AccountMenuItem(
+                                text = stringResource(R.string.rules_menu_import),
+                                icon = Iconax.ImportArrow01,
                                 onClick = {
                                     showOverflowMenu = false
                                     // Some file pickers don't offer JSON files under the
                                     // strict MIME type, so accept anything and let the
                                     // decoder reject what isn't a rule set.
                                     importRulesLauncher.launch(arrayOf("*/*"))
-                                }
+                                },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_reset)) },
-                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                            AccountMenuItem(
+                                text = stringResource(R.string.rules_menu_reset),
+                                icon = Iconax.RefreshArrow01,
                                 onClick = {
                                     showOverflowMenu = false
                                     showResetDialog = true
-                                }
+                                },
                             )
                         }
                     }
@@ -145,64 +220,24 @@ fun RulesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (canCreateMoreRules) onNavigateToCreateRule()
-                    else showUpgradeSheet = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.rules_create_cd))
-            }
+            PeopleExtendedFab(
+                label = stringResource(R.string.rules_create_cd),
+                onClick = onCreateRule,
+                expanded = fabExpanded,
+            )
         }
     ) { paddingValues ->
-
-        sharingMessage?.let { message ->
-            AlertDialog(
-                onDismissRequest = { viewModel.clearSharingMessage() },
-                title = { Text(stringResource(R.string.rules_title)) },
-                text = { Text(message.map { it.asString() }.joinToString(" ")) },
-                confirmButton = {
-                    TextButton(onClick = { viewModel.clearSharingMessage() }) {
-                        Text(stringResource(R.string.rules_ok))
-                    }
-                }
-            )
-        }
-
-        if (showResetDialog) {
-            AlertDialog(
-                onDismissRequest = { showResetDialog = false },
-                title = { Text(stringResource(R.string.rules_reset_title)) },
-                text = { Text(stringResource(R.string.rules_reset_body)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.resetToDefaults()
-                            showResetDialog = false
-                        }
-                    ) {
-                        Text(stringResource(R.string.rules_reset))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }) {
-                        Text(stringResource(R.string.rules_cancel))
-                    }
-                }
-            )
-        }
         if (isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         } else {
-            val lazyListState = rememberLazyListState()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -213,103 +248,66 @@ fun RulesScreen(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                    bottom = 0.dp
+                    bottom = paddingValues.calculateBottomPadding() +
+                        Dimensions.Component.fabScrollClearance
                 ),
                 state = lazyListState,
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.sectionGap)
             ) {
-                // Info Card
-                item {
-                    // Use a primaryContainer background so the onPrimaryContainer icon/text
-                    // are legible. On the default surface card they're near-invisible in
-                    // dark mode (low-contrast primary tone on a dark surface).
-                    PennyWiseCardV2(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.rules_auto_categorization_title),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = stringResource(R.string.rules_auto_categorization_body),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
+                item(key = "hero") {
+                    UtilityHeroCard(
+                        icon = Iconax.Magicpen,
+                        title = stringResource(R.string.rules_auto_categorization_title),
+                        body = stringResource(R.string.rules_auto_categorization_body),
+                    )
+                }
+
+                if (rules.isEmpty()) {
+                    item(key = "empty") {
+                        PennyWiseEmptyState(
+                            icon = Iconax.Magicpen,
+                            headline = stringResource(R.string.utility_rules_empty_title),
+                            description = stringResource(R.string.utility_rules_empty_body),
+                            actionLabel = stringResource(R.string.rules_create_cd),
+                            onAction = onCreateRule,
+                        )
                     }
                 }
 
-                // Group rules by category for better organization
-                item {
-                    val groupedRules = rules.groupBy { rule ->
-                        when {
-                            rule.name.contains("Food", ignoreCase = true) ||
-                            rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_group_daily
-
-                            rule.name.contains("Salary", ignoreCase = true) ||
-                            rule.name.contains("Cashback", ignoreCase = true) -> R.string.rules_group_income
-
-                            rule.name.contains("Rent", ignoreCase = true) ||
-                            rule.name.contains("EMI", ignoreCase = true) ||
-                            rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_group_recurring
-
-                            rule.name.contains("Investment", ignoreCase = true) ||
-                            rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_group_banking
-
-                            rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_group_healthcare
-
-                            else -> R.string.rules_group_other
-                        }
-                    }
-
-                    groupedRules.forEach { (category, categoryRules) ->
-                        if (categoryRules.isNotEmpty()) {
-                            SectionHeaderV2(title = stringResource(category))
-
-                            categoryRules.forEach { rule ->
-                                RuleCard(
-                                    rule = rule,
-                                    onToggle = { isActive ->
-                                        viewModel.toggleRule(rule.id, isActive)
-                                    },
-                                    onEdit = {
-                                        onNavigateToEditRule(rule.id)
-                                    },
-                                    onDuplicate = {
-                                        onNavigateToDuplicateRule(rule.id)
-                                    },
-                                    onDelete = {
-                                        viewModel.deleteRule(rule.id)
-                                    },
-                                    onApplyToPast = {
-                                        selectedRuleForBatch = rule
-                                        showBatchApplyDialog = true
-                                    }
-                                )
+                ruleGroups.forEach { (titleRes, groupRules) ->
+                    item(key = titleRes) {
+                        SettingsSection(title = stringResource(titleRes)) {
+                            GroupedList {
+                                groupRules.forEachIndexed { index, rule ->
+                                    RuleRow(
+                                        rule = rule,
+                                        position = ListItemPosition.from(index, groupRules.size),
+                                        onToggle = { isActive ->
+                                            viewModel.toggleRule(rule.id, isActive)
+                                        },
+                                        onEdit = {
+                                            onNavigateToEditRule(rule.id)
+                                        },
+                                        onDuplicate = {
+                                            onNavigateToDuplicateRule(rule.id)
+                                        },
+                                        onDelete = {
+                                            viewModel.deleteRule(rule.id)
+                                        },
+                                        onApplyToPast = {
+                                            selectedRuleForBatch = rule
+                                            showBatchApplyDialog = true
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
                 // Help text at the bottom
-                item {
-                    Spacer(modifier = Modifier.height(Spacing.lg))
+                item(key = "footer") {
                     Text(
                         text = stringResource(R.string.rules_footer_info),
                         style = MaterialTheme.typography.bodySmall,
@@ -319,6 +317,46 @@ fun RulesScreen(
                 }
             }
         }
+    }
+
+    sharingMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearSharingMessage() },
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = { Icon(Iconax.Information, contentDescription = null) },
+            title = { Text(stringResource(R.string.rules_title)) },
+            text = { Text(message.map { it.asString() }.joinToString(" ")) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearSharingMessage() }) {
+                    Text(stringResource(R.string.rules_ok))
+                }
+            }
+        )
+    }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = { Icon(Iconax.RefreshArrow01, contentDescription = null) },
+            title = { Text(stringResource(R.string.rules_reset_title)) },
+            text = { Text(stringResource(R.string.rules_reset_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.resetToDefaults()
+                        showResetDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.rules_reset))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text(stringResource(R.string.rules_cancel))
+                }
+            }
+        )
     }
 
     // Batch Apply Dialog
@@ -353,9 +391,52 @@ fun RulesScreen(
     }
 }
 
+/** The purpose group a rule is listed under, matched on its name as before. */
+@StringRes
+private fun ruleGroupTitle(rule: TransactionRule): Int = when {
+    rule.name.contains("Food", ignoreCase = true) ||
+        rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_group_daily
+
+    rule.name.contains("Salary", ignoreCase = true) ||
+        rule.name.contains("Cashback", ignoreCase = true) -> R.string.rules_group_income
+
+    rule.name.contains("Rent", ignoreCase = true) ||
+        rule.name.contains("EMI", ignoreCase = true) ||
+        rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_group_recurring
+
+    rule.name.contains("Investment", ignoreCase = true) ||
+        rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_group_banking
+
+    rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_group_healthcare
+
+    else -> R.string.rules_group_other
+}
+
+/** A short plain-language summary for the built-in rules, or null for a custom one. */
+@StringRes
+private fun ruleConditionSummary(rule: TransactionRule): Int? = when {
+    rule.name.contains("Small Payments", ignoreCase = true) -> R.string.rules_summary_small_payments
+    rule.name.contains("UPI Cashback", ignoreCase = true) -> R.string.rules_summary_upi_cashback
+    rule.name.contains("Salary", ignoreCase = true) -> R.string.rules_summary_salary
+    rule.name.contains("Rent", ignoreCase = true) -> R.string.rules_summary_rent
+    rule.name.contains("EMI", ignoreCase = true) -> R.string.rules_summary_emi
+    rule.name.contains("Investment", ignoreCase = true) -> R.string.rules_summary_investment
+    rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_summary_subscription
+    rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_summary_fuel
+    rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_summary_healthcare
+    rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_summary_transfer
+    else -> null
+}
+
+/**
+ * One rule as a row of a connected group: its name, description, the plain-language
+ * summary and a priority tag on the left; the per-rule menu (active rules only) and
+ * the on/off switch on the right.
+ */
 @Composable
-private fun RuleCard(
-    rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
+private fun RuleRow(
+    rule: TransactionRule,
+    position: ListItemPosition,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
@@ -364,168 +445,146 @@ private fun RuleCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showActionsMenu by remember { mutableStateOf(false) }
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth()
+
+    GroupedRow(
+        position = position,
+        minHeight = Dimensions.Component.listItemMinHeightTwoLine,
+        contentPadding = PaddingValues(
+            start = Spacing.md,
+            end = Spacing.sm,
+            top = Spacing.sm,
+            bottom = Spacing.sm
+        ),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
+            Text(
+                text = rule.name,
+                style = PennyWiseText.rowTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            rule.description?.let { description ->
                 Text(
-                    text = rule.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    text = description,
+                    style = PennyWiseText.rowSubtitle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
 
-                rule.description?.let { description ->
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            // Show simple condition summary
+            ruleConditionSummary(rule)?.let { summaryRes ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Iconax.Information,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                }
-
-                // Show simple condition summary
-                val conditionSummary = when {
-                    rule.name.contains("Small Payments", ignoreCase = true) -> stringResource(R.string.rules_summary_small_payments)
-                    rule.name.contains("UPI Cashback", ignoreCase = true) -> stringResource(R.string.rules_summary_upi_cashback)
-                    rule.name.contains("Salary", ignoreCase = true) -> stringResource(R.string.rules_summary_salary)
-                    rule.name.contains("Rent", ignoreCase = true) -> stringResource(R.string.rules_summary_rent)
-                    rule.name.contains("EMI", ignoreCase = true) -> stringResource(R.string.rules_summary_emi)
-                    rule.name.contains("Investment", ignoreCase = true) -> stringResource(R.string.rules_summary_investment)
-                    rule.name.contains("Subscription", ignoreCase = true) -> stringResource(R.string.rules_summary_subscription)
-                    rule.name.contains("Fuel", ignoreCase = true) -> stringResource(R.string.rules_summary_fuel)
-                    rule.name.contains("Healthcare", ignoreCase = true) -> stringResource(R.string.rules_summary_healthcare)
-                    rule.name.contains("Transfer", ignoreCase = true) -> stringResource(R.string.rules_summary_transfer)
-                    else -> null
-                }
-
-                conditionSummary?.let {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                // Priority badge (only show for non-default priority)
-                if (rule.priority != 100) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = stringResource(R.string.rules_priority_badge, rule.priority),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    Text(
+                        text = stringResource(summaryRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // More actions menu - only show when rule is active
-                if (rule.isActive) {
-                    Box {
-                        IconButton(
-                            onClick = { showActionsMenu = true }
-                        ) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = stringResource(R.string.rules_more_actions)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showActionsMenu,
-                            onDismissRequest = { showActionsMenu = false }
-                        ) {
-                            // Edit rule
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_edit)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                },
-                                onClick = {
-                                    showActionsMenu = false
-                                    onEdit()
-                                }
-                            )
-
-                            // Duplicate rule (opens the editor prefilled as a new rule)
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_duplicate)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null)
-                                },
-                                onClick = {
-                                    showActionsMenu = false
-                                    onDuplicate()
-                                }
-                            )
-
-                            // Apply to past transactions
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_apply_past)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.History, contentDescription = null)
-                                },
-                                onClick = {
-                                    showActionsMenu = false
-                                    onApplyToPast()
-                                }
-                            )
-
-                            // Only show delete for custom rules
-                            if (!rule.isSystemTemplate) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.rules_delete_title)) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        showDeleteDialog = true
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Switch(
-                    checked = rule.isActive,
-                    onCheckedChange = onToggle
+            // Priority tag (only shown for a non-default priority)
+            if (rule.priority != 100) {
+                SubtitleTag(
+                    text = stringResource(R.string.rules_priority_badge, rule.priority),
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }
+
+        // More actions menu - only show when rule is active
+        if (rule.isActive) {
+            Box {
+                IconButton(onClick = { showActionsMenu = true }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.rules_more_actions),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showActionsMenu,
+                    onDismissRequest = { showActionsMenu = false },
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    // Edit rule
+                    AccountMenuItem(
+                        text = stringResource(R.string.rules_menu_edit),
+                        icon = Iconax.Edit2,
+                        onClick = {
+                            showActionsMenu = false
+                            onEdit()
+                        }
+                    )
+
+                    // Duplicate rule (opens the editor prefilled as a new rule)
+                    AccountMenuItem(
+                        text = stringResource(R.string.rules_menu_duplicate),
+                        icon = Iconax.Copy,
+                        onClick = {
+                            showActionsMenu = false
+                            onDuplicate()
+                        }
+                    )
+
+                    // Apply to past transactions
+                    AccountMenuItem(
+                        text = stringResource(R.string.rules_menu_apply_past),
+                        icon = Iconax.History,
+                        onClick = {
+                            showActionsMenu = false
+                            onApplyToPast()
+                        }
+                    )
+
+                    // Only show delete for custom rules
+                    if (!rule.isSystemTemplate) {
+                        AccountMenuItem(
+                            text = stringResource(R.string.rules_delete_title),
+                            icon = Iconax.Bag,
+                            destructive = true,
+                            onClick = {
+                                showActionsMenu = false
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Switch(
+            checked = rule.isActive,
+            onCheckedChange = onToggle
+        )
     }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = {
+                Icon(
+                    Iconax.Bag,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
             title = { Text(stringResource(R.string.rules_delete_title)) },
             text = { Text(stringResource(R.string.rules_delete_body, rule.name)) },
             confirmButton = {
@@ -552,7 +611,7 @@ private fun RuleCard(
 
 @Composable
 private fun BatchApplyDialog(
-    rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
+    rule: TransactionRule,
     progress: Pair<Int, Int>?,
     result: BatchApplyResult?,
     dryRunResult: DryRunResult?,
@@ -575,6 +634,8 @@ private fun BatchApplyDialog(
                 onDismiss()
             }
         },
+        shape = MaterialTheme.shapes.extraLarge,
+        icon = { Icon(Iconax.History, contentDescription = null) },
         title = { Text(text = title) },
         text = {
             Column(
@@ -628,19 +689,25 @@ private fun BatchApplyDialog(
                                     fontWeight = FontWeight.Medium
                                 )
                                 dryRunResult.samples.take(5).forEach { diff ->
-                                    Card(
+                                    Surface(
                                         modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (diff.isBlock)
-                                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                                            else
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        )
+                                        shape = MaterialTheme.shapes.medium,
+                                        color = if (diff.isBlock)
+                                            MaterialTheme.colorScheme.errorContainer
+                                        else
+                                            MaterialTheme.colorScheme.surfaceContainerHigh
                                     ) {
-                                        Column(modifier = Modifier.padding(Spacing.sm)) {
+                                        Column(
+                                            modifier = Modifier.padding(Spacing.smd),
+                                            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                                        ) {
                                             val orig = diff.original
                                             Text(
-                                                text = "${orig.merchantName} - ${orig.amount}",
+                                                text = stringResource(
+                                                    R.string.utility_rules_batch_sample_title,
+                                                    orig.merchantName,
+                                                    CurrencyFormatter.formatCurrency(orig.amount, orig.currency)
+                                                ),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -648,7 +715,7 @@ private fun BatchApplyDialog(
                                                 Text(
                                                     text = stringResource(R.string.rules_batch_sample_blocked),
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.error
+                                                    color = MaterialTheme.colorScheme.onErrorContainer
                                                 )
                                             } else if (diff.modified != null) {
                                                 val mod = diff.modified
@@ -738,7 +805,7 @@ private fun BatchApplyDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    if (result.errors.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    if (result.errors.isEmpty()) Icons.Default.CheckCircle else Iconax.Danger,
                                     contentDescription = null,
                                     tint = if (result.errors.isEmpty())
                                         MaterialTheme.colorScheme.primary
@@ -810,8 +877,8 @@ private fun BatchApplyDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
-                        OutlinedButton(onClick = onPreview) {
-                            Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                        FilledTonalButton(onClick = onPreview) {
+                            Icon(Iconax.Eye, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.rules_batch_preview))
                         }

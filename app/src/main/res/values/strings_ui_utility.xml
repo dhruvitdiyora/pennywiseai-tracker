@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Rules, Cashiro-style layout ══ -->
+
+    <!-- Headline of the empty state shown when there are no rules at all. -->
+    <string name="utility_rules_empty_title">No rules yet</string>
+    <!-- One line under the empty-state headline on the Rules screen. -->
+    <string name="utility_rules_empty_body">Create a rule to categorize or block transactions automatically.</string>
+    <!-- One sample row in the "apply to past transactions" preview: merchant name, then the currency-tagged amount. A separator only, nothing to translate. -->
+    <string name="utility_rules_batch_sample_title" translatable="false">%1$s - %2$s</string>
+
+    <!-- ══ Exchange rates, Cashiro-style layout ══ -->
+
+    <!-- Title of the "set a custom rate" dialog: two currency codes with an arrow between them. Nothing to translate. -->
+    <string name="utility_exchange_rates_pair" translatable="false">%1$s → %2$s</string>
+    <!-- Prompt above the rate field in the custom-rate dialog: "1 USD = ? INR". Nothing to translate. -->
+    <string name="utility_exchange_rates_prompt" translatable="false">1 %1$s = ? %2$s</string>
+</resources>

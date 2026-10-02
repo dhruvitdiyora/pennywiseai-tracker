@@ -1,46 +1,88 @@
 package com.pennywiseai.tracker.ui.screens.unrecognized
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.MarkEmailRead
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.SubtitleTag
+import com.pennywiseai.tracker.ui.components.TonalNavigationButton
+import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.iconax.Bag
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.MessageQuestion
+import com.pennywiseai.tracker.ui.icons.iconax.Send
+import com.pennywiseai.tracker.ui.screens.rules.UtilityHeroCard
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
+
+/*
+ * Unrecognized SMS, in the Cashiro style: a large collapsing title with a tonal
+ * back button, a primary hero card carrying the "show reported" filter and the
+ * counts, and each message as a card with the sender, a quoted body and the
+ * delete / report actions. Reporting and deleting behave exactly as before.
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,9 +124,10 @@ fun UnrecognizedSmsScreen(
                 title = stringResource(R.string.unrecognized_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.unrecognized_back))
-                    }
+                    TonalNavigationButton(
+                        onClick = onNavigateBack,
+                        contentDescription = stringResource(R.string.unrecognized_back)
+                    )
                 },
                 hazeState = hazeState
             )
@@ -101,7 +144,7 @@ fun UnrecognizedSmsScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = paddingValues.calculateBottomPadding()
+                bottom = paddingValues.calculateBottomPadding() + Spacing.Layout.scrollBottomPadding
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -119,70 +162,50 @@ fun UnrecognizedSmsScreen(
                         animationSpec = tween(300)
                     )
                 ) {
-                    PennyWiseCardV2(
-                        modifier = Modifier.fillMaxWidth()
+                    UtilityHeroCard(
+                        icon = Iconax.MessageQuestion,
+                        title = stringResource(R.string.unrecognized_header_title),
+                        body = stringResource(R.string.unrecognized_header_body)
                     ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        // Filter toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                Icon(
-                                    Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = stringResource(R.string.unrecognized_header_title),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Text(
-                                text = stringResource(R.string.unrecognized_header_body),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ShowReportedChip(
+                                selected = showReported,
+                                onClick = { viewModel.toggleShowReported() }
                             )
 
-                            // Filter toggle
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                FilterChip(
-                                    selected = showReported,
-                                    onClick = { viewModel.toggleShowReported() },
-                                    label = { Text(stringResource(R.string.unrecognized_show_reported)) },
-                                    leadingIcon = if (showReported) {
-                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
-                                    } else null
-                                )
+                            Spacer(modifier = Modifier.weight(1f))
 
-                                Spacer(modifier = Modifier.weight(1f))
+                            if (unrecognizedMessages.isNotEmpty()) {
+                                val reportedCount = unrecognizedMessages.count { it.reported }
+                                val unreportedCount = unrecognizedMessages.size - reportedCount
 
-                                if (unrecognizedMessages.isNotEmpty()) {
-                                    val reportedCount = unrecognizedMessages.count { it.reported }
-                                    val unreportedCount = unrecognizedMessages.size - reportedCount
-
-                                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                        if (unreportedCount > 0) {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            ) {
-                                                Text(pluralStringResource(R.plurals.unrecognized_new_count, unreportedCount, unreportedCount))
-                                            }
-                                        }
-                                        if (reportedCount > 0) {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                            ) {
-                                                Text(pluralStringResource(R.plurals.unrecognized_reported_count, reportedCount, reportedCount))
-                                            }
-                                        }
+                                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                    if (unreportedCount > 0) {
+                                        CountPill(
+                                            text = pluralStringResource(
+                                                R.plurals.unrecognized_new_count,
+                                                unreportedCount,
+                                                unreportedCount
+                                            ),
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    }
+                                    if (reportedCount > 0) {
+                                        CountPill(
+                                            text = pluralStringResource(
+                                                R.plurals.unrecognized_reported_count,
+                                                reportedCount,
+                                                reportedCount
+                                            ),
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
@@ -245,6 +268,14 @@ fun UnrecognizedSmsScreen(
                 showDeleteConfirmation = false
                 selectedMessage = null
             },
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = {
+                Icon(
+                    Iconax.Bag,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
             title = { Text(stringResource(R.string.unrecognized_delete_title)) },
             text = {
                 Text(stringResource(R.string.unrecognized_delete_body))
@@ -277,6 +308,65 @@ fun UnrecognizedSmsScreen(
     }
 }
 
+/**
+ * The "show reported" filter, drawn for the primary-container hero card: the
+ * selected state is a solid primary chip (a primary-container chip would
+ * vanish into the card), idle is the page surface.
+ */
+@Composable
+private fun ShowReportedChip(
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(stringResource(R.string.unrecognized_show_reported)) },
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small)
+                )
+            }
+        } else {
+            null
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = scheme.surface,
+            labelColor = scheme.onSurface,
+            selectedContainerColor = scheme.primary,
+            selectedLabelColor = scheme.onPrimary,
+            selectedLeadingIconColor = scheme.onPrimary
+        ),
+        border = null
+    )
+}
+
+/** A small count on the hero card ("3 new", "2 reported"). */
+@Composable
+private fun CountPill(
+    text: String,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xxs),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+    }
+}
+
 @Composable
 private fun UnrecognizedSmsItem(
     message: UnrecognizedSmsEntity,
@@ -284,54 +374,67 @@ private fun UnrecognizedSmsItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scheme = MaterialTheme.colorScheme
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
             // Header with sender and date
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                IconTile(
+                    icon = Iconax.MessageQuestion,
+                    containerColor = scheme.secondaryContainer,
+                    contentColor = scheme.onSecondaryContainer,
+                    size = Dimensions.Icon.list,
+                    glyphSize = Dimensions.Icon.inline
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = message.sender,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = scheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = message.receivedAt.format(
                             DateTimeFormatter.ofPattern("MMM dd, yyyy • HH:mm")
                         ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = scheme.onSurfaceVariant
                     )
                 }
 
                 if (message.reported) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            stringResource(R.string.unrecognized_reported_badge),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
+                    SubtitleTag(
+                        text = stringResource(R.string.unrecognized_reported_badge),
+                        color = scheme.onSurfaceVariant
+                    )
                 }
             }
 
-            // Message content (truncated)
-            Text(
-                text = message.smsBody,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            // Message content (truncated), set apart like a quoted message
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = scheme.surface
+            ) {
+                Text(
+                    text = message.smsBody,
+                    modifier = Modifier.padding(Spacing.smd),
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    color = scheme.onSurface
+                )
+            }
 
             // Action buttons
             Row(
@@ -339,46 +442,38 @@ private fun UnrecognizedSmsItem(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (!message.reported) {
-                    TextButton(
-                        onClick = onDelete
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.unrecognized_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_delete))
-                    }
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = scheme.error
+                    )
+                ) {
+                    Icon(
+                        Iconax.Bag,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.unrecognized_delete))
+                }
 
+                if (!message.reported) {
                     Spacer(modifier = Modifier.width(Spacing.sm))
 
                     FilledTonalButton(
-                        onClick = onReport
+                        onClick = onReport,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = scheme.primaryContainer,
+                            contentColor = scheme.onPrimaryContainer
+                        )
                     ) {
                         Icon(
-                            Icons.Default.BugReport,
-                            contentDescription = stringResource(R.string.unrecognized_report),
+                            Iconax.Send,
+                            contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.unrecognized_report))
-                    }
-                } else {
-                    TextButton(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.unrecognized_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_delete))
                     }
                 }
             }
