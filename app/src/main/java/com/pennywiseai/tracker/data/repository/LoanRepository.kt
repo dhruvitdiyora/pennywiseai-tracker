@@ -256,6 +256,14 @@ class LoanRepository @Inject constructor(
         require(displayName.isNotBlank()) { "Person name cannot be blank" }
         val normalizedName = normalizePersonName(displayName)
         personDao.getActivePersonByNormalizedName(normalizedName)?.let { return it }
+        // "Deleting" a person who has loan history only archives them, and nothing
+        // in the UI can bring them back. Reuse (and revive) the archived row rather
+        // than creating a duplicate that orphans their existing loans.
+        personDao.getArchivedPersonByNormalizedName(normalizedName)?.let { archived ->
+            val revived = archived.copy(isArchived = false, updatedAt = LocalDateTime.now())
+            personDao.updatePerson(revived)
+            return revived
+        }
         val newPerson = com.pennywiseai.tracker.data.database.entity.PersonEntity(
             name = displayName,
             normalizedName = normalizedName,

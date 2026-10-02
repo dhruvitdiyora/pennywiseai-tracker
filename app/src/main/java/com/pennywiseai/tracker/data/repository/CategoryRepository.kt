@@ -125,32 +125,26 @@ class CategoryRepository @Inject constructor(
         targetCategoryId: Long?
     ): CategoryDeletionResult {
         val source = categoryDao.getCategoryById(categoryId)
-            ?: return CategoryDeletionResult.Rejected("Category no longer exists.")
+            ?: return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.NOT_FOUND)
         if (source.isSystem) {
-            return CategoryDeletionResult.Rejected("System categories cannot be deleted.")
+            return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.SYSTEM_CATEGORY)
         }
         if (targetCategoryId == categoryId) {
-            return CategoryDeletionResult.Rejected("Choose a different replacement category.")
+            return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.SAME_TARGET)
         }
 
         val inspection = inspectCategory(source)
         val impact = inspection.impact
         if (inspection.unreadableRuleCount > 0) {
-            return CategoryDeletionResult.Rejected(
-                "One or more rules contain invalid category JSON and cannot be changed safely.",
-                impact
-            )
+            return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.UNREADABLE_RULES, impact)
         }
 
         val target = targetCategoryId?.let { categoryDao.getCategoryById(it) }
         if (targetCategoryId != null && target == null) {
-            return CategoryDeletionResult.Rejected("Replacement category no longer exists.", impact)
+            return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.TARGET_NOT_FOUND, impact)
         }
         if (target != null && target.isIncome != source.isIncome) {
-            return CategoryDeletionResult.Rejected(
-                "Replacement category must have the same income/expense type.",
-                impact
-            )
+            return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.TYPE_MISMATCH, impact)
         }
 
         if (target == null && impact.hasReferences) {
@@ -201,7 +195,7 @@ class CategoryRepository @Inject constructor(
                 conflictingBudgetNames = categoryDao.getActiveBudgetConflictNames(source.name, target.name)
             )
         }
-        return CategoryDeletionResult.Rejected("Category changed before deletion could complete.", impact)
+        return CategoryDeletionResult.Rejected(CategoryDeletionResult.RejectionReason.CHANGED_CONCURRENTLY, impact)
     }
 
     /** Convenience overload for callers that already use the old method name. */

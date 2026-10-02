@@ -228,7 +228,7 @@ class CategoriesViewModel @Inject constructor(
                         _categoryDeletion.value = state.copy(
                             impact = result.impact ?: state.impact,
                         )
-                        _snackbarMessage.value = UiText.Plain(result.reason)
+                        _snackbarMessage.value = UiText.Res(result.reason.messageRes())
                     }
                 }
             } catch (e: Exception) {
@@ -315,4 +315,14 @@ internal fun filterCategoriesForQuery(
             category.name.contains(normalizedQuery, ignoreCase = true)
         }
     }
+}
+
+private fun CategoryDeletionResult.RejectionReason.messageRes(): Int = when (this) {
+    CategoryDeletionResult.RejectionReason.NOT_FOUND -> R.string.categories_msg_not_found
+    CategoryDeletionResult.RejectionReason.SYSTEM_CATEGORY -> R.string.categories_msg_system_not_deletable
+    CategoryDeletionResult.RejectionReason.SAME_TARGET -> R.string.categories_msg_same_target
+    CategoryDeletionResult.RejectionReason.UNREADABLE_RULES -> R.string.categories_msg_unreadable_rules
+    CategoryDeletionResult.RejectionReason.TARGET_NOT_FOUND -> R.string.categories_msg_target_not_found
+    CategoryDeletionResult.RejectionReason.TYPE_MISMATCH -> R.string.categories_msg_type_mismatch
+    CategoryDeletionResult.RejectionReason.CHANGED_CONCURRENTLY -> R.string.categories_msg_changed_concurrently
 }

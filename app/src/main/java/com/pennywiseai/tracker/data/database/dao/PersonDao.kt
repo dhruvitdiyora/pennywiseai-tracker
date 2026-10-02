@@ -32,6 +32,14 @@ interface PersonDao {
     @Query("SELECT * FROM people WHERE normalized_name = :normalizedName AND is_archived = 0 ORDER BY id LIMIT 1")
     suspend fun getActivePersonByNormalizedName(normalizedName: String): PersonEntity?
 
+    /**
+     * Archived match used to revive a person instead of creating a duplicate when
+     * a loan is added under the same name as someone who was "deleted" while they
+     * still had loan history.
+     */
+    @Query("SELECT * FROM people WHERE normalized_name = :normalizedName AND is_archived = 1 ORDER BY id LIMIT 1")
+    suspend fun getArchivedPersonByNormalizedName(normalizedName: String): PersonEntity?
+
     @Insert
     suspend fun insertPerson(person: PersonEntity): Long
 

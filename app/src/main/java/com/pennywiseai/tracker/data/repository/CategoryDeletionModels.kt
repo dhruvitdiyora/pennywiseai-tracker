@@ -48,7 +48,18 @@ sealed interface CategoryDeletionResult {
     ) : CategoryDeletionResult
 
     data class Rejected(
-        val reason: String,
+        val reason: RejectionReason,
         val impact: CategoryDeletionImpact? = null
     ) : CategoryDeletionResult
+
+    /** Why a deletion was refused; the UI maps each to a localized message. */
+    enum class RejectionReason {
+        NOT_FOUND,
+        SYSTEM_CATEGORY,
+        SAME_TARGET,
+        UNREADABLE_RULES,
+        TARGET_NOT_FOUND,
+        TYPE_MISMATCH,
+        CHANGED_CONCURRENTLY,
+    }
 }

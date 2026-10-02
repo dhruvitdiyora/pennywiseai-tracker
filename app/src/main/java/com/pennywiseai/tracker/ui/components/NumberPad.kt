@@ -155,7 +155,7 @@ fun NumberPad(
     }
 }
 
-private fun containsNumberPadOperation(expression: String): Boolean =
+internal fun containsNumberPadOperation(expression: String): Boolean =
     expression.drop(1).any { it in "+-−×*÷/%()" } || expression.startsWith('(')
 
 private val numberPadRows = listOf(

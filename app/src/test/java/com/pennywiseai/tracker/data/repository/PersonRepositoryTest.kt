@@ -15,6 +15,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -65,6 +66,47 @@ class PersonRepositoryTest {
 
         assertFalse(repository.deleteOrArchivePerson(personId))
         assertTrue(repository.getPerson(personId)?.isArchived == true)
+    }
+
+    @Test
+    fun renamingPersonCarriesNameOntoTheirLoansOnly() = runBlocking {
+        val personId = repository.createPerson("Taylor")
+        val otherId = repository.createPerson("Jordan")
+        val loanDao = database.loanDao()
+        suspend fun insertLoan(name: String, owner: Long) = loanDao.insertLoan(
+            LoanEntity(
+                personName = name,
+                personId = owner,
+                direction = LoanDirection.LENT,
+                originalAmount = BigDecimal("50"),
+                remainingAmount = BigDecimal("50"),
+            )
+        )
+        insertLoan("Taylor", personId)
+        insertLoan("Taylor", personId)
+        insertLoan("Jordan", otherId)
+
+        repository.updatePerson(
+            personId = personId,
+            name = "  Taylor Example ",
+            phoneNumber = null,
+            notes = null,
+            avatar = null,
+            category = null,
+            color = "#4CAF50",
+        )
+
+        assertEquals("Taylor Example", repository.getPerson(personId)?.name)
+        assertEquals(
+            listOf("Taylor Example", "Taylor Example"),
+            loanDao.getLoansByPersonOnce(personId).map { it.personName },
+        )
+        assertEquals(listOf("Jordan"), loanDao.getLoansByPersonOnce(otherId).map { it.personName })
+        // Name-based lookups (used by "Mark as loan") follow the new name, not the old one.
+        assertNotNull(
+            loanDao.getActiveLoanByPersonAndDirectionAndCurrency("taylor example", "LENT", "INR")
+        )
+        assertNull(loanDao.getActiveLoanByPersonAndDirectionAndCurrency("taylor", "LENT", "INR"))
     }
 
     @Test

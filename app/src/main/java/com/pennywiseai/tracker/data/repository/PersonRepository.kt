@@ -78,19 +78,25 @@ class PersonRepository @Inject constructor(
     ) {
         val displayName = name.trim()
         require(displayName.isNotBlank()) { "Person name cannot be blank" }
-        val existing = personDao.getPersonById(personId) ?: error("Person not found")
-        personDao.updatePerson(
-            existing.copy(
-                name = displayName,
-                normalizedName = normalizePersonName(displayName),
-                phoneNumber = phoneNumber.normalizedOptional(),
-                notes = notes.normalizedOptional(),
-                avatar = avatar.normalizedOptional(),
-                category = category.normalizedOptional(),
-                color = color.trim().takeIf(String::isNotBlank) ?: existing.color,
-                updatedAt = LocalDateTime.now(),
+        database.withTransaction {
+            val existing = personDao.getPersonById(personId) ?: error("Person not found")
+            personDao.updatePerson(
+                existing.copy(
+                    name = displayName,
+                    normalizedName = normalizePersonName(displayName),
+                    phoneNumber = phoneNumber.normalizedOptional(),
+                    notes = notes.normalizedOptional(),
+                    avatar = avatar.normalizedOptional(),
+                    category = category.normalizedOptional(),
+                    color = color.trim().takeIf(String::isNotBlank) ?: existing.color,
+                    updatedAt = LocalDateTime.now(),
+                )
             )
-        )
+            // Loans keep a person_name snapshot that the Loans screen groups by and
+            // the name-based lookups match on; carry the rename onto them in the
+            // same transaction so the two can never disagree.
+            loanDao.updatePersonNameForPerson(personId, displayName)
+        }
     }
 
     suspend fun archivePerson(personId: Long) {

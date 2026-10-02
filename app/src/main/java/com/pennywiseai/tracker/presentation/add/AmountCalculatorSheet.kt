@@ -13,15 +13,40 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.NumberPad
 import com.pennywiseai.tracker.ui.components.NumberPadInputState
+import com.pennywiseai.tracker.ui.components.containsNumberPadOperation
 import com.pennywiseai.tracker.ui.components.evaluateNumberExpression
 import com.pennywiseai.tracker.ui.components.formatNumberPadResult
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.util.Currency
+
+/**
+ * The number of decimal places [currencyCode] is written with (2 for INR/USD, 0 for
+ * JPY, 3 for KWD). Falls back to 2 for a null, blank, unknown or pseudo currency.
+ */
+internal fun currencyFractionDigits(currencyCode: String?): Int =
+    runCatching { Currency.getInstance(currencyCode.orEmpty()).defaultFractionDigits }
+        .getOrNull()
+        ?.takeIf { it >= 0 }
+        ?: 2
+
+/**
+ * Rounds a calculated [amount] to what [currencyCode] can actually hold, so
+ * "100 ÷ 3" lands as 33.33 rather than 34 significant digits.
+ */
+internal fun roundToCurrency(amount: BigDecimal, currencyCode: String?): BigDecimal =
+    amount.setScale(currencyFractionDigits(currencyCode), RoundingMode.HALF_UP)
 
 /**
  * Bottom sheet calculator for entering an exact amount expression. Shared by
  * the transaction and subscription tabs; applies the evaluated result back to
  * whichever amount field opened it.
+ *
+ * Only a positive result can be applied (the amount fields reject anything else),
+ * and it is rounded to [currencyCode]'s decimal places first; an unknown or absent
+ * code rounds to 2 places.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +54,7 @@ internal fun AmountCalculatorSheet(
     initialAmount: String,
     onDismiss: () -> Unit,
     onApply: (String) -> Unit,
+    currencyCode: String? = null,
 ) {
     val initialExpression = remember(initialAmount) {
         initialAmount.takeIf { evaluateNumberExpression(it) != null }.orEmpty()
@@ -42,6 +68,18 @@ internal fun AmountCalculatorSheet(
         )
     }
     val result = evaluateNumberExpression(inputState.expression)
+    // What "Use amount" would hand back: the result at the currency's precision,
+    // and only when it is a positive figure (10 - 15 = -5 must not be applied).
+    val applicable = result
+        ?.let { roundToCurrency(it, currencyCode) }
+        ?.takeIf { it.signum() > 0 }
+    val resultIsNotPositive = result != null && applicable == null
+    // The preview under the expression shows the rounded figure that will be used.
+    val previewText = if (containsNumberPadOperation(inputState.expression)) {
+        result?.let { formatNumberPadResult(roundToCurrency(it, currencyCode)) }
+    } else {
+        null
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -82,8 +120,17 @@ internal fun AmountCalculatorSheet(
             )
             NumberPad(
                 state = inputState,
-                onStateChange = { inputState = it }
+                onStateChange = { inputState = it },
+                resultText = previewText
             )
+            if (resultIsNotPositive) {
+                Text(
+                    text = stringResource(R.string.add_error_amount_positive),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -95,8 +142,8 @@ internal fun AmountCalculatorSheet(
                     Text(stringResource(R.string.add_cancel))
                 }
                 Button(
-                    onClick = { result?.let { onApply(formatNumberPadResult(it)) } },
-                    enabled = result != null,
+                    onClick = { applicable?.let { onApply(formatNumberPadResult(it)) } },
+                    enabled = applicable != null,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(stringResource(R.string.add_use_amount))

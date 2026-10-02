@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -44,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +87,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.Category2
 import com.pennywiseai.tracker.ui.icons.iconax.Wallet3
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -400,15 +403,51 @@ private fun TxnEditAmount(
     viewModel: TransactionDetailViewModel,
 ) {
     val primaryCurrency by viewModel.primaryCurrency.collectAsStateWithLifecycle()
+    TxnEditAmountField(
+        transactionId = transaction.id,
+        initialAmount = transaction.amount,
+        currency = transaction.currency.ifEmpty { primaryCurrency },
+        onAmountTextChange = { viewModel.updateAmount(it) },
+        onCurrencyChange = { viewModel.updateCurrency(it) }
+    )
+}
+
+/**
+ * The amount hero of the edit form. It owns the raw text the user types, the way
+ * the Add screen does, instead of rendering the entity's amount back: a figure
+ * derived from the entity loses what is mid-typing ("12.0" would come back as
+ * "12", dropping the dot so the next digit reads 120) and cannot be cleared.
+ *
+ * The text is seeded once per transaction from [initialAmount]; later values of
+ * it are ignored because the amount only ever changes through this field and the
+ * calculator, both of which write the text first. Every edit is forwarded as text
+ * through [onAmountTextChange]; empty or non-positive text is flagged inline with
+ * the hero's error style.
+ */
+@Composable
+internal fun TxnEditAmountField(
+    transactionId: Long,
+    initialAmount: BigDecimal,
+    currency: String,
+    onAmountTextChange: (String) -> Unit,
+    onCurrencyChange: (String) -> Unit,
+) {
     var showCalculator by remember { mutableStateOf(false) }
-    val amountText = transaction.amount.stripTrailingZeros().toPlainString()
+    var amountText by rememberSaveable(transactionId) {
+        mutableStateOf(amountFieldText(initialAmount))
+    }
+    val errorRes = amountFieldError(amountText)
 
     AddAmountHero(
         amount = amountText,
-        currency = transaction.currency.ifEmpty { primaryCurrency },
-        onAmountChange = { viewModel.updateAmount(it) },
-        onCurrencyChange = { viewModel.updateCurrency(it) },
-        onOpenCalculator = { showCalculator = true }
+        currency = currency,
+        onAmountChange = { raw ->
+            amountText = sanitizeAmountInput(raw, previous = amountText)
+            onAmountTextChange(amountText)
+        },
+        onCurrencyChange = onCurrencyChange,
+        onOpenCalculator = { showCalculator = true },
+        error = errorRes?.let { stringResource(it) }
     )
 
     if (showCalculator) {
@@ -416,10 +455,36 @@ private fun TxnEditAmount(
             initialAmount = amountText,
             onDismiss = { showCalculator = false },
             onApply = { applied ->
-                viewModel.updateAmount(applied)
+                amountText = applied
+                onAmountTextChange(applied)
                 showCalculator = false
-            }
+            },
+            currencyCode = currency
         )
+    }
+}
+
+/** The text an amount field starts with: plain digits, no exponent, no trailing zeros. */
+internal fun amountFieldText(amount: BigDecimal): String =
+    if (amount.signum() == 0) "0" else amount.stripTrailingZeros().toPlainString()
+
+/**
+ * Keeps digits and at most one decimal point, like the Add screen's amount entry.
+ * Input that would add a second point is rejected by returning [previous].
+ */
+internal fun sanitizeAmountInput(raw: String, previous: String): String {
+    val filtered = raw.filter { it.isDigit() || it == '.' }
+    return if (filtered.count { it == '.' } <= 1) filtered else previous
+}
+
+/** The inline error for the amount text, or null when it is a positive number. */
+@StringRes
+internal fun amountFieldError(text: String): Int? {
+    val parsed = text.toBigDecimalOrNull()
+    return when {
+        text.isBlank() -> R.string.add_error_amount_required
+        parsed == null || parsed.signum() <= 0 -> R.string.txn_detail_error_amount_positive_number
+        else -> null
     }
 }
 

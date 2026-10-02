@@ -88,7 +88,10 @@ interface CategoryDao {
     // Category deletion/reassignment impact queries. These deliberately do
     // not filter transactions by is_deleted: trash is still user data and
     // must be retargeted before the category can be removed.
-    @Query("SELECT COUNT(*) FROM transactions WHERE category = :categoryName")
+    // A transaction references a category through `category` and, for income
+    // rows used as a budget refund / extra budget, through `budget_category`.
+    // `OR` counts each row once even if both columns name the category.
+    @Query("SELECT COUNT(*) FROM transactions WHERE category = :categoryName OR budget_category = :categoryName")
     suspend fun countTransactionsForCategory(categoryName: String): Int
 
     @Query("SELECT COUNT(*) FROM transaction_splits WHERE category = :categoryName")
@@ -145,6 +148,19 @@ interface CategoryDao {
 
     @Query("UPDATE transactions SET category = :targetCategoryName, updated_at = :updatedAt WHERE category = :sourceCategoryName")
     suspend fun reassignTransactionCategories(
+        sourceCategoryName: String,
+        targetCategoryName: String,
+        updatedAt: LocalDateTime
+    ): Int
+
+    /**
+     * Retargets the budget category of income rows used as a budget refund
+     * (DEDUCT_SPENT) or extra budget (ADD_TO_LIMIT). Without this the rows keep
+     * the deleted name, match no budget bucket and the refund / limit boost
+     * silently disappears.
+     */
+    @Query("UPDATE transactions SET budget_category = :targetCategoryName, updated_at = :updatedAt WHERE budget_category = :sourceCategoryName")
+    suspend fun reassignTransactionBudgetCategories(
         sourceCategoryName: String,
         targetCategoryName: String,
         updatedAt: LocalDateTime
@@ -214,6 +230,7 @@ interface CategoryDao {
 
         if (targetCategoryName != null) {
             reassignTransactionCategories(sourceCategoryName, targetCategoryName, updatedAt)
+            reassignTransactionBudgetCategories(sourceCategoryName, targetCategoryName, updatedAt)
             reassignTransactionSplitCategories(sourceCategoryName, targetCategoryName)
             reassignSubscriptionCategories(sourceCategoryName, targetCategoryName, updatedAt)
             reassignRecurringTransactionCategories(sourceCategoryName, targetCategoryName, updatedAt)

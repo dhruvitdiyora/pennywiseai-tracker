@@ -132,7 +132,7 @@ const val SCHEMA_VERSION = 63
         // 56→57 adds a nullable account_last4 column to subscriptions — a pure
         // additive change, so Room generates the ALTER TABLE automatically (#570).
         AutoMigration(from = 56, to = 57)
-        // 59→60 is manual because it backfills people and links legacy loans.
+        // 62→63 is manual because it backfills people and links legacy loans.
     ]
 )
 @TypeConverters(Converters::class)

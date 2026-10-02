@@ -391,41 +391,79 @@ fun RulesScreen(
     }
 }
 
-/** The purpose group a rule is listed under, matched on its name as before. */
+/**
+ * The purpose group a rule is listed under. The built-in templates are grouped by
+ * their (English, shipped) name; a custom rule is never matched on its name, since
+ * a user-chosen "Rent split" is not the built-in rent rule, so it lands in "Custom".
+ */
 @StringRes
-private fun ruleGroupTitle(rule: TransactionRule): Int = when {
-    rule.name.contains("Food", ignoreCase = true) ||
-        rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_group_daily
+private fun ruleGroupTitle(rule: TransactionRule): Int {
+    if (!rule.isSystemTemplate) return R.string.rules_group_custom
+    return when {
+        rule.name.contains("Food", ignoreCase = true) ||
+            rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_group_daily
 
-    rule.name.contains("Salary", ignoreCase = true) ||
-        rule.name.contains("Cashback", ignoreCase = true) -> R.string.rules_group_income
+        rule.name.contains("Salary", ignoreCase = true) ||
+            rule.name.contains("Cashback", ignoreCase = true) -> R.string.rules_group_income
 
-    rule.name.contains("Rent", ignoreCase = true) ||
-        rule.name.contains("EMI", ignoreCase = true) ||
-        rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_group_recurring
+        rule.name.contains("Rent", ignoreCase = true) ||
+            rule.name.contains("EMI", ignoreCase = true) ||
+            rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_group_recurring
 
-    rule.name.contains("Investment", ignoreCase = true) ||
-        rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_group_banking
+        rule.name.contains("Investment", ignoreCase = true) ||
+            rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_group_banking
 
-    rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_group_healthcare
+        rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_group_healthcare
 
-    else -> R.string.rules_group_other
+        else -> R.string.rules_group_other
+    }
 }
 
-/** A short plain-language summary for the built-in rules, or null for a custom one. */
+/**
+ * A short plain-language summary for the built-in rules, or null for anything else.
+ * Only system templates are matched on their name; a custom rule never gets a
+ * built-in description (see [ruleGroupTitle]) and is summarised from its own
+ * conditions instead.
+ */
 @StringRes
-private fun ruleConditionSummary(rule: TransactionRule): Int? = when {
-    rule.name.contains("Small Payments", ignoreCase = true) -> R.string.rules_summary_small_payments
-    rule.name.contains("UPI Cashback", ignoreCase = true) -> R.string.rules_summary_upi_cashback
-    rule.name.contains("Salary", ignoreCase = true) -> R.string.rules_summary_salary
-    rule.name.contains("Rent", ignoreCase = true) -> R.string.rules_summary_rent
-    rule.name.contains("EMI", ignoreCase = true) -> R.string.rules_summary_emi
-    rule.name.contains("Investment", ignoreCase = true) -> R.string.rules_summary_investment
-    rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_summary_subscription
-    rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_summary_fuel
-    rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_summary_healthcare
-    rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_summary_transfer
-    else -> null
+private fun ruleConditionSummary(rule: TransactionRule): Int? {
+    if (!rule.isSystemTemplate) return null
+    return when {
+        rule.name.contains("Small Payments", ignoreCase = true) -> R.string.rules_summary_small_payments
+        rule.name.contains("UPI Cashback", ignoreCase = true) -> R.string.rules_summary_upi_cashback
+        rule.name.contains("Salary", ignoreCase = true) -> R.string.rules_summary_salary
+        rule.name.contains("Rent", ignoreCase = true) -> R.string.rules_summary_rent
+        rule.name.contains("EMI", ignoreCase = true) -> R.string.rules_summary_emi
+        rule.name.contains("Investment", ignoreCase = true) -> R.string.rules_summary_investment
+        rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_summary_subscription
+        rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_summary_fuel
+        rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_summary_healthcare
+        rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_summary_transfer
+        else -> null
+    }
+}
+
+/** The info-icon line under a rule row's description. */
+@Composable
+private fun RuleSummaryLine(text: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Iconax.Information,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }
 
 /**
@@ -477,24 +515,18 @@ private fun RuleRow(
                 )
             }
 
-            // Show simple condition summary
-            ruleConditionSummary(rule)?.let { summaryRes ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Iconax.Information,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(summaryRes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+            // Built-in rules read their shipped summary; a custom rule without a
+            // description of its own reads as "When <conditions>, <actions>",
+            // built from what it actually does.
+            val builtInSummary = ruleConditionSummary(rule)
+            if (builtInSummary != null) {
+                RuleSummaryLine(text = stringResource(builtInSummary))
+            } else if (!rule.isSystemTemplate &&
+                rule.description.isNullOrBlank() &&
+                rule.conditions.isNotEmpty() &&
+                rule.actions.isNotEmpty()
+            ) {
+                RuleSummaryLine(text = ruleSummarySentence(rule.conditions, rule.actions))
             }
 
             // Priority tag (only shown for a non-default priority)

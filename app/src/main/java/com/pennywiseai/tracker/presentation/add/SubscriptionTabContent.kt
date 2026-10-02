@@ -285,7 +285,8 @@ fun SubscriptionTabContent(
             onApply = { amount ->
                 viewModel.updateSubscriptionAmount(amount)
                 showAmountCalculator = false
-            }
+            },
+            currencyCode = uiState.currency
         )
     }
 

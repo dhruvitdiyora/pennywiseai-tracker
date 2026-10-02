@@ -548,15 +548,20 @@ class TransactionDetailViewModel @Inject constructor(
         validateMerchantName(name)
     }
     
+    /**
+     * Takes the amount field's raw text. A positive number is stored as typed. Empty,
+     * unparseable or non-positive text is stored as zero rather than ignored, so the
+     * entity can never keep a stale positive amount while the field shows something
+     * else: [saveChanges] refuses a zero amount. The field flags the invalid text
+     * inline (see TxnEditAmountField), so no snackbar is raised here for it.
+     */
     fun updateAmount(amountStr: String) {
-        val amount = amountStr.toBigDecimalOrNull()
-        if (amount != null && amount > BigDecimal.ZERO) {
-            _editableTransaction.update { current ->
-                current?.copy(amount = amount)
-            }
+        val amount = amountStr.toBigDecimalOrNull()?.takeIf { it > BigDecimal.ZERO }
+        _editableTransaction.update { current ->
+            current?.copy(amount = amount ?: BigDecimal.ZERO)
+        }
+        if (amount != null) {
             _errorMessage.value = null
-        } else if (amountStr.isNotEmpty()) {
-            _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive_number)
         }
     }
     
@@ -738,6 +743,12 @@ class TransactionDetailViewModel @Inject constructor(
         // Splits are for spends: account expenses and credit-card purchases (#750).
         if (transaction.transactionType !in SPLITTABLE_TYPES) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_splits_unavailable)
+            return
+        }
+
+        // Nothing to split while the amount field holds an invalid (zero) figure.
+        if (transaction.amount <= BigDecimal.ZERO) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive)
             return
         }
 

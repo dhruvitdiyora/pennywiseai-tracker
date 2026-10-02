@@ -49,6 +49,10 @@ import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,7 +69,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
@@ -540,44 +546,54 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // Build a real cash-account portfolio history for the expanded Home card.
             // All history stays native unless unified mode is explicitly enabled.
-            val trendEndDate = LocalDate.now()
-            val trendStartDate = trendEndDate.minusDays(BALANCE_TREND_DAYS - 1L)
-            combine(
-                accountBalanceRepository.getBalanceTrendRows(
-                    startDate = trendStartDate.atStartOfDay(),
-                    endDate = trendEndDate.atTime(java.time.LocalTime.MAX),
-                ),
-                userPreferencesRepository.selectedProfileId,
-                userPreferencesRepository.unifiedCurrencyMode,
-                selectedCurrencyForTrend.filterNotNull(),
-                currencyConversionService.getAllRatesFlow(),
-            ) { balances, profileId, unifiedMode, selectedCurrency, _ ->
-                BalanceTrendInputs(
-                    balances = balances,
-                    profileId = profileId,
-                    unifiedMode = unifiedMode,
-                    selectedCurrency = selectedCurrency,
-                )
-            }.combine(hiddenAccountKeysForTrend) { inputs, hiddenAccounts ->
-                inputs.copy(hiddenAccounts = hiddenAccounts)
-            }.collect { inputs ->
-                val trend = buildBalanceTrend(
-                    balances = inputs.balances,
-                    startDate = trendStartDate,
-                    endDate = trendEndDate,
-                    selectedProfileId = inputs.profileId,
-                    hiddenAccounts = inputs.hiddenAccounts,
-                    selectedCurrency = inputs.selectedCurrency,
-                    unifiedMode = inputs.unifiedMode,
-                    convert = { amount, fromCurrency, toCurrency ->
-                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, toCurrency)
-                    },
-                )
-                _uiState.value = _uiState.value.copy(
-                    balanceHistory = trend.values,
-                    isBalanceHistoryApproximate = trend.isApproximate,
-                )
-            }
+            //
+            // The window is derived from today's date inside the flow (not captured
+            // once when the ViewModel is created), so it rolls forward at midnight:
+            // flatMapLatest re-queries the DAO with the new bounds and the chart
+            // window moves with it.
+            currentDateFlow()
+                .flatMapLatest { trendEndDate ->
+                    val trendStartDate = trendEndDate.minusDays(BALANCE_TREND_DAYS - 1L)
+                    combine(
+                        accountBalanceRepository.getBalanceTrendRows(
+                            startDate = trendStartDate.atStartOfDay(),
+                            endDate = trendEndDate.atTime(java.time.LocalTime.MAX),
+                        ),
+                        userPreferencesRepository.selectedProfileId,
+                        userPreferencesRepository.unifiedCurrencyMode,
+                        selectedCurrencyForTrend.filterNotNull(),
+                        currencyConversionService.getAllRatesFlow(),
+                    ) { balances, profileId, unifiedMode, selectedCurrency, _ ->
+                        BalanceTrendInputs(
+                            balances = balances,
+                            profileId = profileId,
+                            unifiedMode = unifiedMode,
+                            selectedCurrency = selectedCurrency,
+                            startDate = trendStartDate,
+                            endDate = trendEndDate,
+                        )
+                    }.combine(hiddenAccountKeysForTrend) { inputs, hiddenAccounts ->
+                        inputs.copy(hiddenAccounts = hiddenAccounts)
+                    }
+                }
+                .collect { inputs ->
+                    val trend = buildBalanceTrend(
+                        balances = inputs.balances,
+                        startDate = inputs.startDate,
+                        endDate = inputs.endDate,
+                        selectedProfileId = inputs.profileId,
+                        hiddenAccounts = inputs.hiddenAccounts,
+                        selectedCurrency = inputs.selectedCurrency,
+                        unifiedMode = inputs.unifiedMode,
+                        convert = { amount, fromCurrency, toCurrency ->
+                            currencyConversionService.convertAmountOrNull(amount, fromCurrency, toCurrency)
+                        },
+                    )
+                    _uiState.value = _uiState.value.copy(
+                        balanceHistory = trend.values,
+                        isBalanceHistoryApproximate = trend.isApproximate,
+                    )
+                }
         }
 
         viewModelScope.launch {
@@ -1769,5 +1785,38 @@ private data class BalanceTrendInputs(
     val profileId: Long?,
     val unifiedMode: Boolean,
     val selectedCurrency: String,
+    /** The chart window these [balances] were queried for (inclusive). */
+    val startDate: LocalDate,
+    val endDate: LocalDate,
     val hiddenAccounts: Set<String> = emptySet(),
 )
+
+/** Longest we sleep between date checks, see [currentDateFlow]. */
+private const val CURRENT_DATE_MAX_STEP_MILLIS = 60_000L
+
+/**
+ * Emits today's date now and again each time it changes, so a long-lived
+ * ViewModel can roll a "last N days" window forward at midnight instead of
+ * freezing it at the day the ViewModel was created.
+ *
+ * It sleeps until the next local midnight but never more than a minute at a time.
+ * Coroutine delays on Android run on uptime, which stops while the device sleeps,
+ * so one long delay could fire many hours late after an overnight sleep; a
+ * short step re-reads the wall clock and keeps the lateness bounded. Waking once
+ * a minute to compare two dates is negligible and doesn't wake a sleeping device.
+ *
+ * [now] is injectable so tests can drive it from virtual time.
+ */
+internal fun currentDateFlow(
+    now: () -> LocalDateTime = { LocalDateTime.now() },
+): Flow<LocalDate> = flow {
+    while (true) {
+        val current = now()
+        emit(current.toLocalDate())
+        val untilMidnightMillis = Duration.between(
+            current,
+            current.toLocalDate().plusDays(1).atStartOfDay(),
+        ).toMillis()
+        delay(untilMidnightMillis.coerceIn(1L, CURRENT_DATE_MAX_STEP_MILLIS))
+    }
+}.distinctUntilChanged()

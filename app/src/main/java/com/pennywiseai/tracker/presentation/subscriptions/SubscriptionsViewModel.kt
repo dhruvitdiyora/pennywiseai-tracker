@@ -12,8 +12,6 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
-import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
-import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -65,41 +63,9 @@ class SubscriptionsViewModel @Inject constructor(
                 val isUnified = values[2] as Boolean
                 val displayCurrency = values[3] as String
                 val baseCurrency = values[4] as String
-                // Unified mode collapses everything into displayCurrency, so a
-                // single figure is honest. Native mode keeps each currency apart —
-                // a ₹ + $ mix can't be one figure — so we expose a per-currency map
-                // the header renders as "₹399 · $30" (no sub silently dropped).
-                val totalMonthlyAmount = if (isUnified) {
-                    var total = BigDecimal.ZERO
-                    for (sub in subscriptions) {
-                        total += currencyConversionService.convertAmountOrNull(
-                            SubscriptionBillingCycle.monthlyEquivalent(sub.amount, sub.billingCycle),
-                            sub.currency,
-                            displayCurrency
-                        ) ?: continue // never-rated pair — skip, don't face-value (#670)
-                    }
-                    total
-                } else {
-                    BigDecimal.ZERO
-                }
-                val totalByCurrency: Map<String, Money> = if (isUnified) {
-                    emptyMap()
-                } else {
-                    subscriptions
-                        .groupBy { it.currency }
-                        .mapValues { (currency, rows) ->
-                            Money(
-                                rows.fold(BigDecimal.ZERO) { total, sub ->
-                                    total + SubscriptionBillingCycle.monthlyEquivalent(
-                                        sub.amount,
-                                        sub.billingCycle
-                                    )
-                                },
-                                currency
-                            )
-                        }
-                }
-
+                // Header totals are derived in the screen from the expense-only
+                // `expenseSubscriptionTotals` helper (SubscriptionTotals.kt), which
+                // keeps each currency apart and excludes income subscriptions.
                 val convertedAmounts = if (isUnified) {
                     val map = mutableMapOf<Long, BigDecimal>()
                     for (sub in subscriptions) {
@@ -144,8 +110,6 @@ class SubscriptionsViewModel @Inject constructor(
                     paidThisCycleIds = paidIds,
                     paidThisCycleCount = paid.size,
                     endedSubscriptions = endedSubscriptions,
-                    totalMonthlyAmount = totalMonthlyAmount,
-                    totalByCurrency = totalByCurrency,
                     convertedAmounts = convertedAmounts,
                     displayCurrency = if (isUnified) displayCurrency else baseCurrency,
                     isUnifiedMode = isUnified,
@@ -319,10 +283,6 @@ data class SubscriptionsUiState(
     /** Count of subs in [activeSubscriptions] whose current cycle is paid. */
     val paidThisCycleCount: Int = 0,
     val endedSubscriptions: List<SubscriptionEntity> = emptyList(),
-    /** Unified-mode header total, already converted to [displayCurrency]. */
-    val totalMonthlyAmount: BigDecimal = BigDecimal.ZERO,
-    /** Native-mode header totals, kept per-currency so no sub is dropped. */
-    val totalByCurrency: Map<String, Money> = emptyMap(),
     val convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val displayCurrency: String? = null,
     val isUnifiedMode: Boolean = false,

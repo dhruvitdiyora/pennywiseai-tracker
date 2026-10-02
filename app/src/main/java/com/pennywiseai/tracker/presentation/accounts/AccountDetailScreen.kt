@@ -115,6 +115,13 @@ fun AccountDetailScreen(
                     primaryCurrency = uiState.primaryCurrency,
                     billedOutstanding = uiState.billedOutstanding,
                     unbilledOutstanding = uiState.unbilledOutstanding,
+                    isCardAccount = uiState.currentBalance?.let {
+                        it.isCreditCard ||
+                            it.creditLimit != null ||
+                            it.accountType.equals(AccountType.CREDIT.name, ignoreCase = true)
+                    } == true,
+                    isCashAccount = uiState.currentBalance?.accountType
+                        .equals(AccountType.CASH.name, ignoreCase = true),
                     modifier = Modifier
                         .padding(horizontal = gutter)
                         .padding(bottom = sectionGap)
@@ -284,6 +291,9 @@ private fun ExpandableBalanceChart(
     }
 }
 
+/** The placeholder last4 Manage Accounts gives a cash account that has no number. */
+private const val CASH_ACCOUNT_LAST4 = "CASH"
+
 /**
  * The account's identity card: the bank's logo tiled faintly behind the
  * balance, with the bank (or the user's alias) and a masked number plus the
@@ -304,7 +314,11 @@ private fun AccountBalanceCard(
     primaryCurrency: String,
     modifier: Modifier = Modifier,
     billedOutstanding: BigDecimal? = null,
-    unbilledOutstanding: BigDecimal? = null
+    unbilledOutstanding: BigDecimal? = null,
+    /** True for a credit card: the only kind of account whose number is shown card-style. */
+    isCardAccount: Boolean = false,
+    /** True for a cash account, whose placeholder last4 ("CASH") is not a number. */
+    isCashAccount: Boolean = false
 ) {
     val isCreditCard = creditLimit != null
     val headlineLabel = if (isCreditCard) {
@@ -317,11 +331,17 @@ private fun AccountBalanceCard(
     val cardColor = MaterialTheme.colorScheme.surfaceContainer
     val stripColor = MaterialTheme.colorScheme.surfaceContainerLow
 
-    // Wallets have no number to mask. With an alias on top, the bank name moves
-    // to the supporting line so the card still says which bank it is.
+    // Wallets and cash accounts have no number to show. Only a card gets the
+    // four-group card mask; any other account (savings, current, manual) shows the
+    // short "••1234" form used everywhere else. With an alias on top, the bank name
+    // moves to the supporting line so the card still says which bank it is.
     val maskedNumber = accountLast4
-        .takeIf { it.isNotBlank() && it != AccountBalanceEntity.WALLET_ACCOUNT_MARKER }
-        ?.let { "•••• •••• •••• $it" }
+        .takeIf {
+            it.isNotBlank() &&
+                it != AccountBalanceEntity.WALLET_ACCOUNT_MARKER &&
+                !(isCashAccount && it.equals(CASH_ACCOUNT_LAST4, ignoreCase = true))
+        }
+        ?.let { last4 -> if (isCardAccount) "•••• •••• •••• $last4" else "••$last4" }
     val supportingLine = listOfNotNull(bankName.takeIf { alias != null }, maskedNumber)
         .joinToString(" · ")
         .ifBlank { null }

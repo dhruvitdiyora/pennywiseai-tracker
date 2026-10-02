@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.PersonEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -69,5 +70,57 @@ class LoanRepositoryManualEntryTest {
         assertEquals(loanId, transactions.single().loanId)
         assertEquals(TransactionType.EXPENSE, transactions.single().transactionType)
         assertEquals("Train tickets", transactions.single().description)
+    }
+
+    @Test
+    fun addingLoanUnderArchivedPersonsNameRevivesThemInsteadOfDuplicating() = runBlocking {
+        val firstLoanId = repository.createManualLoan(
+            personName = "Casey",
+            direction = LoanDirection.LENT,
+            amount = BigDecimal("100"),
+            currency = "INR",
+            note = null,
+        )
+        val personId = repository.getLoanById(firstLoanId)!!.personId!!
+        val people = PersonRepository(database.personDao(), database.loanDao(), database)
+        // Has loan history, so "delete" only archives.
+        assertEquals(false, people.deleteOrArchivePerson(personId))
+        assertEquals(true, people.getPerson(personId)?.isArchived)
+
+        val secondLoanId = repository.createManualLoan(
+            personName = "  CASEY ",
+            direction = LoanDirection.BORROWED,
+            amount = BigDecimal("40"),
+            currency = "INR",
+            note = null,
+        )
+
+        val second = repository.getLoanById(secondLoanId)!!
+        assertEquals(personId, second.personId)
+        assertEquals("Casey", second.personName)
+        assertEquals(false, people.getPerson(personId)?.isArchived)
+        assertEquals(1, database.personDao().getAllPeopleSync().size)
+        assertEquals(2, database.loanDao().getLoansByPersonOnce(personId).size)
+    }
+
+    @Test
+    fun activePersonIsPreferredOverAnArchivedNamesake() = runBlocking {
+        val archivedId = database.personDao().insertPerson(
+            PersonEntity(name = "Casey", normalizedName = "casey", isArchived = true)
+        )
+        val activeId = database.personDao().insertPerson(
+            PersonEntity(name = "Casey", normalizedName = "casey")
+        )
+
+        val loanId = repository.createManualLoan(
+            personName = "casey",
+            direction = LoanDirection.LENT,
+            amount = BigDecimal("10"),
+            currency = "INR",
+            note = null,
+        )
+
+        assertEquals(activeId, repository.getLoanById(loanId)?.personId)
+        assertEquals(true, database.personDao().getPersonById(archivedId)?.isArchived)
     }
 }

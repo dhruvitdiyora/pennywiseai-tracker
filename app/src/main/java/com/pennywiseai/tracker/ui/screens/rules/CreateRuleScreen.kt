@@ -682,8 +682,9 @@ private fun RulePreviewCard(
     }
 }
 
+/** Callers must pass non-empty lists (a valid rule has both); an empty list cannot be reduced to a sentence. */
 @Composable
-private fun ruleSummarySentence(
+internal fun ruleSummarySentence(
     conditions: List<RuleCondition>,
     actions: List<RuleAction>
 ): String {

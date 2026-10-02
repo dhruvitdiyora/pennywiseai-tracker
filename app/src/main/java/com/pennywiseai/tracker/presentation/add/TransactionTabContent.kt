@@ -318,7 +318,8 @@ fun TransactionTabContent(
             onApply = { amount ->
                 viewModel.updateTransactionAmount(amount)
                 showAmountCalculator = false
-            }
+            },
+            currencyCode = uiState.currency
         )
     }
 

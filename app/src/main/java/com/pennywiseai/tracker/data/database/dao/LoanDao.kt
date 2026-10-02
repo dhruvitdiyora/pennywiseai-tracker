@@ -66,6 +66,16 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE person_id = :personId ORDER BY created_at DESC")
     suspend fun getLoansByPersonOnce(personId: Long): List<LoanEntity>
 
+    /**
+     * Keeps each loan's `person_name` snapshot in step with its person when the
+     * person is renamed. The Loans screen groups by name and the legacy
+     * name-based lookups match on it, so a stale snapshot splits one person into
+     * two rows. `updated_at` is deliberately left alone: renaming does not change
+     * the loan's recency ordering.
+     */
+    @Query("UPDATE loans SET person_name = :personName WHERE person_id = :personId")
+    suspend fun updatePersonNameForPerson(personId: Long, personName: String): Int
+
     @Query("""
         SELECT * FROM loans
         WHERE person_id = :personId

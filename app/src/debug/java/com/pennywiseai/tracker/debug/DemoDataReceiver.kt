@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.PersonEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -16,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.util.Locale
 
 /**
  * Debug-only demo data seeder (never in release builds), so UI work can be
@@ -109,9 +111,22 @@ class DemoDataReceiver : BroadcastReceiver() {
             )
         }
 
+        // The loan needs a people row to show up in Contacts / the Personal
+        // dashboard, which list people (not loans). Reuse the demo person if a
+        // previous seed already created one so repeat seeds don't pile up duplicates.
+        val people = db.personDao()
+        val normalizedLoanPerson = LOAN_PERSON.trim().lowercase(Locale.ROOT)
+        val loanPersonId = people.getActivePersonByNormalizedName(normalizedLoanPerson)?.id
+            ?: people.insertPerson(
+                PersonEntity(
+                    name = LOAN_PERSON,
+                    normalizedName = normalizedLoanPerson,
+                )
+            )
         db.loanDao().insertLoan(
             LoanEntity(
-                personName = "Alex Example",
+                personName = LOAN_PERSON,
+                personId = loanPersonId,
                 direction = LoanDirection.LENT,
                 originalAmount = BigDecimal(3_000),
                 remainingAmount = BigDecimal(1_800),
@@ -160,5 +175,6 @@ class DemoDataReceiver : BroadcastReceiver() {
         const val TAG = "DemoData"
         const val BANK = "Example Bank"
         const val BANK_LAST4 = "1234"
+        const val LOAN_PERSON = "Alex Example"
     }
 }

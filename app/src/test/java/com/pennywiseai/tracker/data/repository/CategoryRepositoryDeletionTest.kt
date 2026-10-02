@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryMonthSnapshotEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
@@ -127,6 +128,73 @@ class CategoryRepositoryDeletionTest {
         assertNotNull(rule)
         assertTrue(rule!!.conditions.contains("Salary"))
         assertFalse(rule.conditions.contains("Side Work"))
+        assertEquals(null, database.categoryDao().getCategoryById(sourceId))
+    }
+
+    @Test
+    fun incomeBudgetCategoryIsRetargetedAndCountedOncePerRow() = runBlocking {
+        val sourceId = repository.createCategory("Old bucket", "#111111")
+        val targetId = repository.createCategory("New bucket", "#222222")
+        val now = LocalDateTime.of(2026, 9, 7, 12, 0)
+
+        // Refund row: income category differs, only `budget_category` names the source.
+        val refundId = database.transactionDao().insertTransaction(
+            TransactionEntity(
+                amount = BigDecimal("30"),
+                merchantName = "Example refund",
+                category = "Salary",
+                transactionType = TransactionType.INCOME,
+                dateTime = now,
+                transactionHash = "budget-category-refund",
+                budgetCategory = "Old bucket",
+                budgetImpactType = BudgetImpactType.DEDUCT_SPENT,
+            )
+        )
+        // Extra-budget row that is also (oddly) categorised with the source name:
+        // both columns match, but it is still one row in the impact count.
+        val bothId = database.transactionDao().insertTransaction(
+            TransactionEntity(
+                amount = BigDecimal("50"),
+                merchantName = "Example extra budget",
+                category = "Old bucket",
+                transactionType = TransactionType.INCOME,
+                dateTime = now,
+                transactionHash = "budget-category-both",
+                budgetCategory = "Old bucket",
+                budgetImpactType = BudgetImpactType.ADD_TO_LIMIT,
+            )
+        )
+        // Unrelated budget category must be left alone.
+        val otherId = database.transactionDao().insertTransaction(
+            TransactionEntity(
+                amount = BigDecimal("5"),
+                merchantName = "Example other",
+                category = "Salary",
+                transactionType = TransactionType.INCOME,
+                dateTime = now,
+                transactionHash = "budget-category-other",
+                budgetCategory = "Unrelated bucket",
+                budgetImpactType = BudgetImpactType.DEDUCT_SPENT,
+            )
+        )
+
+        val impact = repository.getCategoryDeletionImpact(sourceId)
+        assertEquals(2, impact?.transactionCount)
+        assertEquals(2, impact?.totalReferences)
+
+        // Only budget_category references still require an explicit replacement.
+        assertTrue(repository.deleteOrReassignCategory(sourceId, null) is CategoryDeletionResult.TargetRequired)
+        assertTrue(repository.deleteOrReassignCategory(sourceId, targetId) is CategoryDeletionResult.Deleted)
+
+        val refund = database.transactionDao().getTransactionById(refundId)!!
+        assertEquals("New bucket", refund.budgetCategory)
+        assertEquals("Salary", refund.category)
+        assertEquals(BudgetImpactType.DEDUCT_SPENT, refund.budgetImpactType)
+        val both = database.transactionDao().getTransactionById(bothId)!!
+        assertEquals("New bucket", both.budgetCategory)
+        assertEquals("New bucket", both.category)
+        assertEquals(BudgetImpactType.ADD_TO_LIMIT, both.budgetImpactType)
+        assertEquals("Unrelated bucket", database.transactionDao().getTransactionById(otherId)?.budgetCategory)
         assertEquals(null, database.categoryDao().getCategoryById(sourceId))
     }
 
