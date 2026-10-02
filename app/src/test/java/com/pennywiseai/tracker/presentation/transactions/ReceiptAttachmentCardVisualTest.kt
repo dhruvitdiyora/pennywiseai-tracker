@@ -10,13 +10,19 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import coil.Coil
+import coil.ImageLoader
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import kotlinx.coroutines.Dispatchers
+import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,6 +35,23 @@ import org.robolectric.annotation.GraphicsMode
 class ReceiptAttachmentCardVisualTest {
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    // Coil loads on background threads by default, so the capture could race
+    // the image and record either the drawable or a blank card. Loading on the
+    // main thread makes the screenshot deterministic.
+    @Before
+    fun useMainThreadImageLoader() {
+        Coil.setImageLoader(
+            ImageLoader.Builder(ApplicationProvider.getApplicationContext())
+                .dispatcher(Dispatchers.Main.immediate)
+                .build()
+        )
+    }
+
+    @After
+    fun resetImageLoader() {
+        Coil.reset()
+    }
 
     @Test
     fun receiptCard_light() {

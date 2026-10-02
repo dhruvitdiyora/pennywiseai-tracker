@@ -5,11 +5,11 @@
     <!-- Heading of the tile card under the profile header. -->
     <string name="profile_page_glance_title">At a glance</string>
     <!-- Tile label: the number of open lend & borrow records where the user is owed money. -->
-    <string name="profile_page_stat_lent">Lent records</string>
+    <string name="profile_page_stat_lent">Lent</string>
     <!-- Tile label: the number of open lend & borrow records where the user owes money. -->
-    <string name="profile_page_stat_borrowed">Borrowed records</string>
+    <string name="profile_page_stat_borrowed">Borrowed</string>
     <!-- Tile label: the number of lend & borrow records that are fully settled. -->
-    <string name="profile_page_stat_settled">Settled records</string>
+    <string name="profile_page_stat_settled">Settled</string>
     <!-- Tile label: how many different currencies have an open balance. -->
     <string name="profile_page_stat_currencies">Currencies</string>
 </resources>
