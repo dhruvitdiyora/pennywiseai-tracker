@@ -534,6 +534,30 @@ rows, routes, and inline data-management behavior.
 Verification completed on 2026-09-10: focused light/dark semantics and Roborazzi
 baselines pass for the Currency and Main Account fields.
 
+## Implemented — Cashiro-style Settings root
+
+**Decision:** The Settings root is now a short index like Cashiro's: the
+profile card, the Pro / Support row, then space-separated groups of
+navigation rows with a distinct pastel `IconTile` hue per neighbouring row.
+Inline toggles, pickers and data actions moved one level down into four
+sub-screens built on `SettingsSubScreen` (large collapsing title):
+
+- **Currency & formats** — unified currency, display currency, exchange
+  rates, card spend as expense, default currency, main account, number
+  format, budget cycle start day.
+- **Backup & import** — export, scheduled folder backup (Pro gate + folder
+  picker), back up now, change folder, import backup, CSV, statement,
+  unrecognized SMS, SMS scan period, delete all transactions.
+- **Privacy & security** — app lock, lock timeout, contacts-for-VPA
+  permission toggle, Data & privacy.
+- **Advanced** — notification access, on-device AI model, developer mode.
+
+Each sub-screen owns the dialogs and launchers its controls need; preferences,
+callbacks and Pro/F-Droid conditionals are unchanged — only their location.
+Manage-data destinations (accounts, categories, rules, budgets, loans,
+recurring, groups), Appearance, Language, Profiles, Help, Report issue and
+About stay on the root.
+
 ## Future reviewed candidate — Personal dashboard identity editor
 
 **Decision:** Awaiting product-owner approval, including the entitlement choice

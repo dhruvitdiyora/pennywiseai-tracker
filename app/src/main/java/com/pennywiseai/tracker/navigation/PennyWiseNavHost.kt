@@ -117,20 +117,11 @@ fun PennyWiseNavHost(
                 onNavigateToCategories = {
                     navController.navigate(Categories) { launchSingleTop = true }
                 },
-                onNavigateToUnrecognizedSms = {
-                    navController.navigate(UnrecognizedSms) { launchSingleTop = true }
-                },
                 onNavigateToFaq = {
                     navController.navigate(Faq) { launchSingleTop = true }
                 },
                 onNavigateToBudgets = {
                     navController.navigate(BudgetGroups) { launchSingleTop = true }
-                },
-                onNavigateToExchangeRates = {
-                    navController.navigate(ExchangeRates) { launchSingleTop = true }
-                },
-                onNavigateToImportStatement = {
-                    navController.navigate(ImportStatement) { launchSingleTop = true }
                 },
                 onNavigateToTransactionGroups = {
                     navController.navigate(TransactionGroups) { launchSingleTop = true }
@@ -138,6 +129,71 @@ fun PennyWiseNavHost(
                 onNavigateToPersonalDashboard = {
                     navController.navigate(PersonalDashboard) { launchSingleTop = true }
                 },
+                onNavigateToCurrencyFormats = {
+                    navController.navigate(SettingsCurrencyFormats) { launchSingleTop = true }
+                },
+                onNavigateToBackupImport = {
+                    navController.navigate(SettingsBackupImport) { launchSingleTop = true }
+                },
+                onNavigateToPrivacySecurity = {
+                    navController.navigate(SettingsPrivacySecurity) { launchSingleTop = true }
+                },
+                onNavigateToAdvanced = {
+                    navController.navigate(SettingsAdvanced) { launchSingleTop = true }
+                },
+            )
+        }
+
+        composable<SettingsCurrencyFormats>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.ui.screens.settings.CurrencyFormatsSettingsScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateToExchangeRates = {
+                    navController.navigate(ExchangeRates) { launchSingleTop = true }
+                },
+            )
+        }
+
+        composable<SettingsBackupImport>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.ui.screens.settings.BackupImportSettingsScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateToImportStatement = {
+                    navController.navigate(ImportStatement) { launchSingleTop = true }
+                },
+                onNavigateToUnrecognizedSms = {
+                    navController.navigate(UnrecognizedSms) { launchSingleTop = true }
+                },
+            )
+        }
+
+        composable<SettingsPrivacySecurity>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.ui.screens.settings.PrivacySecuritySettingsScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+            )
+        }
+
+        composable<SettingsAdvanced>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.ui.screens.settings.AdvancedSettingsScreen(
+                onNavigateBack = { navController.safePopBackStack() },
             )
         }
 

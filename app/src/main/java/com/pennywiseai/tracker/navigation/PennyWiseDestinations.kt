@@ -22,6 +22,18 @@ object Transactions
 object Settings
 
 @Serializable
+object SettingsCurrencyFormats
+
+@Serializable
+object SettingsBackupImport
+
+@Serializable
+object SettingsPrivacySecurity
+
+@Serializable
+object SettingsAdvanced
+
+@Serializable
 object Categories
 
 @Serializable

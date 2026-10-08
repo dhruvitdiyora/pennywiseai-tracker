@@ -40,10 +40,18 @@ class SettingsDataSectionsVisualTest {
     fun manageData_light() {
         var accountsRequested = false
         setContent(darkTheme = false) {
-            DataSections(onManageAccounts = { accountsRequested = true })
+            SettingsManageDataGroup(
+                onNavigateToManageAccounts = { accountsRequested = true },
+                onNavigateToCategories = {},
+                onNavigateToRules = {},
+                onNavigateToBudgets = {},
+                onNavigateToLoans = {},
+                onNavigateToRecurring = {},
+                onNavigateToTransactionGroups = {},
+            )
         }
 
-        composeTestRule.onNodeWithText("Manage data").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Manage Accounts").assertIsDisplayed()
         composeTestRule.onNodeWithText("Manage Accounts").performClick()
         assertTrue(accountsRequested)
         composeTestRule.onRoot().captureRoboImage()
@@ -64,9 +72,8 @@ class SettingsDataSectionsVisualTest {
     @Composable
     private fun DataSections(
         scheduledBackupEnabled: Boolean = false,
-        onManageAccounts: () -> Unit = {},
     ) {
-        SettingsDataSections(
+        SettingsBackupSections(
             scheduledFolderBackupEnabled = scheduledBackupEnabled,
             scheduledFolderBackupLastTimestamp = null,
             isProEntitled = true,
@@ -74,13 +81,6 @@ class SettingsDataSectionsVisualTest {
             smsScanUseCustomDate = false,
             smsScanCustomDate = null,
             smsScanMonths = 6,
-            onNavigateToManageAccounts = onManageAccounts,
-            onNavigateToCategories = {},
-            onNavigateToRules = {},
-            onNavigateToBudgets = {},
-            onNavigateToLoans = {},
-            onNavigateToRecurring = {},
-            onNavigateToTransactionGroups = {},
             onExportData = {},
             onScheduledFolderBackupChange = {},
             onBackupNow = {},

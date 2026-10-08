@@ -46,6 +46,10 @@ import com.pennywiseai.tracker.ui.components.WhatsNewDialog
 import com.pennywiseai.tracker.ui.screens.settings.AboutScreen
 import com.pennywiseai.tracker.ui.screens.settings.AppearanceScreen
 import com.pennywiseai.tracker.ui.screens.settings.DataPrivacyScreen
+import com.pennywiseai.tracker.ui.screens.settings.AdvancedSettingsScreen
+import com.pennywiseai.tracker.ui.screens.settings.BackupImportSettingsScreen
+import com.pennywiseai.tracker.ui.screens.settings.CurrencyFormatsSettingsScreen
+import com.pennywiseai.tracker.ui.screens.settings.PrivacySecuritySettingsScreen
 import com.pennywiseai.tracker.ui.screens.settings.FAQScreen
 import com.pennywiseai.tracker.ui.screens.settings.LicensesScreen
 import com.pennywiseai.tracker.ui.screens.settings.ProfileScreen
@@ -451,11 +455,6 @@ fun MainScreen(
                                     launchSingleTop = true
                                 }
                             },
-                            onNavigateToUnrecognizedSms = {
-                                navController.navigate("unrecognized_sms") {
-                                    launchSingleTop = true
-                                }
-                            },
                             onNavigateToManageAccounts = {
                                 navController.navigate("manage_accounts") {
                                     launchSingleTop = true
@@ -486,11 +485,6 @@ fun MainScreen(
                                     com.pennywiseai.tracker.navigation.RecurringTransactions
                                 ) { launchSingleTop = true }
                             },
-                            onNavigateToExchangeRates = {
-                                rootNavController?.navigate(
-                                    com.pennywiseai.tracker.navigation.ExchangeRates
-                                ) { launchSingleTop = true }
-                            },
                             onNavigateToAppearance = {
                                 navController.navigate("appearance") {
                                     launchSingleTop = true
@@ -506,18 +500,28 @@ fun MainScreen(
                                     com.pennywiseai.tracker.navigation.PersonalDashboard
                                 ) { launchSingleTop = true }
                             },
+                            onNavigateToCurrencyFormats = {
+                                navController.navigate("settings_currency") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToBackupImport = {
+                                navController.navigate("settings_backup") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToPrivacySecurity = {
+                                navController.navigate("settings_security") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToAdvanced = {
+                                navController.navigate("settings_advanced") {
+                                    launchSingleTop = true
+                                }
+                            },
                             onNavigateToAbout = {
                                 navController.navigate("about") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToDataPrivacy = {
-                                navController.navigate("data_privacy") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToImportStatement = {
-                                navController.navigate("import_statement") {
                                     launchSingleTop = true
                                 }
                             },
@@ -526,6 +530,70 @@ fun MainScreen(
                                     com.pennywiseai.tracker.navigation.TransactionGroups
                                 ) { launchSingleTop = true }
                             }
+                        )
+                    }
+                )
+
+                composable(
+                    route = "settings_currency",
+                    content = { _: NavBackStackEntry ->
+                        CurrencyFormatsSettingsScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
+                            onNavigateToExchangeRates = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.ExchangeRates
+                                ) { launchSingleTop = true }
+                            },
+                        )
+                    }
+                )
+
+                composable(
+                    route = "settings_backup",
+                    content = { _: NavBackStackEntry ->
+                        BackupImportSettingsScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
+                            onNavigateToImportStatement = {
+                                navController.navigate("import_statement") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToUnrecognizedSms = {
+                                navController.navigate("unrecognized_sms") {
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
+                )
+
+                composable(
+                    route = "settings_security",
+                    content = { _: NavBackStackEntry ->
+                        PrivacySecuritySettingsScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
+                            onNavigateToDataPrivacy = {
+                                navController.navigate("data_privacy") {
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
+                )
+
+                composable(
+                    route = "settings_advanced",
+                    content = { _: NavBackStackEntry ->
+                        AdvancedSettingsScreen(
+                            onNavigateBack = {
+                                navController.safePopBackStack()
+                            },
                         )
                     }
                 )
