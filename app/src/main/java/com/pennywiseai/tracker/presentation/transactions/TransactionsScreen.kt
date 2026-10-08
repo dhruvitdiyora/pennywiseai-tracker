@@ -323,6 +323,9 @@ fun TransactionsScreen(
     // renders only the compact, centre-aligned bar (round back button, title
     // in the middle) instead of a large collapsing header.
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    // Large left title that collapses on scroll, like every other screen
+    // (Cashiro-style); bulk-select keeps the compact contextual bar.
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     // When the app bottom nav is overlaid on this screen (#635), it sits over an
@@ -355,7 +358,9 @@ fun TransactionsScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+            .nestedScroll(
+                (if (selectionMode) scrollBehavior else scrollBehaviorLarge).nestedScrollConnection
+            ),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             if (selectionMode) {
@@ -411,7 +416,7 @@ fun TransactionsScreen(
             } else {
                 CustomTitleTopAppBar(
                     scrollBehaviorSmall = scrollBehavior,
-                    scrollBehaviorLarge = scrollBehavior,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
                     title = stringResource(R.string.txn_list_title),
                     hasBackButton = showBackButton,
                     navigationContent = {

@@ -286,7 +286,9 @@ fun PennyWiseBottomNavigation(
                         ) {
                             Icon(imageVector = item.icon, contentDescription = title)
                             AnimatedVisibility(
-                                visible = selected,
+                                // With the round "more" button beside the bar there is no room for a
+                                // label on long titles ("Transactions"), so the pill alone marks it.
+                                visible = selected && actions.isEmpty(),
                                 enter = fadeIn() + expandHorizontally(MaterialTheme.motionScheme.fastSpatialSpec()),
                                 exit = fadeOut() + shrinkHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())
                             ) {

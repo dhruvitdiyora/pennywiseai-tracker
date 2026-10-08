@@ -148,17 +148,21 @@ fun HomeTopBar(
                         block = fun HazeEffectScope.() {
                             style = HazeDefaults.style(
                                 backgroundColor = Color.Transparent,
-                                blurRadius = 10.dp,
+                                tint = tint(pageBackground.copy(alpha = 0.6f)),
+                                blurRadius = 24.dp,
                                 noiseFactor = -1f,
                             )
-                            progressive =
-                                HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
                         }
                     ) else Modifier
                 )
+                // Content scrolling under the compact bar must not read through
+                // beside the title (the hero's chips and chart did).
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(pageBackground, Color.Transparent)
+                        colors = listOf(
+                            pageBackground,
+                            pageBackground.copy(alpha = if (blurEffects) 0.55f else 0.92f)
+                        )
                     )
                 )
                 .windowInsetsPadding(WindowInsets.statusBars)

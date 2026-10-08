@@ -33,6 +33,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -234,11 +235,12 @@ fun SettingsScreen(
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = scrollBehaviorSmall
+    // Large left title collapsing on scroll, matching the other screens.
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(

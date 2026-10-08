@@ -258,7 +258,12 @@ fun TransactionItem(
                         )
                     }
                 }
-                typeLabel?.let { SubtitleTag(text = it, color = amountColor) }
+                // Credit is already marked by the card icon beside the amount, so
+                // its chip is left out to keep the row on one line (Cashiro-style);
+                // the accessible subtitle still says it.
+                typeLabel
+                    ?.takeIf { transaction.transactionType != TransactionType.CREDIT }
+                    ?.let { SubtitleTag(text = it, color = amountColor) }
                 if (transaction.isRecurring) {
                     SubtitleTag(text = recurringLabel, color = colors.primary)
                 }
