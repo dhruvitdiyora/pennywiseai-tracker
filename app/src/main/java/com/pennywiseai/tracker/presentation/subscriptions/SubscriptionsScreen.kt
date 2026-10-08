@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -726,6 +728,49 @@ private fun SubscriptionsSectionHeader(
     )
 }
 
+/**
+ * One metadata pill on a subscription row (Cashiro-style): a fully rounded
+ * tonal chip with an optional leading icon. Single line, ellipsised, so a row
+ * of pills never wraps.
+ */
+@Composable
+private fun SubscriptionPill(
+    text: String,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    emphasized: Boolean = false,
+) {
+    Surface(
+        modifier = modifier,
+        color = containerColor,
+        contentColor = contentColor,
+        shape = CircleShape,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xxs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small),
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SwipeableSubscriptionItem(
@@ -742,6 +787,9 @@ internal fun SwipeableSubscriptionItem(
     onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, billingCycle: String, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit = { _, _, _, _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
+    // Display-only alias for the stored merchant (e.g. a resolved contact for
+    // a raw VPA); the stored name is never changed.
+    val merchantDisplay = LocalMerchantDisplay.current
     var showSmsBody by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -847,20 +895,21 @@ internal fun SwipeableSubscriptionItem(
                                 .padding(end = Spacing.sm)
                         ) {
                             Text(
-                                text = subscription.merchantName,
+                                text = merchantDisplay(subscription.merchantName)
+                                    ?: subscription.merchantName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                             
-                            // Metadata: [calendar] date or status, a dot, the billing
-                            // cycle, then the SMS marker - always ONE line, like
-                            // Cashiro's. The cycle label gives way (ellipsis) when the
-                            // column is narrow instead of wrapping, and the SMS marker
-                            // trails so it never pushes the date onto a second line.
-                            // The category stays off this line, on its own below.
-                            Spacer(modifier = Modifier.height(Spacing.xxs))
+                            // Metadata: ONE line of pills, like Cashiro's -
+                            // [calendar] date or status, paid state, billing
+                            // cycle, category. Overdue reads in the error
+                            // role, due within three days in the warning role.
+                            // The cycle / category pills give way (ellipsis)
+                            // first so the date never wraps onto a second line.
+                            Spacer(modifier = Modifier.height(Spacing.xs))
                             val dueStatus = subscriptionDueStatus(
                                 nextPaymentDate = subscription.nextPaymentDate,
                                 today = today,
@@ -871,9 +920,16 @@ internal fun SwipeableSubscriptionItem(
                                 SubscriptionDueStatusKind.DUE_TOMORROW,
                                 SubscriptionDueStatusKind.DUE_IN_DAYS,
                             ) && dueStatus.daysUntilDue != null && dueStatus.daysUntilDue <= 3L
-                            val statusColor = when {
-                                dueStatus.kind == SubscriptionDueStatusKind.OVERDUE ->
-                                    MaterialTheme.colorScheme.error
+                            val isOverdue = dueStatus.kind == SubscriptionDueStatusKind.OVERDUE
+                            val dateContainer = when {
+                                isOverdue -> MaterialTheme.colorScheme.errorContainer
+                                dueSoon -> MaterialTheme.colorScheme.warning.copy(
+                                    alpha = Dimensions.Alpha.tonalIconContainer
+                                )
+                                else -> MaterialTheme.colorScheme.surfaceContainerHighest
+                            }
+                            val dateContent = when {
+                                isOverdue -> MaterialTheme.colorScheme.onErrorContainer
                                 dueSoon -> MaterialTheme.colorScheme.warning
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
@@ -881,66 +937,65 @@ internal fun SwipeableSubscriptionItem(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (dueStatus.kind == SubscriptionDueStatusKind.NO_DATE) {
-                                    Text(
-                                        text = stringResource(R.string.subscriptions_no_date),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Iconax.Calendar,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = statusColor
-                                    )
-                                    Text(
-                                        text = when (dueStatus.kind) {
-                                            SubscriptionDueStatusKind.OVERDUE ->
-                                                stringResource(R.string.subscription_overdue)
-                                            SubscriptionDueStatusKind.DUE_TODAY ->
-                                                stringResource(R.string.subscriptions_due_today)
-                                            SubscriptionDueStatusKind.DUE_TOMORROW ->
-                                                stringResource(R.string.subscriptions_due_tomorrow)
-                                            SubscriptionDueStatusKind.DUE_IN_DAYS ->
-                                                pluralStringResource(
-                                                    R.plurals.subscriptions_due_in_days,
-                                                    (dueStatus.daysUntilDue ?: 0L).toInt(),
-                                                    dueStatus.daysUntilDue ?: 0L,
-                                                )
-                                            SubscriptionDueStatusKind.PAID,
-                                            SubscriptionDueStatusKind.LATER ->
-                                                dueStatus.date
-                                                    ?.let { formatCompactSubscriptionDate(it, today) }
-                                                    .orEmpty()
-                                            SubscriptionDueStatusKind.NO_DATE ->
-                                                stringResource(R.string.subscriptions_no_date)
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = statusColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                SubscriptionPill(
+                                    text = when (dueStatus.kind) {
+                                        SubscriptionDueStatusKind.OVERDUE ->
+                                            stringResource(R.string.subscription_overdue)
+                                        SubscriptionDueStatusKind.DUE_TODAY ->
+                                            stringResource(R.string.subscriptions_due_today)
+                                        SubscriptionDueStatusKind.DUE_TOMORROW ->
+                                            stringResource(R.string.subscriptions_due_tomorrow)
+                                        SubscriptionDueStatusKind.DUE_IN_DAYS ->
+                                            pluralStringResource(
+                                                R.plurals.subscriptions_due_in_days,
+                                                (dueStatus.daysUntilDue ?: 0L).toInt(),
+                                                dueStatus.daysUntilDue ?: 0L,
+                                            )
+                                        SubscriptionDueStatusKind.PAID,
+                                        SubscriptionDueStatusKind.LATER ->
+                                            dueStatus.date
+                                                ?.let { formatCompactSubscriptionDate(it, today) }
+                                                .orEmpty()
+                                        SubscriptionDueStatusKind.NO_DATE ->
+                                            stringResource(R.string.subscriptions_no_date)
+                                    },
+                                    containerColor = dateContainer,
+                                    contentColor = dateContent,
+                                    icon = Iconax.Calendar.takeIf {
+                                        dueStatus.kind != SubscriptionDueStatusKind.NO_DATE
+                                    },
+                                    emphasized = isOverdue || dueSoon,
+                                )
+                                // Paid this cycle (#412) - computed in the VM
+                                // (today-anchored cycle check, shared with the
+                                // partition sort).
+                                if (isPaidThisCycle) {
+                                    SubscriptionPill(
+                                        text = subscription.lastPaidAt?.let {
+                                            stringResource(
+                                                R.string.subscriptions_paid_on,
+                                                formatCompactSubscriptionDate(it, today),
+                                            )
+                                        } ?: stringResource(R.string.subscription_paid),
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        icon = Icons.Default.CheckCircle,
                                     )
                                 }
-                                Box(
-                                    modifier = Modifier
-                                        .padding(horizontal = Spacing.xxs)
-                                        .size(Spacing.xs)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            shape = CircleShape
-                                        )
-                                )
-                                Text(
+                                SubscriptionPill(
                                     text = subscriptionBillingCycleLabel(subscription.billingCycle),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.weight(1f, fill = false),
                                 )
+                                subscription.category?.takeIf { it.isNotBlank() }?.let { category ->
+                                    SubscriptionPill(
+                                        text = category,
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                }
                                 if (!subscription.smsBody.isNullOrBlank()) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
@@ -949,61 +1004,6 @@ internal fun SwipeableSubscriptionItem(
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                            }
-
-                            // "Paid Mar 15" badge — shown when this cycle has
-                            // already been marked. Computed in the VM
-                            // (today-anchored cycle check, single source of
-                            // truth shared with the partition sort). Sits
-                            // ABOVE the category since payment state is more
-                            // important than the category label.
-                            if (isPaidThisCycle) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    shape = MaterialTheme.shapes.extraSmall,
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(
-                                            horizontal = Spacing.xs,
-                                            vertical = Spacing.xxs,
-                                        ),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small),
-                                        )
-                                        Text(
-                                            text = subscription.lastPaidAt?.let {
-                                                stringResource(
-                                                    R.string.subscriptions_paid_on,
-                                                    formatSubscriptionDate(it),
-                                                )
-                                            } ?: stringResource(R.string.subscription_paid),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Category — its own line. No bullet, no row
-                            // sharing. Wraps if very long but won't break
-                            // mid-word against a narrow column.
-                            subscription.category?.let { category ->
-                                Text(
-                                    text = category,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                )
                             }
                         }
                         
