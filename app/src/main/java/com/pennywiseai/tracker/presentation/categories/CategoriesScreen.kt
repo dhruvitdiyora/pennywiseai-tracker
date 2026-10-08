@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
@@ -46,6 +47,8 @@ import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
+import com.pennywiseai.tracker.ui.components.legibleOn
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.icons.iconax.CloseCircle
 import com.pennywiseai.tracker.ui.icons.iconax.Eye
@@ -679,13 +682,13 @@ private fun SubCategoryChip(
     onToggleHidden: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    val tint = category.color.toColorOr(MaterialTheme.colorScheme.primary)
+    val tint = rememberLegibleCategoryTint(category)
 
     Box {
         Surface(
             onClick = { menuOpen = true },
             shape = CircleShape,
-            color = tint.copy(alpha = CATEGORY_TINT_ALPHA),
+            color = tint.container,
             modifier = Modifier.alpha(if (category.isHidden) 0.5f else 1f)
         ) {
             Row(
@@ -693,11 +696,11 @@ private fun SubCategoryChip(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CategoryGlyph(category = category, size = Dimensions.Icon.small, tint = tint)
+                CategoryGlyph(category = category, size = Dimensions.Icon.small, tint = tint.glyph)
                 Text(
                     text = category.name,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -734,8 +737,30 @@ private fun SubCategoryChip(
     }
 }
 
-/** How strongly a category's colour washes its avatar and chip. */
-private const val CATEGORY_TINT_ALPHA = 0.2f
+/**
+ * A category's colour as drawn on the card: the container wash and the glyph
+ * on top of it. Category colours are swatches, not text colours — the default
+ * black "Transportation" vanishes on a dark card and a pale user colour on a
+ * light one — so the colour is first nudged to read against the card, and the
+ * glyph again against its own wash.
+ */
+private class CategoryTint(val container: Color, val glyph: Color)
+
+@Composable
+private fun rememberLegibleCategoryTint(category: CategoryEntity): CategoryTint {
+    val scheme = MaterialTheme.colorScheme
+    val card = scheme.surfaceContainerLow
+    val onSurface = scheme.onSurface
+    val raw = category.color.toColorOr(scheme.primary)
+    return remember(raw, card, onSurface) {
+        val legible = raw.legibleOn(card, towards = onSurface)
+        val container = legible.copy(alpha = TINTED_CONTAINER_ALPHA)
+        CategoryTint(
+            container = container,
+            glyph = legible.legibleOn(container.compositeOver(card), towards = onSurface),
+        )
+    }
+}
 
 /** The category's glyph in a rounded square of its own colour, as in Cashiro. */
 @Composable
@@ -744,15 +769,15 @@ private fun CategoryAvatar(
     size: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val tint = category.color.toColorOr(MaterialTheme.colorScheme.primary)
+    val tint = rememberLegibleCategoryTint(category)
     Box(
         modifier = modifier
             .size(size)
             .clip(MaterialTheme.shapes.large)
-            .background(tint.copy(alpha = CATEGORY_TINT_ALPHA)),
+            .background(tint.container),
         contentAlignment = Alignment.Center
     ) {
-        CategoryGlyph(category = category, size = Dimensions.Icon.medium, tint = tint)
+        CategoryGlyph(category = category, size = Dimensions.Icon.medium, tint = tint.glyph)
     }
 }
 
