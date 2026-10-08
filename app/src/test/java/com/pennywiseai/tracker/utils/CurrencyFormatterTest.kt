@@ -256,4 +256,11 @@ class CurrencyFormatterTest {
         val uyu = CurrencyFormatter.formatCurrency(BigDecimal("1234.56"), "UYU")
         assertTrue("expected \$U in: $uyu", uyu.contains("\$U"))
     }
+
+    @Test
+    fun `fractional amounts show every minor-unit digit`() {
+        assertEquals("₹398.60", CurrencyFormatter.formatCurrency(BigDecimal("398.6"), "INR"))
+        assertEquals("₹10,000", CurrencyFormatter.formatCurrency(BigDecimal("10000.00"), "INR"))
+        assertEquals("₹73,233.80", CurrencyFormatter.formatCurrency(BigDecimal("73233.8"), "INR"))
+    }
 }

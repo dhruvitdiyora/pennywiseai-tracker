@@ -184,9 +184,7 @@ object CurrencyFormatter {
                 }
             }
 
-            // Show decimals only if they exist
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+            applyFractionDigits(formatter, amount, currencyCode)
             formatter.format(amount)
         } catch (e: Exception) {
             // Fallback to symbol + amount
@@ -265,9 +263,20 @@ object CurrencyFormatter {
      */
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
         val formatter = NumberFormat.getNumberInstance(groupingLocale(currencyCode))
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        applyFractionDigits(formatter, amount, currencyCode)
         return formatter.format(amount)
+    }
+
+    /**
+     * Whole amounts drop their decimals ("₹10,000"); any fractional amount shows
+     * every minor-unit digit ("₹398.60", never "₹398.6").
+     */
+    private fun applyFractionDigits(formatter: NumberFormat, amount: BigDecimal, currencyCode: String?) {
+        val digits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        val rounded = amount.setScale(digits, java.math.RoundingMode.HALF_EVEN)
+        val hasFraction = rounded.stripTrailingZeros().scale() > 0
+        formatter.maximumFractionDigits = digits
+        formatter.minimumFractionDigits = if (hasFraction) digits else 0
     }
 
     /**

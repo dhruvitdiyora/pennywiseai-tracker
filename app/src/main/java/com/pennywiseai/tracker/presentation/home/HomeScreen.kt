@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -99,6 +100,8 @@ import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
+import com.pennywiseai.tracker.ui.components.NavAction
+import com.pennywiseai.tracker.ui.components.ProvideNavActions
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
@@ -887,9 +890,33 @@ fun HomeScreen(
         )
         val scanRotation = if (uiState.isScanning) continuousRotation else 0f
 
-        // FABs - Direct access (no speed dial). Stacked as in Cashiro: a small
-        // secondary Sync FAB above the large primary Add FAB.
-        Column(
+        // Under the tab scaffold the actions live behind the bottom bar's round
+        // "more" button (Cashiro-style) so nothing floats over the list.
+        val hostedActions = ProvideNavActions(
+            actions = listOf(
+                NavAction(
+                    label = stringResource(R.string.home_action_add),
+                    icon = Icons.Default.Add,
+                    onClick = onNavigateToAddScreen,
+                ),
+                NavAction(
+                    label = stringResource(R.string.home_action_sync),
+                    icon = Icons.Default.Sync,
+                    onClick = { viewModel.scanSmsMessages() },
+                ),
+                NavAction(
+                    label = stringResource(R.string.home_resync_title),
+                    icon = Icons.Default.Refresh,
+                    onClick = { showFullResyncDialog = true },
+                ),
+            ),
+            busy = uiState.isScanning,
+            onAnchorPositioned = onFabPositioned,
+        )
+
+        // Fallback when no bottom bar hosts the actions: a small Sync FAB
+        // stacked above the primary Add FAB.
+        if (!hostedActions) Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(

@@ -225,6 +225,9 @@ object Dimensions {
          * that also have a bottom nav bar.
          */
         val fabScrollClearance = 112.dp
+
+        /** Round "more" button that sits beside the floating bottom bar. */
+        val navMoreButton = 56.dp
     }
 
     // ── Motion ────────────────────────────────────────────────────────────
