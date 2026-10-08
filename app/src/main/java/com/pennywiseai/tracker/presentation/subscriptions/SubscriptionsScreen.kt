@@ -933,9 +933,12 @@ internal fun SwipeableSubscriptionItem(
                                 dueSoon -> MaterialTheme.colorScheme.warning
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
-                            Row(
+                            // One line of whole pills: any that don't fit are left
+                            // out rather than squeezed to an unreadable "M…".
+                            FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                verticalAlignment = Alignment.CenterVertically
+                                itemVerticalAlignment = Alignment.CenterVertically,
+                                maxLines = 1,
                             ) {
                                 SubscriptionPill(
                                     text = when (dueStatus.kind) {
@@ -986,21 +989,21 @@ internal fun SwipeableSubscriptionItem(
                                     text = subscriptionBillingCycleLabel(subscription.billingCycle),
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.weight(1f, fill = false),
                                 )
                                 subscription.category?.takeIf { it.isNotBlank() }?.let { category ->
                                     SubscriptionPill(
                                         text = category,
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        modifier = Modifier.weight(1f, fill = false),
                                     )
                                 }
                                 if (!subscription.smsBody.isNullOrBlank()) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
                                         contentDescription = stringResource(R.string.subscriptions_sms_available),
-                                        modifier = Modifier.size(Dimensions.Icon.small),
+                                        modifier = Modifier
+                                            .padding(vertical = Spacing.xs)
+                                            .size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
