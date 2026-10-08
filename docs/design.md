@@ -124,7 +124,8 @@ Only ever apply an alpha to a **strong** colour role (`onSurface`, `onPrimary`,
 …). Dimming an already-muted role such as `onSurfaceVariant` stacks two
 reductions and drops below the WCAG AA contrast floor — that was the single most
 common contrast bug in this codebase. Secondary text should be
-`onSurfaceVariant` at full opacity.
+`onSurfaceVariant` at full opacity. `tonalIconContainer` (14%) is reserved for
+washing a strong semantic colour into the background of a compact icon circle.
 
 ---
 
