@@ -10,4 +10,20 @@
     <string name="txn_detail_ui_label_sms_sender">SMS sender</string>
     <!-- Supporting line under the Recurring switch in edit mode. -->
     <string name="txn_detail_ui_recurring_subtitle">Marks this as a repeating payment</string>
+
+    <!-- Receipt-style view mode. -->
+    <!-- Label above the transaction date on the receipt card. -->
+    <string name="txn_detail_receipt_date">Date</string>
+    <!-- Leader-row label for the transaction type (shown uppercased). -->
+    <string name="txn_detail_receipt_type">Type</string>
+    <!-- Label above the big amount at the bottom of the receipt card. -->
+    <string name="txn_detail_receipt_amount">Amount</string>
+    <!-- Header of the collapsible section holding the bank SMS the transaction was parsed from. -->
+    <string name="txn_detail_receipt_original_sms">Original SMS</string>
+    <!-- Button that shares a plain-text summary of the transaction. -->
+    <string name="txn_detail_share">Share</string>
+    <!-- Title of the system share sheet for the transaction summary. -->
+    <string name="txn_detail_share_chooser">Share transaction</string>
+    <!-- Shared plain-text summary. %1$s merchant, %2$s amount with currency symbol, %3$s date and time, %4$s category. -->
+    <string name="txn_detail_share_text">%1$s\nAmount: %2$s\nDate: %3$s\nCategory: %4$s</string>
 </resources>

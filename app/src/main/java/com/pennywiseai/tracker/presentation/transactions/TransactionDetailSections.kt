@@ -100,16 +100,21 @@ import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
+import androidx.compose.ui.graphics.Color
+import com.pennywiseai.tracker.ui.components.legibleOn
+import com.pennywiseai.tracker.utils.formatAmount
+import java.time.format.FormatStyle
 
 /*
- * The read-only body of the Transaction Detail screen, Cashiro-style: the hero
- * card, then rounded info rows grouped into connected blocks (details, then the
- * loan / analytics switches), then the receipt, the original SMS and the split
- * breakdown. The shape does the grouping — no dividers.
+ * The read-only body of the Transaction Detail screen, Cashiro-style: one
+ * receipt card holding every detail as a dotted-leader row (plus tags, notes
+ * and the collapsible original SMS), then the balance-mismatch card, the loan /
+ * analytics switches, the receipt attachment, the split breakdown, and Share.
  */
-
-/** One row of a connected block; [content] gets its slot so the corners come out right. */
-private class TxnDetailEntry(val content: @Composable (ListItemPosition) -> Unit)
 
 @Composable
 internal fun TxnDetailReadOnlyBody(
@@ -131,26 +136,27 @@ internal fun TxnDetailReadOnlyBody(
     val addingAdjustment by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()
     val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val merchantTitle = txnDetailMerchantTitle(transaction, currentAlias)
+    val isSplit = hasSplits && splits.isNotEmpty()
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        TxnDetailHero(
+        TxnDetailReceipt(
             transaction = transaction,
-            merchantTitle = txnDetailMerchantTitle(transaction, currentAlias),
+            merchantTitle = merchantTitle,
             primaryCurrency = primaryCurrency,
             convertedAmount = convertedAmount
-        )
-
-        TxnDetailInfoGroup(
-            transaction = transaction,
-            primaryCurrency = primaryCurrency,
-            splits = splits,
-            hasSplits = hasSplits,
-            tags = detailTags,
-            accountProfileId = accountProfileId
-        )
+        ) {
+            TxnDetailReceiptRows(
+                transaction = transaction,
+                primaryCurrency = primaryCurrency,
+                splitCount = if (isSplit) splits.size else 0,
+                tags = detailTags,
+                accountProfileId = accountProfileId
+            )
+        }
 
         // Bank balance vs. ledger prediction (#734/#135): surface the gap and
         // offer to record it as an untracked transaction.
@@ -206,230 +212,356 @@ internal fun TxnDetailReadOnlyBody(
             )
         }
 
-        if (!transaction.smsBody.isNullOrBlank()) {
-            TxnDetailSmsSection(smsBody = transaction.smsBody)
+        if (isSplit) {
+            TxnDetailSplitBreakdown(splits = splits, currency = transaction.currency)
         }
 
-        if (hasSplits && splits.isNotEmpty()) {
-            TxnDetailSplitBreakdown(splits = splits, currency = transaction.currency)
+        // Share a plain-text summary: merchant, amount, date and category only —
+        // never account numbers or the SMS body.
+        Button(
+            onClick = {
+                val text = context.getString(
+                    R.string.txn_detail_share_text,
+                    merchantTitle,
+                    transaction.formatAmount(),
+                    transaction.dateTime.format(
+                        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                    ),
+                    transaction.category
+                )
+                runCatching {
+                    context.startActivity(
+                        Intent.createChooser(
+                            buildTransactionShareIntent(text, merchantTitle),
+                            context.getString(R.string.txn_detail_share_chooser)
+                        )
+                    )
+                }.onFailure {
+                    Toast.makeText(context, R.string.receipt_share_failed, Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Dimensions.Component.minTouchTarget)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.small)
+            )
+            Spacer(Modifier.width(Spacing.sm))
+            Text(stringResource(R.string.txn_detail_share))
         }
     }
 }
 
-// ── Info rows ─────────────────────────────────────────────────────────────
+/** A plain-text ACTION_SEND for the transaction summary. */
+internal fun buildTransactionShareIntent(text: String, subject: String): Intent =
+    Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+    }
+
+// ── Receipt rows ──────────────────────────────────────────────────────────
 
 private fun maskAccount(value: String): String =
     if (value.length > 4) "*".repeat(value.length - 4) + value.takeLast(4) else value
 
+/** Every detail of the transaction, as the receipt's dotted-leader rows. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TxnDetailInfoGroup(
+private fun TxnDetailReceiptRows(
     transaction: TransactionEntity,
     primaryCurrency: String,
-    splits: List<SplitItem>,
-    hasSplits: Boolean,
+    splitCount: Int,
     tags: List<String>,
     accountProfileId: Long?,
 ) {
-    val dateText = transaction.dateTime.format(
-        DateTimeFormatter.ofPattern("EEE, MMM d, yyyy · h:mm a")
-    )
-    val isSplit = hasSplits && splits.isNotEmpty()
+    val scheme = MaterialTheme.colorScheme
     val bankName = transaction.bankName
-    val description = transaction.description
     val fromAccount = transaction.fromAccount
     val toAccount = transaction.toAccount
     val accountNumber = transaction.accountNumber
     val balanceAfter = transaction.balanceAfter
     val reference = transaction.reference
     val smsSender = transaction.smsSender
+    val description = transaction.description
+    val smsBody = transaction.smsBody
     val effectiveProfileId = transaction.profileId ?: accountProfileId
     val isBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
 
-    val entries = buildList<TxnDetailEntry> {
-        // Date & time
-        add(TxnDetailEntry { position ->
-            TxnDetailRow(
-                position = position,
-                label = stringResource(R.string.txn_detail_label_date_time),
-                value = dateText,
-                leading = { TxnDetailIcon(Iconax.Calendar) }
+    // Type, in its semantic colour.
+    val typeColor = txnDetailTypeColor(transaction.transactionType)
+    val chipBackground = scheme.surfaceContainerLow
+    val onSurface = scheme.onSurface
+    val typeTextColor = remember(typeColor, chipBackground, onSurface) {
+        typeColor.legibleOn(background = chipBackground, towards = onSurface)
+    }
+    TxnReceiptRow(label = stringResource(R.string.txn_detail_receipt_type)) {
+        TxnReceiptChip(
+            text = stringResource(transactionTypeLabel(transaction.transactionType)),
+            container = typeColor.copy(alpha = Dimensions.Alpha.tonalIconContainer),
+            content = typeTextColor,
+            leading = { TxnReceiptChipIcon(txnDetailTypeIcon(transaction.transactionType), typeTextColor) }
+        )
+    }
+
+    // Category (or the number of categories a split spreads over).
+    TxnReceiptRow(label = stringResource(R.string.txn_detail_label_category)) {
+        if (splitCount > 0) {
+            TxnReceiptChip(
+                text = pluralStringResource(R.plurals.txn_detail_split_categories, splitCount, splitCount),
+                leading = { TxnReceiptChipIcon(Iconax.Category2) }
             )
-        })
-
-        // Category (or the number of categories a split spreads over)
-        add(TxnDetailEntry { position ->
-            TxnDetailRow(
-                position = position,
-                label = stringResource(R.string.txn_detail_label_category),
-                value = if (isSplit) {
-                    pluralStringResource(R.plurals.txn_detail_split_categories, splits.size, splits.size)
-                } else {
-                    transaction.category
-                },
-                leading = {
-                    if (isSplit) {
-                        TxnDetailIcon(Iconax.Category2)
-                    } else {
-                        TxnDetailCategoryTile(transaction.category)
-                    }
-                }
-            )
-        })
-
-        // Bank
-        if (bankName != null) {
-            add(TxnDetailEntry { position ->
-                TxnDetailRow(
-                    position = position,
-                    label = stringResource(R.string.txn_detail_label_bank),
-                    value = bankName,
-                    leading = {
-                        // A bank we have no logo for would borrow an unrelated
-                        // category glyph from BrandIcon, so fall back to a wallet.
-                        if (BrandIcons.getIconResource(bankName) != null) {
-                            BrandIcon(
-                                merchantName = bankName,
-                                size = Dimensions.Icon.list,
-                                showBackground = true
-                            )
-                        } else {
-                            TxnDetailIcon(Iconax.Wallet3)
-                        }
-                    }
-                )
-            })
-        }
-
-        // Account(s)
-        if (fromAccount != null && toAccount != null) {
-            add(TxnDetailEntry { position ->
-                TxnDetailTransferRow(
-                    position = position,
-                    fromValue = maskAccount(fromAccount),
-                    toValue = maskAccount(toAccount)
-                )
-            })
         } else {
-            if (accountNumber != null && fromAccount == null && toAccount == null) {
-                add(TxnDetailEntry { position ->
-                    TxnDetailRow(
-                        position = position,
-                        label = stringResource(R.string.txn_detail_label_account),
-                        value = maskAccount(accountNumber),
-                        leading = { TxnDetailIcon(Iconax.Wallet3) }
-                    )
-                })
-            }
-            if (fromAccount != null) {
-                add(TxnDetailEntry { position ->
-                    TxnDetailRow(
-                        position = position,
-                        label = stringResource(R.string.txn_detail_label_from),
-                        value = maskAccount(fromAccount),
-                        leading = { TxnDetailIcon(Iconax.Wallet3) }
-                    )
-                })
-            }
-            if (toAccount != null) {
-                add(TxnDetailEntry { position ->
-                    TxnDetailRow(
-                        position = position,
-                        label = stringResource(R.string.txn_detail_label_to),
-                        value = maskAccount(toAccount),
-                        leading = { TxnDetailIcon(Iconax.Wallet3) }
-                    )
-                })
-            }
-        }
-
-        // Balance after the transaction, in the account's currency as before.
-        if (balanceAfter != null) {
-            add(TxnDetailEntry { position ->
-                TxnDetailRow(
-                    position = position,
-                    label = stringResource(R.string.txn_detail_label_balance),
-                    value = CurrencyFormatter.formatCurrency(balanceAfter, primaryCurrency),
-                    leading = { TxnDetailIcon(Iconax.WalletMoney) }
-                )
-            })
-        }
-
-        // Notes
-        if (description != null) {
-            add(TxnDetailEntry { position ->
-                TxnDetailRow(
-                    position = position,
-                    label = stringResource(R.string.txn_detail_label_description),
-                    value = description,
-                    leading = { TxnDetailIcon(Iconax.DocumentText2) }
-                )
-            })
-        }
-
-        // Tags
-        if (tags.isNotEmpty()) {
-            add(TxnDetailEntry { position ->
-                TxnDetailTagsRow(position = position, tags = tags)
-            })
-        }
-
-        // Recurring
-        if (transaction.isRecurring) {
-            add(TxnDetailEntry { position ->
-                TxnDetailRow(
-                    position = position,
-                    label = stringResource(R.string.txn_detail_label_status),
-                    value = stringResource(R.string.txn_detail_status_recurring),
-                    leading = { TxnDetailIcon(Iconax.RefreshCircle) }
-                )
-            })
-        }
-
-        // Classification
-        add(TxnDetailEntry { position ->
-            TxnDetailRow(
-                position = position,
-                label = stringResource(R.string.txn_detail_label_classification),
-                value = stringResource(
-                    if (isBusiness) R.string.txn_detail_business else R.string.txn_detail_personal
-                ),
-                leading = {
-                    TxnDetailIcon(if (isBusiness) Icons.Default.Business else Icons.Default.Person)
-                }
+            TxnReceiptChip(
+                text = transaction.category,
+                container = CategoryMapping.colorFor(transaction.category)
+                    .copy(alpha = Dimensions.Alpha.tonalIconContainer),
+                leading = { CategoryIcon(category = transaction.category, size = Dimensions.Icon.small) }
             )
-        })
-
-        // Reference number, and the sender id the SMS came from.
-        if (reference != null) {
-            add(TxnDetailEntry { position ->
-                TxnDetailRow(
-                    position = position,
-                    label = stringResource(R.string.txn_detail_label_reference),
-                    value = reference,
-                    leading = { TxnDetailIcon(Iconax.ReceiptItem) }
-                )
-            })
-        }
-        if (smsSender != null) {
-            add(TxnDetailEntry { position ->
-                TxnDetailRow(
-                    position = position,
-                    label = stringResource(R.string.txn_detail_ui_label_sms_sender),
-                    value = smsSender,
-                    leading = { TxnDetailIcon(Iconax.Messages) }
-                )
-            })
         }
     }
 
-    GroupedList {
-        entries.forEachIndexed { index, entry ->
-            entry.content(ListItemPosition.from(index, entries.size))
+    // Bank
+    if (bankName != null) {
+        TxnReceiptRow(label = stringResource(R.string.txn_detail_label_bank)) {
+            TxnReceiptChip(
+                text = bankName,
+                leading = {
+                    // A bank we have no logo for would borrow an unrelated
+                    // category glyph from BrandIcon, so fall back to a wallet.
+                    if (BrandIcons.getIconResource(bankName) != null) {
+                        BrandIcon(
+                            merchantName = bankName,
+                            size = Dimensions.Icon.inline,
+                            showBackground = true
+                        )
+                    } else {
+                        TxnReceiptChipIcon(Iconax.Wallet3)
+                    }
+                }
+            )
+        }
+    }
+
+    // Account(s), masked to the last four digits.
+    if (fromAccount != null && toAccount != null) {
+        TxnReceiptRow(label = stringResource(R.string.txn_detail_label_account)) {
+            TxnReceiptChip(
+                text = "${maskAccount(fromAccount)} → ${maskAccount(toAccount)}",
+                leading = { TxnReceiptChipIcon(Iconax.Transfer) }
+            )
+        }
+    } else {
+        if (accountNumber != null && fromAccount == null && toAccount == null) {
+            TxnReceiptRow(label = stringResource(R.string.txn_detail_label_account)) {
+                TxnReceiptChip(
+                    text = maskAccount(accountNumber),
+                    leading = { TxnReceiptChipIcon(Iconax.Wallet3) }
+                )
+            }
+        }
+        if (fromAccount != null) {
+            TxnReceiptRow(label = stringResource(R.string.txn_detail_label_from)) {
+                TxnReceiptChip(
+                    text = maskAccount(fromAccount),
+                    leading = { TxnReceiptChipIcon(Iconax.Wallet3) }
+                )
+            }
+        }
+        if (toAccount != null) {
+            TxnReceiptRow(label = stringResource(R.string.txn_detail_label_to)) {
+                TxnReceiptChip(
+                    text = maskAccount(toAccount),
+                    leading = { TxnReceiptChipIcon(Iconax.Wallet3) }
+                )
+            }
+        }
+    }
+
+    // Balance after the transaction, in the account's currency as before.
+    if (balanceAfter != null) {
+        TxnReceiptRow(label = stringResource(R.string.txn_detail_label_balance)) {
+            TxnReceiptChip(
+                text = CurrencyFormatter.formatCurrency(balanceAfter, primaryCurrency),
+                leading = { TxnReceiptChipIcon(Iconax.WalletMoney) }
+            )
+        }
+    }
+
+    // Classification
+    TxnReceiptRow(label = stringResource(R.string.txn_detail_label_classification)) {
+        TxnReceiptChip(
+            text = stringResource(
+                if (isBusiness) R.string.txn_detail_business else R.string.txn_detail_personal
+            ),
+            leading = {
+                TxnReceiptChipIcon(if (isBusiness) Icons.Default.Business else Icons.Default.Person)
+            }
+        )
+    }
+
+    // Recurring
+    if (transaction.isRecurring) {
+        TxnReceiptRow(label = stringResource(R.string.txn_detail_label_status)) {
+            TxnReceiptChip(
+                text = stringResource(R.string.txn_detail_status_recurring),
+                leading = { TxnReceiptChipIcon(Iconax.RefreshCircle) }
+            )
+        }
+    }
+
+    // Reference number, and the sender id the SMS came from.
+    if (reference != null) {
+        TxnReceiptRow(label = stringResource(R.string.txn_detail_label_reference)) {
+            TxnReceiptChip(
+                text = reference,
+                leading = { TxnReceiptChipIcon(Iconax.ReceiptItem) }
+            )
+        }
+    }
+    if (smsSender != null) {
+        TxnReceiptRow(label = stringResource(R.string.txn_detail_ui_label_sms_sender)) {
+            TxnReceiptChip(
+                text = smsSender,
+                leading = { TxnReceiptChipIcon(Iconax.Messages) }
+            )
+        }
+    }
+
+    // Tags
+    if (tags.isNotEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            TxnReceiptSectionLabel(
+                icon = Icons.Default.Sell,
+                text = pluralStringResource(R.plurals.txn_detail_label_tags, tags.size),
+                color = scheme.secondary
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                tags.forEach { tag ->
+                    SubtitleTag(text = tag, color = scheme.primary)
+                }
+            }
+        }
+    }
+
+    // Notes, always shown: the user wrote them to be read.
+    if (description != null) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {},
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            TxnReceiptSectionLabel(
+                icon = Iconax.DocumentText2,
+                text = stringResource(R.string.txn_detail_label_description),
+                color = scheme.tertiary
+            )
+            TxnReceiptTextBox(text = description, monospace = false)
+        }
+    }
+
+    // The original SMS, folded away by default.
+    if (!smsBody.isNullOrBlank()) {
+        TxnReceiptSmsSection(smsBody = smsBody)
+    }
+}
+
+@Composable
+private fun TxnReceiptSectionLabel(icon: ImageVector, text: String, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.small),
+            tint = color
+        )
+        Text(text = text, style = MaterialTheme.typography.labelLarge, color = color)
+    }
+}
+
+@Composable
+private fun TxnReceiptTextBox(text: String, monospace: Boolean) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Text(
+            text = text,
+            style = if (monospace) {
+                MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+            } else {
+                MaterialTheme.typography.bodyMedium
+            },
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(Spacing.sm)
+        )
+    }
+}
+
+/** "Original SMS" header inside the receipt that unfolds into the monospaced message. */
+@Composable
+private fun TxnReceiptSmsSection(smsBody: String) {
+    var expanded by remember { mutableStateOf(false) }
+    val scheme = MaterialTheme.colorScheme
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) CHEVRON_EXPANDED_DEGREES else 0f,
+        label = "receiptSmsChevron"
+    )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                TxnReceiptSectionLabel(
+                    icon = Iconax.Messages,
+                    text = stringResource(R.string.txn_detail_receipt_original_sms),
+                    color = scheme.primary
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = stringResource(
+                    if (expanded) R.string.txn_detail_sms_hide else R.string.txn_detail_sms_show
+                ),
+                modifier = Modifier
+                    .size(Dimensions.Icon.inline)
+                    .rotate(chevronRotation),
+                tint = scheme.onSurfaceVariant
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            TxnReceiptTextBox(text = smsBody, monospace = true)
         }
     }
 }
 
-/** The neutral leading tile of an info row. */
+/** The neutral leading tile of a row. */
 @Composable
 private fun TxnDetailIcon(icon: ImageVector) {
     val scheme = MaterialTheme.colorScheme
@@ -454,117 +586,6 @@ private fun TxnDetailCategoryTile(category: String) {
         contentAlignment = Alignment.Center
     ) {
         CategoryIcon(category = category, size = Dimensions.Icon.inline)
-    }
-}
-
-/** A label above its value, with a leading tile — the building block of the details block. */
-@Composable
-private fun TxnDetailRow(
-    position: ListItemPosition,
-    label: String,
-    value: String,
-    leading: @Composable () -> Unit,
-) {
-    TxnDetailRowFrame(position = position, label = label, leading = leading) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-private fun TxnDetailRowFrame(
-    position: ListItemPosition,
-    label: String,
-    leading: @Composable () -> Unit,
-    value: @Composable ColumnScope.() -> Unit,
-) {
-    GroupedRow(
-        position = position,
-        // Read "Date & Time, Fri, Oct 2" as one stop instead of two.
-        modifier = Modifier.semantics(mergeDescendants = true) {}
-    ) {
-        leading()
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
-        ) {
-            Text(
-                text = label,
-                style = PennyWiseText.fieldLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            value()
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TxnDetailTagsRow(position: ListItemPosition, tags: List<String>) {
-    TxnDetailRowFrame(
-        position = position,
-        label = pluralStringResource(R.plurals.txn_detail_label_tags, tags.size),
-        leading = { TxnDetailIcon(Icons.Default.Sell) }
-    ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            tags.forEach { tag ->
-                SubtitleTag(text = tag, color = MaterialTheme.colorScheme.primary)
-            }
-        }
-    }
-}
-
-/** A transfer reads best as one row: [from] -> [to]. */
-@Composable
-private fun TxnDetailTransferRow(
-    position: ListItemPosition,
-    fromValue: String,
-    toValue: String,
-) {
-    GroupedRow(
-        position = position,
-        modifier = Modifier.semantics(mergeDescendants = true) {}
-    ) {
-        TxnDetailIcon(Iconax.Transfer)
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            TxnDetailAccountPill(text = fromValue, modifier = Modifier.weight(1f, fill = false))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.small),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            TxnDetailAccountPill(text = toValue, modifier = Modifier.weight(1f, fill = false))
-        }
-    }
-}
-
-@Composable
-private fun TxnDetailAccountPill(text: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.sm)
-        )
     }
 }
 
