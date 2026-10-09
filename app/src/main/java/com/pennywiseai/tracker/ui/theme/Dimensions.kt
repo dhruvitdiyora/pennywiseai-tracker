@@ -167,6 +167,10 @@ object Dimensions {
 
         val dividerThickness = 1.dp
 
+        /** Short rounded accent bar before a list group header (Cashiro-style). */
+        val headerAccentBarWidth = 4.dp
+        val headerAccentBarHeight = 16.dp
+
         /** Hairline used to outline cards in dark mode. */
         val hairline = 0.5.dp
 

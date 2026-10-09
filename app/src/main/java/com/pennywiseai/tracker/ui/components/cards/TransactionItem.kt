@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -58,8 +59,10 @@ import com.pennywiseai.tracker.ui.icons.iconax.Card
 import com.pennywiseai.tracker.ui.icons.iconax.Clock
 import com.pennywiseai.tracker.ui.icons.iconax.DocumentText2
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.RefreshCircle
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.MerchantDisplayName
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -71,8 +74,10 @@ import java.util.Locale
  *
  * The chip line reads `[calendar Oct 1] • [Category] [Recurring] ...`: a date
  * chip, a `•`, the category named in its own colour, then any further tags
- * (type, Recurring, Business, Excluded, balance, note) as neutral-text chips
- * that wrap onto a second line rather than being cut off. A merchant with no
+ * (type, Business, Excluded, balance, note) as neutral-text chips. The chip
+ * line never wraps (Cashiro-style one-line rows): recurring is a small icon
+ * beside the category, and lower-priority chips that do not fit are dropped
+ * whole rather than pushed onto a second line. A merchant with no
  * brand logo gets its category colour at low alpha with the category icon in
  * that colour. The accessible description keeps its own `·`-joined sentence
  * ("date · category · Recurring · Business · Excluded · Bal …") so the contract
@@ -219,23 +224,37 @@ fun TransactionItem(
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
     val merchantDisplay = LocalMerchantDisplay.current
 
+    // Some parsers capture SMS boilerplate ("Not you? Call ...") as the
+    // merchant; show the bank or a neutral label instead (display only).
+    val unknownMerchantLabel = stringResource(R.string.txn_item_unknown_merchant)
+    val merchantTitle = if (
+        transaction.merchantName.isBlank() ||
+        MerchantDisplayName.looksLikeSmsBody(transaction.merchantName)
+    ) {
+        MerchantDisplayName.titleFor(transaction.merchantName, transaction.bankName, unknownMerchantLabel)
+    } else {
+        merchantDisplay(transaction.merchantName) ?: transaction.merchantName
+    }
+
     // For a paired self-transfer row, the event ("Transfer → 9999" /
     // "Transfer from 1234") is more informative than the merchant name (often
     // the user's own contact name), and stops the two legs from looking like
     // duplicate rows in the list. Falls back to merchant otherwise.
     ListItemCardV2(
-        title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+        title = transferTitle ?: merchantTitle,
         subtitle = subtitle,
         subtitleContent = {
-            // Chips wrap (up to two lines) rather than being clipped, so a long
-            // category or note flows onto a second line instead of being cut off.
+            // One line only: with maxLines = 1 FlowRow drops whole chips that do
+            // not fit instead of wrapping the row onto a second line. Chips are
+            // ordered by priority; the accessible subtitle still lists them all.
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 itemVerticalAlignment = Alignment.CenterVertically,
-                maxLines = 2,
+                maxLines = 1,
             ) {
-                // Date and category travel together so a wrap never strands the dot.
+                // Date, category and the recurring glyph travel together so they
+                // are never dropped and the dot is never stranded.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -249,13 +268,18 @@ fun TransactionItem(
                         Text(
                             text = "•",
                             style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                            // Full-strength muted role: an alpha on onSurfaceVariant
+                            // drops the separator below the contrast floor.
+                            color = colors.onSurfaceVariant,
                         )
                         SubtitleTag(
                             text = transaction.category,
                             color = categoryColor,
                             textColor = categoryTextColor,
                         )
+                    }
+                    if (transaction.isRecurring) {
+                        RecurringGlyph(tint = colors.primary)
                     }
                 }
                 // Credit is already marked by the card icon beside the amount, so
@@ -264,9 +288,6 @@ fun TransactionItem(
                 typeLabel
                     ?.takeIf { transaction.transactionType != TransactionType.CREDIT }
                     ?.let { SubtitleTag(text = it, color = amountColor) }
-                if (transaction.isRecurring) {
-                    SubtitleTag(text = recurringLabel, color = colors.primary)
-                }
                 if (isEffectivelyBusiness) {
                     SubtitleTag(text = businessLabel, color = colors.tertiary)
                 }
@@ -410,6 +431,29 @@ fun TransactionItem(
             }
         }
     )
+}
+
+/**
+ * Compact recurring marker: a tiny repeat glyph in a tinted circle, used in place
+ * of a "Recurring" text chip so the row stays on one line. Decorative — the row's
+ * accessible subtitle already says "Recurring".
+ */
+@Composable
+private fun RecurringGlyph(tint: Color) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(tint.copy(alpha = TINTED_CONTAINER_ALPHA))
+            .padding(Spacing.xxs),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Iconax.RefreshCircle,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.tiny),
+            tint = tint,
+        )
+    }
 }
 
 /** The category glyph fills this share of the avatar circle (24dp in 48dp). */
