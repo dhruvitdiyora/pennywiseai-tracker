@@ -24,12 +24,14 @@ import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -205,6 +207,24 @@ fun TransactionItem(
     val categoryTextColor = remember(categoryColor, rowBackground, colors.onSurface) {
         categoryColor.legibleOn(rowBackground, towards = colors.onSurface)
     }
+    // Neutral chip text is measured against the chip as actually drawn (its
+    // tint washed over the row). On a selected row the container is a tonal
+    // primary, so the default onSurfaceVariant can sink into a same-hue chip;
+    // nudge it toward the container's own content colour until it reads.
+    val chipTextTowards = if (containerColor != null) {
+        contentColorFor(rowBackground).takeIf { it != Color.Unspecified } ?: colors.onSurface
+    } else {
+        colors.onSurface
+    }
+    fun chipText(tint: Color): Color =
+        colors.onSurfaceVariant.legibleOn(
+            background = tint.copy(alpha = TINTED_CONTAINER_ALPHA).compositeOver(rowBackground),
+            towards = chipTextTowards,
+            minContrast = CHIP_TEXT_MIN_CONTRAST,
+        )
+    val dateChipTextColor = remember(dateChipTint, rowBackground, chipTextTowards, colors.onSurfaceVariant) {
+        chipText(dateChipTint)
+    }
 
     val amountPrefix = remember(transaction.transactionType) {
         when (transaction.transactionType) {
@@ -262,6 +282,7 @@ fun TransactionItem(
                     SubtitleTag(
                         text = dateChipText,
                         color = dateChipTint,
+                        textColor = dateChipTextColor,
                         icon = if (showDate) Iconax.Calendar else Iconax.Clock,
                     )
                     if (hasCategory) {
@@ -287,18 +308,29 @@ fun TransactionItem(
                 // the accessible subtitle still says it.
                 typeLabel
                     ?.takeIf { transaction.transactionType != TransactionType.CREDIT }
-                    ?.let { SubtitleTag(text = it, color = amountColor) }
+                    ?.let { SubtitleTag(text = it, color = amountColor, textColor = chipText(amountColor)) }
                 if (isEffectivelyBusiness) {
-                    SubtitleTag(text = businessLabel, color = colors.tertiary)
+                    SubtitleTag(
+                        text = businessLabel,
+                        color = colors.tertiary,
+                        textColor = chipText(colors.tertiary),
+                    )
                 }
                 if (transaction.excludedFromAnalytics) {
-                    SubtitleTag(text = excludedLabel, color = colors.onSurfaceVariant)
+                    SubtitleTag(
+                        text = excludedLabel,
+                        color = colors.onSurfaceVariant,
+                        textColor = chipText(colors.onSurfaceVariant),
+                    )
                 }
-                balanceAfterText?.let { SubtitleTag(text = it, color = colors.secondary) }
+                balanceAfterText?.let {
+                    SubtitleTag(text = it, color = colors.secondary, textColor = chipText(colors.secondary))
+                }
                 description?.let {
                     SubtitleTag(
                         text = it,
                         color = colors.onSurfaceVariant,
+                        textColor = chipText(colors.onSurfaceVariant),
                         icon = Iconax.DocumentText2,
                     )
                 }
@@ -455,6 +487,9 @@ private fun RecurringGlyph(tint: Color) {
         )
     }
 }
+
+/** WCAG AA for small text: chip labels are labelSmall. */
+private const val CHIP_TEXT_MIN_CONTRAST = 4.5f
 
 /** The category glyph fills this share of the avatar circle (24dp in 48dp). */
 private const val CATEGORY_GLYPH_FRACTION = 0.5f
