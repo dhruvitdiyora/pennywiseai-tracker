@@ -43,6 +43,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -128,10 +129,14 @@ fun BudgetGroupsScreen(
             // smart-defaults shortcut, the FAB is the one place to add a budget.
             // The label is the action ("New Budget"), so the icon is decorative.
             if (!uiState.isLoading) {
+                val newBudgetLabel = stringResource(R.string.budget_edit_title_new)
                 ExtendedFloatingActionButton(
                     onClick = { onNavigateToGroupEdit(-1L) },
+                    // The label Text reached the accessibility tree empty, so
+                    // name the button explicitly for TalkBack.
+                    modifier = Modifier.semantics { contentDescription = newBudgetLabel },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.budget_edit_title_new)) },
+                    text = { Text(newBudgetLabel) },
                     shape = MaterialTheme.shapes.extraLarge,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
