@@ -255,8 +255,8 @@ fun TransactionTabContent(
                 tonal = true
             )
 
-            // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+            // Keeps the last field clear of the pinned Save bar.
+            AddSaveBarClearance()
         }
 
         // ── Sticky Save Button ──

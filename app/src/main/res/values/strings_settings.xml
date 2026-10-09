@@ -13,8 +13,8 @@
     <string name="settings_pro_section">PennyWise Pro</string>
     <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">Upgrade to PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Active · all power features unlocked</string>
-    <string name="settings_pro_subtitle_upgrade">Unlimited rules, statements, exports, and more</string>
+    <string name="settings_pro_subtitle_active">Active · all features unlocked</string>
+    <string name="settings_pro_subtitle_upgrade">Unlimited rules, exports and more</string>
 
     <!-- Personalization -->
     <string name="settings_personalization_section">Personalization</string>
@@ -81,17 +81,17 @@
     <string name="settings_manage_accounts_title">Manage Accounts</string>
     <string name="settings_manage_accounts_subtitle">View and manage your bank accounts</string>
     <string name="settings_categories_title">Categories</string>
-    <string name="settings_categories_subtitle">Manage expense and income categories</string>
+    <string name="settings_categories_subtitle">Expense and income categories</string>
     <string name="settings_smart_rules_title">Smart Rules</string>
-    <string name="settings_smart_rules_subtitle">Automatic transaction categorization</string>
+    <string name="settings_smart_rules_subtitle">Auto-categorize transactions</string>
     <string name="settings_budgets_title">Budgets</string>
     <string name="settings_budgets_subtitle">Track spending limits by category</string>
     <string name="settings_loans_title">Loans</string>
     <string name="settings_loans_subtitle">Track money lent and borrowed</string>
     <string name="settings_recurring_title">Recurring</string>
-    <string name="settings_recurring_subtitle">Auto-add scheduled cash &amp; manual transactions</string>
+    <string name="settings_recurring_subtitle">Scheduled cash &amp; manual entries</string>
     <string name="settings_transaction_groups_title">Transaction Groups</string>
-    <string name="settings_transaction_groups_subtitle">Organise transactions under a topic</string>
+    <string name="settings_transaction_groups_subtitle">Group transactions by topic</string>
     <string name="settings_export_data_title">Export Data</string>
     <string name="settings_export_data_subtitle">Backup all data to a file</string>
     <string name="settings_folder_backup_title">Automatic Folder Backup</string>
@@ -241,7 +241,7 @@
     <!-- Support & Community -->
     <string name="settings_support_section">Support &amp; Community</string>
     <string name="settings_help_faq_title">Help &amp; FAQ</string>
-    <string name="settings_help_faq_subtitle">Frequently asked questions and help</string>
+    <string name="settings_help_faq_subtitle">Answers to common questions</string>
     <string name="settings_report_issue_title">Report an Issue</string>
     <string name="settings_report_issue_subtitle">Submit bug reports on GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->

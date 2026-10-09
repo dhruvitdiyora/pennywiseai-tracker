@@ -657,6 +657,24 @@ internal fun AddErrorBanner(message: String, modifier: Modifier = Modifier) {
     }
 }
 
+/** Height of [AddSaveBar] above the navigation bar: fade + button + bottom gap. */
+private val AddSaveBarHeight = Spacing.lg + Dimensions.Component.listItemMinHeight + Spacing.sm
+
+/**
+ * The last child of a form drawn under [AddSaveBar]: the bar's full height,
+ * navigation bar included, so the final field (Notes) scrolls clear of the
+ * pinned button instead of hiding behind it.
+ */
+@Composable
+internal fun AddSaveBarClearance() {
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .height(AddSaveBarHeight)
+    )
+}
+
 /**
  * Sticky Save button pinned to the bottom of the form. A short fade above it
  * dissolves scrolled content into the page background, and the button itself

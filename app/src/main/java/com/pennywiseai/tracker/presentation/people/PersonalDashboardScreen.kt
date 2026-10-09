@@ -135,8 +135,11 @@ private val HeroMinHeight = HeroAvatarSize + Spacing.xxxl + Spacing.lg
 private const val CONTACT_TILE_WIDTH_MULTIPLIER = 1.75f
 private const val CONTACT_TILE_HEIGHT_MULTIPLIER = 2.5f
 
-/** How strongly the decorative initials show through a contact tile. */
-private const val TILE_WATERMARK_ALPHA = 0.25f
+/**
+ * Contrast the contact tile's initials keep against the tile (WCAG large text):
+ * still a quiet tone of the tile colour, but never a faint ghost.
+ */
+private const val TILE_INITIALS_MIN_CONTRAST = 3f
 
 /** Where (as a fraction of the tile height) the contact tile's bottom fade begins. */
 private const val TILE_FADE_START = 0.4f
@@ -807,6 +810,11 @@ private fun DashboardContactTile(
     val person = row.person
     val color = parseProfileColor(person.color, MaterialTheme.colorScheme.primary)
     val onColor = contentColorOn(color)
+    // The initials start from the tile's own hue and move toward its content
+    // colour only as far as needed to read; a flat alpha washed them out.
+    val initialsColor = remember(color, onColor) {
+        color.legibleOn(background = color, towards = onColor, minContrast = TILE_INITIALS_MIN_CONTRAST)
+    }
     val avatarRes = person.avatar?.let(AvatarHelper::resolveAvatarDrawable)
 
     PennyWiseCardV2(
@@ -837,7 +845,7 @@ private fun DashboardContactTile(
                         .padding(top = Spacing.lg),
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
-                    color = onColor.copy(alpha = TILE_WATERMARK_ALPHA),
+                    color = initialsColor,
                     maxLines = 1,
                 )
             }
