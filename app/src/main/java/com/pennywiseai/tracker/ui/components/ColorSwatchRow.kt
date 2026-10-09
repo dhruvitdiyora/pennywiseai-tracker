@@ -7,9 +7,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -41,9 +45,13 @@ private fun isLightColor(color: Color): Boolean =
     (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) > 0.5
 
 /**
- * A wrapping row of [PRESET_COLORS] circles; the selected one carries a check.
+ * A wrapping grid of [PRESET_COLORS] circles; the selected one carries a check.
  * A stored color outside the palette (e.g. smart-default budgets) is appended
  * so it still shows as selected.
+ *
+ * The swatches fill the available width: as many 48dp cells as fit per row,
+ * each stretched to an equal share, so no dead band is left on the right and
+ * a short last row stays aligned to the columns above it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -52,41 +60,54 @@ fun ColorSwatchRow(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-    ) {
-        val colors = if (selected in PRESET_COLORS || selected.isBlank()) PRESET_COLORS else PRESET_COLORS + selected
-        colors.forEach { colorHex ->
-            val color = colorHex.toColorOr(MaterialTheme.colorScheme.primary)
-            val isSelected = selected == colorHex
-            // 48dp hit area around a 36dp visual circle.
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Component.minTouchTarget)
-                    .clip(CircleShape)
-                    .clickable { onSelect(colorHex) },
-                contentAlignment = Alignment.Center
-            ) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val cellMin = Dimensions.Component.minTouchTarget
+        val columns = (maxWidth / cellMin).toInt().coerceAtLeast(1)
+        val cellWidth = maxWidth / columns
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            maxItemsInEachRow = columns,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            val colors = if (selected in PRESET_COLORS || selected.isBlank()) PRESET_COLORS else PRESET_COLORS + selected
+            colors.forEach { colorHex ->
+                val color = colorHex.toColorOr(MaterialTheme.colorScheme.primary)
+                val isSelected = selected == colorHex
+                // An equal-width cell centring a 48dp circular hit area around
+                // a 36dp visual circle.
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(color)
-                        .then(
-                            if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                            else Modifier
-                        ),
+                        .width(cellWidth)
+                        .height(cellMin),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (isSelected) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = stringResource(R.string.color_swatch_selected),
-                            tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .size(cellMin)
+                            .clip(CircleShape)
+                            .clickable { onSelect(colorHex) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .then(
+                                    if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = stringResource(R.string.color_swatch_selected),
+                                    tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                            }
+                        }
                     }
                 }
             }
