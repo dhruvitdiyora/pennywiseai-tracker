@@ -33,6 +33,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -157,6 +158,7 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
+        val layoutDirection = LocalLayoutDirection.current
         // Cashiro-style root: the profile card, then short groups of
         // destinations separated by space alone. Every toggle and picker
         // lives one level down in a named sub-screen, so the root stays a
@@ -168,7 +170,13 @@ fun SettingsScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
+                // Top bar inset only: the bottom clearance is the explicit
+                // navigation-bar-aware spacer after the version footer.
+                .padding(
+                    start = paddingValues.calculateStartPadding(layoutDirection),
+                    top = paddingValues.calculateTopPadding(),
+                    end = paddingValues.calculateEndPadding(layoutDirection),
+                )
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.sectionGap)
         ) {
@@ -348,7 +356,13 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(Spacing.md))
+            // Keeps the footer clear of the gesture / navigation bar at the end
+            // of the scroll.
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(Spacing.Layout.scrollBottomPadding)
+            )
         }
     }
 

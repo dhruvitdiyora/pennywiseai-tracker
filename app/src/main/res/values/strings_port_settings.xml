@@ -9,13 +9,13 @@
 
     <!-- Settings root sub-screens (Cashiro-style root: controls live one level down). -->
     <string name="settings_currency_formats_title">Currency &amp; formats</string>
-    <string name="settings_currency_formats_subtitle">Display currency, number format and budget cycle</string>
+    <string name="settings_currency_formats_subtitle">Currency, numbers and budget cycle</string>
     <string name="settings_backup_import_title">Backup &amp; import</string>
-    <string name="settings_backup_import_subtitle">Export, restore, imports and SMS scanning</string>
+    <string name="settings_backup_import_subtitle">Backups, imports and SMS scanning</string>
     <string name="settings_privacy_security_title">Privacy &amp; security</string>
-    <string name="settings_privacy_security_subtitle">App lock, contacts and data privacy</string>
+    <string name="settings_privacy_security_subtitle">App lock, contacts and privacy</string>
     <string name="settings_advanced_title">Advanced</string>
-    <string name="settings_advanced_subtitle">Notification access, on-device AI and developer mode</string>
+    <string name="settings_advanced_subtitle">Notifications, AI and dev mode</string>
 
     <!-- Updated FAQ answers (Codex's port refreshed these to describe backup/export,
          optional contact access, and the unrecognized-SMS report flow, all of which

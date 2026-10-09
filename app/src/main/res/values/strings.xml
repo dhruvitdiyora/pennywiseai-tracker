@@ -147,7 +147,7 @@
     <string name="transaction_meta_balance">Balance %1$s</string>
 
     <string name="profile_settings_title">Profiles</string>
-    <string name="profile_settings_subtitle">Separate personal, business, or shared money</string>
+    <string name="profile_settings_subtitle">Personal, business or shared money</string>
     <string name="settings_account_field_label">Account</string>
     <string name="profile_settings_summary">Keep each money space distinct</string>
     <string name="profile_settings_description">Profiles label accounts and transactions without mixing their balances or spending.</string>
@@ -340,7 +340,7 @@
     <string name="support_upi_vpa" translatable="false">sarimbleedblue@okicici</string>
     <string name="support_payee_name" translatable="false">PennyWise</string>
     <string name="support_title">Support development</string>
-    <string name="support_subtitle">Built by a solo dev — a small tip keeps it going 🦉</string>
+    <string name="support_subtitle">A small tip keeps it going 🦉</string>
     <string name="support_dialog_body">PennyWise is free and open source, built by a solo developer. Everything is already unlocked in this build. If it\'s useful to you, a tip keeps it going 🦉</string>
     <string name="support_pay_via_upi">Pay via UPI</string>
     <string name="support_close">Close</string>
