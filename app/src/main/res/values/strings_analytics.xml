@@ -38,6 +38,7 @@
     </plurals>
     <!-- Whole-number percentage, e.g. "42%" -->
     <string name="analytics_percent">%1$d%%</string>
+    <string name="analytics_percent_below_one" formatted="false">&lt;1%</string>
 
     <!-- Empty state -->
     <string name="analytics_empty_headline">Not enough data yet</string>
@@ -57,6 +58,7 @@
     <!-- Pie charts -->
     <string name="analytics_pie_unknown">Unknown</string>
     <string name="analytics_pie_percent">(%1$d%%)</string>
+    <string name="analytics_pie_percent_below_one" formatted="false">(&lt;1%)</string>
 
     <!-- Breakdown cards -->
     <string name="analytics_spending_by_category">Spending by Category</string>

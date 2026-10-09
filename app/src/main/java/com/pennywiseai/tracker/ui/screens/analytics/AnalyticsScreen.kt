@@ -418,13 +418,17 @@ fun AnalyticsScreen(
                         label = "category_view_transition"
                     ) { viewType ->
                         when (viewType) {
-                            CategoryViewType.CHART -> CategoryPieChart(
-                                categories = uiState.categoryBreakdown,
-                                currency = selectedCurrency,
-                                onCategoryClick = { category ->
-                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
-                                }
-                            )
+                            // Carded like the trend chart and Cashiro's donut, so the
+                            // donut no longer floats on the bare background.
+                            CategoryViewType.CHART -> AnalyticsDonutCard {
+                                CategoryPieChart(
+                                    categories = uiState.categoryBreakdown,
+                                    currency = selectedCurrency,
+                                    onCategoryClick = { category ->
+                                        onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                                    }
+                                )
+                            }
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
@@ -509,13 +513,15 @@ fun AnalyticsScreen(
                         label = "tag_view_transition"
                     ) { viewType ->
                         when (viewType) {
-                            CategoryViewType.CHART -> TagPieChart(
-                                tags = uiState.tagBreakdown,
-                                currency = selectedCurrency,
-                                onTagClick = { tag ->
-                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
-                                }
-                            )
+                            CategoryViewType.CHART -> AnalyticsDonutCard {
+                                TagPieChart(
+                                    tags = uiState.tagBreakdown,
+                                    currency = selectedCurrency,
+                                    onTagClick = { tag ->
+                                        onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                                    }
+                                )
+                            }
                             CategoryViewType.LIST -> TagBreakdownCard(
                                 tags = uiState.tagBreakdown,
                                 currency = selectedCurrency,
@@ -648,6 +654,17 @@ internal fun AnalyticsChartModeCard(
                 ChartType.HEATMAP -> SpendingHeatmap(data = data)
             }
         }
+    }
+}
+
+/** The card surface behind a category / tag donut and its legend. */
+@Composable
+private fun AnalyticsDonutCard(content: @Composable () -> Unit) {
+    PennyWiseCardV2(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = Spacing.sm,
+    ) {
+        content()
     }
 }
 

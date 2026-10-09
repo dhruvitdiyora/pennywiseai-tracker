@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -17,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
@@ -34,29 +32,22 @@ fun CategoryBreakdownCard(
 ) {
     val maxAmount = categories.map { it.amount }.maxOrNull() ?: java.math.BigDecimal.ZERO
 
+    // No inner "Spending by Category" title: the section header above the
+    // card already names it, and Cashiro's list sits straight in the card.
     PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = Spacing.sm
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Text(
-                text = stringResource(R.string.analytics_spending_by_category),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
+        ExpandableList(
+            items = categories,
+            visibleItemCount = 5
+        ) { category ->
+            CategoryBar(
+                category = category,
+                maxAmount = maxAmount,
+                currency = currency,
+                onClick = { onCategoryClick(category) }
             )
-
-            ExpandableList(
-                items = categories,
-                visibleItemCount = 5
-            ) { category ->
-                CategoryBar(
-                    category = category,
-                    maxAmount = maxAmount,
-                    currency = currency,
-                    onClick = { onCategoryClick(category) }
-                )
-            }
         }
     }
 }
@@ -85,74 +76,75 @@ private fun CategoryBar(
     // Category color: user's assigned color, else built-in palette, else gray (#586)
     val categoryColor = CategoryMapping.colorFor(category.name, category.color)
 
+    // Cashiro-style row: a rounded-square tonal icon, the name over its share,
+    // the amount on the right, then a bar on a track tinted with the category's
+    // own colour (so it reads in both themes without a neutral grey strip).
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.medium)
             .clickable { onClick() }
-            .padding(vertical = Spacing.xs),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            .padding(horizontal = Spacing.sm, vertical = Spacing.smd),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.avatar)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(categoryColor.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(Dimensions.Icon.large)
-                        .clip(CircleShape)
-                        .background(categoryColor.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CategoryIcon(
-                        category = category.name,
-                        size = Dimensions.Icon.inline,
-                        tint = categoryColor
-                    )
-                }
+                CategoryIcon(
+                    category = category.name,
+                    size = Dimensions.Icon.medium,
+                    tint = categoryColor
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = category.name,
                     style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
-                    text = stringResource(R.string.analytics_percent, category.percentage.toInt()),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = if (category.amount.signum() > 0 && category.percentage < 1f) {
+                        stringResource(R.string.analytics_percent_below_one)
+                    } else {
+                        stringResource(R.string.analytics_percent, category.percentage.toInt())
+                    },
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = CurrencyFormatter.formatCurrency(category.amount, currency),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
             }
+            Text(
+                text = CurrencyFormatter.formatCurrency(category.amount, currency),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
         }
 
-        // Animated progress bar with rounded corners
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .height(Spacing.sm)
+                .clip(CircleShape)
+                .background(categoryColor.copy(alpha = 0.2f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedFraction)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(CircleShape)
                     .background(categoryColor)
             )
         }

@@ -162,14 +162,16 @@ private fun PieLegendItem(
         modifier = Modifier
             .fillMaxWidth()
             .sizeIn(minHeight = 48.dp)
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .padding(vertical = Spacing.xs)
+            .clip(MaterialTheme.shapes.small)
+            // Clickable before the inner padding, so the whole highlighted
+            // row (not just its inset content) takes the tap and the ripple.
+            .clickable(onClick = onClick)
             .background(
                 if (isSelected) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 else Color.Transparent
             )
-            .padding(Spacing.xs)
-            .clickable(onClick = onClick),
+            .padding(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // The category's own icon rather than a bare swatch (#827), in a disc of
@@ -206,7 +208,12 @@ private fun PieLegendItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = stringResource(R.string.analytics_pie_percent, percentage),
+                    // A real but sub-1% slice reads "<1%", not a misleading "0%".
+                    text = if (value > 0.0 && percentage == 0) {
+                        stringResource(R.string.analytics_pie_percent_below_one)
+                    } else {
+                        stringResource(R.string.analytics_pie_percent, percentage)
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
