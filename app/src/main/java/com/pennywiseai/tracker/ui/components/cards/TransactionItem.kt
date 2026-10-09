@@ -62,6 +62,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.RefreshCircle
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.MerchantDisplayName
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -223,12 +224,24 @@ fun TransactionItem(
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
     val merchantDisplay = LocalMerchantDisplay.current
 
+    // Some parsers capture SMS boilerplate ("Not you? Call ...") as the
+    // merchant; show the bank or a neutral label instead (display only).
+    val unknownMerchantLabel = stringResource(R.string.txn_item_unknown_merchant)
+    val merchantTitle = if (
+        transaction.merchantName.isBlank() ||
+        MerchantDisplayName.looksLikeSmsBody(transaction.merchantName)
+    ) {
+        MerchantDisplayName.titleFor(transaction.merchantName, transaction.bankName, unknownMerchantLabel)
+    } else {
+        merchantDisplay(transaction.merchantName) ?: transaction.merchantName
+    }
+
     // For a paired self-transfer row, the event ("Transfer → 9999" /
     // "Transfer from 1234") is more informative than the merchant name (often
     // the user's own contact name), and stops the two legs from looking like
     // duplicate rows in the list. Falls back to merchant otherwise.
     ListItemCardV2(
-        title = transferTitle ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName,
+        title = transferTitle ?: merchantTitle,
         subtitle = subtitle,
         subtitleContent = {
             // One line only: with maxLines = 1 FlowRow drops whole chips that do
