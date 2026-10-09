@@ -56,7 +56,7 @@ class BudgetDetailVisualTest {
             )
         }
 
-        composeTestRule.onNodeWithText("Essentials").assertIsDisplayed()
+        composeTestRule.onNodeWithText("ESSENTIALS").assertIsDisplayed()
         composeTestRule.onNodeWithText("Category breakdown").assertIsDisplayed()
         composeTestRule.onNodeWithText("Groceries").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
@@ -91,7 +91,7 @@ class BudgetDetailVisualTest {
             )
         }
 
-        composeTestRule.onNodeWithText("Essentials").assertIsDisplayed()
+        composeTestRule.onNodeWithText("ESSENTIALS").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
     }
 

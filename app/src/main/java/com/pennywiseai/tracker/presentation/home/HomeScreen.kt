@@ -542,8 +542,7 @@ fun HomeScreen(
                                         BudgetCarousel(
                                             summary = summary,
                                             onClick = onNavigateToBudgets,
-                                            onCreateBudget = onNavigateToBudgets,
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                            onCreateBudget = onNavigateToBudgets
                                         )
                                     }
                                 }

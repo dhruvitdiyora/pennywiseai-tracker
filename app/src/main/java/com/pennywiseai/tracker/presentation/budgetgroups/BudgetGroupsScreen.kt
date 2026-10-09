@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
-import java.time.format.TextStyle
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -20,6 +17,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,9 +38,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
@@ -64,6 +61,15 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.BudgetCardCaption
+import com.pennywiseai.tracker.ui.components.cards.BudgetCardTitle
+import com.pennywiseai.tracker.ui.components.cards.BudgetHeroFigures
+import com.pennywiseai.tracker.ui.components.cards.BudgetProgressTrack
+import com.pennywiseai.tracker.ui.components.cards.budgetBarColor
+import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
+import com.pennywiseai.tracker.ui.components.cards.budgetRenewalText
+import com.pennywiseai.tracker.ui.components.cards.budgetRim
+import com.pennywiseai.tracker.ui.components.cards.budgetStatusColor
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.iconax.History as IconaxHistory
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -118,8 +124,10 @@ fun BudgetGroupsScreen(
             )
         },
         floatingActionButton = {
-            if (uiState.hasGroups) {
-                // The label is the action ("New Budget"), so the icon is decorative.
+            // Always present, as in Cashiro: the empty state offers the
+            // smart-defaults shortcut, the FAB is the one place to add a budget.
+            // The label is the action ("New Budget"), so the icon is decorative.
+            if (!uiState.isLoading) {
                 ExtendedFloatingActionButton(
                     onClick = { onNavigateToGroupEdit(-1L) },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -151,7 +159,7 @@ fun BudgetGroupsScreen(
                     .fillMaxSize()
                     .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding() + Dimensions.Padding.content)
             ) {
                 MonthSelector(
                     year = uiState.selectedYear,
@@ -162,7 +170,9 @@ fun BudgetGroupsScreen(
                     onNext = { viewModel.selectNextMonth() }
                 )
                 EmptyBudgetState(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     onSmartDefaults = { viewModel.runSmartDefaults() },
                     onCreateNew = { onNavigateToGroupEdit(-1L) }
                 )
@@ -193,66 +203,101 @@ fun BudgetGroupsScreen(
     }
 }
 
+/**
+ * Cashiro's empty state: no card, just a centred icon, headline, one line of
+ * explanation and the actions, sitting in the middle of the free space. The
+ * block is lifted by the FAB's clearance so it centres on the visible area
+ * rather than hiding a dead band above it, and it scrolls when a large font
+ * makes it taller than the screen.
+ */
 @Composable
 private fun EmptyBudgetState(
     modifier: Modifier = Modifier,
     onSmartDefaults: () -> Unit,
     onCreateNew: () -> Unit
 ) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        PennyWiseCardV2(
+    BoxWithConstraints(modifier = modifier) {
+        val minHeight = maxHeight
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            contentPadding = Dimensions.Padding.empty
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = minHeight)
+                .padding(
+                    start = Dimensions.Padding.empty,
+                    end = Dimensions.Padding.empty,
+                    top = Spacing.lg,
+                    bottom = Dimensions.Component.fabScrollClearance
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.emptyStateContainer)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.AccountBalance,
+                    imageVector = Icons.Default.TrackChanges,
                     contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
-                    tint = MaterialTheme.colorScheme.primary
+                    modifier = Modifier.size(Dimensions.Icon.emptyStateGlyph),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            }
 
-                Text(
-                    text = stringResource(R.string.budgets_setup_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            Text(
+                text = stringResource(R.string.budgets_setup_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            Text(
+                text = stringResource(R.string.budgets_setup_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = EMPTY_STATE_TEXT_MAX_WIDTH)
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            Button(
+                onClick = onSmartDefaults,
+                modifier = Modifier.defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+            ) {
+                Icon(
+                    Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small)
                 )
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(stringResource(R.string.budgets_setup_smart_defaults))
+            }
 
-                Text(
-                    text = stringResource(R.string.budgets_setup_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+            Spacer(modifier = Modifier.height(Spacing.xs))
 
-                Button(
-                    onClick = onSmartDefaults,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(stringResource(R.string.budgets_setup_smart_defaults))
-                }
-
-                OutlinedButton(
-                    onClick = onCreateNew,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.budgets_setup_custom))
-                }
+            TextButton(
+                onClick = onCreateNew,
+                modifier = Modifier.defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+            ) {
+                Text(stringResource(R.string.budgets_setup_custom))
             }
         }
     }
 }
+
+/** Keeps the centred explanation from wrapping into an awkward wide block. */
+private val EMPTY_STATE_TEXT_MAX_WIDTH = 280.dp
 
 @Composable
 private fun BudgetGroupsContent(
@@ -294,7 +339,8 @@ private fun BudgetGroupsContent(
             start = Dimensions.Padding.content,
             end = Dimensions.Padding.content,
             top = Dimensions.Padding.content + topPadding,
-            bottom = Dimensions.Component.bottomBarHeight + Spacing.md
+            // Lets the last card scroll clear of the New Budget FAB.
+            bottom = Dimensions.Component.fabScrollClearance + Spacing.md
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -469,7 +515,6 @@ internal fun BudgetOverviewCard(
     )
 
     val pctUsed = groupSpending.percentageUsed
-    val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
 
     var animatedProgress by remember { mutableFloatStateOf(0f) }
     val animatedProgressState by animateFloatAsState(
@@ -483,14 +528,8 @@ internal fun BudgetOverviewCard(
     }
 
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val statusColor: Color = when {
-        pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
-    }
-    // The bar wears the budget's own color while it is healthy; the percentage
-    // and hero text stay semantic so a red budget at 36% does not read as danger.
-    val barColor = if (pctUsed >= 70f) statusColor else budgetColor
+    val statusColor = budgetStatusColor(pctUsed)
+    val barColor = budgetBarColor(pctUsed, budgetColor)
 
     PennyWiseCardV2(
         onClick = if (hasBreakdown) ({ expanded = !expanded }) else null,
@@ -501,17 +540,14 @@ internal fun BudgetOverviewCard(
             },
         shape = MaterialTheme.shapes.extraLarge,
         // A faint rim in the budget's own colour, over the standard card surface.
-        border = BorderStroke(
-            width = Dimensions.Component.dividerThickness,
-            color = budgetColor.copy(alpha = BUDGET_CARD_RIM_ALPHA)
-        ),
-        // The tint is painted by the column below so it covers the whole card.
+        border = budgetRim(budgetColor),
+        // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .budgetTint(budgetColor)
+                .budgetColorWash(budgetColor)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioLowBouncy,
@@ -521,37 +557,15 @@ internal fun BudgetOverviewCard(
                 .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.smd)
         ) {
             // Header: marker + UPPERCASE name, then history and the overflow menu.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Api,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    tint = barColor
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = budget.name.uppercase(Locale.getDefault()),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-
-                BudgetTonalIconButton(
+            BudgetCardTitle(name = budget.name, markerColor = barColor) {
+                BudgetHeroIconButton(
                     onClick = onViewHistory,
                     icon = Iconax.IconaxHistory,
                     contentDescription = stringResource(R.string.budgets_view_history)
                 )
                 Box {
                     var showMenu by remember { mutableStateOf(false) }
-                    BudgetTonalIconButton(
+                    BudgetHeroIconButton(
                         onClick = { showMenu = true },
                         icon = Icons.Default.MoreVert,
                         contentDescription = stringResource(
@@ -559,255 +573,48 @@ internal fun BudgetOverviewCard(
                             budget.name
                         )
                     )
-                    DropdownMenu(
+                    BudgetOverflowMenu(
                         expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.budget_edit)) },
-                            onClick = {
-                                showMenu = false
-                                onEdit()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Edit, contentDescription = null)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.budgets_view_history)) },
-                            onClick = {
-                                showMenu = false
-                                onViewHistory()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.History, contentDescription = null)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.budgets_move_up)) },
-                            onClick = {
-                                showMenu = false
-                                onMoveUp()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
-                            },
-                            enabled = !isFirst
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.budgets_move_down)) },
-                            onClick = {
-                                showMenu = false
-                                onMoveDown()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
-                            },
-                            enabled = !isLast
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = stringResource(R.string.budget_delete),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            onClick = {
-                                showMenu = false
-                                onDelete()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        )
-                    }
+                        onDismiss = { showMenu = false },
+                        isFirst = isFirst,
+                        isLast = isLast,
+                        onEdit = onEdit,
+                        onViewHistory = onViewHistory,
+                        onMoveUp = onMoveUp,
+                        onMoveDown = onMoveDown,
+                        onDelete = onDelete
+                    )
                 }
             }
 
             if (groupSpending.totalBudget > BigDecimal.ZERO) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Hero row. On a spending limit this is what is left to spend per
-                // day ("per day" means nothing for a target or for expected
-                // bills, and nothing is left once the limit is crossed or the
-                // window has ended), so those show the amount left of the whole
-                // budget - or how far over it is - instead.
-                val remainingAbs = groupSpending.remaining.abs()
-                val showDaily = budget.groupType == BudgetGroupType.LIMIT &&
-                    !isOverBudget &&
-                    groupSpending.dailyAllowance > BigDecimal.ZERO
-                val heroLabel = stringResource(
-                    when {
-                        showDaily -> R.string.budgets_card_daily_left
-                        isOverBudget -> R.string.budgets_card_over_label
-                        else -> R.string.budgets_card_remaining_label
-                    }
-                )
-                val heroAmount = when {
-                    showDaily -> groupSpending.dailyAllowance
-                    isOverBudget -> remainingAbs
-                    else -> groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO)
-                }
-                val pairLabel = stringResource(
-                    when (budget.groupType) {
-                        BudgetGroupType.LIMIT -> R.string.budgets_card_spent_limit
-                        BudgetGroupType.EXPECTED -> R.string.budgets_card_spent_expected
-                        BudgetGroupType.TARGET -> R.string.budgets_card_actual_target
-                    }
-                )
-                // FlowRow: when there is no room (narrow card, large font) the
-                // right-hand figures wrap below instead of squeezing the hero.
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    itemVerticalAlignment = Alignment.Bottom
-                ) {
-                    Column {
-                        BudgetCardLabel(text = heroLabel)
-                        Text(
-                            text = CurrencyFormatter.formatCurrency(heroAmount, currency),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = if (isOverBudget) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        BudgetCardLabel(text = pairLabel)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false)
-                            )
-                            Text(
-                                text = " / ",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false)
-                            )
-                        }
-                    }
-                }
-
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                BudgetHeroFigures(groupSpending = groupSpending, currency = currency)
                 Spacer(modifier = Modifier.height(Spacing.md))
-
-                // Progress bar
-                val barShape = RoundedCornerShape(50)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Dimensions.Component.progressBarHeight)
-                        .clip(barShape)
-                        .background(
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.divider)
-                        )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = animatedProgressState)
-                            .fillMaxHeight()
-                            .clip(barShape)
-                            .background(barColor)
-                    )
-                }
-
+                BudgetProgressTrack(progress = animatedProgressState, color = barColor)
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                // Footer: how much of the budget is used, then the per-cadence
-                // renewal countdown - always framed as "Resets in X days" so the
-                // user knows when the budget's window ends. The displayed
-                // window is the budget's own current window (Jun 29..Jul 5 even
-                // when the page is the July view) so this number is consistent
-                // across month views.
-                val dateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
-                val locale = LocalConfiguration.current.locales[0]
-                val subtitleText = when {
-                    groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)
-                    isOverBudget -> stringResource(R.string.budgets_over_by, CurrencyFormatter.formatCurrency(remainingAbs, currency))
-                    groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
-                        val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        val weekdayName = java.time.DayOfWeek.of((budget.weekStartDay ?: 1).coerceIn(1, 7))
-                            .getDisplayName(TextStyle.FULL, locale)
-                        if (renewalIn == 0) {
-                            stringResource(R.string.budgets_resets_today_weekly, weekdayName)
-                        } else {
-                            pluralStringResource(R.plurals.budgets_resets_in_weekly, renewalIn, renewalIn, weekdayName)
-                        }
-                    }
-                    groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
-                        val startDay = budget.monthStartDay
-                            ?: groupSpending.windowStart.dayOfMonth
-                        val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        if (renewalIn == 0) {
-                            stringResource(R.string.budgets_resets_today_monthly, startDay)
-                        } else {
-                            pluralStringResource(R.plurals.budgets_resets_in_monthly, renewalIn, renewalIn, startDay)
-                        }
-                    }
-                    groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
-                        val range = stringResource(
-                            R.string.budgets_date_range,
-                            groupSpending.windowStart.format(dateFormatter),
-                            groupSpending.windowEnd.format(dateFormatter)
-                        )
-                        if (groupSpending.daysRemaining >= 1) {
-                            // >1 counts the days after today; ==1 reads as "1 day" (unchanged behaviour).
-                            val left = (groupSpending.daysRemaining - 1).coerceAtLeast(1)
-                            pluralStringResource(R.plurals.budgets_runs_days_remaining, left, range, left)
-                        } else {
-                            stringResource(R.string.budgets_runs_finished, range)
-                        }
-                    }
-                    else -> pluralStringResource(
-                        R.plurals.budgets_days_remaining,
-                        groupSpending.daysRemaining,
-                        groupSpending.daysRemaining
-                    )
-                }
+                // Footer: how much of the budget is used, then when the
+                // budget's window renews (the overage is in the hero already).
                 val percentText = stringResource(R.string.budgets_percent, pctUsed.toInt())
+                val renewalText = budgetRenewalText(groupSpending)
                 val footerText = buildAnnotatedString {
                     withStyle(SpanStyle(color = statusColor, fontWeight = FontWeight.SemiBold)) {
                         append(percentText)
                     }
                     append(" · ")
-                    append(subtitleText)
+                    append(renewalText)
                 }
                 Text(
                     text = footerText,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else if (groupSpending.isTrackingAllExpenses) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                BudgetCardLabel(text = stringResource(R.string.budgets_card_spent_label))
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                BudgetCardCaption(text = stringResource(R.string.budgets_card_spent_label))
                 Text(
                     text = CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
                     style = MaterialTheme.typography.headlineMedium.copy(
@@ -993,89 +800,6 @@ internal fun BudgetOverviewCard(
     }
 }
 
-/** How strongly the budget's colour rims the card. */
-private const val BUDGET_CARD_RIM_ALPHA = 0.12f
-
-/**
- * Washes a few soft blobs of the budget's colour over the card, like Cashiro's
- * gradient mesh but static: it draws nothing that animates, so it costs a list
- * of cards no frames and renders identically in screenshots.
- */
-private fun Modifier.budgetTint(color: Color): Modifier = drawBehind {
-    drawRect(
-        brush = Brush.radialGradient(
-            colors = listOf(color.copy(alpha = 0.26f), Color.Transparent),
-            center = Offset(size.width * 0.12f, size.height * 0.10f),
-            radius = size.width * 0.70f
-        )
-    )
-    drawRect(
-        brush = Brush.radialGradient(
-            colors = listOf(color.copy(alpha = 0.18f), Color.Transparent),
-            center = Offset(size.width * 0.95f, size.height * 0.95f),
-            radius = size.width * 0.60f
-        )
-    )
-    drawRect(
-        brush = Brush.radialGradient(
-            colors = listOf(color.copy(alpha = 0.14f), Color.Transparent),
-            center = Offset(size.width * 0.75f, size.height * 0.15f),
-            radius = size.width * 0.50f
-        )
-    )
-}
-
-/** The small, upper-case, lightly tracked caption above a figure. */
-@Composable
-private fun BudgetCardLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(Locale.getDefault()),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp
-        ),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-    )
-}
-
-/**
- * A small round tonal button for the card header (history, overflow menu).
- * The drawn disc is [Dimensions.Icon.large]; the touch target is the full
- * [Dimensions.Component.minTouchTarget].
- */
-@Composable
-private fun BudgetTonalIconButton(
-    onClick: () -> Unit,
-    icon: ImageVector,
-    contentDescription: String,
-    modifier: Modifier = Modifier
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier.size(Dimensions.Component.minTouchTarget)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Icon.large)
-                .background(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.divider),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                modifier = Modifier.size(Dimensions.Icon.small),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 @Composable
 private fun SpendingPaceChart(
     cumulativeSpending: List<Double>,
@@ -1181,4 +905,77 @@ private fun SpendingPaceChart(
                 )
             }
         }
+}
+
+/** The overview card's overflow actions; Delete still goes through the confirmation dialog. */
+@Composable
+private fun BudgetOverflowMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onEdit: () -> Unit,
+    onViewHistory: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss
+    ) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.budget_edit)) },
+            onClick = {
+                onDismiss()
+                onEdit()
+            },
+            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.budgets_view_history)) },
+            onClick = {
+                onDismiss()
+                onViewHistory()
+            },
+            leadingIcon = { Icon(Icons.Default.History, contentDescription = null) }
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.budgets_move_up)) },
+            onClick = {
+                onDismiss()
+                onMoveUp()
+            },
+            leadingIcon = { Icon(Icons.Default.KeyboardArrowUp, contentDescription = null) },
+            enabled = !isFirst
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.budgets_move_down)) },
+            onClick = {
+                onDismiss()
+                onMoveDown()
+            },
+            leadingIcon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = null) },
+            enabled = !isLast
+        )
+        DropdownMenuItem(
+            text = {
+                Text(
+                    text = stringResource(R.string.budget_delete),
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            onClick = {
+                onDismiss()
+                onDelete()
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        )
+    }
 }

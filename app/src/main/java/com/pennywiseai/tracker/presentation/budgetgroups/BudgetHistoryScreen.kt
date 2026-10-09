@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
+import com.pennywiseai.tracker.ui.components.cards.budgetRim
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.PastWindowSpending
@@ -57,6 +59,10 @@ import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -141,9 +147,9 @@ fun BudgetHistoryScreen(
                         .padding(top = topPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        stringResource(R.string.budget_history_loading),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    val loadingLabel = stringResource(R.string.budget_history_loading)
+                    CircularProgressIndicator(
+                        modifier = Modifier.semantics { contentDescription = loadingLabel }
                     )
                 }
 
@@ -167,7 +173,10 @@ fun BudgetHistoryScreen(
 
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .overScrollVertical(),
+                        flingBehavior = rememberOverscrollFlingBehavior { listState },
                         contentPadding = PaddingValues(
                             start = Dimensions.Padding.content,
                             end = Dimensions.Padding.content,
@@ -451,10 +460,11 @@ internal fun HistoryRow(
                 )
                 Text(
                     text = if (percentageUsed >= BigDecimal(1000)) {
-                        "999%+"
+                        stringResource(R.string.budget_history_percent_capped, 999)
                     } else {
-                        "${percentageUsed.toInt()}%"
+                        stringResource(R.string.budgets_percent, percentageUsed.toInt())
                     },
+                    maxLines = 1,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = progressColor,

@@ -76,6 +76,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
+import com.pennywiseai.tracker.ui.components.cards.budgetRim
 import com.pennywiseai.tracker.presentation.add.addFieldColors
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn

@@ -59,6 +59,16 @@ import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.BudgetCardCaption
+import com.pennywiseai.tracker.ui.components.cards.BudgetCardTitle
+import com.pennywiseai.tracker.ui.components.cards.BudgetHeroFigures
+import com.pennywiseai.tracker.ui.components.cards.BudgetProgressTrack
+import com.pennywiseai.tracker.ui.components.cards.budgetBarColor
+import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
+import com.pennywiseai.tracker.ui.components.cards.budgetRenewalText
+import com.pennywiseai.tracker.ui.components.cards.budgetRim
+import com.pennywiseai.tracker.ui.components.cards.budgetStatusColor
+import androidx.compose.foundation.layout.heightIn
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.toColorOr
@@ -247,16 +257,19 @@ internal fun BudgetDetailContent(
 
         if (transactions.isEmpty()) {
             item {
-                PennyWiseCardV2(shape = MaterialTheme.shapes.extraLarge) {
+                PennyWiseCardV2(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    contentPadding = Dimensions.Padding.empty,
+                ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                             contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.list),
+                            modifier = Modifier.size(Dimensions.Icon.avatarLarge),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
@@ -316,14 +329,8 @@ private fun BudgetDetailSummaryCard(
     val hasLimit = groupSpending.totalBudget > BigDecimal.ZERO
     val isOver = groupSpending.remaining < BigDecimal.ZERO
     val budgetColor = budget.color.toColorOr(scheme.primary)
-    val statusColor = when {
-        pct >= 90f -> scheme.error
-        pct >= 70f -> scheme.tertiary
-        else -> scheme.primary
-    }
-    // The bar wears the budget's own colour while it is healthy; the figures
-    // stay semantic so a red budget at 36% does not read as danger.
-    val barColor = if (pct >= 70f) statusColor else budgetColor
+    val statusColor = budgetStatusColor(pct)
+    val barColor = budgetBarColor(pct, budgetColor)
 
     val groupType = when (budget.groupType) {
         BudgetGroupType.LIMIT -> stringResource(R.string.budget_detail_type_limit)
@@ -350,28 +357,11 @@ private fun BudgetDetailSummaryCard(
                 .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.smd),
         ) {
             // Header: marker + name, then percent used and the history button.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+            BudgetCardTitle(
+                name = budget.name,
+                markerColor = barColor,
+                modifier = Modifier.heightIn(min = Dimensions.Component.minTouchTarget),
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Api,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    tint = barColor,
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = budget.name,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                    ),
-                    color = scheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
                 if (hasLimit) {
                     Text(
                         text = stringResource(R.string.budget_percent_used, pct.toInt()),
@@ -412,136 +402,40 @@ private fun BudgetDetailSummaryCard(
             Spacer(modifier = Modifier.height(Spacing.smd))
 
             if (hasLimit) {
-                // Hero figure. On a spending limit this is what is left to spend
-                // per day ("per day" means nothing for a target or for expected
-                // bills, and nothing is left once the limit is crossed), so those
-                // show what is left of the whole budget - or how far over it is.
-                val showDaily = budget.groupType == BudgetGroupType.LIMIT &&
-                    !isOver &&
-                    groupSpending.dailyAllowance > BigDecimal.ZERO
-                val heroLabel = stringResource(
-                    when {
-                        showDaily -> R.string.budgets_card_daily_left
-                        isOver -> R.string.budgets_card_over_label
-                        else -> R.string.budgets_card_remaining_label
-                    },
-                )
-                val heroAmount = when {
-                    showDaily -> groupSpending.dailyAllowance
-                    isOver -> groupSpending.remaining.abs()
-                    else -> groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO)
-                }
-                val pairLabel = stringResource(
-                    when (budget.groupType) {
-                        BudgetGroupType.LIMIT -> R.string.budgets_card_spent_limit
-                        BudgetGroupType.EXPECTED -> R.string.budgets_card_spent_expected
-                        BudgetGroupType.TARGET -> R.string.budgets_card_actual_target
-                    },
-                )
-
-                // FlowRow: when there is no room (narrow card, large font) the
-                // right-hand figures wrap below instead of squeezing the hero.
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    itemVerticalAlignment = Alignment.Bottom,
-                ) {
-                    Column {
-                        HeroLabel(text = heroLabel)
-                        Text(
-                            text = CurrencyFormatter.formatCurrency(heroAmount, currency),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = if (isOver) scheme.error else scheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        HeroLabel(text = pairLabel)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                color = scheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            Text(
-                                text = " / ",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = scheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                color = scheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                        }
-                    }
-                }
+                BudgetHeroFigures(groupSpending = groupSpending, currency = currency)
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                val barShape = RoundedCornerShape(50)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Dimensions.Component.progressBarHeight)
-                        .clip(barShape)
-                        .background(scheme.onSurface.copy(alpha = Dimensions.Alpha.divider)),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = (pct / 100f).coerceIn(0f, 1f))
-                            .fillMaxHeight()
-                            .clip(barShape)
-                            .background(barColor),
-                    )
-                }
+                BudgetProgressTrack(progress = pct / 100f, color = barColor)
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                // Footer: what is left (or how far over), then the days still to
-                // go while the window is live.
+                // Footer: when the hero shows the per-day allowance, what is
+                // left of the whole budget (the hero already carries it
+                // otherwise, including any overage), then when the window
+                // renews while it is still live.
+                val showsDaily = budget.groupType == BudgetGroupType.LIMIT &&
+                    !isOver &&
+                    groupSpending.dailyAllowance > BigDecimal.ZERO
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = if (showsDaily) Arrangement.SpaceBetween else Arrangement.Center,
                     verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
                 ) {
-                    Text(
-                        text = if (isOver) {
-                            stringResource(
-                                R.string.budget_amount_over,
-                                CurrencyFormatter.formatCurrency(groupSpending.remaining.abs(), currency),
-                            )
-                        } else {
-                            stringResource(
+                    if (showsDaily) {
+                        Text(
+                            text = stringResource(
                                 R.string.budget_amount_remaining,
                                 CurrencyFormatter.formatCurrency(groupSpending.remaining, currency),
-                            )
-                        },
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                    )
+                            ),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = statusColor,
+                        )
+                    }
                     if (groupSpending.displayedIsLive) {
                         Text(
-                            text = pluralStringResource(
-                                R.plurals.budget_card_days_remaining,
-                                groupSpending.daysRemaining,
-                                groupSpending.daysRemaining,
-                            ),
+                            text = budgetRenewalText(groupSpending),
                             style = MaterialTheme.typography.labelMedium,
                             color = scheme.onSurfaceVariant,
                         )
@@ -549,7 +443,7 @@ private fun BudgetDetailSummaryCard(
                 }
             } else {
                 // A budget with no limit only tracks spending.
-                HeroLabel(text = stringResource(R.string.budgets_card_spent_label))
+                BudgetCardCaption(text = stringResource(R.string.budgets_card_spent_label))
                 Text(
                     text = CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
                     style = MaterialTheme.typography.headlineMedium.copy(
@@ -568,22 +462,6 @@ private fun BudgetDetailSummaryCard(
             }
         }
     }
-}
-
-/** The small, upper-case, lightly tracked caption above a hero figure. */
-@Composable
-private fun HeroLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(Locale.getDefault()),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp,
-        ),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier,
-    )
 }
 
 /** The window's dates centred between two dashed rules, as in Cashiro. */

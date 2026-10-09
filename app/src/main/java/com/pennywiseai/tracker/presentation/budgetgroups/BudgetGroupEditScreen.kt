@@ -40,6 +40,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -245,22 +249,39 @@ fun BudgetGroupEditScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
                         AddSectionLabel(text = stringResource(R.string.budget_edit_period))
 
-                        // FlowRow wraps the chips onto a new line when the screen is
-                        // too narrow to fit all three, so they never get clipped.
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            listOf(
-                                BudgetPeriodType.WEEKLY to R.string.budget_edit_period_weekly,
-                                BudgetPeriodType.MONTHLY to R.string.budget_edit_period_monthly,
-                                BudgetPeriodType.CUSTOM to R.string.budget_edit_period_one_time
-                            ).forEach { (period, label) ->
-                                AddChoiceChip(
+                        // Cashiro's segmented cadence switch. Labels may wrap to
+                        // two lines at large font sizes rather than truncate; the
+                        // recurring/one-off detail is in the window caption below.
+                        val periods = listOf(
+                            BudgetPeriodType.WEEKLY to R.string.budget_cadence_weekly,
+                            BudgetPeriodType.MONTHLY to R.string.budget_cadence_monthly,
+                            BudgetPeriodType.CUSTOM to R.string.budget_cadence_one_time
+                        )
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            periods.forEachIndexed { index, (period, label) ->
+                                SegmentedButton(
                                     selected = uiState.periodType == period,
                                     onClick = { viewModel.updatePeriodType(period) },
-                                    label = stringResource(label)
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = periods.size
+                                    ),
+                                    colors = SegmentedButtonDefaults.colors(
+                                        activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                        inactiveContentColor = MaterialTheme.colorScheme.onSurface,
+                                        activeBorderColor = Color.Transparent,
+                                        inactiveBorderColor = Color.Transparent
+                                    ),
+                                    icon = {},
+                                    label = {
+                                        Text(
+                                            text = stringResource(label),
+                                            maxLines = 2,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
                                 )
                             }
                         }

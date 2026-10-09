@@ -45,7 +45,9 @@ fun BudgetCarousel(
 
     if (groups.isEmpty()) {
         PennyWiseCardV2(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content),
             onClick = onCreateBudget
         ) {
             Row(
@@ -55,7 +57,7 @@ fun BudgetCarousel(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(Dimensions.Icon.avatarLarge)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
@@ -99,7 +101,9 @@ fun BudgetCarousel(
             groupSpending = groups.first(),
             currency = summary.currency,
             onClick = onClick,
-            modifier = modifier.fillMaxWidth()
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { groups.size })
@@ -108,8 +112,10 @@ fun BudgetCarousel(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = Spacing.lg),
-                pageSpacing = Spacing.md
+                // Edge to edge, as in Cashiro: the current card lines up with
+                // the section header and the next one peeks in at the edge.
+                contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+                pageSpacing = Spacing.smd
             ) { page ->
                 val pageOffset = (
                     (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
