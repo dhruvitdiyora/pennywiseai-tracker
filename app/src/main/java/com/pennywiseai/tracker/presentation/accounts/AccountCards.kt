@@ -623,6 +623,11 @@ internal fun CreditCardItem(
                             text = stringResource(R.string.manage_accounts_available),
                             style = MaterialTheme.typography.bodyMedium,
                             color = scheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = Spacing.sm),
                         )
                         Text(
                             text = CurrencyFormatter.formatCurrency(available, card.currency),

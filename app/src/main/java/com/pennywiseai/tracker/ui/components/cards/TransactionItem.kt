@@ -268,7 +268,9 @@ fun TransactionItem(
                         Text(
                             text = "•",
                             style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                            // Full-strength muted role: an alpha on onSurfaceVariant
+                            // drops the separator below the contrast floor.
+                            color = colors.onSurfaceVariant,
                         )
                         SubtitleTag(
                             text = transaction.category,
