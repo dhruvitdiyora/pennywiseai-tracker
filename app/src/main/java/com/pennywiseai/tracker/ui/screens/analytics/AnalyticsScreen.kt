@@ -163,6 +163,7 @@ fun AnalyticsScreen(
             )
         }
     ) { paddingValues ->
+    val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -174,7 +175,9 @@ fun AnalyticsScreen(
             // No side padding on the list itself: the period chips bleed to the
             // screen edge, so every other item carries its own gutter.
             top = paddingValues.calculateTopPadding() + Spacing.md,
-            bottom = Dimensions.Component.bottomBarHeight + Spacing.md
+            // The floating nav bar sits above the system navigation bar, so the
+            // last section must clear both, plus a margin, to scroll into view.
+            bottom = navBarInset + Dimensions.Component.bottomBarHeight + Spacing.lg
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         flingBehavior = rememberOverscrollFlingBehavior { listState }
