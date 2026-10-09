@@ -10,4 +10,9 @@
     <string name="edit_profile_banner_description">Profile banner</string>
     <string name="edit_profile_photo_description">Profile photo</string>
     <string name="edit_profile_image_error">That image could not be loaded. Try another one.</string>
+    <!-- Section labels inside the Edit profile sheet. -->
+    <string name="edit_profile_section_avatar">Avatar</string>
+    <string name="edit_profile_section_banner">Banner</string>
+    <!-- Shown under the name field while it is empty; Save stays disabled. -->
+    <string name="edit_profile_name_required">Enter a name</string>
 </resources>
