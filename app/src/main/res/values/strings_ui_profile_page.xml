@@ -12,4 +12,9 @@
     <string name="profile_page_stat_settled">Settled</string>
     <!-- Tile label: how many different currencies have an open balance. -->
     <string name="profile_page_stat_currencies">Currencies</string>
+    <!-- Line under the user's name in the profile header: how many contacts they keep. -->
+    <plurals name="profile_page_hero_contacts">
+        <item quantity="one">%1$d contact</item>
+        <item quantity="other">%1$d contacts</item>
+    </plurals>
 </resources>

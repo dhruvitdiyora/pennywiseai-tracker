@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -59,11 +60,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -206,6 +209,13 @@ internal fun EditProfileSheetContent(
                     )
                 },
                 leadingIcon = { Icon(Iconax.Edit2, contentDescription = null) },
+                // Save is disabled for a blank name; say why rather than leave it greyed out.
+                isError = draft.name.isBlank(),
+                supportingText = if (draft.name.isBlank()) {
+                    { Text(stringResource(R.string.edit_profile_name_required)) }
+                } else {
+                    null
+                },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 shape = MaterialTheme.shapes.large,
@@ -221,6 +231,7 @@ internal fun EditProfileSheetContent(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                SheetSectionLabel(stringResource(R.string.edit_profile_section_avatar))
                 PresetAvatarRow(
                     selectedUri = draft.avatarUri,
                     avatarColor = draft.avatarColor,
@@ -231,6 +242,10 @@ internal fun EditProfileSheetContent(
                     onGallery = onPickAvatarPhoto,
                     onClear = onClearAvatarPhoto,
                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                )
+                SheetSectionLabel(
+                    text = stringResource(R.string.edit_profile_section_banner),
+                    modifier = Modifier.padding(top = Spacing.sm),
                 )
                 BannerButtons(
                     hasBanner = draft.bannerUri != null,
@@ -305,22 +320,22 @@ private fun ProfilePreview(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(BannerPreviewHeight)
+            // A floor, not a fixed height: at large font scales the name pushes it taller.
+            .heightIn(min = BannerPreviewHeight)
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-        contentAlignment = Alignment.Center,
     ) {
         if (draft.bannerUri != null) {
             AsyncImage(
                 model = draft.bannerUri,
                 contentDescription = stringResource(R.string.edit_profile_banner_description),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.Crop,
             )
         } else if (coverStyle != CoverStyle.NONE) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .matchParentSize()
                     .background(
                         Brush.horizontalGradient(
                             getCoverGradientColors(
@@ -335,16 +350,49 @@ private fun ProfilePreview(
         // Dissolve the bottom edge into the sheet, like the Home header does.
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to surface)),
         )
-        AvatarBubble(
-            avatarUri = draft.avatarUri,
-            avatarColor = draft.avatarColor,
-            size = AvatarPreviewSize,
-            ringColor = surface,
-        )
+        // The avatar and name as the profile page will show them, so a rename is
+        // previewed live alongside the picture and colour.
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = Spacing.smd),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            AvatarBubble(
+                avatarUri = draft.avatarUri,
+                avatarColor = draft.avatarColor,
+                size = AvatarPreviewSize,
+                ringColor = surface,
+            )
+            Text(
+                text = draft.name.trim().ifEmpty { stringResource(R.string.greeting_default_user_name) },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
+}
+
+/** A small heading that groups the sheet's controls (Avatar, Banner). */
+@Composable
+private fun SheetSectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .padding(horizontal = Dimensions.Padding.content)
+            .semantics { heading() },
+    )
 }
 
 @Composable
@@ -408,7 +456,7 @@ private fun PresetAvatarRow(
                         if (isSelected) {
                             Modifier.border(
                                 Dimensions.Component.selectionStroke,
-                                MaterialTheme.colorScheme.onSurface,
+                                MaterialTheme.colorScheme.primary,
                                 CircleShape,
                             )
                         } else {
