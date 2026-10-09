@@ -333,27 +333,6 @@ fun TransactionsScreen(
     // stack need matching bottom clearance (whether or not a back arrow shows).
     val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
 
-    // With the bottom bar present, Add/Export sit beside it instead of a FAB
-    // stack covering the last rows.
-    val navActionList = buildList {
-        add(
-            NavAction(
-                label = stringResource(R.string.txn_list_add_transaction),
-                icon = Icons.Default.Add,
-                onClick = onAddTransactionClick,
-            )
-        )
-        if (uiState.transactions.isNotEmpty()) {
-            add(
-                NavAction(
-                    label = stringResource(R.string.txn_list_export_csv),
-                    icon = Icons.Default.FileDownload,
-                    onClick = { showExportDialog = true },
-                )
-            )
-        }
-    }
-    val hostedActions = reserveBottomBarSpace && ProvideNavActions(navActionList)
 
     Scaffold(
         modifier = modifier
@@ -430,7 +409,7 @@ fun TransactionsScreen(
             }
         },
         floatingActionButton = {
-            if (!hostedActions) Column(
+            Column(
                 modifier = Modifier.padding(bottom = bottomBarClearance),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)

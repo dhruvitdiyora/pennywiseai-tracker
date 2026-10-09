@@ -38,8 +38,6 @@ import com.pennywiseai.tracker.presentation.statement.ImportStatementScreen
 import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
-import com.pennywiseai.tracker.ui.components.LocalNavActions
-import com.pennywiseai.tracker.ui.components.NavActionsHost
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
@@ -99,7 +97,6 @@ fun MainScreen(
 
     // Haze state for blur effects
     val hazeState = remember { HazeState() }
-    val navActions = remember { NavActionsHost() }
 
     val isHomeScreen = baseRoute == "home"
 
@@ -135,10 +132,7 @@ fun MainScreen(
         }
     }
 
-    CompositionLocalProvider(
-        LocalMerchantDisplay provides merchantDisplay,
-        LocalNavActions provides navActions,
-    ) {
+    CompositionLocalProvider(LocalMerchantDisplay provides merchantDisplay) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -774,7 +768,6 @@ fun MainScreen(
                     navBarStyle = themeState.navBarStyle,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
-                    navActions = navActions,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }

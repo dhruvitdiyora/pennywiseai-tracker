@@ -99,8 +99,6 @@ import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
-import com.pennywiseai.tracker.ui.components.NavAction
-import com.pennywiseai.tracker.ui.components.ProvideNavActions
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
@@ -888,31 +886,9 @@ fun HomeScreen(
         )
         val scanRotation = if (uiState.isScanning) continuousRotation else 0f
 
-        // Under the tab scaffold Add and Sync sit beside the bottom bar, so they
-        // never float over the list.
-        val hostedActions = ProvideNavActions(
-            actions = listOf(
-                NavAction(
-                    label = stringResource(R.string.home_fab_add),
-                    icon = Icons.Default.Add,
-                    onClick = onNavigateToAddScreen,
-                ),
-                // Tap: incremental scan. Long press: full resync.
-                NavAction(
-                    label = stringResource(R.string.home_fab_sync),
-                    icon = Icons.Default.Sync,
-                    onClick = { viewModel.scanSmsMessages() },
-                    onLongClick = { showFullResyncDialog = true },
-                    busy = uiState.isScanning,
-                    isAnchor = true,
-                ),
-            ),
-            onAnchorPositioned = onFabPositioned,
-        )
-
-        // Fallback when no bottom bar hosts the actions: a small Sync FAB
-        // stacked above the primary Add FAB.
-        if (!hostedActions) Column(
+        // FABs - Direct access (no speed dial). A small Sync FAB stacked above
+        // the large primary Add FAB.
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(

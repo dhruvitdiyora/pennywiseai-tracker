@@ -86,9 +86,7 @@ fun PennyWiseBottomNavigation(
     blurEffects: Boolean = true,
     visible: Boolean = true,
     hazeState: HazeState = remember { HazeState() },
-    navActions: NavActionsHost? = null,
 ) {
-    val actions = navActions?.actions.orEmpty()
     val navigationItems = listOf(
         BottomNavItem.Home,
         BottomNavItem.Transactions,
@@ -119,14 +117,6 @@ fun PennyWiseBottomNavigation(
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                if (navActions != null && actions.isNotEmpty()) {
-                    NavActionButtons(
-                        host = navActions,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .padding(end = Dimensions.Padding.content, bottom = Spacing.md)
-                    )
-                }
                 HorizontalDivider(
                     thickness = Dimensions.Component.dividerThickness,
                     color = MaterialTheme.colorScheme.outlineVariant
@@ -221,15 +211,10 @@ fun PennyWiseBottomNavigation(
                     ),
                 contentAlignment = Alignment.BottomCenter
             ) {
-              Row(
-                  modifier = Modifier
-                      .align(Alignment.BottomCenter)
-                      .navigationBarsPadding(),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-              ) {
                 HorizontalFloatingToolbar(
                     modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
                         .shadow(
                             elevation = if (blurEffects) 0.dp else 16.dp,
                             shape = MaterialTheme.shapes.extraLarge
@@ -285,9 +270,7 @@ fun PennyWiseBottomNavigation(
                         ) {
                             Icon(imageVector = item.icon, contentDescription = title)
                             AnimatedVisibility(
-                                // With the round "more" button beside the bar there is no room for a
-                                // label on long titles ("Transactions"), so the pill alone marks it.
-                                visible = selected && actions.isEmpty(),
+                                visible = selected,
                                 enter = fadeIn() + expandHorizontally(MaterialTheme.motionScheme.fastSpatialSpec()),
                                 exit = fadeOut() + shrinkHorizontally(MaterialTheme.motionScheme.fastSpatialSpec())
                             ) {
@@ -299,116 +282,7 @@ fun PennyWiseBottomNavigation(
                         }
                     }
                 }
-                AnimatedVisibility(
-                    visible = navActions != null && actions.isNotEmpty(),
-                    enter = fadeIn() + expandHorizontally(
-                        expandFrom = Alignment.Start,
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec()
-                    ),
-                    exit = fadeOut() + shrinkHorizontally(
-                        shrinkTowards = Alignment.Start,
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec()
-                    )
-                ) {
-                    navActions?.let { NavActionButtons(host = it) }
-                }
-              }
             }
-        }
-    }
-}
-
-/**
- * The current screen's actions in the bar's row, so nothing floats over the
- * list: small tonal buttons for the secondary actions, then the round primary.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun NavActionButtons(host: NavActionsHost, modifier: Modifier = Modifier) {
-    val view = LocalView.current
-    val primary = host.actions.firstOrNull() ?: return
-    val secondary = host.actions.drop(1)
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        secondary.forEach { action ->
-            NavActionButton(
-                action = action,
-                host = host,
-                size = Dimensions.Component.iconButton,
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                view = view,
-            )
-        }
-        NavActionButton(
-            action = primary,
-            host = host,
-            size = Dimensions.Component.navMoreButton,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            view = view,
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun NavActionButton(
-    action: NavAction,
-    host: NavActionsHost,
-    size: androidx.compose.ui.unit.Dp,
-    containerColor: Color,
-    contentColor: Color,
-    view: android.view.View,
-) {
-    val rotation = if (action.busy) {
-        val transition = rememberInfiniteTransition(label = "nav_action_busy")
-        transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(1000, easing = LinearEasing)),
-            label = "nav_action_rotation"
-        ).value
-    } else 0f
-    Surface(
-        shape = CircleShape,
-        color = containerColor,
-        contentColor = contentColor,
-        shadowElevation = Dimensions.Elevation.fab,
-        modifier = Modifier
-            .size(size)
-            .then(
-                if (action.isAnchor) Modifier.onGloballyPositioned { coords ->
-                    host.onAnchorPositioned?.invoke(coords.boundsInWindow())
-                } else Modifier
-            )
-            .clip(CircleShape)
-            .combinedClickable(
-                onClickLabel = action.label,
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    action.onClick()
-                },
-                onLongClick = action.onLongClick?.let { longClick ->
-                    {
-                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        longClick()
-                    }
-                },
-            )
-            .semantics { contentDescription = action.label }
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = action.icon,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(Dimensions.Icon.medium)
-                    .rotate(rotation)
-            )
         }
     }
 }
