@@ -27,6 +27,7 @@ import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
 import ir.ehsannarmani.compose_charts.models.LabelProperties
 import ir.ehsannarmani.compose_charts.models.Line
 import ir.ehsannarmani.compose_charts.models.LineProperties
+import ir.ehsannarmani.compose_charts.models.PopupProperties
 import ir.ehsannarmani.compose_charts.models.StrokeStyle
 import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
 import java.math.BigDecimal
@@ -152,6 +153,18 @@ fun BalanceChart(
                 mode = LabelProperties.Rotation.Mode.Force,
                 degree = -45f
             )
+        ),
+        // The library's default popup prints the raw double ("1641.1") at any
+        // interpolated touch point. Snap it to real data points and tag it with
+        // the chart's currency, on an inverse-surface bubble for contrast.
+        popupProperties = PopupProperties(
+            enabled = true,
+            mode = PopupProperties.Mode.PointMode(),
+            textStyle = chartLabel.copy(color = themeColors.inverseOnSurface),
+            containerColor = themeColors.inverseSurface,
+            contentBuilder = { popup ->
+                CurrencyFormatter.formatCurrency(popup.value, primaryCurrency)
+            }
         ),
         zeroLineProperties = ZeroLineProperties(
             enabled = true,
