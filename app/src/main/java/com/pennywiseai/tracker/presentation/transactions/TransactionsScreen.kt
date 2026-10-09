@@ -1019,16 +1019,12 @@ private fun TransactionDateHeader(
     // `background` is true-black but `surface` is tinted — paints a visible
     // dark slab behind every date header.
     val pageBg = MaterialTheme.colorScheme.background
-    // Accent-coloured label inset to line up with the row content below it.
-    // Deliberately `primary` rather than SectionHeaderV2's neutral title: in
-    // this list the heading is the only accent text, so it reads as the
-    // anchor for the group of rows that follows.
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+    // Cashiro-style group header: a short rounded accent bar in the primary
+    // colour, then the label. The bar carries the accent, so the label uses the
+    // strong neutral role and stays readable on every theme.
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         modifier = modifier
             .fillMaxWidth()
             .background(
@@ -1042,8 +1038,24 @@ private fun TransactionDateHeader(
                 )
             )
             .padding(start = Spacing.md, top = Spacing.md, bottom = Spacing.sm)
-            .semantics { heading() }
-    )
+            .semantics(mergeDescendants = true) { heading() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(
+                    width = Dimensions.Component.headerAccentBarWidth,
+                    height = Dimensions.Component.headerAccentBarHeight,
+                )
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 /**
