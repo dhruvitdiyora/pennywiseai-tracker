@@ -9,21 +9,20 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.draw.rotate
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
@@ -121,7 +120,7 @@ fun PennyWiseBottomNavigation(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (navActions != null && actions.isNotEmpty()) {
-                    NavMoreButton(
+                    NavActionButtons(
                         host = navActions,
                         modifier = Modifier
                             .align(Alignment.End)
@@ -311,7 +310,7 @@ fun PennyWiseBottomNavigation(
                         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec()
                     )
                 ) {
-                    navActions?.let { NavMoreButton(host = it) }
+                    navActions?.let { NavActionButtons(host = it) }
                 }
               }
             }
@@ -319,65 +318,97 @@ fun PennyWiseBottomNavigation(
     }
 }
 
-/** Round "more" button; opens the current screen's [NavActionsHost.actions]. */
+/**
+ * The current screen's actions in the bar's row, so nothing floats over the
+ * list: small tonal buttons for the secondary actions, then the round primary.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun NavMoreButton(host: NavActionsHost, modifier: Modifier = Modifier) {
+private fun NavActionButtons(host: NavActionsHost, modifier: Modifier = Modifier) {
     val view = LocalView.current
-    var expanded by remember { mutableStateOf(false) }
-    val description = stringResource(R.string.nav_actions_more)
-    Box(modifier = modifier) {
-        FloatingActionButton(
-            onClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                expanded = true
-            },
-            shape = CircleShape,
+    val primary = host.actions.firstOrNull() ?: return
+    val secondary = host.actions.drop(1)
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        secondary.forEach { action ->
+            NavActionButton(
+                action = action,
+                host = host,
+                size = Dimensions.Component.iconButton,
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                view = view,
+            )
+        }
+        NavActionButton(
+            action = primary,
+            host = host,
+            size = Dimensions.Component.navMoreButton,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier
-                .size(Dimensions.Component.navMoreButton)
-                .onGloballyPositioned { coords ->
+            view = view,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun NavActionButton(
+    action: NavAction,
+    host: NavActionsHost,
+    size: androidx.compose.ui.unit.Dp,
+    containerColor: Color,
+    contentColor: Color,
+    view: android.view.View,
+) {
+    val rotation = if (action.busy) {
+        val transition = rememberInfiniteTransition(label = "nav_action_busy")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(1000, easing = LinearEasing)),
+            label = "nav_action_rotation"
+        ).value
+    } else 0f
+    Surface(
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
+        shadowElevation = Dimensions.Elevation.fab,
+        modifier = Modifier
+            .size(size)
+            .then(
+                if (action.isAnchor) Modifier.onGloballyPositioned { coords ->
                     host.onAnchorPositioned?.invoke(coords.boundsInWindow())
-                }
-                .semantics { contentDescription = description }
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreHoriz,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
-                if (host.busy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(Dimensions.Component.navMoreButton - Spacing.sm),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(Dimensions.CornerRadius.extraLarge),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ) {
-            host.actions.forEach { action ->
-                DropdownMenuItem(
-                    text = { Text(action.label) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = action.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                    },
-                    onClick = {
-                        expanded = false
-                        action.onClick()
+                } else Modifier
+            )
+            .clip(CircleShape)
+            .combinedClickable(
+                onClickLabel = action.label,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    action.onClick()
+                },
+                onLongClick = action.onLongClick?.let { longClick ->
+                    {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        longClick()
                     }
-                )
-            }
+                },
+            )
+            .semantics { contentDescription = action.label }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = action.icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(Dimensions.Icon.medium)
+                    .rotate(rotation)
+            )
         }
     }
 }

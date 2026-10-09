@@ -12,24 +12,29 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** One entry in the bottom bar's "more" menu. */
+/**
+ * One screen action drawn in the bottom bar's row. The first action is the
+ * round primary button; the rest sit before it as small buttons.
+ */
 data class NavAction(
     val label: String,
     val icon: ImageVector,
     val onClick: () -> Unit,
+    val onLongClick: (() -> Unit)? = null,
+    /** Spins the icon (e.g. while an SMS scan runs). */
+    val busy: Boolean = false,
+    /** This button's bounds are reported to [NavActionsHost.onAnchorPositioned]. */
+    val isAnchor: Boolean = false,
 )
 
 /**
- * Screen actions shown behind a single round "more" button beside the bottom
- * navigation (Cashiro-style), instead of FABs stacked over the list.
+ * Screen actions drawn beside the floating bottom navigation instead of as FABs
+ * floating over the list, so they never cover a row.
  */
 @Stable
 class NavActionsHost {
     internal var owner: Any? by mutableStateOf(null)
     var actions: List<NavAction> by mutableStateOf(emptyList())
-        internal set
-    /** Shows a progress ring on the button (e.g. while an SMS scan runs). */
-    var busy: Boolean by mutableStateOf(false)
         internal set
     /** Reports the button's window bounds, e.g. for the scan spotlight. */
     var onAnchorPositioned: ((Rect) -> Unit)? by mutableStateOf(null)
@@ -40,14 +45,12 @@ class NavActionsHost {
 val LocalNavActions = staticCompositionLocalOf<NavActionsHost?> { null }
 
 /**
- * Publishes [actions] to the bottom bar's "more" button while this screen is
- * composed. Returns false when no bottom bar hosts them, so the caller should
+ * Publishes [actions] to the bottom bar while this screen is composed. Returns false when no bottom bar hosts them, so the caller should
  * draw its own buttons.
  */
 @Composable
 fun ProvideNavActions(
     actions: List<NavAction>,
-    busy: Boolean = false,
     onAnchorPositioned: ((Rect) -> Unit)? = null,
 ): Boolean {
     val host = LocalNavActions.current ?: return false
@@ -55,7 +58,6 @@ fun ProvideNavActions(
     SideEffect {
         host.owner = token
         host.actions = actions
-        host.busy = busy
         host.onAnchorPositioned = onAnchorPositioned
     }
     DisposableEffect(host) {
@@ -64,7 +66,6 @@ fun ProvideNavActions(
             if (host.owner === token) {
                 host.owner = null
                 host.actions = emptyList()
-                host.busy = false
                 host.onAnchorPositioned = null
             }
         }

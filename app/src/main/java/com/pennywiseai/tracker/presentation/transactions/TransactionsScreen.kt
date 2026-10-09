@@ -333,8 +333,8 @@ fun TransactionsScreen(
     // stack need matching bottom clearance (whether or not a back arrow shows).
     val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
 
-    // With the bottom bar present, Add/Export sit behind its round "more"
-    // button (Cashiro-style) instead of a FAB stack covering the last rows.
+    // With the bottom bar present, Add/Export sit beside it instead of a FAB
+    // stack covering the last rows.
     val navActionList = buildList {
         add(
             NavAction(

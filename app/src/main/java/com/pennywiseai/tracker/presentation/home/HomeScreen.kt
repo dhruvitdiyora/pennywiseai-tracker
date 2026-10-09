@@ -50,7 +50,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -890,27 +889,25 @@ fun HomeScreen(
         )
         val scanRotation = if (uiState.isScanning) continuousRotation else 0f
 
-        // Under the tab scaffold the actions live behind the bottom bar's round
-        // "more" button (Cashiro-style) so nothing floats over the list.
+        // Under the tab scaffold Add and Sync sit beside the bottom bar, so they
+        // never float over the list.
         val hostedActions = ProvideNavActions(
             actions = listOf(
                 NavAction(
-                    label = stringResource(R.string.home_action_add),
+                    label = stringResource(R.string.home_fab_add),
                     icon = Icons.Default.Add,
                     onClick = onNavigateToAddScreen,
                 ),
+                // Tap: incremental scan. Long press: full resync.
                 NavAction(
-                    label = stringResource(R.string.home_action_sync),
+                    label = stringResource(R.string.home_fab_sync),
                     icon = Icons.Default.Sync,
                     onClick = { viewModel.scanSmsMessages() },
-                ),
-                NavAction(
-                    label = stringResource(R.string.home_resync_title),
-                    icon = Icons.Default.Refresh,
-                    onClick = { showFullResyncDialog = true },
+                    onLongClick = { showFullResyncDialog = true },
+                    busy = uiState.isScanning,
+                    isAnchor = true,
                 ),
             ),
-            busy = uiState.isScanning,
             onAnchorPositioned = onFabPositioned,
         )
 
