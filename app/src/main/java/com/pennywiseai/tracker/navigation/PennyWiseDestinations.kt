@@ -124,3 +124,30 @@ data class TransactionsWithFilter(
     val period: String? = null,
     val currency: String? = null
 )
+
+// Settings sub-screens reachable from the root-level Settings route (opened from
+// the standalone Transactions screen). MainScreen has its own string routes for
+// the same screens; these mirror them on the root nav graph.
+@Serializable
+object SettingsDataPrivacy
+
+@Serializable
+object SettingsAppearance
+
+@Serializable
+object SettingsAbout
+
+@Serializable
+object SettingsLicenses
+
+@Serializable
+object SettingsProfiles
+
+@Serializable
+object ManageAccounts
+
+@Serializable
+object AddAccount
+
+@Serializable
+data class BalanceHistory(val bankName: String, val accountLast4: String)
