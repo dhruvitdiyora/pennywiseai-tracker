@@ -92,7 +92,7 @@ fun WhatsNewDialog(
     version: WhatsNewVersion,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    PennyWiseAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(

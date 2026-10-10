@@ -207,6 +207,25 @@ the surface is solid glass. Use `GlassCard` for cards and
 `Modifier.glassSurface(shape, blurEffects, hazeState)` for sheets, bars and
 pills. Check light, dark and AMOLED with blur on and off.
 
+Glass is the **default** finish for the shared chrome:
+- `PennyWiseCardV2` is glass unless `glass = false` (translucent fill, sheen,
+  rim instead of the old dark-only hairline). No blur of its own — use
+  `GlassCard(hazeState = …)` for a card that frosts a banner behind it.
+- `ListItemCardV2` and `GroupedRow`/`GroupedColumn` are glass tiles: fill and
+  sheen, **no rim** (a rim per row reads as a grid). Grouped corners follow
+  Cashiro: `shapes.largeIncreased` (20dp) outer, `shapes.small` (8dp) inner.
+- Modal surfaces (`ui/components/GlassChrome.kt`): use `PennyWiseBottomSheet`
+  instead of `ModalBottomSheet`, and `PennyWiseAlertDialog` instead of
+  `AlertDialog`. They live in their own window, so they can't blur the page —
+  the fill is near-opaque (`Glass.fillAlphaSheet`) with sheen and rim.
+- `ConnectedButtonPair` — Cashiro's split dialog footer (pill outer corners,
+  near-square inner corners, 2dp gap; `destructive = true` for delete). Put it
+  in the dialog's `confirmButton` and leave `dismissButton` null.
+- `PennyWiseSegmentedSwitcher` — Cashiro's sliding segmented switcher for 2–4
+  exclusive views.
+- Unselected `PeriodFilterChip` / `ExpressiveFilterChip` are small glass pills
+  (`Glass.fillAlphaControl` fill + rim); the floating nav toolbar has the rim.
+
 ### Grouped lists — `GroupedList` / `GroupedRow` / `GroupedColumn`
 
 The app's one grouped-list pattern: sibling rows share a tonal surface,

@@ -45,8 +45,11 @@ fun SmsParsingProgressDialog(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(Spacing.md),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                contentPadding = Spacing.lg
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                contentPadding = Spacing.lg,
+                // Own window: no blur behind it, so near-opaque modal glass.
+                glassFillAlpha = Dimensions.Glass.fillAlphaSheet,
+                shape = MaterialTheme.shapes.extraLarge
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),

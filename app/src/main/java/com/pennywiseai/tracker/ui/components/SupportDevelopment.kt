@@ -14,13 +14,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +56,7 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
     val copiedMsg = stringResource(R.string.support_copied_toast)
     val noUpiAppMsg = stringResource(R.string.support_no_upi_app)
 
-    AlertDialog(
+    PennyWiseAlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = yellow_dark) },
         title = { Text(stringResource(R.string.support_title)) },
@@ -96,16 +94,17 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                // Only dismiss if a UPI app actually opened; otherwise keep the
-                // dialog up so the copy-the-VPA fallback stays on screen.
-                if (launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)) onDismiss()
-            }) {
-                Text(stringResource(R.string.support_pay_via_upi))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.support_close)) }
+            // Cashiro's split footer: Close | Pay via UPI.
+            ConnectedButtonPair(
+                dismissLabel = stringResource(R.string.support_close),
+                onDismiss = onDismiss,
+                confirmLabel = stringResource(R.string.support_pay_via_upi),
+                onConfirm = {
+                    // Only dismiss if a UPI app actually opened; otherwise keep the
+                    // dialog up so the copy-the-VPA fallback stays on screen.
+                    if (launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)) onDismiss()
+                },
+            )
         }
     )
 }

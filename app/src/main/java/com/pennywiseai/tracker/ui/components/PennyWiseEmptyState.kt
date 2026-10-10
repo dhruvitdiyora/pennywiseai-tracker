@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +19,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.components.cards.glassSurface
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -55,9 +55,12 @@ fun PennyWiseEmptyState(
         Box(
             modifier = Modifier
                 .size(Dimensions.Icon.emptyStateContainer)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
+                // A glass bead: the tonal circle with the glass sheen and rim.
+                .glassSurface(
+                    shape = CircleShape,
+                    blurEffects = false,
+                    tint = MaterialTheme.colorScheme.primaryContainer,
+                    solidFillAlpha = 1f,
                 ),
             contentAlignment = Alignment.Center
         ) {

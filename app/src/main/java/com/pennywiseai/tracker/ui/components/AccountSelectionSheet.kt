@@ -16,13 +16,11 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Money
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -59,10 +57,9 @@ fun AccountSelectionSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val groupedAccounts = remember(accounts) { accounts.groupBy { it.getAccountType() } }
 
-    ModalBottomSheet(
+    PennyWiseBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
