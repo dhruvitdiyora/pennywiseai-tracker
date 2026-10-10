@@ -378,14 +378,14 @@ fun BudgetCard(
     val statusColor = budgetStatusColor(pctUsed)
     val barColor = budgetBarColor(pctUsed, budgetColor)
 
-    // Home's frosted-glass card, its rim taking the budget's own colour.
+    // Home's frosted-glass card, with Cashiro's faint budget-colour border.
     GlassCard(
         modifier = modifier,
         onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
         blurEffects = blurEffects,
         hazeState = hazeState,
-        rimColor = budgetColor,
+        // Cashiro BudgetCard: 1dp border at 10% of the budget colour.
+        rimColor = budgetColor.copy(alpha = 0.1f),
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none
     ) {

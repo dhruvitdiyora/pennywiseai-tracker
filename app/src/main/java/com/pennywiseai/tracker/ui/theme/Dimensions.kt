@@ -232,39 +232,41 @@ object Dimensions {
     }
 
     // ── Glass ─────────────────────────────────────────────────────────────
-    // The app-wide frosted-glass material (`GlassCard` / `Modifier.glassSurface`): a
-    // translucent tonal fill, a Haze blur of the banner behind it, a rim that
-    // catches the top-start edge and fades toward the bottom-end, and a soft
-    // sheen across the upper part of the card. Every alpha here is applied to
-    // a theme role, never to a literal colour.
+    // Cashiro's frosted-glass recipe (`GlassCard` / `Modifier.glassSurface`): the
+    // role colour at 50% alpha over a 20dp Haze blur of a `hazeSource` behind
+    // it, or the same role fully solid when blur is off / there is no backdrop.
+    // No rim, no sheen, no extra elevation. Alphas apply to theme roles only.
     object Glass {
         /** Haze blur radius over the banner / cover behind the card. */
         val blurRadius = 20.dp
 
-        /** Rim (border) width — thin enough to read as an edge, not an outline. */
+        /** Corner radius of hero / summary glass cards (Cashiro `Dimensions.Radius.lg`). */
+        val heroRadius = 24.dp
+
+        /** Width of an explicit accent border (e.g. Cashiro's budget card, 1dp at 10% budget colour). */
         val rimWidth = 1.dp
+
+        /** Width of Cashiro's selected-state border (full-alpha `primary`). */
+        val selectedRimWidth = 2.dp
 
         /** Fill alpha while the blur is live: the blurred backdrop shows through. */
         const val fillAlphaBlurred = 0.5f
 
-        /**
-         * Fill alpha with blur off: near-solid so text never sits on an
-         * unblurred busy backdrop, while the banner still tints through.
-         */
-        const val fillAlphaSolid = 0.92f
+        /** Fill alpha with blur off: fully solid (Cashiro). */
+        const val fillAlphaSolid = 1f
 
         /** Fill alpha for a semantic container (e.g. low-balance error) without blur. */
-        const val fillAlphaTinted = 0.7f
+        const val fillAlphaTinted = 1f
 
         /**
          * Fill alpha for modal glass (bottom sheets, dialogs). Those live in their
-         * own window, so Haze can't blur what's behind them; the fill stays almost
-         * opaque so the scrimmed page only faintly tints through.
+         * own window, so Haze can't blur what's behind them; Cashiro's no-blur
+         * fallback applies: fully solid.
          */
-        const val fillAlphaSheet = 0.96f
+        const val fillAlphaSheet = 1f
 
         /** Fill alpha for small unselected glass controls (chips, switcher track). */
-        const val fillAlphaControl = 0.6f
+        const val fillAlphaControl = 0.5f
 
         /** Gap between the two halves of a connected button pair (Cashiro dialogs). */
         val connectedButtonGap = 2.dp
@@ -277,29 +279,6 @@ object Dimensions {
 
         /** Inset between the switcher track and its sliding indicator. */
         val switcherInset = 6.dp
-
-        /** Rim highlight (top-start) / fall-off (bottom-end) on `onSurface`, dark themes. */
-        const val rimHighlightDark = 0.20f
-        const val rimShadeDark = 0.05f
-
-        /**
-         * Rim on `onSurface` in light themes. Inverted (darker at the bottom)
-         * because a light rim is invisible on a light page; the sheen supplies
-         * the top highlight instead.
-         */
-        const val rimHighlightLight = 0.05f
-        const val rimShadeLight = 0.12f
-
-        /** Rim strength when the rim takes an accent colour (e.g. a budget's colour). */
-        const val rimAccentHighlight = 0.32f
-        const val rimAccentShade = 0.08f
-
-        /** Top sheen: `onSurface` in dark themes, `surfaceBright` in light ones. */
-        const val sheenDark = 0.06f
-        const val sheenLight = 0.55f
-
-        /** Fraction of the card's height over which the sheen fades out. */
-        const val sheenExtent = 0.55f
     }
 
     // ── Motion ────────────────────────────────────────────────────────────

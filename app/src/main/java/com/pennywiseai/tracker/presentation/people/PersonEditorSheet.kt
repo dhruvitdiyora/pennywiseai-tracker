@@ -95,8 +95,8 @@ fun PersonEditorSheet(
         sheetState = sheetState,
         // The fields are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised fields.
-        modifier = Modifier.glassSheet(tint = scheme.surface),
-        containerColor = Color.Transparent,
+        containerColor = scheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(
             modifier = Modifier

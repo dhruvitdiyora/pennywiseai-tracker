@@ -156,7 +156,6 @@ fun BalanceHistoryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = sectionGap),
-                    shape = MaterialTheme.shapes.extraLarge,
                     tint = MaterialTheme.colorScheme.surfaceContainer,
                     contentPadding = Dimensions.Padding.card
                 ) {
@@ -357,7 +356,7 @@ private fun BalanceHistoryItem(
 
     GroupedColumn(
         position = position,
-        modifier = Modifier.glassRowRim(position).animateContentSize(),
+        modifier = Modifier.animateContentSize(),
         // The latest record, and one being edited, sit a step above the rest so
         // the tonal edit field reads as raised.
         containerColor = glassRowColor(

@@ -52,7 +52,6 @@ import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.glassFill
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.icons.iconax.Copy
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Magicpen
@@ -129,7 +128,6 @@ fun ChatMessageItem(
             color = if (isUser) containerColor else glassFill(containerColor, blurLive = false),
             contentColor = contentColor,
             shape = chatBubbleShape(isUser),
-            border = if (isUser) null else glassRim(),
         ) {
             Column(
                 modifier = Modifier.padding(
@@ -199,7 +197,6 @@ fun TypingIndicator(
             color = glassFill(MaterialTheme.colorScheme.secondaryContainer, blurLive = false),
             contentColor = contentColor,
             shape = chatBubbleShape(isUser = false),
-            border = glassRim(),
         ) {
             Row(
                 modifier = Modifier.padding(
@@ -309,7 +306,6 @@ private fun ChatPromptChip(
         // A glass pill, like Cashiro's suggestion chips.
         color = glassFill(MaterialTheme.colorScheme.surfaceContainerHigh, blurLive = false),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = glassRim(),
     ) {
         Row(
             modifier = Modifier

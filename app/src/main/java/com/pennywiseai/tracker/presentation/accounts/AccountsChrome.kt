@@ -356,7 +356,6 @@ internal fun AccountCurrencySheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.glassSheetRim(),
         containerColor = glassSheetContainerColor(),
     ) {
         LazyColumn(

@@ -506,7 +506,6 @@ private fun EndedSubscriptionItem(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -588,7 +587,6 @@ private fun TotalSubscriptionsSummary(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         contentPadding = Dimensions.Padding.card
     ) {
         Row(
@@ -869,7 +867,6 @@ internal fun SwipeableSubscriptionItem(
             ) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.extraLarge,
                     // Opaque glass: the swipe's edit/hide colour sits right
                     // behind this card and must not tint through it.
                     solidFillAlpha = SWIPE_ROW_FILL_ALPHA,

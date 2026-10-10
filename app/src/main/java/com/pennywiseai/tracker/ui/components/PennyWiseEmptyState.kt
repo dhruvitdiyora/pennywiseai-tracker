@@ -55,7 +55,7 @@ fun PennyWiseEmptyState(
         Box(
             modifier = Modifier
                 .size(Dimensions.Icon.emptyStateContainer)
-                // A glass bead: the tonal circle with the glass sheen and rim.
+                // A glass bead: the solid tonal circle.
                 .glassSurface(
                     shape = CircleShape,
                     blurEffects = false,

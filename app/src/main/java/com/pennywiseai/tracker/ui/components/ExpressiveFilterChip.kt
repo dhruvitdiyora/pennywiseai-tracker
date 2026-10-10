@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.theme.Dimensions
 
 @Composable
@@ -26,16 +25,13 @@ fun ExpressiveFilterChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     colors: SelectableChipColors = FilterChipDefaults.filterChipColors(
-        // Unselected: a small glass pill rather than a bare outline.
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(
-            alpha = Dimensions.Glass.fillAlphaControl
-        ),
         selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
         selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
         selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
         selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
     ),
-    border: BorderStroke? = if (selected) null else glassRim()
+    // Cashiro uses the stock Material 3 chip (default outline when unselected).
+    border: BorderStroke? = FilterChipDefaults.filterChipBorder(enabled = enabled, selected = selected)
 ) {
     FilterChip(
         selected = selected,

@@ -51,7 +51,6 @@ fun BudgetCarousel(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = Dimensions.Padding.content),
-            shape = MaterialTheme.shapes.extraLarge,
             onClick = onCreateBudget,
             blurEffects = blurEffects,
             hazeState = hazeState

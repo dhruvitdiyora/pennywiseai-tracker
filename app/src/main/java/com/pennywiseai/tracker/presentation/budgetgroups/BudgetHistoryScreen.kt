@@ -265,8 +265,6 @@ private fun HistorySummaryCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        rimColor = budgetColor,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none,
     ) {
@@ -498,7 +496,6 @@ internal fun SpendingTrendChart(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
     ) {
         LineChart(
             modifier = Modifier

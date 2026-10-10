@@ -120,9 +120,8 @@ fun UpgradeSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         contentWindowInsets = { WindowInsets.navigationBars },
-        // Glass sheet (near-solid: it floats over a scrim).
-        modifier = Modifier.glassSheet(tint = MaterialTheme.colorScheme.surface),
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         UpgradeSheetContent(
             state = state,

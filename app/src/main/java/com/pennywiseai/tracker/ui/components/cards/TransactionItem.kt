@@ -350,7 +350,7 @@ fun TransactionItem(
             onClick()
         },
         onLongClick = onLongClick,
-        // The glass surface below paints the row (fill, sheen, rim); the card
+        // The glass surface below paints the row (solid fill); the card
         // itself stays clear so its ripple lands on the glass.
         containerColor = Color.Transparent,
         modifier = modifier.glassSurface(

@@ -572,7 +572,6 @@ private fun CategoryGroupCard(
     val children = group.children
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         onClick = if (!category.isSystem) ({ onEdit(category) }) else null,
         contentPadding = Spacing.none
     ) {

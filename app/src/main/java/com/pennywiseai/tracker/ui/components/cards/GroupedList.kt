@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,15 +63,6 @@ fun GroupedList(
 }
 
 /**
- * Grouped rows are glass tiles: the glass fill and sheen, but no rim — a rim
- * on every row of a block reads as a grid; the 2dp gutter does that job.
- * A transparent container stays transparent.
- */
-private fun groupedGlassFill(containerColor: Color): Color =
-    if (containerColor.alpha == 0f) containerColor
-    else glassFill(containerColor, blurLive = false, solidFillAlpha = Dimensions.Glass.fillAlphaSolid * containerColor.alpha)
-
-/**
  * One row of a [GroupedList].
  *
  * Enforces the two things screens kept getting wrong by hand: a minimum height
@@ -94,13 +87,13 @@ fun GroupedRow(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = groupedGlassFill(containerColor),
+        color = containerColor,
+        contentColor = contentColorFor(containerColor).takeOrElse { MaterialTheme.colorScheme.onSurface },
         shape = position.toShape()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(glassSheen())
                 .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
                 .defaultMinSize(minHeight = minHeight)
                 .padding(contentPadding),
@@ -129,13 +122,13 @@ fun GroupedColumn(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = groupedGlassFill(containerColor),
+        color = containerColor,
+        contentColor = contentColorFor(containerColor).takeOrElse { MaterialTheme.colorScheme.onSurface },
         shape = position.toShape()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(glassSheen())
                 .padding(contentPadding),
             verticalArrangement = verticalArrangement,
             content = content

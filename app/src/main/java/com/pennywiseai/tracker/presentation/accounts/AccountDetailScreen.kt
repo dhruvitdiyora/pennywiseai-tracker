@@ -329,11 +329,9 @@ private fun AccountBalanceCard(
     val headlineAmount = creditLimit ?: balance
 
     val cardColor = MaterialTheme.colorScheme.surfaceContainer
-    // The strip shares the glass fill's alpha so the card reads as one frosted
-    // surface; the rim takes the bank's brand colour (Cashiro's bank card).
+    // The strip is solid, like the card fill.
     val stripColor = MaterialTheme.colorScheme.surfaceContainerLow
         .copy(alpha = Dimensions.Glass.fillAlphaSolid)
-    val brandRim = brandRimColor(bankName)
 
     // Wallets and cash accounts have no number to show. Only a card gets the
     // four-group card mask; any other account (savings, current, manual) shows the
@@ -354,7 +352,6 @@ private fun AccountBalanceCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         tint = cardColor,
-        rimColor = brandRim,
         // Full-bleed layers: the watermark and the bottom strip reach the edge.
         contentPadding = Dimensions.Padding.none
     ) {

@@ -135,8 +135,6 @@ internal fun BudgetAmountHero(
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        rimColor = color,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none,
     ) {

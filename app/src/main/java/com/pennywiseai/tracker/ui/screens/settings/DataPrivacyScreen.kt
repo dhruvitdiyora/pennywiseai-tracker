@@ -162,7 +162,6 @@ private fun PrivacyHero() {
     // The same extra-large primary card as the profile header on Settings.
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         tint = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Row(

@@ -128,9 +128,8 @@ fun EditProfileSheet(
             onDismiss()
         },
         sheetState = sheetState,
-        // Glass sheet (near-solid: it floats over a scrim).
-        modifier = Modifier.glassSheet(tint = MaterialTheme.colorScheme.surface),
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         if (!state.isLoaded) {
             Box(

@@ -114,9 +114,7 @@ fun ListItemCardV2(
         shape = shape,
         contentPadding = contentPadding,
         containerColor = containerColor,
-        // Rows keep the glass fill and sheen but drop the rim: long lists of
-        // rimmed rows read as a chunky grid; bare glass surfaces with the
-        // surrounding column's spacing carry the divisions better.
+        // Cashiro rows are bare solid surfaces: no border.
         border = BorderStroke(0.dp, Color.Transparent),
         onClick = onClick,
         onLongClick = onLongClick

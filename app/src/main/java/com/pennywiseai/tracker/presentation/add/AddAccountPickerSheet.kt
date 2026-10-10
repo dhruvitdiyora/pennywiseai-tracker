@@ -61,7 +61,7 @@ import com.pennywiseai.tracker.utils.formatBalance
  * the account's name and type, and its balance (in the account's own currency).
  * Accounts stay grouped by type, and "manual entry" (no account) stays first
  * when the caller allows it. The selected card takes a primary rim and a check
- * badge; others rim in the bank's colour when we know it.
+ * badge; others have no border.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,6 +153,9 @@ internal fun AddAccountPickerSheet(
 @Composable
 private fun ManualEntryCard(selected: Boolean, onClick: () -> Unit) {
     val shape = MaterialTheme.shapes.extraLarge
+    // Selected fill is primaryContainer, so text must use its on-role.
+    val titleColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val supportingColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,12 +180,12 @@ private fun ManualEntryCard(selected: Boolean, onClick: () -> Unit) {
                 text = stringResource(R.string.account_selection_manual),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = titleColor,
             )
             Text(
                 text = stringResource(R.string.account_selection_manual_description),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = supportingColor,
             )
         }
         if (selected) SelectedBadge()
@@ -207,7 +210,7 @@ private fun AccountBrandCard(
             .fillMaxWidth()
             .txnGlass(
                 shape = shape,
-                rimColor = if (selected) MaterialTheme.colorScheme.primary else bankBrandColor(account.bankName),
+                rimColor = if (selected) MaterialTheme.colorScheme.primary else null,
             )
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {

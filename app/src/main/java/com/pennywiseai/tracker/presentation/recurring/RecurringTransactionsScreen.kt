@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.recurring
 
 import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
-import com.pennywiseai.tracker.presentation.accounts.glassSheetRim
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -89,7 +88,6 @@ import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.legibleOn
@@ -305,7 +303,6 @@ private fun RecurringSummaryCard(
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         contentPadding = Dimensions.Padding.card
     ) {
         Row(
@@ -386,8 +383,6 @@ private fun RecurringCountTile(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         color = color.copy(alpha = TINTED_CONTAINER_ALPHA),
-        // Glass rim in the tile's own accent, like Home's budget cards.
-        border = glassRim(color)
     ) {
         Column(
             modifier = Modifier.padding(Spacing.smd),
@@ -685,7 +680,6 @@ internal fun RecurringEditorDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.glassSheetRim(),
         // The fields are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised fields.
         containerColor = glassSheetContainerColor()

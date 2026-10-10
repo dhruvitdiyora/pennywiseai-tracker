@@ -43,7 +43,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  * GroupedRow / GroupedColumn primitives paint an opaque tonal Surface. These
  * thin wrappers keep those primitives (same layout, padding, tap target and
  * corner logic) and swap the opaque fill for the shared glass recipe from
- * GlassCard.kt: translucent theme-role fill, top sheen and gradient rim.
+ * GlassCard.kt: Cashiro's solid theme-role fill, no rim or sheen.
  *
  * Rows sit *inside* the screen's hazeSource, so there is nothing behind them to
  * blur; they render as solid glass (Dimensions.Glass.fillAlphaSolid). The
@@ -80,8 +80,7 @@ internal fun Modifier.glassPanel(
 )
 
 /**
- * Glass bottom-sheet surface: the sheet's top corners with the glass rim and
- * sheen. Pass `containerColor = Color.Transparent` to the ModalBottomSheet and
+ * Glass bottom-sheet surface: the sheet's top corners, solid. Pass `containerColor = Color.Transparent` to the ModalBottomSheet and
  * this as its modifier. The fill stays near-solid — a sheet floats over a
  * scrim, and text must never sit on a see-through backdrop there.
  */
@@ -96,8 +95,8 @@ internal fun Modifier.glassSheet(
     solidFillAlpha = SheetFillAlpha,
 )
 
-/** Sheets sit over a scrim, so their glass is more opaque than a card's. */
-private const val SheetFillAlpha = 0.97f
+/** Sheets and dialogs sit in their own window, so they are solid. */
+private const val SheetFillAlpha = Dimensions.Glass.fillAlphaSheet
 
 /** [GroupedRow] in the glass material. Same parameters; [tint] replaces `containerColor`. */
 @Composable

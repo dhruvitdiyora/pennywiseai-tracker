@@ -1402,7 +1402,6 @@ private fun UpcomingSubscriptionsCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
         blurEffects = blurEffects,
         hazeState = hazeState,
         tint = baseColor,
@@ -1490,7 +1489,6 @@ internal fun ActiveLoansSummaryCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
         blurEffects = blurEffects,
         hazeState = hazeState
     ) {

@@ -270,7 +270,6 @@ private fun PersonCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         tint = color,
         onClick = onClick,
         contentPadding = Dimensions.Padding.none,

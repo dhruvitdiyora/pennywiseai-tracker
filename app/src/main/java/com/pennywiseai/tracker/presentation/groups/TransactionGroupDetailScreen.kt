@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.groups
 
 import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
-import com.pennywiseai.tracker.presentation.accounts.glassSheetRim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -325,7 +324,6 @@ private fun AddTransactionToGroupSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.glassSheetRim(),
         // The rows are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised.
         containerColor = glassSheetContainerColor(),

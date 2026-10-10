@@ -1,9 +1,7 @@
 package com.pennywiseai.tracker.presentation.groups
 
 import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
-import com.pennywiseai.tracker.presentation.accounts.glassSheetRim
 import com.pennywiseai.tracker.presentation.accounts.glassRowColor
-import com.pennywiseai.tracker.presentation.accounts.glassRowRim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,7 +57,6 @@ import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.iconax.Calendar
 import com.pennywiseai.tracker.ui.icons.iconax.Folder2
@@ -150,7 +147,6 @@ internal fun GroupSummaryCard(
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         contentPadding = Dimensions.Padding.card,
     ) {
         Row(
@@ -224,8 +220,6 @@ private fun GroupStatTile(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         color = stat.tint.copy(alpha = TINTED_CONTAINER_ALPHA),
-        // Glass rim in the tile's own accent, like Home's budget cards.
-        border = glassRim(stat.tint),
     ) {
         Column(
             modifier = Modifier.padding(Spacing.smd),
@@ -325,7 +319,6 @@ internal fun GroupTransactionRow(
         title = description ?: transaction.merchantName,
         subtitle = accessibleSubtitle,
         amount = amountText,
-        modifier = modifier.glassRowRim(position),
         amountColor = amountColor,
         shape = position.toShape(),
         containerColor = glassRowColor(),
@@ -402,7 +395,6 @@ internal fun GroupEditorSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.glassSheetRim(),
         // The fields are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised fields.
         containerColor = glassSheetContainerColor(),

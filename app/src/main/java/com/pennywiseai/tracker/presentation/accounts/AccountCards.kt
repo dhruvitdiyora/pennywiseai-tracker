@@ -108,21 +108,16 @@ internal fun AccountCardShell(
     }
     val onTopColor = if (isAlert) scheme.onErrorContainer else scheme.onSurface
     val labelColor = if (isAlert) scheme.onErrorContainer else scheme.onSurfaceVariant
-    // Glass strip: the same near-solid alpha as the card fill, so the band reads
-    // as part of one frosted surface rather than an opaque plate.
+    // Strip: solid, like the card fill.
     val stripColor = (if (isHidden) scheme.surfaceContainerLowest else scheme.surfaceContainerLow)
         .copy(alpha = Dimensions.Glass.fillAlphaSolid)
     val hasMenu = menu != null
-    // Cashiro's bank-brand card: the rim picks up the bank's colour (neutral
-    // for an alert or a set-aside account, so neither competes with the brand).
-    val brandRim = brandRimColor(merchantName).takeUnless { isAlert || isHidden }
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         tint = topColor,
         solidFillAlpha = if (isAlert) GLASS_TINTED_ALPHA else Dimensions.Glass.fillAlphaSolid,
-        rimColor = brandRim,
         // Full-bleed layers: the watermark and the strip reach the card edge.
         contentPadding = Dimensions.Padding.none,
     ) {

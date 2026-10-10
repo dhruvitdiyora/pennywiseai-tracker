@@ -80,7 +80,7 @@ internal fun UpdateBalanceDialog(
         sheetState = sheetState,
         // The amount summary is tonal, so the sheet sits one step lighter.
         containerColor = glassSheetContainerColor(),
-        modifier = Modifier.glassSheetRim().testTag("account_update_balance_sheet"),
+        modifier = Modifier.testTag("account_update_balance_sheet"),
     ) {
         Column(
             modifier = Modifier
@@ -174,7 +174,7 @@ internal fun UpdateCreditCardDialog(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = glassSheetContainerColor(),
-        modifier = Modifier.glassSheetRim().testTag("account_update_credit_sheet"),
+        modifier = Modifier.testTag("account_update_credit_sheet"),
     ) {
         Column(
             modifier = Modifier

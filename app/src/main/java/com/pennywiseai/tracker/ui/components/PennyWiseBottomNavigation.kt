@@ -10,8 +10,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
@@ -54,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -218,15 +215,7 @@ fun PennyWiseBottomNavigation(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
-                        .shadow(
-                            elevation = if (blurEffects) 0.dp else 16.dp,
-                            shape = MaterialTheme.shapes.extraLarge
-                        )
                         .clip(FloatingToolbarDefaults.ContainerShape)
-                        // Glass rim, as on every other glass surface: catches the
-                        // top edge in dark/AMOLED where the tinted fill barely
-                        // separates from black.
-                        .border(glassRim(), FloatingToolbarDefaults.ContainerShape)
                         .then(
                             if (blurEffects) Modifier.hazeEffect(
                                 state = hazeState,

@@ -100,7 +100,6 @@ internal fun BudgetCategoryBreakdownCard(
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

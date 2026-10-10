@@ -195,36 +195,42 @@ from an AMOLED-black background where a tonal fill barely registers.
 Pass `contentPadding` rather than padding the content yourself, so the ripple on
 a clickable card covers the whole surface.
 
-### `GlassCard` / `Modifier.glassSurface` — the frosted-glass material
+### `GlassCard` / `Modifier.glassSurface` — Cashiro's glass recipe
 
-Cashiro's glass look, and the default for new card/sheet/bar work (Home adopted
-it first). Recipe tokens live in `Dimensions.Glass`: a translucent theme-role
-fill (`fillAlphaBlurred` over a live Haze blur, `fillAlphaSolid` otherwise), a
-`blurRadius` Haze blur of whatever `hazeSource` sits behind it, a 1dp diagonal
-gradient rim on `onSurface` (or an accent such as a budget colour), and a soft
-top sheen. `blurEffects` defaults to `LocalBlurEffects`; with no `hazeState`
-the surface is solid glass. Use `GlassCard` for cards and
-`Modifier.glassSurface(shape, blurEffects, hazeState)` for sheets, bars and
-pills. Check light, dark and AMOLED with blur on and off.
+An exact port of Cashiro's glass (its `BalanceCard`): a plain Material 3 card,
+`surfaceContainerLow` at 50% alpha over a 20dp Haze blur of a `hazeSource`
+behind it (`HazeDefaults.style(backgroundColor = Transparent, tint =
+HazeDefaults.tint(role), blurRadius = 20.dp, noiseFactor = -1f)`, unbounded
+edge treatment, clipped to the shape). With blur off, or no `hazeState`, the
+fill is the same role **fully solid**. There is **no rim, no sheen and no added
+elevation**. Tokens live in `Dimensions.Glass`. Content colour is set
+explicitly (`contentColorFor(tint)`, falling back to `onSurface`) because a
+translucent container can't be mapped to its on-role.
 
-Glass is the **default** finish for the shared chrome:
-- `PennyWiseCardV2` is glass unless `glass = false` (translucent fill, sheen,
-  rim instead of the old dark-only hairline). No blur of its own — use
-  `GlassCard(hazeState = …)` for a card that frosts a banner behind it.
-- `ListItemCardV2` and `GroupedRow`/`GroupedColumn` are glass tiles: fill and
-  sheen, **no rim** (a rim per row reads as a grid). Grouped corners follow
-  Cashiro: `shapes.largeIncreased` (20dp) outer, `shapes.small` (8dp) inner.
-- Modal surfaces (`ui/components/GlassChrome.kt`): use `PennyWiseBottomSheet`
-  instead of `ModalBottomSheet`, and `PennyWiseAlertDialog` instead of
-  `AlertDialog`. They live in their own window, so they can't blur the page —
-  the fill is near-opaque (`Glass.fillAlphaSheet`) with sheen and rim.
-- `ConnectedButtonPair` — Cashiro's split dialog footer (pill outer corners,
-  near-square inner corners, 2dp gap; `destructive = true` for delete). Put it
-  in the dialog's `confirmButton` and leave `dismissButton` null.
-- `PennyWiseSegmentedSwitcher` — Cashiro's sliding segmented switcher for 2–4
-  exclusive views.
-- Unselected `PeriodFilterChip` / `ExpressiveFilterChip` are small glass pills
-  (`Glass.fillAlphaControl` fill + rim); the floating nav toolbar has the rim.
+- Hero / summary cards: 24dp corners (`Glass.heroRadius`, `GlassCard`'s
+  default). Account cards 28dp. Ordinary cards `shapes.large`.
+- Haze only where a backdrop exists (Home banner, top bars, bottom nav);
+  everywhere else glass renders solid.
+- `PennyWiseCardV2` is Cashiro's `CashiroCard`: solid `surfaceContainerLow`,
+  default elevation, no border (its `glass`/`glassFillAlpha` params are
+  source-compat only).
+- Grouped rows (`GroupedRow`/`GroupedColumn`): solid `surfaceContainerLow`;
+  corners `largeIncreased` outer / `small` inner.
+- Borders exist only where Cashiro has them: the budget card (1dp, budget
+  colour at 10%, via `rimColor`) and selection states (2dp full-alpha
+  `primary`). `rimColor` draws nothing when null; `glassBorder(color)` picks
+  the width (1dp translucent, 2dp opaque).
+- Modal surfaces (`ui/components/GlassChrome.kt`): `PennyWiseBottomSheet` is a
+  solid `surface` sheet; `PennyWiseAlertDialog` is `surfaceContainerLow`,
+  `shapes.large`. Modals live in their own window and can't blur the page.
+- Bottom nav toolbar: `surfaceContainerLow` at 70% (solid when blur off) over a
+  20dp Haze, no border, no extra shadow.
+- Filter chips are the stock Material 3 `FilterChip` (default outline).
+- `ConnectedButtonPair` — Cashiro's split dialog footer.
+  `PennyWiseSegmentedSwitcher` — Cashiro's `GenericTypeSwitcher` (track
+  `surfaceVariant` 50%, white/`surface` indicator with a 2dp shadow).
+
+Check light, dark and AMOLED with blur on and off.
 
 ### Grouped lists — `GroupedList` / `GroupedRow` / `GroupedColumn`
 

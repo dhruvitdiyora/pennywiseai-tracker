@@ -58,7 +58,6 @@ import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.glassFill
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.iconax.EyeSlash
@@ -654,9 +653,7 @@ internal fun AccountMessageBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        // Glass: a tinted wash with the rim, like Home's low-balance card.
         color = glassFill(containerColor, blurLive = false, solidFillAlpha = GLASS_TINTED_ALPHA),
-        border = glassRim(),
     ) {
         Row(
             modifier = Modifier.padding(Dimensions.Padding.card),
@@ -690,7 +687,6 @@ private fun HiddenAccountsToggle(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         color = glassFill(MaterialTheme.colorScheme.surfaceContainerLow, blurLive = false),
-        border = glassRim(),
     ) {
         Row(
             modifier = Modifier

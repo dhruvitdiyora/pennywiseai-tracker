@@ -639,11 +639,10 @@ private fun SettingsProfileHeaderCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            // Glass in the profile's primary tone, rim keyed to the same hue.
+            // Profile card in its primary tone.
             .glassPanel(
                 shape = MaterialTheme.shapes.extraLarge,
                 tint = MaterialTheme.colorScheme.primaryContainer,
-                rimColor = MaterialTheme.colorScheme.primary,
             )
             .clickable(onClick = onClick)
             .padding(Spacing.md),

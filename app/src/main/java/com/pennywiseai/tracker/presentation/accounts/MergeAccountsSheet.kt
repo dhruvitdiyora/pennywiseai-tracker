@@ -78,7 +78,6 @@ fun MergeAccountsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.glassSheetRim(),
         // The account rows are tonal, so the sheet sits one step lighter.
         containerColor = glassSheetContainerColor()
     ) {

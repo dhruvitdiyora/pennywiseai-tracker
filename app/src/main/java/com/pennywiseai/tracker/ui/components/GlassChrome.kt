@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.components
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -39,7 +38,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -52,33 +54,22 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.components.cards.glassFill
-import com.pennywiseai.tracker.ui.components.cards.glassRim
-import com.pennywiseai.tracker.ui.components.cards.glassSheen
-import com.pennywiseai.tracker.ui.components.cards.glassSurface
-import com.pennywiseai.tracker.ui.components.cards.isGlassDark
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import kotlinx.coroutines.launch
 
 /*
  * Shared glass chrome — the Cashiro look for modal surfaces and small controls.
- * Everything here is built from the GlassCard recipe (fill + sheen + rim) so a
- * sheet, a dialog and a card read as the same material.
+ * Matches Cashiro's modal surfaces: solid theme-role containers (a modal lives in
+ * its own window, so Haze can't blur the page behind it), no rim, no sheen.
  */
 
 /**
- * The app's bottom sheet: a [ModalBottomSheet] whose container is frosted glass
- * (near-opaque [tint] fill, top sheen, rim catching the rounded top edge) with
- * the standard drag handle.
- *
- * A modal sheet lives in its own window, so Haze can't blur the page behind
- * it; the fill uses [Dimensions.Glass.fillAlphaSheet] instead of a live blur.
- * The rim and sheen are drawn inside the sheet's surface, so they follow it
- * through drag and predictive-back transforms.
+ * The app's bottom sheet: a [ModalBottomSheet] with a solid [tint] container
+ * (Cashiro uses `surface`) and the standard drag handle. No rim, no sheen.
  *
  * Parameters mirror [ModalBottomSheet]; prefer this over calling it directly.
  *
- * @param tint the fill's theme role (Cashiro sheets sit on `surfaceContainerLow`).
+ * @param tint the container's theme role (Cashiro sheets use `surface`).
  * @param showDragHandle whether to draw the handle. The handle keeps the
  *   accessibility actions (dismiss / expand / collapse) Material's handle has.
  */
@@ -91,7 +82,7 @@ fun PennyWiseBottomSheet(
     sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
     sheetGesturesEnabled: Boolean = true,
     shape: Shape = BottomSheetDefaults.ExpandedShape,
-    tint: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    tint: Color = MaterialTheme.colorScheme.surface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     scrimColor: Color = BottomSheetDefaults.ScrimColor,
     showDragHandle: Boolean = true,
@@ -99,46 +90,34 @@ fun PennyWiseBottomSheet(
     properties: ModalBottomSheetProperties = ModalBottomSheetProperties(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val fill = glassFill(tint, blurLive = false, solidFillAlpha = Dimensions.Glass.fillAlphaSheet)
-    ModalBottomSheet(
+        ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
         sheetState = sheetState,
         sheetMaxWidth = sheetMaxWidth,
         sheetGesturesEnabled = sheetGesturesEnabled,
         shape = shape,
-        containerColor = fill,
+        containerColor = tint,
         contentColor = contentColor,
         tonalElevation = 0.dp,
         scrimColor = scrimColor,
-        // The handle is drawn below, inside the glass layer, so the sheen runs
-        // under it rather than starting beneath it.
         dragHandle = null,
-        // Insets are applied inside the glass layer so the rim stays on the
-        // sheet's real top edge whatever the insets are.
         contentWindowInsets = { WindowInsets(0) },
         properties = properties,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(glassSheen(), shape)
-                .border(glassRim(), shape)
+                .windowInsetsPadding(contentWindowInsets())
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(contentWindowInsets())
-            ) {
-                if (showDragHandle) {
-                    GlassSheetHandle(
-                        sheetState = sheetState,
-                        onDismissRequest = onDismissRequest,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                }
-                content()
+            if (showDragHandle) {
+                GlassSheetHandle(
+                    sheetState = sheetState,
+                    onDismissRequest = onDismissRequest,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
+            content()
         }
     }
 }
@@ -181,13 +160,13 @@ private fun GlassSheetHandle(
 }
 
 /**
- * The app's alert dialog: Material's [AlertDialog] on a glass surface
- * (Cashiro's look). Same slots as [AlertDialog]. For Cashiro's split
+ * The app's alert dialog: Material's [AlertDialog] with Cashiro's container
+ * (`surfaceContainerLow`, `shapes.large`; no rim, no sheen). Same slots as [AlertDialog]. For Cashiro's split
  * Cancel/Confirm buttons, put a [ConnectedButtonPair] in [confirmButton] and
  * leave [dismissButton] null.
  *
- * Like sheets, dialogs get their own window, so the glass is near-opaque
- * ([Dimensions.Glass.fillAlphaSheet]) rather than blurred.
+ * Like sheets, dialogs get their own window, so they are solid rather than
+ * blurred.
  */
 @Composable
 fun PennyWiseAlertDialog(
@@ -198,26 +177,20 @@ fun PennyWiseAlertDialog(
     icon: (@Composable () -> Unit)? = null,
     title: (@Composable () -> Unit)? = null,
     text: (@Composable () -> Unit)? = null,
-    shape: Shape = MaterialTheme.shapes.extraLarge,
+    shape: Shape = MaterialTheme.shapes.large,
     tint: Color = MaterialTheme.colorScheme.surfaceContainerLow,
     properties: DialogProperties = DialogProperties(),
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
         confirmButton = confirmButton,
-        modifier = modifier.glassSurface(
-            shape = shape,
-            blurEffects = false,
-            tint = tint,
-            solidFillAlpha = Dimensions.Glass.fillAlphaSheet,
-        ),
+        modifier = modifier,
         dismissButton = dismissButton,
         icon = icon,
         title = title,
         text = text,
         shape = shape,
-        containerColor = Color.Transparent,
-        tonalElevation = 0.dp,
+        containerColor = tint,
         properties = properties,
     )
 }
@@ -307,19 +280,15 @@ fun PennyWiseSegmentedSwitcher(
     if (options.isEmpty()) return
     val trackShape = MaterialTheme.shapes.large
     val indicatorShape = MaterialTheme.shapes.medium
-    val dark = isGlassDark()
-    val indicatorColor = if (dark) MaterialTheme.colorScheme.surfaceContainerHighest
-    else MaterialTheme.colorScheme.surfaceContainerLowest
+    // Cashiro's GenericTypeSwitcher: surface in dark themes, white in light ones.
+    val indicatorColor = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f)
+        MaterialTheme.colorScheme.surface else Color.White
 
     BoxWithConstraints(
         modifier = modifier
             .height(Dimensions.Glass.switcherHeight)
-            .glassSurface(
-                shape = trackShape,
-                blurEffects = false,
-                tint = MaterialTheme.colorScheme.surfaceVariant,
-                solidFillAlpha = Dimensions.Glass.fillAlphaControl,
-            )
+            .clip(trackShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = Dimensions.Glass.fillAlphaControl))
             .padding(Dimensions.Glass.switcherInset)
     ) {
         val segmentWidth = maxWidth / options.size
@@ -333,12 +302,9 @@ fun PennyWiseSegmentedSwitcher(
                 .offset(x = indicatorOffset)
                 .width(segmentWidth)
                 .fillMaxHeight()
-                .glassSurface(
-                    shape = indicatorShape,
-                    blurEffects = false,
-                    tint = indicatorColor,
-                    solidFillAlpha = 1f,
-                )
+                .shadow(2.dp, indicatorShape)
+                .clip(indicatorShape)
+                .background(indicatorColor)
         )
         Row(modifier = Modifier.fillMaxSize().selectableGroup()) {
             options.forEachIndexed { index, label ->

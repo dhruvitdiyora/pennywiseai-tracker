@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -750,7 +751,24 @@ private fun AmountField(
         isError = isError,
         singleLine = true,
         shape = MaterialTheme.shapes.large,
-        colors = addFieldColors(),
+        // The panel behind is surfaceContainerLow, so the inputs sit one step
+        // higher and carry explicit text colours (readable in dark theme).
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            errorContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedPrefixColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedPrefixColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
+        ),
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = KeyboardType.Decimal,
         ),
@@ -777,7 +795,7 @@ private fun AccountFilterCard(
             .width(AccountCardWidth)
             .txnGlass(
                 shape = shape,
-                rimColor = if (selected) MaterialTheme.colorScheme.primary else brand,
+                rimColor = if (selected) MaterialTheme.colorScheme.primary else null,
             )
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
     ) {

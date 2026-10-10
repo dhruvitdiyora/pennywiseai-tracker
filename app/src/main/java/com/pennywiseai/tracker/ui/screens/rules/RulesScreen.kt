@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
 import com.pennywiseai.tracker.presentation.accounts.glassRowColor
-import com.pennywiseai.tracker.presentation.accounts.glassRowRim
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -488,7 +487,6 @@ private fun RuleRow(
 
     GroupedRow(
         position = position,
-        modifier = Modifier.glassRowRim(position),
         containerColor = glassRowColor(),
         minHeight = Dimensions.Component.listItemMinHeightTwoLine,
         contentPadding = PaddingValues(

@@ -455,7 +455,6 @@ private fun DashboardGlanceCard(
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         hazeState = hazeStateBanner,
         // One step below the tiles, so the tiles read as raised chips on the card.
         tint = MaterialTheme.colorScheme.surfaceContainerLowest,

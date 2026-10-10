@@ -5,7 +5,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -317,9 +316,9 @@ private fun TotalColumn(
             style = PennyWiseText.amountRow,
             color = color,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            // Wrap rather than marquee-clip: a long "est. 2,533.01" must show in full.
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
         )
     }
 }

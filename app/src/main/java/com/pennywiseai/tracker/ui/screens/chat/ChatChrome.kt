@@ -60,7 +60,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.glassFill
-import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.components.cards.glassSurface
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Send
@@ -85,7 +84,7 @@ fun ChatComposer(
 ) {
     val canSend = enabled && value.isNotBlank()
     // Glass pill: the field's own container is transparent and the frosted
-    // fill, sheen and rim come from glassSurface, so it matches the cards.
+    // fill comes from glassSurface, so it matches the cards.
     val containerColor = Color.Transparent
     val composerShape = RoundedCornerShape(Spacing.xxl)
     val placeholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Dimensions.Alpha.subtitle)
@@ -213,7 +212,6 @@ fun TokenLimitWarning(
         modifier = modifier.fillMaxWidth(),
         color = glassFill(backgroundColor, blurLive = false),
         shape = MaterialTheme.shapes.large,
-        border = glassRim(),
     ) {
         Row(
             modifier = Modifier

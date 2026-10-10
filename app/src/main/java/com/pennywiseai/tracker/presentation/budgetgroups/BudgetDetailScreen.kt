@@ -257,7 +257,6 @@ internal fun BudgetDetailContent(
         if (transactions.isEmpty()) {
             item {
                 GlassCard(
-                    shape = MaterialTheme.shapes.extraLarge,
                     contentPadding = Dimensions.Padding.empty,
                 ) {
                     Column(
@@ -344,8 +343,6 @@ private fun BudgetDetailSummaryCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        rimColor = budgetColor,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none,
     ) {

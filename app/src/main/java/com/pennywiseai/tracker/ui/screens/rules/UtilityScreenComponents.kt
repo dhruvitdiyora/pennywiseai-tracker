@@ -40,7 +40,6 @@ internal fun UtilityHeroCard(
     val scheme = MaterialTheme.colorScheme
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
         tint = scheme.primaryContainer,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {

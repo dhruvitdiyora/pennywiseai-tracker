@@ -90,7 +90,7 @@ internal fun addFieldColors() = TextFieldDefaults.colors(
 
 /**
  * Field colors for a [TextField] drawn on glass: every container is clear and
- * [Modifier.addGlassField] paints the frosted surface (fill, sheen, rim) behind
+ * [Modifier.addGlassField] paints the frosted surface (solid fill) behind
  * it. Errors keep their red label and text; the container stays glass.
  */
 @Composable

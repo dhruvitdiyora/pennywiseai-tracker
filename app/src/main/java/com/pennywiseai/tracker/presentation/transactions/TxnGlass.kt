@@ -28,7 +28,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
  * Glass helpers for the transaction / add / share / statement screens.
  *
  * Every surface here takes the app-wide frosted-glass recipe from
- * `GlassCard.kt` (fill, sheen, rim); these wrappers only pin the arguments the
+ * `GlassCard.kt` (Cashiro-matching solid/blur fill, no rim); these wrappers only pin the arguments the
  * screens in this area share, so a sheet, a field and a chip can't drift apart.
  * Surfaces that live inside a screen's `hazeSource` can't blur themselves, so
  * they are solid glass (no `hazeState`) — the recipe still follows the user's
@@ -50,7 +50,7 @@ internal fun Modifier.txnGlass(
 
 /**
  * A modal bottom sheet in the glass material. The sheet's own container is
- * transparent; the glass fill, sheen and rim are drawn on a column inside it
+ * transparent; the solid fill is drawn on a column inside it
  * that also hosts the drag handle, so the glass moves with the sheet while it
  * is dragged (a modifier on the sheet itself would sit outside its drag
  * offset). The column runs under the navigation bar and pads its content
@@ -71,7 +71,9 @@ internal fun TxnGlassSheet(
         sheetState = sheetState,
         modifier = modifier,
         shape = shape,
-        containerColor = Color.Transparent,
+        // Cashiro's sheets are solid `surface` — nothing ghosts through.
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = Dimensions.Elevation.none,
         dragHandle = null,
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
@@ -79,7 +81,6 @@ internal fun TxnGlassSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .txnGlass(shape)
                 .windowInsetsPadding(WindowInsets.navigationBars),
         ) {
             if (showDragHandle) {

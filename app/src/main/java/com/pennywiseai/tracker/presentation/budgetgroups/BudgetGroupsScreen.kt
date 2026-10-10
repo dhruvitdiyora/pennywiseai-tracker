@@ -535,7 +535,7 @@ internal fun BudgetOverviewCard(
     val statusColor = budgetStatusColor(pctUsed)
     val barColor = budgetBarColor(pctUsed, budgetColor)
 
-    // Cashiro's frosted glass, its rim taking the budget's own colour.
+    // Cashiro's frosted glass, faint budget-colour border.
     GlassCard(
         onClick = if (hasBreakdown) ({ expanded = !expanded }) else null,
         modifier = modifier
@@ -543,8 +543,8 @@ internal fun BudgetOverviewCard(
             .semantics {
                 if (hasBreakdown) stateDescription = expansionState
             },
-        shape = MaterialTheme.shapes.extraLarge,
-        rimColor = budgetColor,
+        // Cashiro BudgetCard: 1dp border at 10% of the budget colour.
+        rimColor = budgetColor.copy(alpha = 0.1f),
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none
     ) {
