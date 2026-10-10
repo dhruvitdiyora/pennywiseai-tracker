@@ -431,7 +431,8 @@ fun MainScreen(
                                 navController.navigate("settings") {
                                     launchSingleTop = true
                                 }
-                            }
+                            },
+                            onNavigateBack = { navController.safePopBackStack() }
                         )
                     }
                 )

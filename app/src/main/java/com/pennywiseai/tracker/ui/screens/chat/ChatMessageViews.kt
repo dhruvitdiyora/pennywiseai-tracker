@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
@@ -106,12 +107,12 @@ fun ChatMessageItem(
     val containerColor = if (isUser) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.secondaryContainer
+        Color.Transparent
     }
     val contentColor = if (isUser) {
         MaterialTheme.colorScheme.onPrimaryContainer
     } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
+        MaterialTheme.colorScheme.onBackground
     }
     val metaColor = contentColor.copy(alpha = Dimensions.Alpha.subtitle)
 
@@ -120,22 +121,21 @@ fun ChatMessageItem(
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         Surface(
-            modifier = Modifier
-                .widthIn(max = ChatBubbleMaxWidth)
+            // Cashiro: the assistant's reply is plain text on the page, full width, with
+            // no bubble; only the user's own message keeps its accent bubble.
+            modifier = (if (isUser) Modifier.widthIn(max = ChatBubbleMaxWidth) else Modifier.fillMaxWidth())
                 .animateContentSize(),
-            // The assistant's reply is a glass bubble (Cashiro); the user's own
-            // message keeps its solid accent so the two voices stay distinct.
-            color = if (isUser) containerColor else glassFill(containerColor, blurLive = false),
+            color = containerColor,
             contentColor = contentColor,
             shape = chatBubbleShape(isUser),
         ) {
             Column(
-                modifier = Modifier.padding(
+                modifier = if (isUser) Modifier.padding(
                     start = Dimensions.Padding.card,
                     end = Dimensions.Padding.card,
                     top = Spacing.smd,
                     bottom = Spacing.xs,
-                ),
+                ) else Modifier.padding(vertical = Spacing.xs),
             ) {
                 Text(
                     text = message.message,
@@ -187,14 +187,14 @@ fun TypingIndicator(
     status: String? = null
 ) {
     val waitingDescription = stringResource(R.string.chat_waiting_for_response)
-    val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    val contentColor = MaterialTheme.colorScheme.onBackground
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
         Surface(
             modifier = Modifier.semantics { contentDescription = waitingDescription },
-            color = glassFill(MaterialTheme.colorScheme.secondaryContainer, blurLive = false),
+            color = Color.Transparent,
             contentColor = contentColor,
             shape = chatBubbleShape(isUser = false),
         ) {

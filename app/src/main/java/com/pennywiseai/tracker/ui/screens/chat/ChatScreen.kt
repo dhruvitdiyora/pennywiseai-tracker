@@ -309,11 +309,12 @@ fun ChatScreen(
                         }
 
                         // Show model required banner at bottom, as a rounded card
+                        // Cashiro's bar: full width, edge to edge, square-cornered.
                         GlassCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimensions.Padding.content),
-                            tint = MaterialTheme.colorScheme.tertiaryContainer
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(0.dp),
+                            tint = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentPadding = Dimensions.Padding.content
                         ) {
                             if (isDownloading) {
                                 Column(

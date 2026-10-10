@@ -27,6 +27,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -1032,136 +1042,37 @@ fun HomeScreen(
         )
     }
 
-    // Avatar menu bottom sheet
+    // "More options": Cashiro's small floating glass card menu anchored under the
+    // top-bar "..." button, rather than a full-width sheet.
     if (showMenuSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showMenuSheet = false },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
-            ) {
-                // Title
-                Text(
-                    text = stringResource(R.string.home_menu_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(bottom = Spacing.sm)
-                        .fillMaxWidth()
-                )
-
-                // Monthly recap (Top) — the growth loop lives here rather than buried
-                // in the Subscriptions screen, where nobody would find it. Named for what
-                // it is rather than "Share ...": the menu sits beside Settings and Rate,
-                // and leading with the ask makes it read as a favour being requested.
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_monthly_recap),
-                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
-                    position = ListItemPosition.Top,
-                    onClick = {
-                        showMenuSheet = false
-                        showShareSheet = true
-                    }
-                )
-
-                // Settings (Middle)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_settings),
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        onNavigateToSettings()
-                    }
-                )
-
-                // Manage accounts (Middle) — the Accounts section on Home no longer
-                // carries its own "Manage" header link (the Cashiro-style card sits
-                // header-less under the summary), so the entry point lives here.
-                MenuListItem(
-                    headline = stringResource(R.string.settings_manage_accounts_title),
-                    icon = { Icon(Icons.Default.AccountBalance, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        onNavigateToManageAccounts()
-                    }
-                )
-
-                // Edit home screen (Middle) — reorder / hide Home sections (#770)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_edit_home),
-                    icon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        showEditWidgetsSheet = true
-                    }
-                )
-
-                // Join Discord (Middle)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_discord),
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_discord),
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                    },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL))
-                        context.startActivity(intent)
-                    }
-                )
-
-                // Rate on Play Store (Bottom)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_rate),
-                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                    position = ListItemPosition.Bottom,
-                    onClick = {
-                        showMenuSheet = false
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
-                            context.startActivity(intent)
-                        } catch (_: android.content.ActivityNotFoundException) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
-                            context.startActivity(intent)
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Version footer
-                val versionName = remember {
-                    try {
-                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-                versionName?.let {
-                    Text(
-                        text = stringResource(R.string.home_version, it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                }
+        val versionName = remember {
+            try {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            } catch (_: Exception) {
+                null
             }
         }
+        HomeOptionsMenu(
+            blurEffects = blurEffects,
+            versionName = versionName,
+            onDismiss = { showMenuSheet = false },
+            onMonthlyRecap = { showMenuSheet = false; showShareSheet = true },
+            onSettings = { showMenuSheet = false; onNavigateToSettings() },
+            onManageAccounts = { showMenuSheet = false; onNavigateToManageAccounts() },
+            onEditHome = { showMenuSheet = false; showEditWidgetsSheet = true },
+            onDiscord = {
+                showMenuSheet = false
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL)))
+            },
+            onRate = {
+                showMenuSheet = false
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")))
+                } catch (_: android.content.ActivityNotFoundException) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")))
+                }
+            },
+        )
     }
     }
 
@@ -1660,28 +1571,116 @@ private fun HomeBarCircleButton(
 }
 
 /**
- * A row in the "More options" bottom sheet. Uses the shared grouped-list
- * primitives so it matches the rows in Settings exactly — this sheet is the
- * shortcut *into* Settings, so the two looking different was jarring.
+ * The Home "More options" menu: a compact floating card in Cashiro's dropdown style:
+ * translucent `surfaceContainerLow`, 24dp corners, soft shadow, hairline dividers
+ * (`surface` at 60%), anchored top-end under the "..." button. A popup window can't
+ * blur the page behind it, so the glass is a high-alpha tint (solid when blur is off).
  */
 @Composable
-private fun MenuListItem(
-    headline: String,
-    icon: @Composable () -> Unit,
-    position: ListItemPosition,
-    onClick: () -> Unit,
+private fun HomeOptionsMenu(
+    blurEffects: Boolean,
+    versionName: String?,
+    onDismiss: () -> Unit,
+    onMonthlyRecap: () -> Unit,
+    onSettings: () -> Unit,
+    onManageAccounts: () -> Unit,
+    onEditHome: () -> Unit,
+    onDiscord: () -> Unit,
+    onRate: () -> Unit,
 ) {
-    GroupedRow(
-        position = position,
-        onClick = onClick,
-        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val offset = with(density) {
+        IntOffset(
+            x = -Dimensions.Padding.content.roundToPx(),
+            y = (topInset + Dimensions.Component.iconButton + Spacing.md).roundToPx(),
+        )
+    }
+    val scheme = MaterialTheme.colorScheme
+    androidx.compose.ui.window.Popup(
+        alignment = Alignment.TopEnd,
+        offset = offset,
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.PopupProperties(focusable = true),
+    ) {
+        Surface(
+            modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
+            shape = RoundedCornerShape(Dimensions.Glass.heroRadius),
+            color = scheme.surfaceContainerLow.copy(alpha = if (blurEffects) 0.88f else 1f),
+            contentColor = scheme.onSurface,
+            shadowElevation = 8.dp,
+        ) {
+            Column(modifier = Modifier.padding(vertical = Spacing.xs)) {
+                HomeMenuItem(stringResource(R.string.home_menu_monthly_recap), onMonthlyRecap) {
+                    Icon(Icons.Default.Share, contentDescription = null)
+                }
+                HomeMenuDivider()
+                HomeMenuItem(stringResource(R.string.home_menu_settings), onSettings) {
+                    Icon(Icons.Default.Settings, contentDescription = null)
+                }
+                HomeMenuDivider()
+                HomeMenuItem(stringResource(R.string.settings_manage_accounts_title), onManageAccounts) {
+                    Icon(Icons.Default.AccountBalance, contentDescription = null)
+                }
+                HomeMenuDivider()
+                HomeMenuItem(stringResource(R.string.home_menu_edit_home), onEditHome) {
+                    Icon(Icons.Default.Tune, contentDescription = null)
+                }
+                HomeMenuDivider()
+                HomeMenuItem(stringResource(R.string.home_menu_discord), onDiscord) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_discord),
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                }
+                HomeMenuDivider()
+                HomeMenuItem(stringResource(R.string.home_menu_rate), onRate) {
+                    Icon(Icons.Default.Star, contentDescription = null)
+                }
+                versionName?.let {
+                    Text(
+                        text = stringResource(R.string.home_version, it),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Spacing.xs, bottom = Spacing.xs),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeMenuDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = Spacing.sm),
+        thickness = 1.5.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+    )
+}
+
+@Composable
+private fun HomeMenuItem(
+    label: String,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(onClick = onClick, role = Role.Button)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.secondary
-        ) { icon() }
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) { icon() }
         Text(
-            text = headline,
+            text = label,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
