@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,17 +19,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -56,33 +50,11 @@ fun HeatmapWidget(
         scrollState.scrollTo(scrollState.maxValue)
     }
 
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.surfaceContainerLow
-
-    PennyWiseCardV2(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                tint = HazeDefaults.tint(containerColor),
-                                blurRadius = 20.dp,
-                                noiseFactor = -1f,
-                            )
-                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                        }
-                    )
-                else Modifier
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        )
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        blurEffects = blurEffects,
+        hazeState = hazeState
     ) {
         // No section header here: every caller places this card under an
         // "Activity" SectionHeaderV2, so a second one inside the card rendered

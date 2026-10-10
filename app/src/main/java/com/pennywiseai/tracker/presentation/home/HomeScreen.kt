@@ -57,7 +57,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -86,6 +85,7 @@ import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
@@ -113,10 +113,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Search
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -493,7 +490,9 @@ fun HomeScreen(
                         transfers = uiState.currentMonthTransfer,
                         isBalanceHidden = uiState.isBalanceHidden,
                         onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        blurEffects = blurEffects,
+                        hazeState = hazeStateBanner
                     )
                 }
             }
@@ -540,7 +539,9 @@ fun HomeScreen(
                                         BudgetCarousel(
                                             summary = summary,
                                             onClick = onNavigateToBudgets,
-                                            onCreateBudget = onNavigateToBudgets
+                                            onCreateBudget = onNavigateToBudgets,
+                                            blurEffects = blurEffects,
+                                            hazeState = hazeStateBanner
                                         )
                                     }
                                 }
@@ -584,7 +585,9 @@ fun HomeScreen(
                                                 totalLentRemaining = summary.totalLentRemaining,
                                                 totalBorrowedRemaining = summary.totalBorrowedRemaining,
                                                 currency = uiState.selectedCurrency,
-                                                onClick = onNavigateToLoans
+                                                onClick = onNavigateToLoans,
+                                                blurEffects = blurEffects,
+                                                hazeState = hazeStateBanner
                                             )
                                         }
                                     }
@@ -1395,34 +1398,14 @@ private fun UpcomingSubscriptionsCard(
     hazeState: HazeState? = null
 ) {
     val baseColor = MaterialTheme.colorScheme.surfaceContainerLow
-    val containerColor = if (blurEffects) baseColor.copy(alpha = 0.5f) else baseColor
-    val cardShape = MaterialTheme.shapes.extraLarge
 
-    PennyWiseCardV2(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(cardShape)
-                    .hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                tint = HazeDefaults.tint(containerColor),
-                                blurRadius = 20.dp,
-                                noiseFactor = -1f,
-                            )
-                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                        }
-                    )
-                else Modifier
-            ),
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = cardShape,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
+        shape = MaterialTheme.shapes.extraLarge,
+        blurEffects = blurEffects,
+        hazeState = hazeState,
+        tint = baseColor,
         contentPadding = Dimensions.Padding.content
     ) {
         Row(
@@ -1500,11 +1483,16 @@ internal fun ActiveLoansSummaryCard(
     totalLentRemaining: java.math.BigDecimal,
     totalBorrowedRemaining: java.math.BigDecimal,
     currency: String,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        blurEffects = blurEffects,
+        hazeState = hazeState
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -54,6 +54,7 @@ import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import dev.chrisbanes.haze.HazeState
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
@@ -355,7 +356,9 @@ fun BudgetCard(
     groupSpending: BudgetGroupSpending,
     currency: String,
     onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
     val budget = groupSpending.group.budget
     val pctUsed = groupSpending.percentageUsed
@@ -375,11 +378,14 @@ fun BudgetCard(
     val statusColor = budgetStatusColor(pctUsed)
     val barColor = budgetBarColor(pctUsed, budgetColor)
 
-    PennyWiseCardV2(
+    // Home's frosted-glass card, its rim taking the budget's own colour.
+    GlassCard(
         modifier = modifier,
         onClick = onClick,
         shape = MaterialTheme.shapes.extraLarge,
-        border = budgetRim(budgetColor),
+        blurEffects = blurEffects,
+        hazeState = hazeState,
+        rimColor = budgetColor,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none
     ) {

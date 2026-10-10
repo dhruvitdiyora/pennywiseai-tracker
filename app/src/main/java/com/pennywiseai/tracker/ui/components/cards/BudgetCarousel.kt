@@ -32,6 +32,7 @@ import androidx.compose.ui.util.lerp
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import dev.chrisbanes.haze.HazeState
 import kotlin.math.absoluteValue
 
 @Composable
@@ -39,16 +40,21 @@ fun BudgetCarousel(
     summary: BudgetOverallSummary,
     onClick: () -> Unit = {},
     onCreateBudget: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
     val groups = summary.groups
 
     if (groups.isEmpty()) {
-        PennyWiseCardV2(
+        GlassCard(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = Dimensions.Padding.content),
-            onClick = onCreateBudget
+            shape = MaterialTheme.shapes.extraLarge,
+            onClick = onCreateBudget,
+            blurEffects = blurEffects,
+            hazeState = hazeState
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -103,7 +109,9 @@ fun BudgetCarousel(
             onClick = onClick,
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
+                .padding(horizontal = Dimensions.Padding.content),
+            blurEffects = blurEffects,
+            hazeState = hazeState
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { groups.size })
@@ -132,7 +140,9 @@ fun BudgetCarousel(
                             scaleX = scale
                             scaleY = scale
                             alpha = lerp(0.6f, 1f, 1f - pageOffset.coerceIn(0f, 1f))
-                        }
+                        },
+                    blurEffects = blurEffects,
+                    hazeState = hazeState
                 )
             }
 

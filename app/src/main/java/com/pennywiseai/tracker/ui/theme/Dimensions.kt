@@ -231,6 +231,55 @@ object Dimensions {
         val fabScrollClearance = 112.dp
     }
 
+    // ── Glass ─────────────────────────────────────────────────────────────
+    // The app-wide frosted-glass material (`GlassCard` / `Modifier.glassSurface`): a
+    // translucent tonal fill, a Haze blur of the banner behind it, a rim that
+    // catches the top-start edge and fades toward the bottom-end, and a soft
+    // sheen across the upper part of the card. Every alpha here is applied to
+    // a theme role, never to a literal colour.
+    object Glass {
+        /** Haze blur radius over the banner / cover behind the card. */
+        val blurRadius = 20.dp
+
+        /** Rim (border) width — thin enough to read as an edge, not an outline. */
+        val rimWidth = 1.dp
+
+        /** Fill alpha while the blur is live: the blurred backdrop shows through. */
+        const val fillAlphaBlurred = 0.5f
+
+        /**
+         * Fill alpha with blur off: near-solid so text never sits on an
+         * unblurred busy backdrop, while the banner still tints through.
+         */
+        const val fillAlphaSolid = 0.92f
+
+        /** Fill alpha for a semantic container (e.g. low-balance error) without blur. */
+        const val fillAlphaTinted = 0.7f
+
+        /** Rim highlight (top-start) / fall-off (bottom-end) on `onSurface`, dark themes. */
+        const val rimHighlightDark = 0.20f
+        const val rimShadeDark = 0.05f
+
+        /**
+         * Rim on `onSurface` in light themes. Inverted (darker at the bottom)
+         * because a light rim is invisible on a light page; the sheen supplies
+         * the top highlight instead.
+         */
+        const val rimHighlightLight = 0.05f
+        const val rimShadeLight = 0.12f
+
+        /** Rim strength when the rim takes an accent colour (e.g. a budget's colour). */
+        const val rimAccentHighlight = 0.32f
+        const val rimAccentShade = 0.08f
+
+        /** Top sheen: `onSurface` in dark themes, `surfaceBright` in light ones. */
+        const val sheenDark = 0.06f
+        const val sheenLight = 0.55f
+
+        /** Fraction of the card's height over which the sheen fades out. */
+        const val sheenExtent = 0.55f
+    }
+
     // ── Motion ────────────────────────────────────────────────────────────
     object Animation {
         const val short = 120

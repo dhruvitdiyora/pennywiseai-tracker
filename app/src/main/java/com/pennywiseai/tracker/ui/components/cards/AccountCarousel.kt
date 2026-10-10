@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,14 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
@@ -49,10 +45,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.formatBalance
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun AccountCarousel(
@@ -132,13 +125,15 @@ private fun AccountCarouselCard(
     val isLowBalance = !isCreditCard &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
-    val containerColor = when {
-        isLowBalance -> MaterialTheme.colorScheme.errorContainer.copy(
-            alpha = if (blurEffects) 0.5f else 0.7f
-        )
-        blurEffects -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    // Glass recipe (GlassCard): a low-balance card keeps its error-container
+    // wash; every other card takes the neutral frosted fill.
+    val glassTint = if (isLowBalance) {
+        MaterialTheme.colorScheme.errorContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
     }
+    val glassSolidAlpha = if (isLowBalance) Dimensions.Glass.fillAlphaTinted else Dimensions.Glass.fillAlphaSolid
+    val containerColor = glassFill(glassTint, blurEffects && hazeState != null, glassSolidAlpha)
     val primaryContentColor = if (isLowBalance) {
         MaterialTheme.colorScheme.onErrorContainer
     } else {
@@ -181,29 +176,14 @@ private fun AccountCarouselCard(
         else -> null
     }
 
-    PennyWiseCardV2(
-        modifier = modifier
-            .height(Dimensions.Component.accountCardHeight)
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(cardShape)
-                    .hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                tint = HazeDefaults.tint(containerColor),
-                                blurRadius = 20.dp,
-                                noiseFactor = -1f,
-                            )
-                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                        }
-                    )
-                else Modifier
-            ),
+    GlassCard(
+        modifier = modifier.height(Dimensions.Component.accountCardHeight),
         onClick = onClick,
         shape = cardShape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        blurEffects = blurEffects,
+        hazeState = hazeState,
+        tint = glassTint,
+        solidFillAlpha = glassSolidAlpha,
         // Keep the decorative layers full-bleed; the foreground column owns the
         // standard card inset below so the watermark reaches the rounded edge.
         contentPadding = Dimensions.Padding.none

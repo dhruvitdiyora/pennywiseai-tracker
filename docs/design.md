@@ -195,6 +195,18 @@ from an AMOLED-black background where a tonal fill barely registers.
 Pass `contentPadding` rather than padding the content yourself, so the ripple on
 a clickable card covers the whole surface.
 
+### `GlassCard` / `Modifier.glassSurface` — the frosted-glass material
+
+Cashiro's glass look, and the default for new card/sheet/bar work (Home adopted
+it first). Recipe tokens live in `Dimensions.Glass`: a translucent theme-role
+fill (`fillAlphaBlurred` over a live Haze blur, `fillAlphaSolid` otherwise), a
+`blurRadius` Haze blur of whatever `hazeSource` sits behind it, a 1dp diagonal
+gradient rim on `onSurface` (or an accent such as a budget colour), and a soft
+top sheen. `blurEffects` defaults to `LocalBlurEffects`; with no `hazeState`
+the surface is solid glass. Use `GlassCard` for cards and
+`Modifier.glassSurface(shape, blurEffects, hazeState)` for sheets, bars and
+pills. Check light, dark and AMOLED with blur on and off.
+
 ### Grouped lists — `GroupedList` / `GroupedRow` / `GroupedColumn`
 
 The app's one grouped-list pattern: sibling rows share a tonal surface,

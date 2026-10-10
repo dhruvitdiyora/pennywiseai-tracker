@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import dev.chrisbanes.haze.HazeState
 import androidx.annotation.StringRes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -57,7 +58,9 @@ fun CashFlowCard(
     transfers: BigDecimal,
     isBalanceHidden: Boolean,
     onToggleBalanceVisibility: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    blurEffects: Boolean = false,
+    hazeState: HazeState? = null
 ) {
     val channels = remember(creditCardSpend, investments, transfers) {
         listOf(
@@ -68,8 +71,11 @@ fun CashFlowCard(
     }
     if (channels.isEmpty()) return
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        blurEffects = blurEffects,
+        hazeState = hazeState,
         contentPadding = Spacing.md,
         // Whole card toggles the global hide-amounts flag; mirrors the eye
         // button on BalanceCard so the entire summary tier reveals/hides

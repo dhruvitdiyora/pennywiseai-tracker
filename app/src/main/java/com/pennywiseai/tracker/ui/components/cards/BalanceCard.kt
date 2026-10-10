@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,8 +45,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -59,16 +56,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.LongArrow
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income_dark
 import com.pennywiseai.tracker.ui.theme.income_light
@@ -131,8 +124,6 @@ fun BalanceCard(
         if (isDark) income_dark else income_light
     }
 
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-
     val absPercent = kotlin.math.abs(monthlyChangePercent)
     val changeText = if (isPositive) stringResource(R.string.balance_card_change_more, absPercent) else stringResource(R.string.balance_card_change_less, absPercent)
 
@@ -141,37 +132,21 @@ fun BalanceCard(
     val cardShape = MaterialTheme.shapes.extraLarge
 
     Box(modifier = modifier.fillMaxWidth()) {
-        PennyWiseCardV2(
+        // Cashiro's frosted-glass treatment (shared GlassCard recipe); the
+        // content below stays PennyWise's spending-first hero.
+        GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(
                     animationSpec = tween(Dimensions.Animation.medium)
-                )
-                .then(
-                    if (blurEffects) Modifier
-                        .clip(cardShape)
-                        .hazeEffect(
-                            state = hazeState,
-                            block = fun HazeEffectScope.() {
-                                style = HazeDefaults.style(
-                                    backgroundColor = Color.Transparent,
-                                    tint = HazeDefaults.tint(containerColor),
-                                    blurRadius = 20.dp,
-                                    noiseFactor = -1f,
-                                )
-                                blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                            }
-                        )
-                    else Modifier
                 ),
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 isExpanded = !isExpanded
             },
             shape = cardShape,
-            colors = CardDefaults.cardColors(
-                containerColor = if (blurEffects) containerColor.copy(alpha = 0.5f) else containerColor.copy(alpha = 0.92f)
-            )
+            blurEffects = blurEffects,
+            hazeState = hazeState
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
