@@ -13,6 +13,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -91,7 +96,11 @@ class TransactionsMoreFiltersVisualTest {
         composeTestRule.onNodeWithText("Expense").performClick()
         // Every category starts ticked (#786); unticking Travel leaves only Food.
         composeTestRule.onNodeWithText("Travel").performClick()
-        composeTestRule.onNodeWithText("Amount range").performScrollTo()
+        // The tag chips sit in a LazyRow at the end of the sheet's scrolling
+        // column; performScrollTo only scrolls the closest scrollable (the row),
+        // so scroll the column itself to its end.
+        composeTestRule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Tag")))
+            .performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 100_000f) }
         composeTestRule.onNodeWithText("work").performClick().assertIsSelected()
         composeTestRule.onNodeWithText("Apply").performClick()
 

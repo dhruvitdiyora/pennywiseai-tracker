@@ -1,13 +1,13 @@
 package com.pennywiseai.tracker.presentation.share
 
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.transactions.TxnGlassSheet
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -82,14 +81,13 @@ fun ShareCardSheet(
     var showCustomise by remember { mutableStateOf(false) }
     val graphicsLayer = rememberGraphicsLayer()
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    TxnGlassSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding(),
+                .padding(bottom = Spacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {

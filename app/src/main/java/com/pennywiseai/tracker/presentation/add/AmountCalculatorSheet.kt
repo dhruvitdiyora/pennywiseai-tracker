@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.presentation.add
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.CircleShape
+import com.pennywiseai.tracker.presentation.transactions.TxnGlassSheet
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -81,15 +85,11 @@ internal fun AmountCalculatorSheet(
         null
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ) {
+    TxnGlassSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
                 .padding(
                     start = Dimensions.Padding.dialog,
                     end = Dimensions.Padding.dialog,
@@ -137,14 +137,20 @@ internal fun AmountCalculatorSheet(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f)
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Dimensions.Component.listItemMinHeight)
                 ) {
                     Text(stringResource(R.string.add_cancel))
                 }
                 Button(
                     onClick = { applicable?.let { onApply(formatNumberPadResult(it)) } },
                     enabled = applicable != null,
-                    modifier = Modifier.weight(1f)
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Dimensions.Component.listItemMinHeight)
                 ) {
                     Text(stringResource(R.string.add_use_amount))
                 }

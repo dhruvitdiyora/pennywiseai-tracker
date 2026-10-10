@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.presentation.transactions.txnGlass
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.iconax.Calendar
@@ -87,6 +88,43 @@ internal fun addFieldColors() = TextFieldDefaults.colors(
     disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
 )
 
+/**
+ * Field colors for a [TextField] drawn on glass: every container is clear and
+ * [Modifier.addGlassField] paints the frosted surface (fill, sheen, rim) behind
+ * it. Errors keep their red label and text; the container stays glass.
+ */
+@Composable
+internal fun addGlassFieldColors() = TextFieldDefaults.colors(
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
+    disabledContainerColor = Color.Transparent,
+    errorContainerColor = Color.Transparent,
+    focusedIndicatorColor = Color.Transparent,
+    unfocusedIndicatorColor = Color.Transparent,
+    disabledIndicatorColor = Color.Transparent,
+    errorIndicatorColor = Color.Transparent,
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    disabledLabelColor = MaterialTheme.colorScheme.primary,
+    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+)
+
+/**
+ * The glass material behind an add-form field or tile, in [shape]. An error
+ * field takes the error container as its glass tint.
+ */
+@Composable
+internal fun Modifier.addGlassField(shape: Shape, isError: Boolean = false): Modifier = txnGlass(
+    shape = shape,
+    tint = if (isError) {
+        MaterialTheme.colorScheme.errorContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    },
+)
+
 /** Small heading above a block of controls ("Transaction type"). */
 @Composable
 internal fun AddSectionLabel(text: String, modifier: Modifier = Modifier) {
@@ -118,8 +156,7 @@ internal fun AddPillSwitcher(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .clip(trackShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .txnGlass(trackShape, tint = MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(Spacing.xs)
     ) {
         val thumbWidth = maxWidth / options.size
@@ -195,11 +232,13 @@ internal fun AddChoiceChip(
         } else {
             null
         },
+        shape = CircleShape,
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
             selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            // Cashiro: a translucent tonal pill, so the page shows through.
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = CHOICE_CHIP_ALPHA),
             labelColor = MaterialTheme.colorScheme.onSurface
         ),
         border = null
@@ -307,7 +346,8 @@ private class CurrencyPrefixTransformation(private val symbol: String) : VisualT
 
 @Composable
 private fun addChipColors() = AssistChipDefaults.assistChipColors(
-    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    // The glass pill behind the chip ([addGlassField]) is its container.
+    containerColor = Color.Transparent,
     labelColor = MaterialTheme.colorScheme.onSurface,
     leadingIconContentColor = MaterialTheme.colorScheme.primary,
     trailingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -326,7 +366,9 @@ private fun AddCurrencyChip(
         AssistChip(
             onClick = { expanded = true },
             label = { Text(label) },
-            modifier = Modifier.semantics { contentDescription = description },
+            modifier = Modifier
+                .addGlassField(CircleShape)
+                .semantics { contentDescription = description },
             trailingIcon = {
                 Icon(
                     Icons.Rounded.KeyboardArrowDown,
@@ -361,7 +403,9 @@ private fun AddCalculatorChip(onClick: () -> Unit) {
     AssistChip(
         onClick = onClick,
         label = { Text(stringResource(R.string.add_calculator_chip)) },
-        modifier = Modifier.semantics { contentDescription = description },
+        modifier = Modifier
+            .addGlassField(CircleShape)
+            .semantics { contentDescription = description },
         leadingIcon = {
             Icon(
                 Icons.Default.Calculate,
@@ -388,8 +432,7 @@ internal fun AddDateCard(
 ) {
     Row(
         modifier = modifier
-            .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .addGlassField(MaterialTheme.shapes.large)
             .clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
             .heightIn(min = Dimensions.Component.listItemMinHeight)
             .padding(horizontal = Dimensions.Padding.cardCompact, vertical = Spacing.sm),
@@ -448,8 +491,8 @@ internal fun AddTimeCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TimeDigits(
                     text = String.format(Locale.getDefault(), "%02d", hour),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = HOUR_CHIP_ALPHA),
+                    contentColor = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = ":",
@@ -458,7 +501,7 @@ internal fun AddTimeCard(
                 )
                 TimeDigits(
                     text = String.format(Locale.getDefault(), "%02d", minute),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -513,11 +556,11 @@ internal fun AddAccountSelectorCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .addGlassField(shape),
         shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = null
     ) {
         Row(
@@ -633,9 +676,11 @@ internal fun AddTransferBadge(modifier: Modifier = Modifier) {
 @Composable
 internal fun AddErrorBanner(message: String, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .addGlassField(MaterialTheme.shapes.large, isError = true),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.errorContainer
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier.padding(Dimensions.Padding.cardCompact),
@@ -656,6 +701,12 @@ internal fun AddErrorBanner(message: String, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** Cashiro's translucent unselected choice chip. */
+private const val CHOICE_CHIP_ALPHA = 0.7f
+
+/** Cashiro's hour chip: a primary wash behind primary digits. */
+private const val HOUR_CHIP_ALPHA = 0.2f
 
 /** Height of [AddSaveBar] above the navigation bar: fade + button + bottom gap. */
 private val AddSaveBarHeight = Spacing.lg + Dimensions.Component.listItemMinHeight + Spacing.sm
@@ -714,7 +765,8 @@ internal fun BoxScope.AddSaveBar(
                     end = Dimensions.Padding.content,
                     bottom = Spacing.sm
                 )
-                .height(Dimensions.Component.listItemMinHeight)
+                .height(Dimensions.Component.listItemMinHeight),
+            shape = CircleShape
         ) {
             if (isLoading) {
                 CircularProgressIndicator(

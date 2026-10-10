@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,8 +41,10 @@ internal fun ReceiptAttachmentCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .txnGlass(MaterialTheme.shapes.large)
+            .clip(MaterialTheme.shapes.large)
             .clickable(onClick = onView),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = Color.Transparent,
         shape = MaterialTheme.shapes.large,
     ) {
         Column(modifier = Modifier.padding(Dimensions.Padding.card)) {

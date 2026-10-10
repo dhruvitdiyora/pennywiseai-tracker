@@ -168,12 +168,15 @@ internal fun TxnDetailReceipt(
         TxnReceiptShape(notchRadiusPx, tearOffsetPx, scallopRadiusPx)
     }
 
+    // The receipt is cut from the app's glass material (GlassCard.kt): the
+    // fill, sheen and rim follow its scalloped, notched outline.
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize()
+            .txnGlass(shape),
         shape = shape,
-        color = cardColor
+        color = Color.Transparent
     ) {
         // No vertical padding on this column: the tear line's position in it
         // must equal its position in the shape.
@@ -430,7 +433,7 @@ internal fun TxnReceiptChip(
 ) {
     Row(
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
+            .clip(CircleShape)
             .background(container)
             .padding(horizontal = Spacing.smd, vertical = Spacing.xs + Spacing.xxs),
         verticalAlignment = Alignment.CenterVertically,

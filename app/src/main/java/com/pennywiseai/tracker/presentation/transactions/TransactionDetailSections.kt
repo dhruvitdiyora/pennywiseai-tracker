@@ -324,11 +324,22 @@ private fun TxnDetailReceiptRows(
         }
     }
 
+    // Bank and account chips take the bank's brand colour (Cashiro), as a
+    // wash with the text nudged until it reads; unknown banks stay neutral.
+    val bankColor = remember(bankName) { bankBrandColor(bankName) }
+    val bankChipContainer = bankColor?.copy(alpha = Dimensions.Alpha.tonalIconContainer)
+        ?: scheme.surfaceContainerHighest
+    val bankChipText = remember(bankColor, chipBackground, onSurface) {
+        bankColor?.legibleOn(background = chipBackground, towards = onSurface) ?: onSurface
+    }
+
     // Bank
     if (bankName != null) {
         TxnReceiptRow(label = stringResource(R.string.txn_detail_label_bank)) {
             TxnReceiptChip(
                 text = bankName,
+                container = bankChipContainer,
+                content = bankChipText,
                 leading = {
                     // A bank we have no logo for would borrow an unrelated
                     // category glyph from BrandIcon, so fall back to a wallet.
@@ -351,7 +362,9 @@ private fun TxnDetailReceiptRows(
         TxnReceiptRow(label = stringResource(R.string.txn_detail_label_account)) {
             TxnReceiptChip(
                 text = "${maskAccount(fromAccount)} → ${maskAccount(toAccount)}",
-                leading = { TxnReceiptChipIcon(Iconax.Transfer) }
+                container = bankChipContainer,
+                content = bankChipText,
+                leading = { TxnReceiptChipIcon(Iconax.Transfer, bankChipText) }
             )
         }
     } else {
@@ -359,7 +372,9 @@ private fun TxnDetailReceiptRows(
             TxnReceiptRow(label = stringResource(R.string.txn_detail_label_account)) {
                 TxnReceiptChip(
                     text = maskAccount(accountNumber),
-                    leading = { TxnReceiptChipIcon(Iconax.Wallet3) }
+                    container = bankChipContainer,
+                    content = bankChipText,
+                    leading = { TxnReceiptChipIcon(Iconax.Wallet3, bankChipText) }
                 )
             }
         }
@@ -367,7 +382,9 @@ private fun TxnDetailReceiptRows(
             TxnReceiptRow(label = stringResource(R.string.txn_detail_label_from)) {
                 TxnReceiptChip(
                     text = maskAccount(fromAccount),
-                    leading = { TxnReceiptChipIcon(Iconax.Wallet3) }
+                    container = bankChipContainer,
+                    content = bankChipText,
+                    leading = { TxnReceiptChipIcon(Iconax.Wallet3, bankChipText) }
                 )
             }
         }
@@ -375,7 +392,9 @@ private fun TxnDetailReceiptRows(
             TxnReceiptRow(label = stringResource(R.string.txn_detail_label_to)) {
                 TxnReceiptChip(
                     text = maskAccount(toAccount),
-                    leading = { TxnReceiptChipIcon(Iconax.Wallet3) }
+                    container = bankChipContainer,
+                    content = bankChipText,
+                    leading = { TxnReceiptChipIcon(Iconax.Wallet3, bankChipText) }
                 )
             }
         }
@@ -724,9 +743,11 @@ internal fun TxnDetailSmsSection(smsBody: String, modifier: Modifier = Modifier)
     )
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .txnGlass(ListItemPosition.Single.toShape()),
         shape = ListItemPosition.Single.toShape(),
-        color = scheme.surfaceContainerLow
+        color = Color.Transparent
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
