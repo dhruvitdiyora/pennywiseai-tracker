@@ -22,7 +22,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -1370,9 +1370,9 @@ private fun BreakdownRow(
                 fontWeight = FontWeight.Normal
             ),
             color = if (isIncome) {
-                if (!isSystemInDarkTheme()) income_light else income_dark
+                if (!isAppInDarkTheme()) income_light else income_dark
             } else {
-                if (!isSystemInDarkTheme()) expense_light else expense_dark
+                if (!isAppInDarkTheme()) expense_light else expense_dark
             }
         )
     }

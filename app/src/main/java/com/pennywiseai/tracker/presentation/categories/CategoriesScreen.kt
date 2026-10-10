@@ -49,6 +49,7 @@ import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.legibleOn
+import com.pennywiseai.tracker.ui.components.withVisibleChroma
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.icons.iconax.CloseCircle
 import com.pennywiseai.tracker.ui.icons.iconax.Eye
@@ -750,7 +751,7 @@ private fun rememberLegibleCategoryTint(category: CategoryEntity): CategoryTint 
     val scheme = MaterialTheme.colorScheme
     val card = scheme.surfaceContainerLow
     val onSurface = scheme.onSurface
-    val raw = category.color.toColorOr(scheme.primary)
+    val raw = category.color.toColorOr(scheme.primary).withVisibleChroma()
     return remember(raw, card, onSurface) {
         val legible = raw.legibleOn(card, towards = onSurface)
         val container = legible.copy(alpha = TINTED_CONTAINER_ALPHA)

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -99,9 +100,9 @@ fun MarkAsPaidSheet(
 
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) income_dark else income_light
+        if (isAppInDarkTheme()) income_dark else income_light
     } else {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+        if (isAppInDarkTheme()) expense_dark else expense_light
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -341,7 +342,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    val amountColor = if (isAppInDarkTheme()) expense_dark else expense_light
     GlassCard(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),

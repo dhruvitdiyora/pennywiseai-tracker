@@ -351,11 +351,11 @@ internal fun AppearanceChoiceTile(
     Surface(
         modifier = modifier
             .heightIn(min = minHeight)
-            // Glass tile; the selected one takes the accent tint and an accent rim.
+            // Glass tile; the selected one takes the accent tint and nothing else — Cashiro
+            // draws no ring, and a ring on a connected-group tile is clipped by its neighbours.
             .glassPanel(
                 shape = shape,
                 tint = if (selected) selectedContainerColor else MaterialTheme.colorScheme.surfaceContainerLow,
-                rimColor = if (selected) selectedContentColor else null,
             )
             .selectable(
                 selected = selected,

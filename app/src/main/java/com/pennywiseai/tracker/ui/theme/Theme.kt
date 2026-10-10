@@ -6,6 +6,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -87,34 +89,42 @@ internal val DarkColorScheme = darkColorScheme(
     scrim = md_theme_dark_scrim,
 )
 
+/**
+ * Whether the *app's* theme is dark. The user can force light/dark independent of the
+ * system setting, so semantic colours must follow the theme, not [isSystemInDarkTheme]
+ * (which picked the pastel dark-mode income/expense tones on light cards).
+ */
+@Composable
+fun isAppInDarkTheme(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
 // Custom color extensions
 val ColorScheme.success: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) success_dark else success_light
+    get() = if (isAppInDarkTheme()) success_dark else success_light
 
 val ColorScheme.warning: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) warning_dark else warning_light
+    get() = if (isAppInDarkTheme()) warning_dark else warning_light
 
 val ColorScheme.income: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) income_dark else income_light
+    get() = if (isAppInDarkTheme()) income_dark else income_light
 
 val ColorScheme.expense: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) expense_dark else expense_light
+    get() = if (isAppInDarkTheme()) expense_dark else expense_light
 
 val ColorScheme.credit: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) credit_dark else credit_light
+    get() = if (isAppInDarkTheme()) credit_dark else credit_light
 
 val ColorScheme.transfer: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) transfer_dark else transfer_light
+    get() = if (isAppInDarkTheme()) transfer_dark else transfer_light
 
 val ColorScheme.investment: Color
     @Composable
-    get() = if (isSystemInDarkTheme()) investment_dark else investment_light
+    get() = if (isAppInDarkTheme()) investment_dark else investment_light
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -143,6 +153,16 @@ fun PennyWiseTheme(
         }
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    // Light theme: Cashiro's card-on-page contrast — a tinted page (surfaceContainerHighest,
+    // e2e2e9 in Cashiro's own scheme) behind white surfaceContainerLow cards. The branded
+    // Rose Pine Dawn palette already carries its own page/card pairing.
+    if (!darkTheme && themeStyle != ThemeStyle.BRANDED) {
+        colorScheme = colorScheme.copy(
+            background = colorScheme.surfaceContainerHighest,
+            surfaceContainerLow = colorScheme.surfaceContainerLowest,
+        )
     }
 
     // Apply AMOLED black if enabled in dark mode

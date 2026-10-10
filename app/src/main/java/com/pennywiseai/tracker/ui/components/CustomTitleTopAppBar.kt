@@ -271,28 +271,7 @@ private fun RegularTopAppBar(
         }
         val barModifier = modifier
             .fillMaxWidth()
-            .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            blurRadius = 10.dp,
-                            noiseFactor = -1f,
-                        )
-                        progressive =
-                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                    }
-                ) else Modifier
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        Color.Transparent
-                    )
-                )
-            )
+            .compactBarGlass(hazeState, blurEffects, MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .alpha(collapsedFraction)
 
@@ -402,3 +381,40 @@ private fun HomeBarTitle(
         )
     }
 }
+
+/**
+ * Frosted-glass surface for the collapsed (sticky) top bar. Cashiro's recipe —
+ * a 10dp+ Haze blur of the content beneath, no noise, fading with a vertical
+ * progressive gradient — with a page-background tint strong enough that
+ * scrolled text never reads through. Blur off gives a near-solid scrim.
+ */
+@OptIn(ExperimentalHazeApi::class)
+@Composable
+fun Modifier.compactBarGlass(
+    hazeState: HazeState,
+    blurEffects: Boolean,
+    pageBackground: Color,
+): Modifier = this
+    .then(
+        if (blurEffects) Modifier.hazeEffect(
+            state = hazeState,
+            block = fun HazeEffectScope.() {
+                style = HazeDefaults.style(
+                    backgroundColor = Color.Transparent,
+                    tint = tint(pageBackground.copy(alpha = 0.72f)),
+                    blurRadius = 20.dp,
+                    noiseFactor = -1f,
+                )
+                progressive =
+                    HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0.6f)
+            }
+        ) else Modifier
+    )
+    .background(
+        Brush.verticalGradient(
+            colors = listOf(
+                pageBackground.copy(alpha = if (blurEffects) 0.9f else 0.98f),
+                pageBackground.copy(alpha = if (blurEffects) 0.55f else 0.9f),
+            )
+        )
+    )

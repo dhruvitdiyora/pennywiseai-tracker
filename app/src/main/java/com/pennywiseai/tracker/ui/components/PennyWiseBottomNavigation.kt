@@ -54,6 +54,9 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -238,6 +241,24 @@ fun PennyWiseBottomNavigation(
                     ),
                     expanded = true,
                 ) {
+                    // The checked tile is translucent over the toolbar glass, so the stock
+                    // on-colour (white on a mid-grey tertiary in the branded light scheme)
+                    // can fail contrast. Pick whichever of the theme's on-colour and
+                    // onSurface reads best against the *composited* tile.
+                    val scheme = MaterialTheme.colorScheme
+                    val checkedFill = if (blurEffects) scheme.tertiaryContainer.copy(0.6f)
+                    else scheme.tertiaryContainer
+                    val toolbarFill = scheme.surfaceContainerLow.copy(alpha = if (blurEffects) 0.7f else 1f)
+                    val checkedBackdrop = checkedFill
+                        .compositeOver(toolbarFill.compositeOver(scheme.background))
+                    val checkedContent = listOf(
+                        scheme.onTertiaryContainer,
+                        scheme.onSurface,
+                        Color.Black,
+                        Color.White,
+                    ).maxBy {
+                        ColorUtils.calculateContrast(it.toArgb(), checkedBackdrop.toArgb())
+                    }
                     navigationItems.forEach { item ->
                         val title = stringResource(item.titleRes)
                         val selected = currentDestination?.hierarchy?.any {
@@ -266,7 +287,7 @@ fun PennyWiseBottomNavigation(
                                 checkedContainerColor = if (blurEffects)
                                     MaterialTheme.colorScheme.tertiaryContainer.copy(0.6f)
                                 else MaterialTheme.colorScheme.tertiaryContainer,
-                                checkedContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                checkedContentColor = checkedContent,
                             ),
                             modifier = Modifier.padding(horizontal = Spacing.xs)
                         ) {

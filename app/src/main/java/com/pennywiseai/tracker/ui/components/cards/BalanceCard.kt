@@ -10,7 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -115,7 +115,7 @@ fun BalanceCard(
         label = "chevronRotation"
     )
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val isPositive = monthlyChange >= BigDecimal.ZERO
     // Inverted for spending context: more spending (positive) = red, less spending (negative) = green
     val changeColor = if (isPositive) {

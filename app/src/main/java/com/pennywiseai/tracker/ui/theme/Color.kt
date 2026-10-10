@@ -67,7 +67,7 @@ val md_theme_dark_scrim = Color(0xFF000000)
 // Custom Semantic Colors
 val success_light = Color(0xFF2E7D32)  // Medium green for good contrast on white
 val success_dark = Color(0xFF81C784)  // Lighter green for better contrast on dark backgrounds
-val warning_light = Color(0xFFE65100)  // Darker orange for better contrast
+val warning_light = Color(0xFFBF4400)  // Darker orange for better contrast
 val warning_dark = Color(0xFFFFB74D)  // Lighter orange for dark mode
 
 // Transaction Type Colors
@@ -76,7 +76,7 @@ val income_light = Color(0xFF00796B)  // Teal 700 - good on white
 val income_dark = Color(0xFF80CBC4)   // Teal 200 - readable on dark backgrounds
 val expense_light = Color(0xFFC62828) // Red 800 - good on white
 val expense_dark = Color(0xFFE57373)  // Red 300 - readable on dark backgrounds
-val credit_light = Color(0xFFEF6C00)  // Orange 800 for credit card - good on white
+val credit_light = Color(0xFFB34700)  // Orange 800 for credit card - good on white
 val credit_dark = Color(0xFFFFD54F)   // Amber 300 for credit card - readable on dark
 val transfer_light = Color(0xFF303F9F) // Indigo 700 for transfers - good on white
 val transfer_dark = Color(0xFF9FA8DA)  // Indigo 200 for transfers - readable on dark
@@ -104,7 +104,7 @@ val budget_safe_light = Color(0xFF2E7D32)   // Medium green - good contrast on w
 val budget_safe_dark = Color(0xFF81C784)    // Light green - readable on dark
 
 // Yellow/Amber: 50-80% spent (warning)
-val budget_warning_light = Color(0xFFFF8F00)  // Amber - good contrast on white
+val budget_warning_light = Color(0xFFB36200)  // Amber - good contrast on white
 val budget_warning_dark = Color(0xFFFFCA28)   // Light amber - readable on dark
 
 // Red: over 80% spent (danger)

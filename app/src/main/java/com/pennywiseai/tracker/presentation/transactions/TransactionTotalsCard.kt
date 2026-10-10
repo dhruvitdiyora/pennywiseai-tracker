@@ -6,7 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -130,7 +130,7 @@ fun TransactionTotalsCard(
                                     imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                     contentDescription = stringResource(R.string.txn_totals_income),
                                     modifier = Modifier.size(Dimensions.Icon.inline),
-                                    tint = if (!isSystemInDarkTheme()) income_light else income_dark
+                                    tint = if (!isAppInDarkTheme()) income_light else income_dark
                                 )
                             },
                             label = stringResource(R.string.txn_totals_income),
@@ -138,7 +138,7 @@ fun TransactionTotalsCard(
                                 CurrencyFormatter.formatCurrency(income, currency),
                                 isEstimated
                             ),
-                            color = if (!isSystemInDarkTheme()) income_light else income_dark,
+                            color = if (!isAppInDarkTheme()) income_light else income_dark,
                             modifier = Modifier.alpha(incomeAlpha)
                         )
                     }
@@ -168,7 +168,7 @@ fun TransactionTotalsCard(
                                     imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                                     contentDescription = stringResource(R.string.txn_totals_expenses),
                                     modifier = Modifier.size(Dimensions.Icon.inline),
-                                    tint = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                    tint = if (!isAppInDarkTheme()) expense_light else expense_dark
                                 )
                             },
                             // Four tiles leave no room for the plural — it wraps.
@@ -177,7 +177,7 @@ fun TransactionTotalsCard(
                                 CurrencyFormatter.formatCurrency(expenses, currency),
                                 isEstimated
                             ),
-                            color = if (!isSystemInDarkTheme()) expense_light else expense_dark,
+                            color = if (!isAppInDarkTheme()) expense_light else expense_dark,
                             modifier = Modifier.alpha(expenseAlpha)
                         )
                     }
@@ -186,7 +186,7 @@ fun TransactionTotalsCard(
                         Spacer(modifier = Modifier.width(Spacing.xxs))
 
                         // Credit Column (selection totals only)
-                        val creditColor = if (!isSystemInDarkTheme()) credit_light else credit_dark
+                        val creditColor = if (!isAppInDarkTheme()) credit_light else credit_dark
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
@@ -219,8 +219,8 @@ fun TransactionTotalsCard(
 
                     // Net Balance Column
                     val netColor = when {
-                        netBalance > BigDecimal.ZERO -> if (!isSystemInDarkTheme()) income_light else income_dark
-                        netBalance < BigDecimal.ZERO -> if (!isSystemInDarkTheme()) expense_light else expense_dark
+                        netBalance > BigDecimal.ZERO -> if (!isAppInDarkTheme()) income_light else income_dark
+                        netBalance < BigDecimal.ZERO -> if (!isAppInDarkTheme()) expense_light else expense_dark
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
 

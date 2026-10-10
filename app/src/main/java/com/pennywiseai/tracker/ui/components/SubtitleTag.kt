@@ -94,6 +94,20 @@ internal fun Color.legibleOn(
     return towards
 }
 
+/**
+ * Gives a near-grey or near-black swatch (the default "Transportation" is black) enough hue
+ * that a tinted container built from it is visibly coloured rather than a grey tile.
+ * Colours that already carry chroma are returned untouched.
+ */
+internal fun Color.withVisibleChroma(fallback: Color = Color(0xFF5C6BC0)): Color {
+    val chroma = maxOf(red, green, blue) - minOf(red, green, blue)
+    if (chroma >= LOW_CHROMA) return this
+    val t = 1f - chroma / LOW_CHROMA * 0.5f
+    return lerp(this.copy(alpha = 1f), fallback, t.coerceIn(0f, 1f))
+}
+
+private const val LOW_CHROMA = 0.18f
+
 private const val STEPS = 10
 
 private fun contrastRatio(a: Color, b: Color): Float {

@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -144,6 +147,9 @@ private const val TILE_INITIALS_MIN_CONTRAST = 3f
 
 /** Where (as a fraction of the tile height) the contact tile's bottom fade begins. */
 private const val TILE_FADE_START = 0.4f
+
+/** Strength of the contact colour wash over the glass tile. */
+private const val TILE_WASH_ALPHA = 0.28f
 
 /** The carousel shows this many contacts; "View all" opens the rest. */
 private const val DASHBOARD_PEOPLE_LIMIT = 10
@@ -277,7 +283,9 @@ private fun DashboardBody(
             // scroll all the way to the screen edge.
             contentPadding = PaddingValues(
                 top = paddingValues.calculateTopPadding() + Spacing.md,
-                bottom = paddingValues.calculateBottomPadding() + Spacing.Layout.scrollBottomPadding,
+                bottom = paddingValues.calculateBottomPadding() +
+                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                    Spacing.Layout.scrollBottomPadding,
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent),
             flingBehavior = rememberOverscrollFlingBehavior { listState },
@@ -818,18 +826,23 @@ private fun DashboardContactTile(
 ) {
     val person = row.person
     val color = parseProfileColor(person.color, MaterialTheme.colorScheme.primary)
-    val onColor = contentColorOn(color)
-    // The initials start from the tile's own hue and move toward its content
-    // colour only as far as needed to read; a flat alpha washed them out.
-    val initialsColor = remember(color, onColor) {
-        color.legibleOn(background = color, towards = onColor, minContrast = TILE_INITIALS_MIN_CONTRAST)
+    // A glass tile like its neighbours: the contact's colour is a wash over
+    // surfaceContainerLow, not an opaque fill, so text uses the surface's on-colour.
+    val scheme = MaterialTheme.colorScheme
+    val onColor = scheme.onSurface
+    val wash = color.copy(alpha = TILE_WASH_ALPHA)
+    val initialsColor = remember(color, scheme.surfaceContainerLow, onColor) {
+        color.legibleOn(
+            background = wash.compositeOver(scheme.surfaceContainerLow),
+            towards = onColor,
+            minContrast = TILE_INITIALS_MIN_CONTRAST,
+        )
     }
     val avatarRes = person.avatar?.let(AvatarHelper::resolveAvatarDrawable)
 
     GlassCard(
         modifier = modifier.width(Dimensions.Component.listItemMinHeightTwoLine * CONTACT_TILE_WIDTH_MULTIPLIER),
         shape = MaterialTheme.shapes.large,
-        tint = color,
         onClick = onClick,
         contentPadding = Dimensions.Padding.none,
     ) {
@@ -838,6 +851,7 @@ private fun DashboardContactTile(
                 .fillMaxWidth()
                 .heightIn(min = Dimensions.Component.listItemMinHeightTwoLine * CONTACT_TILE_HEIGHT_MULTIPLIER),
         ) {
+            Box(Modifier.matchParentSize().background(wash))
             if (avatarRes != null) {
                 Image(
                     painter = painterResource(avatarRes),
@@ -864,7 +878,7 @@ private fun DashboardContactTile(
                     .background(
                         Brush.verticalGradient(
                             TILE_FADE_START to Color.Transparent,
-                            1f to color.copy(alpha = Dimensions.Alpha.high),
+                            1f to scheme.surfaceContainerLow.copy(alpha = Dimensions.Alpha.high),
                         ),
                     ),
             )
