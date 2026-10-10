@@ -45,7 +45,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.legibleOn
@@ -570,7 +570,7 @@ private fun CategoryGroupCard(
 ) {
     val category = group.parent
     val children = group.children
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         onClick = if (!category.isSystem) ({ onEdit(category) }) else null,

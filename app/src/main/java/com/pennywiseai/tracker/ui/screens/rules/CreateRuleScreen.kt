@@ -32,7 +32,7 @@ import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.iconax.Bag
 import com.pennywiseai.tracker.ui.icons.iconax.Clock
 import com.pennywiseai.tracker.ui.icons.iconax.Danger
@@ -662,9 +662,9 @@ private fun RulePreviewCard(
     actions: List<RuleAction>
 ) {
     val scheme = MaterialTheme.colorScheme
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        containerColor = scheme.secondaryContainer
+        tint = scheme.secondaryContainer
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(

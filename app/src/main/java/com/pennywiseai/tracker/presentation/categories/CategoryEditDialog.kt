@@ -26,7 +26,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.EmojiGlyph
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -55,7 +55,7 @@ fun CategoryEditDialog(
     var emoji by remember { mutableStateOf(category?.icon ?: "") }
 
     Dialog(onDismissRequest = onDismiss) {
-        PennyWiseCardV2(
+        GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Dimensions.Padding.content),
@@ -208,11 +208,9 @@ fun CategoryEditDialog(
                 }
 
                 // Preview
-                PennyWiseCardV2(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    ),
+                    tint = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentPadding = Dimensions.Padding.content
                 ) {
                     Text(

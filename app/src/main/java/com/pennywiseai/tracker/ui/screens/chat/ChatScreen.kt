@@ -81,7 +81,7 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -309,13 +309,11 @@ fun ChatScreen(
                         }
 
                         // Show model required banner at bottom, as a rounded card
-                        PennyWiseCardV2(
+                        GlassCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = Dimensions.Padding.content),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            )
+                            tint = MaterialTheme.colorScheme.tertiaryContainer
                         ) {
                             if (isDownloading) {
                                 Column(
@@ -514,14 +512,12 @@ fun ChatScreen(
                                 enter = expandVertically() + fadeIn(),
                                 exit = shrinkVertically() + fadeOut()
                             ) {
-                                PennyWiseCardV2(
+                                GlassCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = Dimensions.Padding.content)
                                         .padding(bottom = Spacing.sm),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer
-                                    )
+                                    tint = MaterialTheme.colorScheme.errorContainer
                                 ) {
                                     Row(
                                         modifier = Modifier

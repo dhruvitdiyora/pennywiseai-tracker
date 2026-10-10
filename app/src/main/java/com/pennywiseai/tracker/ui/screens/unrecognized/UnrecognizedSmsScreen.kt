@@ -61,7 +61,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.IconTile
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -375,7 +375,7 @@ private fun UnrecognizedSmsItem(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
