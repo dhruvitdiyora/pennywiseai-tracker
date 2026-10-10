@@ -61,7 +61,6 @@ import com.pennywiseai.tracker.data.preferences.AppFont
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
-import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -226,7 +225,7 @@ fun AppearanceScreen(
             if (toggleCount > 0) {
                 GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                     if (showAmoled) {
-                        PreferenceSwitch(
+                        GlassPreferenceSwitch(
                             title = stringResource(R.string.appearance_amoled_title),
                             subtitle = stringResource(R.string.appearance_amoled_subtitle),
                             checked = themeUiState.isAmoledMode,
@@ -247,7 +246,7 @@ fun AppearanceScreen(
                     }
 
                     if (showBlur) {
-                        PreferenceSwitch(
+                        GlassPreferenceSwitch(
                             title = stringResource(R.string.appearance_blur_title),
                             subtitle = stringResource(R.string.appearance_blur_subtitle),
                             checked = themeUiState.blurEffectsEnabled,
@@ -352,18 +351,20 @@ internal fun AppearanceChoiceTile(
     Surface(
         modifier = modifier
             .heightIn(min = minHeight)
-            .clip(shape)
+            // Glass tile; the selected one takes the accent tint and an accent rim.
+            .glassPanel(
+                shape = shape,
+                tint = if (selected) selectedContainerColor else MaterialTheme.colorScheme.surfaceContainerLow,
+                rimColor = if (selected) selectedContentColor else null,
+            )
             .selectable(
                 selected = selected,
                 onClick = onClick,
                 role = Role.RadioButton
             ),
         shape = shape,
-        color = if (selected) {
-            selectedContainerColor
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
-        }
+        color = Color.Transparent,
+        contentColor = contentColor,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.smd),
@@ -532,7 +533,7 @@ private fun ColorSchemeBox(
     Box(
         modifier = modifier
             .size(Dimensions.Component.appearanceAccentPreviewSize)
-            .clip(shape)
+            .glassPanel(shape = shape, rimColor = if (isSelected) accent else null)
             .then(
                 if (isSelected) {
                     Modifier.border(
@@ -542,7 +543,6 @@ private fun ColorSchemeBox(
                     )
                 } else Modifier
             )
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .selectable(
                 selected = isSelected,
                 onClick = onClick,
@@ -682,7 +682,7 @@ private fun CoverStyleSelector(
                     .clip(MaterialTheme.shapes.large)
                     .then(
                         if (style == CoverStyle.NONE) {
-                            Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            Modifier.glassPanel(shape = MaterialTheme.shapes.large)
                         } else {
                             Modifier.background(
                                 Brush.verticalGradient(

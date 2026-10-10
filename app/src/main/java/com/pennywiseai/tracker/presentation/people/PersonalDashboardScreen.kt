@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.people
 
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
+import com.pennywiseai.tracker.ui.screens.settings.GlassGroupedRow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -74,10 +76,9 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.HomeBannerImage
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.legibleOn
@@ -246,6 +247,8 @@ private fun DashboardBody(
     onNavigateToPerson: (Long) -> Unit,
 ) {
     val gutter = Dimensions.Padding.content
+    // The banner is its own haze source, so the glance card can frost it (as Home does).
+    val hazeStateBanner = remember { HazeState() }
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // The banner paints behind the transparent top bar, exactly as on Home: a
         // user-chosen image wins over the cover style.
@@ -253,11 +256,13 @@ private fun DashboardBody(
         if (bannerUri != null) {
             HomeBannerImage(
                 imageUri = bannerUri,
+                hazeStateBanner = hazeStateBanner,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
         } else if (state.coverStyle != CoverStyle.NONE) {
             CoverGradientBanner(
                 coverStyle = state.coverStyle,
+                hazeStateBanner = hazeStateBanner,
                 modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
             )
         }
@@ -282,7 +287,7 @@ private fun DashboardBody(
             }
 
             item(key = "glance") {
-                DashboardGlanceCard(state, Modifier.padding(horizontal = gutter))
+                DashboardGlanceCard(state, hazeStateBanner, Modifier.padding(horizontal = gutter))
             }
 
             item(key = "balances") {
@@ -312,7 +317,7 @@ private fun DashboardBody(
                 ) {
                     SectionHeaderV2(title = stringResource(R.string.personal_dashboard_shortcuts))
                     GroupedList {
-                        GroupedRow(position = ListItemPosition.Top, onClick = onNavigateToContacts) {
+                        GlassGroupedRow(position = ListItemPosition.Top, onClick = onNavigateToContacts) {
                             IconTile(Icons.Default.People, purple_light, purple_dark)
                             RowLabels(
                                 title = stringResource(R.string.people_contacts_title),
@@ -324,7 +329,7 @@ private fun DashboardBody(
                                 modifier = Modifier.size(Dimensions.Icon.inline),
                             )
                         }
-                        GroupedRow(position = ListItemPosition.Bottom, onClick = onNavigateToLoans) {
+                        GlassGroupedRow(position = ListItemPosition.Bottom, onClick = onNavigateToLoans) {
                             IconTile(Icons.Default.SwapHoriz, teal_light, teal_dark)
                             RowLabels(
                                 title = stringResource(R.string.lend_borrow_title),
@@ -440,15 +445,20 @@ private fun DashboardAvatar(
  * across currencies.
  */
 @Composable
-private fun DashboardGlanceCard(state: PersonalDashboardUiState, modifier: Modifier = Modifier) {
+private fun DashboardGlanceCard(
+    state: PersonalDashboardUiState,
+    hazeStateBanner: HazeState,
+    modifier: Modifier = Modifier,
+) {
     val summary = state.loanSummary
     val currencyCount = (summary.lentByCurrency.keys + summary.borrowedByCurrency.keys).size
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
+        hazeState = hazeStateBanner,
         // One step below the tiles, so the tiles read as raised chips on the card.
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tint = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentPadding = Spacing.lg,
     ) {
         Text(
@@ -522,9 +532,9 @@ private fun GlanceTile(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.glassPanel(shape = MaterialTheme.shapes.large),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = Color.Transparent,
     ) {
         Row(
             modifier = Modifier
@@ -579,7 +589,7 @@ private fun Int.formatted(): String = NumberFormat.getIntegerInstance().format(t
 private fun DashboardBalanceRows(summary: PersonLoanSummary) {
     val currencies = (summary.lentByCurrency.keys + summary.borrowedByCurrency.keys).sorted()
     if (currencies.isEmpty()) {
-        PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
@@ -599,7 +609,7 @@ private fun DashboardBalanceRows(summary: PersonLoanSummary) {
         currencies.forEachIndexed { index, currency ->
             val lent = summary.lentByCurrency[currency] ?: BigDecimal.ZERO
             val borrowed = summary.borrowedByCurrency[currency] ?: BigDecimal.ZERO
-            GroupedRow(
+            GlassGroupedRow(
                 position = ListItemPosition.from(index, currencies.size),
                 minHeight = Dimensions.Component.listItemMinHeightTwoLine,
             ) {
@@ -770,7 +780,7 @@ private fun DashboardPeopleSection(
 /** No contacts yet: one line of why, and a way to add the first one. */
 @Composable
 private fun DashboardPeopleEmpty(onAddPerson: () -> Unit, modifier: Modifier = Modifier) {
-    PennyWiseCardV2(modifier = modifier.fillMaxWidth()) {
+    GlassCard(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -817,11 +827,10 @@ private fun DashboardContactTile(
     }
     val avatarRes = person.avatar?.let(AvatarHelper::resolveAvatarDrawable)
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.width(Dimensions.Component.listItemMinHeightTwoLine * CONTACT_TILE_WIDTH_MULTIPLIER),
-        containerColor = color,
-        // The fill is the container; an outline would only add a seam.
-        border = BorderStroke(Dimensions.Component.hairline, Color.Transparent),
+        shape = MaterialTheme.shapes.large,
+        tint = color,
         onClick = onClick,
         contentPadding = Dimensions.Padding.none,
     ) {

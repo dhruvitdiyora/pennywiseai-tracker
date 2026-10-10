@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.profile
 
+import com.pennywiseai.tracker.ui.screens.settings.glassSheet
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -126,7 +128,9 @@ fun EditProfileSheet(
             onDismiss()
         },
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        // Glass sheet (near-solid: it floats over a scrim).
+        modifier = Modifier.glassSheet(tint = MaterialTheme.colorScheme.surface),
+        containerColor = Color.Transparent,
     ) {
         if (!state.isLoaded) {
             Box(
@@ -560,9 +564,11 @@ private fun ColorsCard(
 ) {
     val fallback = MaterialTheme.colorScheme.primary
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .glassPanel(shape = MaterialTheme.shapes.large),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = Color.Transparent,
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Text(

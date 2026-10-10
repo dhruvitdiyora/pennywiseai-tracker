@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.people
 
+import com.pennywiseai.tracker.ui.screens.settings.glassDialog
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
+import com.pennywiseai.tracker.ui.screens.settings.GlassGroupedRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,9 +57,8 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.parseProfileColor
@@ -137,6 +139,8 @@ fun PersonDetailScreen(
     if (showDeleteDialog && person != null) {
         val hasHistory = uiState.loans.isNotEmpty()
         AlertDialog(
+            modifier = Modifier.glassDialog(MaterialTheme.shapes.extraLarge),
+            containerColor = Color.Transparent,
             onDismissRequest = { showDeleteDialog = false },
             shape = MaterialTheme.shapes.extraLarge,
             iconContentColor = MaterialTheme.colorScheme.error,
@@ -399,9 +403,11 @@ private fun PersonHeader(
         }
         person.notes?.let { notes ->
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glassPanel(shape = MaterialTheme.shapes.large),
                 shape = MaterialTheme.shapes.large,
-                color = scheme.surfaceContainerLow,
+                color = Color.Transparent,
             ) {
                 Column(
                     modifier = Modifier.padding(Spacing.md),
@@ -450,7 +456,7 @@ private fun PersonBalanceRows(state: PersonDetailUiState) {
     val currencies = ((summary?.lentByCurrency?.keys ?: emptySet()) +
         (summary?.borrowedByCurrency?.keys ?: emptySet())).sorted()
     if (currencies.isEmpty()) {
-        PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
             Text(
                 text = stringResource(R.string.people_no_open_balance),
                 style = MaterialTheme.typography.bodyMedium,
@@ -463,7 +469,7 @@ private fun PersonBalanceRows(state: PersonDetailUiState) {
         currencies.forEachIndexed { index, currency ->
             val lent = summary?.lentByCurrency?.get(currency) ?: BigDecimal.ZERO
             val borrowed = summary?.borrowedByCurrency?.get(currency) ?: BigDecimal.ZERO
-            GroupedRow(
+            GlassGroupedRow(
                 position = ListItemPosition.from(index, currencies.size),
                 minHeight = Dimensions.Component.listItemMinHeightTwoLine,
             ) {

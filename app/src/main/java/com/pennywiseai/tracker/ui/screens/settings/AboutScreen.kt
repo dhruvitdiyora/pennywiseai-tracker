@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import androidx.compose.ui.graphics.Color
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -45,7 +46,7 @@ import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.iconax.CodeCircle
 import com.pennywiseai.tracker.ui.icons.iconax.ExportArrow02
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -104,7 +105,7 @@ internal fun AboutScreenContent(
         AboutHeader(versionName = versionName)
 
         SettingsSection(title = stringResource(R.string.about_privacy_section)) {
-            PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+            GlassCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -235,6 +236,8 @@ fun LicensesScreen(
 
     selectedNotice?.let { notice ->
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { selectedNotice = null },
             title = { Text(notice.name) },
             text = {

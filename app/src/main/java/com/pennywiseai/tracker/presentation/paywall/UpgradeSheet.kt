@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import com.pennywiseai.tracker.ui.screens.settings.glassSheet
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -118,7 +120,9 @@ fun UpgradeSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         contentWindowInsets = { WindowInsets.navigationBars },
-        containerColor = MaterialTheme.colorScheme.surface,
+        // Glass sheet (near-solid: it floats over a scrim).
+        modifier = Modifier.glassSheet(tint = MaterialTheme.colorScheme.surface),
+        containerColor = Color.Transparent,
     ) {
         UpgradeSheetContent(
             state = state,
@@ -347,7 +351,8 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
     val container = if (isAccent) yellow_light else MaterialTheme.colorScheme.surfaceContainerLow
     val content = if (isAccent) yellow_dark else MaterialTheme.colorScheme.primary
     Surface(
-        color = container,
+        modifier = Modifier.glassPanel(shape = RoundedCornerShape(50), tint = container),
+        color = Color.Transparent,
         shape = RoundedCornerShape(50),
     ) {
         Text(
@@ -649,10 +654,11 @@ private fun CelebrationContent(onContinue: () -> Unit) {
 private fun MemberCard(licenseProductName: String?) {
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content),
+            .padding(horizontal = Dimensions.Padding.content)
+            .glassPanel(shape = MaterialTheme.shapes.large),
     ) {
         Column(
             modifier = Modifier.padding(

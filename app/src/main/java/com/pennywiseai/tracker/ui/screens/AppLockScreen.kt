@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens
 
+import com.pennywiseai.tracker.ui.screens.settings.GlassGroupedRow
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +21,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.security.BiometricCapability
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.iconax.Danger
@@ -138,7 +138,7 @@ fun AppLockScreen(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             // Privacy note
-            GroupedRow(position = ListItemPosition.Single) {
+            GlassGroupedRow(position = ListItemPosition.Single) {
                 IconTile(
                     icon = Iconax.SecuritySafe,
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,

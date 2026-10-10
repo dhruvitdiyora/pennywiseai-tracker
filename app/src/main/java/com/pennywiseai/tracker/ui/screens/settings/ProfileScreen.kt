@@ -46,9 +46,8 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.components.ColorPickerContent
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.parseProfileColor
@@ -156,9 +155,10 @@ internal fun ProfileScreenContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.sectionGap),
         ) {
             item {
-                PennyWiseCardV2(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.large,
+                    tint = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -228,7 +228,7 @@ private fun ProfileRow(
     val isBuiltIn = profile.id == ProfileEntity.PERSONAL_ID ||
         profile.id == ProfileEntity.BUSINESS_ID
     val fallback = MaterialTheme.colorScheme.primary
-    GroupedRow(
+    GlassGroupedRow(
         position = position,
         onClick = onClick,
         minHeight = Dimensions.Component.listItemMinHeightTwoLine,
@@ -266,6 +266,8 @@ internal fun ProfileEditorDialog(
     var showColorPicker by remember(profile) { mutableStateOf(false) }
 
     AlertDialog(
+        modifier = Modifier.glassDialog(),
+        containerColor = Color.Transparent,
         onDismissRequest = { if (!state.isSaving) onDismiss() },
         title = {
             Text(
@@ -330,6 +332,8 @@ internal fun ProfileEditorDialog(
 
     if (showColorPicker) {
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { showColorPicker = false },
             title = { Text(stringResource(R.string.profile_choose_color)) },
             text = {

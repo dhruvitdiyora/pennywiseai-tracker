@@ -286,6 +286,8 @@ fun CurrencyFormatsSettingsScreen(
     // Display Currency Dialog
     if (showDisplayCurrencyDialog) {
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { showDisplayCurrencyDialog = false },
             title = { Text(stringResource(R.string.settings_display_currency_title)) },
             text = {
@@ -336,6 +338,8 @@ fun CurrencyFormatsSettingsScreen(
     // Number Format Dialog
     if (showNumberFormatDialog) {
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { showNumberFormatDialog = false },
             title = { Text(stringResource(R.string.settings_number_format_title)) },
             text = {
@@ -388,6 +392,8 @@ fun CurrencyFormatsSettingsScreen(
     // Budget Cycle Start Day Dialog
     if (showBudgetCycleDialog) {
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { showBudgetCycleDialog = false },
             title = { Text(stringResource(R.string.settings_budget_cycle_title)) },
             text = {
@@ -550,6 +556,8 @@ fun PrivacySecuritySettingsScreen(
     // Lock Timeout Dialog
     if (showTimeoutDialog) {
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { showTimeoutDialog = false },
             title = { Text(stringResource(R.string.settings_lock_timeout_title)) },
             text = {
@@ -710,6 +718,8 @@ fun BackupImportSettingsScreen(
     // SMS Scan Period Dialog
     if (showSmsScanDialog) {
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { showSmsScanDialog = false },
             title = { Text(stringResource(R.string.settings_sms_scan_title)) },
             text = {
@@ -862,6 +872,8 @@ fun BackupImportSettingsScreen(
         val confirmed = confirmationText.trim().equals(confirmWord, ignoreCase = false)
 
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = {
                 if (!isDeletingAllTransactions) settingsViewModel.cancelDeleteAllTransactions()
             },
@@ -917,6 +929,8 @@ fun BackupImportSettingsScreen(
 
     deleteAllTransactionsResult?.let { sentences ->
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = { settingsViewModel.clearDeleteAllTransactionsResult() },
             title = { Text(stringResource(R.string.settings_delete_all_result_title)) },
             text = { Text(sentences.map { it.asString() }.joinToString(" ")) },
@@ -939,6 +953,8 @@ fun BackupImportSettingsScreen(
             }
 
             AlertDialog(
+                modifier = Modifier.glassDialog(),
+                containerColor = Color.Transparent,
                 onDismissRequest = { settingsViewModel.clearImportExportMessage() },
                 title = { Text(stringResource(R.string.settings_backup_status_title)) },
                 text = { Text(message.asString()) },
@@ -959,6 +975,8 @@ fun BackupImportSettingsScreen(
         val fileName = "PennyWise_Backup_$timestamp.pennywisebackup"
 
         AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
             onDismissRequest = {
                 showExportOptionsDialog = false
                 settingsViewModel.clearImportExportMessage()

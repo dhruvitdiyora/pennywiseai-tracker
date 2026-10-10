@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -153,9 +154,11 @@ internal fun OnboardingProfileStep(uiState: OnBoardingUiState, viewModel: OnBoar
         Spacer(Modifier.height(Spacing.lg))
 
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassPanel(shape = MaterialTheme.shapes.large),
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerLow
+            color = Color.Transparent
         ) {
             Column(
                 modifier = Modifier.padding(Dimensions.Padding.card),
@@ -238,8 +241,7 @@ private fun ProfileIdentityCard(
         modifier = Modifier
             .fillMaxWidth()
             .clearAndSetSemantics { }
-            .clip(MaterialTheme.shapes.large)
-            .background(scheme.surfaceContainerLow)
+            .glassPanel(shape = MaterialTheme.shapes.large)
     ) {
         // The chosen colour washes down from the top edge into the card.
         Box(

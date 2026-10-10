@@ -167,7 +167,7 @@ internal fun SettingsIconRow(
     subtitleMaxLines: Int = 2,
     minHeight: Dp = Dimensions.Component.minTouchTarget,
 ) {
-    GroupedRow(
+    GlassGroupedRow(
         position = position,
         modifier = modifier,
         onClick = onClick,
