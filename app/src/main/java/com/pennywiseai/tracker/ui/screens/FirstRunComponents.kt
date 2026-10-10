@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens
 
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -45,7 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.icons.iconax.DirectboxReceive
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -269,9 +270,11 @@ internal fun FirstRunBanner(
     hint: String? = null,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .glassPanel(shape = MaterialTheme.shapes.large, tint = containerColor),
         shape = MaterialTheme.shapes.large,
-        color = containerColor,
+        color = Color.Transparent,
         contentColor = contentColor,
     ) {
         Row(
@@ -324,9 +327,10 @@ internal fun FirstRunInfoCard(
     icon: ImageVector = Iconax.SecuritySafe,
 ) {
     val scheme = MaterialTheme.colorScheme
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
-        containerColor = scheme.primaryContainer,
+        shape = MaterialTheme.shapes.large,
+        tint = scheme.primaryContainer,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(Spacing.smd),

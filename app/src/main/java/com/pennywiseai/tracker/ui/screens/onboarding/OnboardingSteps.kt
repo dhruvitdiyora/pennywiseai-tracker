@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
+import androidx.compose.ui.graphics.Color
+import com.pennywiseai.tracker.ui.screens.settings.glassRow
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -46,7 +49,7 @@ import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.BrandIcons
@@ -103,12 +106,8 @@ private fun PhonePreviewFrame(content: @Composable BoxScope.() -> Unit) {
             .width(Dimensions.Component.onboardingPhoneWidth)
             .height(Dimensions.Component.onboardingPhoneHeight)
             .clearAndSetSemantics { }
-            .clip(MaterialTheme.shapes.extraLarge)
-            .background(scheme.surfaceContainerHigh)
-            .border(
-                BorderStroke(Dimensions.Component.hairline, scheme.outlineVariant),
-                MaterialTheme.shapes.extraLarge
-            )
+            // A glass bezel (rim + sheen) in place of the flat hairline frame.
+            .glassPanel(shape = MaterialTheme.shapes.extraLarge, tint = scheme.surfaceContainerHigh)
             .padding(Spacing.sm)
     ) {
         Box(
@@ -284,7 +283,7 @@ private fun ScanProgressCard(uiState: OnBoardingUiState) {
         .fillMaxWidth()
         .height(Dimensions.Component.progressBarHeight)
         .clip(CircleShape)
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             if (uiState.scanTotal > 0) {
                 val progress = (uiState.scanProcessed.toFloat() / uiState.scanTotal).coerceIn(0f, 1f)
@@ -392,8 +391,10 @@ private fun AccountOption(
         scheme.onSurfaceVariant
     }
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = container,
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassRow(position, tint = container, rimColor = if (selected) scheme.primary else null),
+        color = Color.Transparent,
         contentColor = content,
         shape = position.toShape()
     ) {

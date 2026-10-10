@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import androidx.compose.ui.graphics.Color
+import com.pennywiseai.tracker.ui.screens.settings.glassDialog
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,6 +51,8 @@ internal fun LicenseKeyDialog(
     val canMoveNow = canSubmit && email.contains('@')
 
     AlertDialog(
+        modifier = Modifier.glassDialog(),
+        containerColor = Color.Transparent,
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.upgrade_license_dialog_title)) },
         text = {

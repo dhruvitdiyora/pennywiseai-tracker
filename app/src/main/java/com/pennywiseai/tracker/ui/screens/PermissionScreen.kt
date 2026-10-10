@@ -35,7 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.IconTile
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.icons.iconax.Danger
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -176,7 +176,7 @@ private fun NotificationAccessCard(
     onOpenSettings: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.Top

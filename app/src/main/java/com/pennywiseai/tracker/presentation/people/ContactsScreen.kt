@@ -52,7 +52,7 @@ import com.pennywiseai.tracker.data.repository.PersonWithSummary
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.parseProfileColor
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -268,12 +268,10 @@ private fun PersonCard(
     val color = parseProfileColor(person.color, MaterialTheme.colorScheme.primary)
     val onColor = contentColorOn(color)
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        containerColor = color,
-        // The fill is the container; an outline would only add a seam.
-        border = BorderStroke(Dimensions.Component.hairline, Color.Transparent),
+        tint = color,
         onClick = onClick,
         contentPadding = Dimensions.Padding.none,
     ) {

@@ -34,7 +34,6 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.iconax.ExportArrow02
 import com.pennywiseai.tracker.ui.icons.iconax.Ghost
@@ -229,7 +228,7 @@ private fun FaqRow(
     position: ListItemPosition,
     onToggle: () -> Unit,
 ) {
-    GroupedRow(
+    GlassGroupedRow(
         position = position,
         onClick = onToggle,
         minHeight = Dimensions.Component.listItemMinHeight,

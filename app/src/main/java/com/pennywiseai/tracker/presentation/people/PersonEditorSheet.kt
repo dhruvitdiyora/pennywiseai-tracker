@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.presentation.people
 
+import com.pennywiseai.tracker.ui.screens.settings.glassDialog
+import com.pennywiseai.tracker.ui.screens.settings.glassSheet
+import androidx.compose.ui.graphics.Color
+import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,7 +95,8 @@ fun PersonEditorSheet(
         sheetState = sheetState,
         // The fields are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised fields.
-        containerColor = scheme.surface,
+        modifier = Modifier.glassSheet(tint = scheme.surface),
+        containerColor = Color.Transparent,
     ) {
         Column(
             modifier = Modifier
@@ -204,9 +209,11 @@ fun PersonEditorSheet(
             Surface(
                 onClick = { showColorPicker = true },
                 enabled = !state.isSaving,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glassPanel(shape = MaterialTheme.shapes.large),
                 shape = MaterialTheme.shapes.large,
-                color = scheme.surfaceContainerLow,
+                color = Color.Transparent,
             ) {
                 Row(
                     modifier = Modifier
@@ -269,6 +276,8 @@ fun PersonEditorSheet(
 
     if (showColorPicker) {
         AlertDialog(
+            modifier = Modifier.glassDialog(MaterialTheme.shapes.extraLarge),
+            containerColor = Color.Transparent,
             onDismissRequest = { showColorPicker = false },
             shape = MaterialTheme.shapes.extraLarge,
             title = { Text(stringResource(R.string.people_choose_color)) },

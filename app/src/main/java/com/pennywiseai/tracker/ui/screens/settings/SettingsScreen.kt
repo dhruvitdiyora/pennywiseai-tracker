@@ -57,9 +57,7 @@ import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
-import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
@@ -641,8 +639,12 @@ private fun SettingsProfileHeaderCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.extraLarge)
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            // Glass in the profile's primary tone, rim keyed to the same hue.
+            .glassPanel(
+                shape = MaterialTheme.shapes.extraLarge,
+                tint = MaterialTheme.colorScheme.primaryContainer,
+                rimColor = MaterialTheme.colorScheme.primary,
+            )
             .clickable(onClick = onClick)
             .padding(Spacing.md),
         contentAlignment = Alignment.Center
@@ -753,7 +755,7 @@ internal fun SettingsNavItem(
     trailingText: String? = null,
     trailingIcon: ImageVector = Icons.Default.ChevronRight
 ) {
-    GroupedRow(position = position, onClick = onClick) {
+    GlassGroupedRow(position = position, onClick = onClick) {
         IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
         RowLabels(title = title, subtitle = subtitle)
         if (trailingText != null) {
@@ -786,7 +788,7 @@ internal fun SettingsSwitchRow(
     position: ListItemPosition,
     enabled: Boolean = true
 ) {
-    GroupedRow(
+    GlassGroupedRow(
         position = position,
         enabled = enabled,
         onClick = { onCheckedChange(!checked) }
@@ -821,7 +823,7 @@ internal fun SettingsDropdownItem(
     position: ListItemPosition,
     dropdownContent: @Composable ColumnScope.() -> Unit
 ) {
-    GroupedColumn(position = position) {
+    GlassGroupedColumn(position = position) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -875,7 +877,7 @@ internal fun AiChatSettingsItem(
     onCancel: () -> Unit,
     onDelete: () -> Unit
 ) {
-    GroupedColumn(
+    GlassGroupedColumn(
         position = ListItemPosition.Single,
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {

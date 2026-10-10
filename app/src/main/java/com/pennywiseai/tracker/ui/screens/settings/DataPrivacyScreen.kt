@@ -19,7 +19,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.iconax.Folder2
 import com.pennywiseai.tracker.ui.icons.iconax.ExportArrow01
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -160,10 +160,10 @@ internal fun DataPrivacyScreenContent(
 @Composable
 private fun PrivacyHero() {
     // The same extra-large primary card as the profile header on Settings.
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        tint = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
