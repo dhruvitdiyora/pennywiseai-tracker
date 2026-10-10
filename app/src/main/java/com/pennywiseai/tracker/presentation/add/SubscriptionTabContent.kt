@@ -17,9 +17,8 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.presentation.subscriptions.CustomBillingCycleEditor
 import com.pennywiseai.tracker.presentation.subscriptions.subscriptionBillingCycleLabel
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
-import com.pennywiseai.tracker.ui.components.AccountSelectionSheet
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -121,10 +120,11 @@ fun SubscriptionTabContent(
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .addGlassField(fullShape)
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = fullShape,
-                        colors = addFieldColors()
+                        colors = addGlassFieldColors()
                     )
 
                     ExposedDropdownMenu(
@@ -158,11 +158,9 @@ fun SubscriptionTabContent(
             }
 
             if (uiState.isCustomCycle) {
-                PennyWiseCardV2(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
+                    shape = MaterialTheme.shapes.large,
                     contentPadding = Dimensions.Padding.cardCompact
                 ) {
                     CustomBillingCycleEditor(
@@ -215,12 +213,13 @@ fun SubscriptionTabContent(
                         )
                     },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .addGlassField(topShape, isError = uiState.serviceError != null),
                     shape = topShape,
                     leadingIcon = { Icon(Iconax.VideoPlay, contentDescription = null) },
                     isError = uiState.serviceError != null,
-                    supportingText = uiState.serviceError?.let { { Text(it.asString()) } },
-                    colors = addFieldColors()
+                    colors = addGlassFieldColors()
                 )
 
                 TextField(
@@ -232,11 +231,14 @@ fun SubscriptionTabContent(
                             fontWeight = FontWeight.SemiBold
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .addGlassField(bottomShape),
                     shape = bottomShape,
                     leadingIcon = { Icon(Iconax.DocumentText2, contentDescription = null) },
-                    colors = addFieldColors()
+                    colors = addGlassFieldColors()
                 )
+                uiState.serviceError?.let { error -> AddFieldError(error.asString()) }
             }
 
             // Keeps the last field clear of the pinned Save bar.
@@ -252,7 +254,7 @@ fun SubscriptionTabContent(
     }
 
     if (showAccountSheet) {
-        AccountSelectionSheet(
+        AddAccountPickerSheet(
             accounts = accounts,
             selectedAccount = uiState.selectedAccount,
             allowManualEntry = true,
@@ -356,11 +358,10 @@ internal fun SubscriptionDirectionSection(
             )
         }
 
-        PennyWiseCardV2(
+        GlassCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ),
+            shape = MaterialTheme.shapes.large,
+            tint = MaterialTheme.colorScheme.primaryContainer,
             contentPadding = Dimensions.Padding.cardCompact
         ) {
             Row(

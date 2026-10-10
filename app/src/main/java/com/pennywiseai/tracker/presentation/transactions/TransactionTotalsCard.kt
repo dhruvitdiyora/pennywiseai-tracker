@@ -9,6 +9,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -78,16 +79,14 @@ fun TransactionTotalsCard(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.BottomEnd
     ) {
-        Card(
+        // A glass pill (GlassCard.kt recipe): the tiles' outer corners
+        // (Spacing.lg) plus the card padding (Spacing.sm) give the concentric
+        // outer radius.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (hasCurrencyPill) Modifier.padding(bottom = Spacing.lg) else Modifier),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
-            // A pill: the tiles' outer corners (Spacing.lg) plus the card
-            // padding (Spacing.sm) give the concentric outer radius.
-            shape = RoundedCornerShape(Spacing.xl)
+                .then(if (hasCurrencyPill) Modifier.padding(bottom = Spacing.lg) else Modifier)
+                .txnGlass(RoundedCornerShape(Spacing.xl))
         ) {
             Column(
                 modifier = Modifier
@@ -115,7 +114,7 @@ fun TransactionTotalsCard(
                             .fillMaxHeight()
                             .weight(1f)
                             .background(
-                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                color = totalsTileColor(),
                                 shape = RoundedCornerShape(
                                     topEnd = Spacing.xs,
                                     topStart = Spacing.lg,
@@ -153,7 +152,7 @@ fun TransactionTotalsCard(
                             .fillMaxHeight()
                             .weight(1f)
                             .background(
-                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                color = totalsTileColor(),
                                 shape = RoundedCornerShape(
                                     topEnd = Spacing.xs,
                                     topStart = Spacing.xs,
@@ -194,7 +193,7 @@ fun TransactionTotalsCard(
                                 .fillMaxHeight()
                                 .weight(1f)
                                 .background(
-                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    color = totalsTileColor(),
                                     shape = RoundedCornerShape(Spacing.xs)
                                 )
                                 .padding(Spacing.sm),
@@ -236,7 +235,7 @@ fun TransactionTotalsCard(
                             .fillMaxHeight()
                             .weight(1f)
                             .background(
-                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                color = totalsTileColor(),
                                 shape = RoundedCornerShape(
                                     topEnd = Spacing.lg,
                                     topStart = Spacing.xs,
@@ -335,11 +334,10 @@ private fun CurrencyPickerPill(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = Dimensions.Elevation.none,
-            modifier = Modifier.clickable { expanded = true }
+        Box(
+            modifier = Modifier
+                .txnGlass(CircleShape, tint = MaterialTheme.colorScheme.surfaceContainerHigh)
+                .clickable { expanded = true }
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
@@ -385,3 +383,10 @@ private fun CurrencyPickerPill(
         }
     }
 }
+
+/** A total's tile: a quiet tonal wash over the glass pill. */
+@Composable
+private fun totalsTileColor(): androidx.compose.ui.graphics.Color =
+    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = TOTALS_TILE_ALPHA)
+
+private const val TOTALS_TILE_ALPHA = 0.55f

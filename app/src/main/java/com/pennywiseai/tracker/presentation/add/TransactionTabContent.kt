@@ -18,7 +18,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,7 +28,6 @@ import androidx.compose.ui.unit.Dp
 import coil.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.ui.components.AccountSelectionSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.TagInputField
@@ -201,12 +202,13 @@ fun TransactionTabContent(
                         onValueChange = viewModel::updateTransactionMerchant,
                         label = { Text(stringResource(R.string.add_field_merchant), fontWeight = FontWeight.SemiBold) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .addGlassField(topShape, isError = uiState.merchantError != null),
                         shape = topShape,
                         leadingIcon = { Icon(Iconax.Shop, contentDescription = null) },
                         isError = uiState.merchantError != null,
-                        supportingText = uiState.merchantError?.let { { Text(it.asString()) } },
-                        colors = addFieldColors()
+                        colors = addGlassFieldColors()
                     )
                 }
 
@@ -214,12 +216,27 @@ fun TransactionTabContent(
                     value = uiState.notes,
                     onValueChange = viewModel::updateTransactionNotes,
                     label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .addGlassField(if (isTransfer) fullShape else bottomShape),
                     shape = if (isTransfer) fullShape else bottomShape,
                     leadingIcon = { Icon(Iconax.DocumentText2, contentDescription = null) },
-                    colors = addFieldColors()
+                    colors = addGlassFieldColors()
                 )
+                uiState.merchantError?.takeIf { !isTransfer }?.let { error ->
+                    AddFieldError(error.asString())
+                }
             }
+
+            // ── Receipt ──
+            // Cashiro order: attachments follow the merchant / notes pair.
+            ReceiptPickerSection(
+                receiptUri = uiState.receiptUri,
+                onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
+                onReceiptRemoved = { viewModel.updateReceiptUri(null) },
+                onCreateCameraUri = { viewModel.createCameraUri() },
+                tonal = true
+            )
 
             // ── Tags (create or select existing) ──
             val allTagNames by viewModel.allTagNames.collectAsState()
@@ -246,15 +263,6 @@ fun TransactionTabContent(
                 AddErrorBanner(message = errorMessage.asString())
             }
 
-            // ── Receipt ──
-            ReceiptPickerSection(
-                receiptUri = uiState.receiptUri,
-                onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
-                onReceiptRemoved = { viewModel.updateReceiptUri(null) },
-                onCreateCameraUri = { viewModel.createCameraUri() },
-                tonal = true
-            )
-
             // Keeps the last field clear of the pinned Save bar.
             AddSaveBarClearance()
         }
@@ -272,7 +280,7 @@ fun TransactionTabContent(
             AccountPickerTarget.TO -> uiState.toAccount
             AccountPickerTarget.FROM -> uiState.selectedAccount
         }
-        AccountSelectionSheet(
+        AddAccountPickerSheet(
             accounts = accounts,
             selectedAccount = selectedAccount,
             allowManualEntry = !isTransfer,
@@ -396,15 +404,11 @@ internal fun AddCategorySelector(
     Column(modifier = modifier.fillMaxWidth()) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .addGlassField(shape, isError = error != null),
             shape = shape,
-            colors = CardDefaults.cardColors(
-                containerColor = if (error == null) {
-                    MaterialTheme.colorScheme.surfaceContainerLow
-                } else {
-                    MaterialTheme.colorScheme.errorContainer
-                }
-            )
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
         ) {
             Row(
                 modifier = Modifier
@@ -584,9 +588,12 @@ private fun ReceiptSourceButton(
     if (tonal) {
         FilledTonalButton(
             onClick = onClick,
-            modifier = modifier.heightIn(min = Dimensions.Component.minTouchTarget),
+            modifier = modifier
+                .heightIn(min = Dimensions.Component.listItemMinHeight)
+                .addGlassField(CircleShape),
+            shape = CircleShape,
             colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ),
             content = content
@@ -651,9 +658,10 @@ private fun AddBudgetImpactSection(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .addGlassField(MaterialTheme.shapes.large)
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     shape = MaterialTheme.shapes.large,
-                    colors = addFieldColors()
+                    colors = addGlassFieldColors()
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -680,4 +688,15 @@ private fun AddBudgetImpactSection(
             }
         }
     }
+}
+
+/** A field's error line, set below its glass card rather than inside it. */
+@Composable
+internal fun AddFieldError(message: String, modifier: Modifier = Modifier) {
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+        modifier = modifier.padding(start = Dimensions.Padding.cardCompact, top = Spacing.xs)
+    )
 }

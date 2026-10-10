@@ -577,11 +577,15 @@ fun TransactionsScreen(
                     if (categoriesFromBudget) {
                         item {
                             Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.small,
+                                color = Color.Transparent,
+                                shape = MaterialTheme.shapes.large,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = Spacing.sm)
+                                    .txnGlass(
+                                        MaterialTheme.shapes.large,
+                                        tint = MaterialTheme.colorScheme.secondaryContainer,
+                                    )
                             ) {
                                 Row(
                                     modifier = Modifier.padding(Spacing.sm),
@@ -723,7 +727,21 @@ fun TransactionsScreen(
     }
 
     if (showFiltersSheet) {
+        // The slider's ceiling: the largest single amount shown, in the figure
+        // the amount filter compares (converted in unified mode, else rows in
+        // the selected currency only). A bound, never a total across currencies.
+        val amountSliderMax = remember(uiState.transactions, convertedAmounts, isUnifiedMode, selectedCurrency) {
+            uiState.transactions.mapNotNull { txn ->
+                when {
+                    isUnifiedMode -> convertedAmounts[txn.id]
+                        ?: txn.amount.takeIf { txn.currency.equals(selectedCurrency, ignoreCase = true) }
+                    txn.currency.equals(selectedCurrency, ignoreCase = true) -> txn.amount
+                    else -> null
+                }?.abs()
+            }.maxOrNull()
+        }
         TransactionFiltersSheet(
+            amountSliderMax = amountSliderMax,
             initialDraft = committedFilterDraft,
             availableCategories = availableCategories,
             profiles = profiles,
@@ -836,10 +854,11 @@ private fun BulkGroupPickerSheet(
     var showCreateField by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    TxnGlassSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = Dimensions.Padding.content)
                 .padding(bottom = Dimensions.Padding.content)
         ) {
@@ -968,7 +987,9 @@ private fun SwipeToEditCategory(
                     .padding(horizontal = Dimensions.Padding.content),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Only while swiping: the glass row above is slightly
+                // translucent, so a resting hint would ghost through it.
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Category,
                         contentDescription = null,
@@ -1195,9 +1216,16 @@ private fun TransactionMoreFiltersRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
+            .txnGlass(
+                CircleShape,
+                tint = if (active) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerLow
+                },
+            )
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+            .padding(horizontal = Spacing.md, vertical = Spacing.smd),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -1247,10 +1275,13 @@ private fun TransactionSearchBar(
     val textColor = MaterialTheme.colorScheme.onSurface
     // A tall, fully rounded field on the quiet `surfaceContainerLow` tone, so it
     // reads as the primary control of the screen without needing a border.
+    // Glass pill (GlassCard.kt recipe), like every other surface on the screen.
     Surface(
-        modifier = modifier.height(Dimensions.Component.listItemMinHeight),
+        modifier = modifier
+            .height(Dimensions.Component.listItemMinHeight)
+            .txnGlass(CircleShape),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier

@@ -53,6 +53,7 @@ import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.legibleOn
+import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
@@ -256,6 +257,10 @@ fun TransactionItem(
         merchantDisplay(transaction.merchantName) ?: transaction.merchantName
     }
 
+    // Cashiro's frosted-glass material (GlassCard.kt) on every row; a selected
+    // row keeps its tonal tint as the glass fill.
+    val rowShape = listItemPosition.toShape()
+
     // For a paired self-transfer row, the event ("Transfer → 9999" /
     // "Transfer from 1234") is more informative than the merchant name (often
     // the user's own contact name), and stops the two legs from looking like
@@ -338,15 +343,21 @@ fun TransactionItem(
         },
         amount = "$amountPrefix$formattedAmount",
         amountColor = amountColor,
-        shape = listItemPosition.toShape(),
+        shape = rowShape,
         contentPadding = Dimensions.Padding.cardCompact,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
         },
         onLongClick = onLongClick,
-        containerColor = containerColor,
-        modifier = modifier,
+        // The glass surface below paints the row (fill, sheen, rim); the card
+        // itself stays clear so its ripple lands on the glass.
+        containerColor = Color.Transparent,
+        modifier = modifier.glassSurface(
+            shape = rowShape,
+            blurEffects = LocalBlurEffects.current,
+            tint = rowBackground,
+        ),
         leadingContent = {
             if (isSelectionMode) {
                 Box(
