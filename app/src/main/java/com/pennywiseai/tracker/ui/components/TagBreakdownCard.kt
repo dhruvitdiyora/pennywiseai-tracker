@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.screens.analytics.TagData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -61,7 +61,7 @@ fun TagBreakdownCard(
 ) {
     val maxAmount = tags.map { it.amount }.maxOrNull() ?: BigDecimal.ZERO
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(

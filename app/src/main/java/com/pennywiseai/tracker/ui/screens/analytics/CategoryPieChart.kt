@@ -34,6 +34,13 @@ import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
 import ir.ehsannarmani.compose_charts.models.Pie
 
+/**
+ * Ring width for the Analytics donuts (category and tag): a fine Cashiro-style
+ * ring, so the slices read as an outline around the selected-category icon
+ * rather than a heavy band.
+ */
+internal val DONUT_RING_WIDTH = 8.dp
+
 @Composable
 fun CategoryPieChart(
     categories: List<CategoryData>,
@@ -94,7 +101,7 @@ fun CategoryPieChart(
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),
-                style = Pie.Style.Stroke(width = 12.dp)
+                style = Pie.Style.Stroke(width = DONUT_RING_WIDTH)
             )
 
             val selectedPie = chartData.find { it.selected }

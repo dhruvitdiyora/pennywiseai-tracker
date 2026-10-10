@@ -85,7 +85,7 @@ fun BalanceChart(
                 isMonthly -> date.format(DateTimeFormatter.ofPattern("MMM"))
                 else -> date.format(DateTimeFormatter.ofPattern("dd MMM"))
             }
-        }
+        }.let(::thinAxisLabels)
     }
 
     LineChart(
@@ -149,9 +149,11 @@ fun BalanceChart(
             ),
             labels = labels,
             padding = 16.dp,
+            // Labels are thinned to fit flat (see [thinAxisLabels]), so they
+            // stay level instead of being forced into a crowded 45° slant.
             rotation = LabelProperties.Rotation(
                 mode = LabelProperties.Rotation.Mode.Force,
-                degree = -45f
+                degree = 0f
             )
         ),
         // The library's default popup prints the raw double ("1641.1") at any
@@ -186,6 +188,21 @@ fun BalanceChart(
         ),
         animationMode = AnimationMode.Together(delayBuilder = { it * 200L }),
     )
+}
+
+/** Most x-axis labels the trend chart draws, so a flat "dd MMM" row fits a phone width. */
+private const val MAX_AXIS_LABELS = 5
+
+/**
+ * Blanks all but an evenly spaced subset of [labels] (at most
+ * [MAX_AXIS_LABELS]), counted back from the newest point so the latest date is
+ * always labelled. The chart still plots every point; only its captions thin.
+ */
+internal fun thinAxisLabels(labels: List<String>): List<String> {
+    if (labels.size <= MAX_AXIS_LABELS) return labels
+    val step = (labels.size + MAX_AXIS_LABELS - 1) / MAX_AXIS_LABELS
+    val last = labels.lastIndex
+    return labels.mapIndexed { index, label -> if ((last - index) % step == 0) label else "" }
 }
 
 /**

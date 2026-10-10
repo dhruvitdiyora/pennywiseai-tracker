@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.ui.components.CategoryIcon
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Receipt1
@@ -59,7 +59,8 @@ fun AnalyticsSummaryCard(
         label = "summary_alpha"
     )
 
-    PennyWiseCardV2(
+    // Cashiro's frosted-glass hero, like Home's balance card.
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         contentPadding = Dimensions.Padding.card
     ) {

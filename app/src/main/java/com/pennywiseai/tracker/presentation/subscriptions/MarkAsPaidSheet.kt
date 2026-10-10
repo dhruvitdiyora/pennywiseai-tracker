@@ -51,6 +51,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense_dark
@@ -191,9 +192,11 @@ fun MarkAsPaidSheet(
             // cycle check), passed in via [isPaidThisCycle] so the sheet
             // and row badge can't disagree.
             if (isPaidThisCycle) {
-                androidx.compose.material3.Surface(
+                GlassCard(
                     shape = RoundedCornerShape(Dimensions.CornerRadius.large),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    tint = MaterialTheme.colorScheme.secondaryContainer,
+                    solidFillAlpha = Dimensions.Glass.fillAlphaTinted,
+                    contentPadding = 0.dp,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -339,10 +342,10 @@ private fun CandidateCard(
     onClick: () -> Unit,
 ) {
     val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
-    androidx.compose.material3.Surface(
+    GlassCard(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentPadding = 0.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(

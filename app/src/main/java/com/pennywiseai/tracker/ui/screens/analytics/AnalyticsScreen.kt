@@ -49,7 +49,8 @@ import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.filterIcon
@@ -311,14 +312,12 @@ fun AnalyticsScreen(
 
                     // Expandable chart type selector card
                     AnimatedVisibility(visible = showChartTypeSelector) {
-                        Card(
+                        GlassCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = Spacing.sm),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ),
-                            shape = MaterialTheme.shapes.medium
+                            shape = MaterialTheme.shapes.large,
+                            contentPadding = Dimensions.Padding.none
                         ) {
                             ChartType.entries.forEach { type ->
                                 Row(
@@ -549,16 +548,18 @@ fun AnalyticsScreen(
 
             // All Merchants with expandable list
             item {
-                ExpandableList(
+                AnalyticsGlassList(
                     items = uiState.topMerchants,
                     visibleItemCount = 3,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Dimensions.Padding.content)
-                ) { merchant ->
+                ) { merchant, position ->
                     MerchantListItem(
                         merchant = merchant,
                         currency = selectedCurrency,
+                        position = position,
+                        amountColor = analyticsAmountColor(transactionTypeFilter),
                         onClick = {
                             onNavigateToTransactions(null, merchant.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
                         }
@@ -578,16 +579,18 @@ fun AnalyticsScreen(
             }
 
             item {
-                ExpandableList(
+                AnalyticsGlassList(
                     items = uiState.accountBreakdown,
                     visibleItemCount = 3,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Dimensions.Padding.content)
-                ) { account ->
+                ) { account, position ->
                     AccountBreakdownListItem(
                         account = account,
-                        currency = selectedCurrency
+                        currency = selectedCurrency,
+                        position = position,
+                        amountColor = analyticsAmountColor(transactionTypeFilter)
                     )
                 }
             }
@@ -634,7 +637,7 @@ internal fun AnalyticsChartModeCard(
     data: List<BalancePoint>,
     modifier: Modifier = Modifier,
 ) {
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         contentPadding = Spacing.xs,
     ) {
@@ -663,7 +666,7 @@ internal fun AnalyticsChartModeCard(
 /** The card surface behind a category / tag donut and its legend. */
 @Composable
 private fun AnalyticsDonutCard(content: @Composable () -> Unit) {
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = Spacing.sm,
     ) {
@@ -673,7 +676,7 @@ private fun AnalyticsDonutCard(content: @Composable () -> Unit) {
 
 @Composable
 private fun TagBreakdownLockedCard(onClick: () -> Unit) {
-    PennyWiseCardV2(onClick = onClick) {
+    GlassCard(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -1044,6 +1047,8 @@ private fun CategoryListItem(
 private fun MerchantListItem(
     merchant: MerchantData,
     currency: String,
+    position: ListItemPosition,
+    amountColor: Color,
     onClick: () -> Unit = {}
 ) {
     val subtitle = pluralStringResource(
@@ -1056,7 +1061,8 @@ private fun MerchantListItem(
     // Brand icon stays keyed on the raw merchant; only the label uses the alias (#583).
     val merchantDisplay = LocalMerchantDisplay.current
 
-    ListItemCardV2(
+    AnalyticsGlassRow(
+        position = position,
         leadingContent = {
             BrandIcon(
                 merchantName = merchant.name,
@@ -1067,6 +1073,7 @@ private fun MerchantListItem(
         title = merchantDisplay(merchant.name) ?: merchant.name,
         subtitle = subtitle,
         amount = CurrencyFormatter.formatCurrency(merchant.amount, currency),
+        amountColor = amountColor,
         onClick = onClick
     )
 }
@@ -1074,9 +1081,12 @@ private fun MerchantListItem(
 @Composable
 private fun AccountBreakdownListItem(
     account: AccountBreakdownData,
-    currency: String
+    currency: String,
+    position: ListItemPosition,
+    amountColor: Color
 ) {
-    ListItemCardV2(
+    AnalyticsGlassRow(
+        position = position,
         leadingContent = {
             Box(
                 modifier = Modifier
@@ -1100,13 +1110,8 @@ private fun AccountBreakdownListItem(
             account.transactionCount
         ),
         amount = CurrencyFormatter.formatCurrency(account.amount, currency),
-        trailingContent = {
-            Text(
-                text = stringResource(R.string.analytics_percent, account.percentage.toInt()),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        amountColor = amountColor,
+        supporting = stringResource(R.string.analytics_percent, account.percentage.toInt())
     )
 }
 

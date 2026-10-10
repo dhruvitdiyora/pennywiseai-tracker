@@ -86,7 +86,7 @@ fun TagPieChart(
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),
-                style = Pie.Style.Stroke(width = 12.dp)
+                style = Pie.Style.Stroke(width = DONUT_RING_WIDTH)
             )
         }
 

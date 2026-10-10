@@ -13,7 +13,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -93,6 +93,9 @@ internal enum class SubscriptionDueStatusKind {
     LATER,
     PAID,
 }
+
+/** Fill alpha for a swipeable glass row, so the swipe colour behind can't tint through. */
+private const val SWIPE_ROW_FILL_ALPHA = 1f
 
 internal data class SubscriptionDueStatus(
     val kind: SubscriptionDueStatusKind,
@@ -501,7 +504,7 @@ private fun EndedSubscriptionItem(
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge
     ) {
@@ -583,7 +586,7 @@ private fun TotalSubscriptionsSummary(
         else -> stringResource(R.string.subscriptions_summary_some_paid, paidThisCycleCount, activeCount)
     }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         contentPadding = Dimensions.Padding.card
@@ -864,9 +867,12 @@ internal fun SwipeableSubscriptionItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                PennyWiseCardV2(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.extraLarge,
+                    // Opaque glass: the swipe's edit/hide colour sits right
+                    // behind this card and must not tint through it.
+                    solidFillAlpha = SWIPE_ROW_FILL_ALPHA,
                     // Tap = mark as paid (#412). Existing SMS-body expand
                     // moved to the kebab menu's "View source" item so the
                     // primary tap action is meaningful for ALL subs, not
@@ -1103,11 +1109,10 @@ internal fun SwipeableSubscriptionItem(
                 
                 // SMS Body Display (expandable)
                 if (showSmsBody && !subscription.smsBody.isNullOrBlank()) {
-                    PennyWiseCardV2(
+                    GlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        ),
+                        shape = MaterialTheme.shapes.large,
+                        tint = MaterialTheme.colorScheme.surfaceContainerHigh,
                         contentPadding = 0.dp
                     ) {
                         Column(

@@ -75,7 +75,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -220,8 +220,9 @@ fun BudgetGroupEditScreen(
                 item(key = "color") {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
                         AddSectionLabel(text = stringResource(R.string.budget_edit_color))
-                        PennyWiseCardV2(
+                        GlassCard(
                             modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.large,
                             contentPadding = Dimensions.Padding.cardCompact
                         ) {
                             ColorSwatchRow(

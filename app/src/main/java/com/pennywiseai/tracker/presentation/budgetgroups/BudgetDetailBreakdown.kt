@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.ui.components.CategoryIcon
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -98,7 +98,7 @@ internal fun BudgetCategoryBreakdownCard(
     var selected by remember(categories) { mutableIntStateOf(0) }
     val selectedIndex = selected.coerceIn(0, (sorted.size - 1).coerceAtLeast(0))
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
     ) {

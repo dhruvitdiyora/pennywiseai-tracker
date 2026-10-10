@@ -171,8 +171,9 @@ fun SpendingBarChart(
                 }
             }
 
-            // Draw x-axis label — only every Nth label to avoid overlap
-            if (index % labelStep == 0 || index == barCount - 1) {
+            // Draw x-axis label — every Nth, counted back from the newest bar so
+            // the last label is always drawn and never crowds its neighbour.
+            if ((barCount - 1 - index) % labelStep == 0) {
                 val labelMeasured = textMeasurer.measure(bar.label, labelStyle)
                 val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
                 val labelY = chartBottom + 8.dp.toPx()

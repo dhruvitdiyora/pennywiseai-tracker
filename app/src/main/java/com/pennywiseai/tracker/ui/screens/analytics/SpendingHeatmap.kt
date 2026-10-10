@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
@@ -55,10 +56,12 @@ fun SpendingHeatmap(
     val minCellSize = 20.dp
     val maxCellSize = 28.dp
 
+    // Transparent: the heatmap sits inside the trend chart's glass card, so a
+    // second tonal surface here would read as a card within a card.
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = Color.Transparent
     ) {
         BoxWithConstraints(
             modifier = Modifier.padding(16.dp)

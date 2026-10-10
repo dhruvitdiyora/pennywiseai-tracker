@@ -41,7 +41,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -77,12 +76,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
-import com.pennywiseai.tracker.ui.components.cards.budgetRim
 import com.pennywiseai.tracker.presentation.add.addFieldColors
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.iconax.Calendar
@@ -135,10 +133,10 @@ internal fun BudgetAmountHero(
     val prefixTransformation = remember(symbol) { CurrencyPrefixTransformation(symbol) }
     val label = stringResource(R.string.budget_edit_amount_label)
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        border = budgetRim(color),
+        rimColor = color,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none,
     ) {
@@ -678,14 +676,12 @@ internal fun BudgetHintCard(
     text: String,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = ListItemPosition.Single.toShape(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(Dimensions.Padding.card),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

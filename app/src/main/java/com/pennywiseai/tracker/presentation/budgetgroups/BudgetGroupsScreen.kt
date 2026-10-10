@@ -61,7 +61,7 @@ import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.toColorOr
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.BudgetCardCaption
 import com.pennywiseai.tracker.ui.components.cards.BudgetCardTitle
 import com.pennywiseai.tracker.ui.components.cards.BudgetHeroFigures
@@ -69,7 +69,6 @@ import com.pennywiseai.tracker.ui.components.cards.BudgetProgressTrack
 import com.pennywiseai.tracker.ui.components.cards.budgetBarColor
 import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
 import com.pennywiseai.tracker.ui.components.cards.budgetRenewalText
-import com.pennywiseai.tracker.ui.components.cards.budgetRim
 import com.pennywiseai.tracker.ui.components.cards.budgetStatusColor
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.iconax.History as IconaxHistory
@@ -536,7 +535,8 @@ internal fun BudgetOverviewCard(
     val statusColor = budgetStatusColor(pctUsed)
     val barColor = budgetBarColor(pctUsed, budgetColor)
 
-    PennyWiseCardV2(
+    // Cashiro's frosted glass, its rim taking the budget's own colour.
+    GlassCard(
         onClick = if (hasBreakdown) ({ expanded = !expanded }) else null,
         modifier = modifier
             .fillMaxWidth()
@@ -544,8 +544,7 @@ internal fun BudgetOverviewCard(
                 if (hasBreakdown) stateDescription = expansionState
             },
         shape = MaterialTheme.shapes.extraLarge,
-        // A faint rim in the budget's own colour, over the standard card surface.
-        border = budgetRim(budgetColor),
+        rimColor = budgetColor,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none
     ) {

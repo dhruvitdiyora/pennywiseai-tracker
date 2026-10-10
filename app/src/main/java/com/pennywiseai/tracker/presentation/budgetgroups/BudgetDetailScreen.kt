@@ -58,7 +58,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.BudgetCardCaption
 import com.pennywiseai.tracker.ui.components.cards.BudgetCardTitle
 import com.pennywiseai.tracker.ui.components.cards.BudgetHeroFigures
@@ -66,7 +66,6 @@ import com.pennywiseai.tracker.ui.components.cards.BudgetProgressTrack
 import com.pennywiseai.tracker.ui.components.cards.budgetBarColor
 import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
 import com.pennywiseai.tracker.ui.components.cards.budgetRenewalText
-import com.pennywiseai.tracker.ui.components.cards.budgetRim
 import com.pennywiseai.tracker.ui.components.cards.budgetStatusColor
 import androidx.compose.foundation.layout.heightIn
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -257,7 +256,7 @@ internal fun BudgetDetailContent(
 
         if (transactions.isEmpty()) {
             item {
-                PennyWiseCardV2(
+                GlassCard(
                     shape = MaterialTheme.shapes.extraLarge,
                     contentPadding = Dimensions.Padding.empty,
                 ) {
@@ -343,10 +342,10 @@ private fun BudgetDetailSummaryCard(
         BudgetPeriodType.CUSTOM -> stringResource(R.string.budget_detail_period_custom)
     }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        border = budgetRim(budgetColor),
+        rimColor = budgetColor,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none,
     ) {

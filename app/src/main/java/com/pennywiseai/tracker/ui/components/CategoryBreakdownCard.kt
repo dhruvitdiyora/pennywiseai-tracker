@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -34,7 +34,7 @@ fun CategoryBreakdownCard(
 
     // No inner "Spending by Category" title: the section header above the
     // card already names it, and Cashiro's list sits straight in the card.
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         contentPadding = Spacing.sm
     ) {

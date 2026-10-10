@@ -44,7 +44,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
-import com.pennywiseai.tracker.ui.components.cards.budgetRim
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.PastWindowSpending
@@ -52,7 +51,8 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import com.pennywiseai.tracker.ui.components.thinAxisLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.toColorOr
@@ -263,10 +263,10 @@ private fun HistorySummaryCard(
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val longFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        border = budgetRim(budgetColor),
+        rimColor = budgetColor,
         // The wash is painted by the column below so it covers the whole card.
         contentPadding = Dimensions.Padding.none,
     ) {
@@ -347,7 +347,7 @@ internal fun HistoryRow(
         percentageUsed >= BigDecimal(70) -> scheme.tertiary
         else -> scheme.primary
     }
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = listItemPosition.toShape(),
         onClick = onClick,
@@ -476,7 +476,7 @@ internal fun HistoryRow(
 
 /**
  * Cashiro's spending line chart: a curved, gradient-filled line with a dot per
- * window, abbreviated amounts down the side, rotated window dates along the
+ * window, abbreviated amounts down the side, thinned window dates along the
  * bottom and a dashed grid, with the series legend on top.
  */
 @Composable
@@ -492,11 +492,11 @@ internal fun SpendingTrendChart(
     val chronologicalWindows = remember(windows) { windows.sortedBy { it.window.start } }
     val values = remember(chronologicalWindows) { chronologicalWindows.map { it.spent.toDouble() } }
     val labels = remember(chronologicalWindows) {
-        chronologicalWindows.map { it.window.start.format(formatter) }
+        thinAxisLabels(chronologicalWindows.map { it.window.start.format(formatter) })
     }
     val gridColor = SolidColor(colors.onSurface.copy(alpha = 0.1f))
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
     ) {
@@ -559,9 +559,10 @@ internal fun SpendingTrendChart(
                 ),
                 labels = labels,
                 padding = Spacing.md,
+                // Thinned to fit flat, so the dates stay level, not slanted.
                 rotation = LabelProperties.Rotation(
                     mode = LabelProperties.Rotation.Mode.Force,
-                    degree = -45f,
+                    degree = 0f,
                 ),
             ),
             zeroLineProperties = ZeroLineProperties(
@@ -655,7 +656,9 @@ private fun BreakdownSheet(
     val longFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        // Cashiro's sheet: a plain surface the glass rows sit on.
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -717,34 +720,42 @@ private fun BreakdownSheet(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                breakdown.categorySpending.forEach { cat ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = cat.categoryName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(cat.actualAmount, currency),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                            if (cat.budgetAmount > BigDecimal.ZERO) {
+                // The per-category rows share one glass panel, as in Cashiro.
+                GlassCard(
+                    shape = MaterialTheme.shapes.large,
+                    contentPadding = Spacing.md,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        breakdown.categorySpending.forEach { cat ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = stringResource(
-                                        R.string.budget_history_of_budget_percent,
-                                        CurrencyFormatter.formatCurrency(cat.budgetAmount, currency),
-                                        cat.percentageUsed.toInt()
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = cat.categoryName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = CurrencyFormatter.formatCurrency(cat.actualAmount, currency),
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    )
+                                    if (cat.budgetAmount > BigDecimal.ZERO) {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.budget_history_of_budget_percent,
+                                                CurrencyFormatter.formatCurrency(cat.budgetAmount, currency),
+                                                cat.percentageUsed.toInt()
+                                            ),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
