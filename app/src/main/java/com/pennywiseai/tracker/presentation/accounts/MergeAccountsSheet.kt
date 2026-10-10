@@ -78,8 +78,9 @@ fun MergeAccountsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        modifier = Modifier.glassSheetRim(),
         // The account rows are tonal, so the sheet sits one step lighter.
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = glassSheetContainerColor()
     ) {
         // A single LazyColumn drives the whole sheet so that, with many accounts,
         // the source and target lists share one scroll surface — the second list

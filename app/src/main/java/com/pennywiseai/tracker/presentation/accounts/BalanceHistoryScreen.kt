@@ -65,7 +65,7 @@ import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.legibleOn
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -152,12 +152,12 @@ fun BalanceHistoryScreen(
         ) {
             // Which account this is, and how many records it has.
             item(key = "summary") {
-                PennyWiseCardV2(
+                GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = sectionGap),
                     shape = MaterialTheme.shapes.extraLarge,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    tint = MaterialTheme.colorScheme.surfaceContainer,
                     contentPadding = Dimensions.Padding.card
                 ) {
                     Row(
@@ -357,10 +357,12 @@ private fun BalanceHistoryItem(
 
     GroupedColumn(
         position = position,
-        modifier = Modifier.animateContentSize(),
+        modifier = Modifier.glassRowRim(position).animateContentSize(),
         // The latest record, and one being edited, sit a step above the rest so
         // the tonal edit field reads as raised.
-        containerColor = if (isLatest || isEditing) scheme.surfaceContainer else scheme.surfaceContainerLow,
+        containerColor = glassRowColor(
+            if (isLatest || isEditing) scheme.surfaceContainer else scheme.surfaceContainerLow
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
         // Header with date and actions

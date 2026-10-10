@@ -79,8 +79,8 @@ internal fun UpdateBalanceDialog(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         // The amount summary is tonal, so the sheet sits one step lighter.
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.testTag("account_update_balance_sheet"),
+        containerColor = glassSheetContainerColor(),
+        modifier = Modifier.glassSheetRim().testTag("account_update_balance_sheet"),
     ) {
         Column(
             modifier = Modifier
@@ -173,8 +173,8 @@ internal fun UpdateCreditCardDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.testTag("account_update_credit_sheet"),
+        containerColor = glassSheetContainerColor(),
+        modifier = Modifier.glassSheetRim().testTag("account_update_credit_sheet"),
     ) {
         Column(
             modifier = Modifier

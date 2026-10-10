@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.groups
 
+import com.pennywiseai.tracker.presentation.accounts.glassRowColor
+import com.pennywiseai.tracker.presentation.accounts.glassRowRim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -215,6 +217,8 @@ private fun GroupRow(
 
     GroupedRow(
         position = position,
+        modifier = Modifier.glassRowRim(position),
+        containerColor = glassRowColor(),
         onClick = onClick,
         contentPadding = PaddingValues(Dimensions.Padding.cardCompact),
         minHeight = Dimensions.Component.listItemMinHeightTwoLine,

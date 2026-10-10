@@ -33,7 +33,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.presentation.transactions.TransactionTotalsCard
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
@@ -227,7 +227,7 @@ private fun ExpandableBalanceChart(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         onClick = { isExpanded = !isExpanded },
@@ -329,7 +329,11 @@ private fun AccountBalanceCard(
     val headlineAmount = creditLimit ?: balance
 
     val cardColor = MaterialTheme.colorScheme.surfaceContainer
+    // The strip shares the glass fill's alpha so the card reads as one frosted
+    // surface; the rim takes the bank's brand colour (Cashiro's bank card).
     val stripColor = MaterialTheme.colorScheme.surfaceContainerLow
+        .copy(alpha = Dimensions.Glass.fillAlphaSolid)
+    val brandRim = brandRimColor(bankName)
 
     // Wallets and cash accounts have no number to show. Only a card gets the
     // four-group card mask; any other account (savings, current, manual) shows the
@@ -346,10 +350,11 @@ private fun AccountBalanceCard(
         .joinToString(" · ")
         .ifBlank { null }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        containerColor = cardColor,
+        tint = cardColor,
+        rimColor = brandRim,
         // Full-bleed layers: the watermark and the bottom strip reach the edge.
         contentPadding = Dimensions.Padding.none
     ) {

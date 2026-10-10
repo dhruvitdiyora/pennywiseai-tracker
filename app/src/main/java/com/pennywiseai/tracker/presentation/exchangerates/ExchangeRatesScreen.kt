@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
+import com.pennywiseai.tracker.presentation.accounts.glassRowColor
+import com.pennywiseai.tracker.presentation.accounts.glassRowRim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -286,6 +288,8 @@ private fun ExchangeRateRow(
     val scheme = MaterialTheme.colorScheme
     GroupedRow(
         position = position,
+        modifier = Modifier.glassRowRim(position),
+        containerColor = glassRowColor(),
         onClick = onClick,
         minHeight = Dimensions.Component.listItemMinHeight
     ) {

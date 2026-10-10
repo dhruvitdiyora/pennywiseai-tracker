@@ -98,9 +98,10 @@ internal fun EditAccountSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        modifier = Modifier.glassSheetRim(),
         // The fields are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised fields.
-        containerColor = scheme.surface,
+        containerColor = glassSheetContainerColor(),
     ) {
         Column(
             modifier = Modifier

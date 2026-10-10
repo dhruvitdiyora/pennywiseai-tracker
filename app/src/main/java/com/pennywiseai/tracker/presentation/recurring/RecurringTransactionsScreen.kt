@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.recurring
 
+import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
+import com.pennywiseai.tracker.presentation.accounts.glassSheetRim
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -86,7 +88,8 @@ import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.legibleOn
@@ -277,12 +280,6 @@ private fun recurringDayOfWeekNames(): List<String> = DayOfWeek.values().map {
     it.getDisplayName(TextStyle.SHORT, Locale.getDefault())
 }
 
-/**
- * A transparent border, passed to the card to suppress its dark-mode hairline:
- * connected rows are separated by the grouped gutter, not outlined.
- */
-private val RowBorder = BorderStroke(Dimensions.Padding.none, Color.Transparent)
-
 // ── Summary ───────────────────────────────────────────────────────────────
 
 /**
@@ -306,7 +303,7 @@ private fun RecurringSummaryCard(
         stringResource(R.string.recurring_summary_active_paused, active.size, pausedCount)
     }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         contentPadding = Dimensions.Padding.card
@@ -388,7 +385,9 @@ private fun RecurringCountTile(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        color = color.copy(alpha = TINTED_CONTAINER_ALPHA)
+        color = color.copy(alpha = TINTED_CONTAINER_ALPHA),
+        // Glass rim in the tile's own accent, like Home's budget cards.
+        border = glassRim(color)
     ) {
         Column(
             modifier = Modifier.padding(Spacing.smd),
@@ -463,12 +462,9 @@ internal fun RecurringItem(
     val rowBackground = scheme.surfaceContainerLow
     val categoryName = template.category.takeIf { it.isNotBlank() }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = position.toShape(),
-        // Bare surfaces separated by the grouped gutter read better than a run of
-        // outlined rows in dark mode.
-        border = RowBorder,
         onClick = onEdit,
         contentPadding = Dimensions.Padding.cardCompact
     ) {
@@ -689,9 +685,10 @@ internal fun RecurringEditorDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        modifier = Modifier.glassSheetRim(),
         // The fields are tonal (surfaceContainerLow), so the sheet sits one step
         // lighter to let them read as raised fields.
-        containerColor = scheme.surface
+        containerColor = glassSheetContainerColor()
     ) {
         Column(
             modifier = Modifier

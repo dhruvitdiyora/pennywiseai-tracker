@@ -58,7 +58,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.LayoutDirection
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import com.pennywiseai.tracker.ui.components.cards.glassFill
+import com.pennywiseai.tracker.ui.components.cards.glassRim
+import com.pennywiseai.tracker.ui.components.cards.glassSurface
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Send
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -81,7 +84,10 @@ fun ChatComposer(
     modifier: Modifier = Modifier,
 ) {
     val canSend = enabled && value.isNotBlank()
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    // Glass pill: the field's own container is transparent and the frosted
+    // fill, sheen and rim come from glassSurface, so it matches the cards.
+    val containerColor = Color.Transparent
+    val composerShape = RoundedCornerShape(Spacing.xxl)
     val placeholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Dimensions.Alpha.subtitle)
     // The paper plane points "forward"; flip it for right-to-left layouts.
     val flipSend = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -91,11 +97,12 @@ fun ChatComposer(
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
+            .glassSurface(shape = composerShape, blurEffects = false)
             .focusRequester(focusRequester),
         enabled = enabled,
         placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
         maxLines = 3,
-        shape = RoundedCornerShape(Spacing.xxl),
+        shape = composerShape,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
         keyboardActions = KeyboardActions(
             onSend = {
@@ -204,8 +211,9 @@ fun TokenLimitWarning(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = backgroundColor,
+        color = glassFill(backgroundColor, blurLive = false),
         shape = MaterialTheme.shapes.large,
+        border = glassRim(),
     ) {
         Row(
             modifier = Modifier
@@ -264,11 +272,9 @@ fun DeveloperInfoCard(
         else -> MaterialTheme.colorScheme.primary
     }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
+        tint = MaterialTheme.colorScheme.surfaceContainer,
         contentPadding = Spacing.smd,
         onClick = { isExpanded = !isExpanded }
     ) {

@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.ui.components.cards.IconTile
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /*
@@ -38,10 +38,10 @@ internal fun UtilityHeroCard(
     content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        containerColor = scheme.primaryContainer,
+        tint = scheme.primaryContainer,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
             Row(

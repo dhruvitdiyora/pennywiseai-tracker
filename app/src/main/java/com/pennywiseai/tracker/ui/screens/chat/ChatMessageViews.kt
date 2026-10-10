@@ -50,7 +50,9 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import com.pennywiseai.tracker.ui.components.cards.glassFill
+import com.pennywiseai.tracker.ui.components.cards.glassRim
 import com.pennywiseai.tracker.ui.icons.iconax.Copy
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Magicpen
@@ -122,9 +124,12 @@ fun ChatMessageItem(
             modifier = Modifier
                 .widthIn(max = ChatBubbleMaxWidth)
                 .animateContentSize(),
-            color = containerColor,
+            // The assistant's reply is a glass bubble (Cashiro); the user's own
+            // message keeps its solid accent so the two voices stay distinct.
+            color = if (isUser) containerColor else glassFill(containerColor, blurLive = false),
             contentColor = contentColor,
             shape = chatBubbleShape(isUser),
+            border = if (isUser) null else glassRim(),
         ) {
             Column(
                 modifier = Modifier.padding(
@@ -191,9 +196,10 @@ fun TypingIndicator(
     ) {
         Surface(
             modifier = Modifier.semantics { contentDescription = waitingDescription },
-            color = MaterialTheme.colorScheme.secondaryContainer,
+            color = glassFill(MaterialTheme.colorScheme.secondaryContainer, blurLive = false),
             contentColor = contentColor,
             shape = chatBubbleShape(isUser = false),
+            border = glassRim(),
         ) {
             Row(
                 modifier = Modifier.padding(
@@ -300,8 +306,10 @@ private fun ChatPromptChip(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.extraLarge),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        // A glass pill, like Cashiro's suggestion chips.
+        color = glassFill(MaterialTheme.colorScheme.surfaceContainerHigh, blurLive = false),
         contentColor = MaterialTheme.colorScheme.onSurface,
+        border = glassRim(),
     ) {
         Row(
             modifier = Modifier
@@ -371,13 +379,11 @@ internal fun PendingActionCard(
         }
     }
     val isDelete = action is PendingChatAction.Delete
-    PennyWiseCardV2(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         // Same silhouette as the assistant's bubble: the proposal is part of its reply.
         shape = chatBubbleShape(isUser = false),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
-        )
+        tint = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
     ) {
         val fg = if (isDelete) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

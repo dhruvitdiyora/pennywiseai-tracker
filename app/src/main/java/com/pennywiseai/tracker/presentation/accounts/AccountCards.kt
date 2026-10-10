@@ -52,7 +52,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.icons.iconax.Bag
 import com.pennywiseai.tracker.ui.icons.iconax.Balance
 import com.pennywiseai.tracker.ui.icons.iconax.CalendarEdit
@@ -108,13 +108,21 @@ internal fun AccountCardShell(
     }
     val onTopColor = if (isAlert) scheme.onErrorContainer else scheme.onSurface
     val labelColor = if (isAlert) scheme.onErrorContainer else scheme.onSurfaceVariant
-    val stripColor = if (isHidden) scheme.surfaceContainerLowest else scheme.surfaceContainerLow
+    // Glass strip: the same near-solid alpha as the card fill, so the band reads
+    // as part of one frosted surface rather than an opaque plate.
+    val stripColor = (if (isHidden) scheme.surfaceContainerLowest else scheme.surfaceContainerLow)
+        .copy(alpha = Dimensions.Glass.fillAlphaSolid)
     val hasMenu = menu != null
+    // Cashiro's bank-brand card: the rim picks up the bank's colour (neutral
+    // for an alert or a set-aside account, so neither competes with the brand).
+    val brandRim = brandRimColor(merchantName).takeUnless { isAlert || isHidden }
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        containerColor = topColor,
+        tint = topColor,
+        solidFillAlpha = if (isAlert) GLASS_TINTED_ALPHA else Dimensions.Glass.fillAlphaSolid,
+        rimColor = brandRim,
         // Full-bleed layers: the watermark and the strip reach the card edge.
         contentPadding = Dimensions.Padding.none,
     ) {
@@ -730,7 +738,7 @@ internal fun OrphanedCardItem(
     var expandedSource by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
 
-    PennyWiseCardV2(
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         onClick = { expandedSource = !expandedSource },
