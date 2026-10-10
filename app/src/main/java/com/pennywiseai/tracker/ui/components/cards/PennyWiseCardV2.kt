@@ -1,10 +1,12 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.Card
@@ -14,6 +16,7 @@ import androidx.compose.material3.CardElevation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 
@@ -21,9 +24,15 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
  * The app's standard card container.
  *
  * One card style, everywhere: `shapes.large` corners, `surfaceContainerLow`
- * fill, no elevation, and — in dark mode only — a 0.5dp hairline so the card
- * separates from an AMOLED-black background where a tonal fill alone barely
- * registers. Light mode needs no border because the tonal step is visible.
+ * fill, no elevation — finished in the frosted-glass material by default
+ * ([glass] = true): the fill goes slightly translucent
+ * ([Dimensions.Glass.fillAlphaSolid]), a soft top sheen sits under the
+ * content, and the diagonal glass rim ([glassRim]) replaces the old dark-only
+ * hairline, so the card still separates from AMOLED black. With [glass] off it
+ * is the flat tonal card (hairline in dark mode only).
+ *
+ * The card has no Haze blur of its own — for a card over a banner/cover that
+ * should frost what's behind it, use [GlassCard] with a `hazeState`.
  *
  * Pass [contentPadding] rather than padding the content yourself, so the
  * ripple on a clickable card covers the whole surface.
@@ -60,8 +69,27 @@ fun PennyWiseCardV2(
      */
     onLongClick: (() -> Unit)? = null,
     contentPadding: Dp = Dimensions.Padding.card,
+    /** Frosted-glass finish (translucent fill, sheen, rim). On by default. */
+    glass: Boolean = true,
+    /** Glass fill alpha; modal hosts (dialogs) want [Dimensions.Glass.fillAlphaSheet]. */
+    glassFillAlpha: Float = Dimensions.Glass.fillAlphaSolid,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    if (glass) {
+        GlassCardV2(
+            modifier = modifier,
+            shape = shape,
+            colors = colors,
+            elevation = elevation,
+            border = border,
+            onClick = onClick,
+            onLongClick = onLongClick,
+            contentPadding = contentPadding,
+            fillAlpha = glassFillAlpha,
+            content = content
+        )
+        return
+    }
     val effectiveBorder = border ?: if (isSystemInDarkTheme()) {
         BorderStroke(
             width = Dimensions.Component.hairline,
@@ -117,5 +145,69 @@ fun PennyWiseCardV2(
                 Column(modifier = Modifier.padding(contentPadding)) { content() }
             }
         }
+    }
+}
+
+/** [PennyWiseCardV2]'s glass branch: same click semantics, glass fill/sheen/rim. */
+@Composable
+private fun GlassCardV2(
+    modifier: Modifier,
+    shape: CornerBasedShape,
+    colors: CardColors,
+    elevation: CardElevation,
+    border: BorderStroke?,
+    onClick: (() -> Unit)?,
+    onLongClick: (() -> Unit)?,
+    contentPadding: Dp,
+    fillAlpha: Float,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    // Keep an explicitly transparent container transparent (e.g. a card used
+    // purely as a ripple surface); otherwise frost the requested colour.
+    val base = colors.containerColor
+    val glassColors = colors.copy(
+        containerColor = if (base.alpha == 0f) base else glassFill(base, blurLive = false, solidFillAlpha = fillAlpha * base.alpha)
+    )
+    val effectiveBorder = border ?: glassRim()
+    val sheen = glassSheen()
+    val inner: @Composable ColumnScope.() -> Unit = {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(sheen)
+                .padding(contentPadding)
+        ) { content() }
+    }
+    when {
+        onLongClick != null -> {
+            val tap = requireNotNull(onClick) {
+                "PennyWiseCardV2: onLongClick requires onClick to also be non-null."
+            }
+            Card(
+                modifier = modifier.clip(shape).combinedClickable(onClick = tap, onLongClick = onLongClick),
+                colors = glassColors,
+                shape = shape,
+                elevation = elevation,
+                border = effectiveBorder,
+                content = inner
+            )
+        }
+        onClick != null -> Card(
+            modifier = modifier,
+            onClick = onClick,
+            colors = glassColors,
+            shape = shape,
+            elevation = elevation,
+            border = effectiveBorder,
+            content = inner
+        )
+        else -> Card(
+            modifier = modifier,
+            colors = glassColors,
+            shape = shape,
+            elevation = elevation,
+            border = effectiveBorder,
+            content = inner
+        )
     }
 }

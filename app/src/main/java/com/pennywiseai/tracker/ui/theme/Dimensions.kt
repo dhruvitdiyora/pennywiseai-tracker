@@ -256,6 +256,28 @@ object Dimensions {
         /** Fill alpha for a semantic container (e.g. low-balance error) without blur. */
         const val fillAlphaTinted = 0.7f
 
+        /**
+         * Fill alpha for modal glass (bottom sheets, dialogs). Those live in their
+         * own window, so Haze can't blur what's behind them; the fill stays almost
+         * opaque so the scrimmed page only faintly tints through.
+         */
+        const val fillAlphaSheet = 0.96f
+
+        /** Fill alpha for small unselected glass controls (chips, switcher track). */
+        const val fillAlphaControl = 0.6f
+
+        /** Gap between the two halves of a connected button pair (Cashiro dialogs). */
+        val connectedButtonGap = 2.dp
+
+        /** Outer (pill) corner of a connected button pair; inner corners use `CornerRadius.small`. */
+        val connectedButtonOuterRadius = 48.dp
+
+        /** Height of the segmented switcher track. */
+        val switcherHeight = 48.dp
+
+        /** Inset between the switcher track and its sliding indicator. */
+        val switcherInset = 6.dp
+
         /** Rim highlight (top-start) / fall-off (bottom-end) on `onSurface`, dark themes. */
         const val rimHighlightDark = 0.20f
         const val rimShadeDark = 0.05f

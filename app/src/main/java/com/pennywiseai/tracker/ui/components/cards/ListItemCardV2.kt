@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,13 +50,17 @@ enum class ListItemPosition {
 
 /**
  * The single source of truth for grouped-row corners. Derived from the theme
- * shape scale so a change to `shapes.large` carries through, rather than being
+ * shape scale so a change to the scale carries through, rather than being
  * re-typed as `RoundedCornerShape(16.dp)` per screen.
+ *
+ * Cashiro's list geometry: outer corners `largeIncreased` (20dp), interior
+ * corners `small` (8dp) — soft enough to read as one block of glass tiles.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ListItemPosition.toShape(): CornerBasedShape {
-    val outer = MaterialTheme.shapes.large
-    val inner = MaterialTheme.shapes.extraSmall
+    val outer = MaterialTheme.shapes.largeIncreased
+    val inner = MaterialTheme.shapes.small
 
     return when (this) {
         ListItemPosition.Top -> outer.copy(
@@ -91,7 +96,7 @@ fun ListItemCardV2(
     amountColor: Color = MaterialTheme.colorScheme.onSurface,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
-    shape: CornerBasedShape = MaterialTheme.shapes.large,
+    shape: CornerBasedShape = ListItemPosition.Single.toShape(),
     contentPadding: Dp = Dimensions.Padding.cardCompact,
     /** Overrides the card's container colour when set (e.g. for selected state). */
     containerColor: Color? = null,
@@ -109,8 +114,8 @@ fun ListItemCardV2(
         shape = shape,
         contentPadding = contentPadding,
         containerColor = containerColor,
-        // Suppress the inherited 0.5dp dark-mode hairline on list rows: long
-        // lists of bordered rows read as a chunky grid; bare surfaces with the
+        // Rows keep the glass fill and sheen but drop the rim: long lists of
+        // rimmed rows read as a chunky grid; bare glass surfaces with the
         // surrounding column's spacing carry the divisions better.
         border = BorderStroke(0.dp, Color.Transparent),
         onClick = onClick,

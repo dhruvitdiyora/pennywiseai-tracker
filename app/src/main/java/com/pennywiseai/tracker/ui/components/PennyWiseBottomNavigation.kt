@@ -8,7 +8,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.pennywiseai.tracker.ui.components.cards.glassRim
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
@@ -220,6 +223,10 @@ fun PennyWiseBottomNavigation(
                             shape = MaterialTheme.shapes.extraLarge
                         )
                         .clip(FloatingToolbarDefaults.ContainerShape)
+                        // Glass rim, as on every other glass surface: catches the
+                        // top edge in dark/AMOLED where the tinted fill barely
+                        // separates from black.
+                        .border(glassRim(), FloatingToolbarDefaults.ContainerShape)
                         .then(
                             if (blurEffects) Modifier.hazeEffect(
                                 state = hazeState,
@@ -233,7 +240,8 @@ fun PennyWiseBottomNavigation(
                                 }
                             ) else Modifier
                         )
-                        .zIndex(1000f),
+                        .zIndex(1000f)
+                        .animateContentSize(MaterialTheme.motionScheme.fastSpatialSpec()),
                     colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
                         toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(
                             alpha = if (blurEffects) 0.7f else 1f
@@ -254,6 +262,11 @@ fun PennyWiseBottomNavigation(
                             onCheckedChange = {
                                 navigateTo(item)
                             },
+                            // Cashiro: pill at rest, a softer rounded rect when checked.
+                            shapes = ToggleButtonDefaults.shapes(
+                                shape = FloatingToolbarDefaults.ContainerShape,
+                                checkedShape = MaterialTheme.shapes.extraLarge
+                            ),
                             colors = ToggleButtonDefaults.toggleButtonColors(
                                 containerColor = if (blurEffects)
                                     MaterialTheme.colorScheme.surfaceBright.copy(0.6f)

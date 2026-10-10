@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared glass chrome (PennyWiseBottomSheet drag handle accessibility actions). -->
+    <string name="glass_sheet_dismiss">Dismiss</string>
+    <string name="glass_sheet_expand">Expand</string>
+    <string name="glass_sheet_collapse">Collapse</string>
+</resources>
