@@ -139,6 +139,9 @@ fun ListItemCardV2(
                 Text(
                     text = title,
                     style = PennyWiseText.rowTitle,
+                    // Explicit: an inherited content colour from a translucent
+                    // parent can resolve dark on dark (seen on Account detail).
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
