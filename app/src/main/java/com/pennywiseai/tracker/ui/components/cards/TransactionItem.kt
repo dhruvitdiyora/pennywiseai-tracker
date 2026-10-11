@@ -111,7 +111,7 @@ fun TransactionItem(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val amountColor = remember(transaction.transactionType, isDark) {
         when (transaction.transactionType) {
             TransactionType.INCOME -> if (!isDark) income_light else income_dark

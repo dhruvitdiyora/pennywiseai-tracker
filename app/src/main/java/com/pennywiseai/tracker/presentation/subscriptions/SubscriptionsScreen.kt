@@ -799,7 +799,7 @@ internal fun SwipeableSubscriptionItem(
 
     // Money out reads in the expense colour, money in (an allowance, a top-up)
     // in the income colour.
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val amountColor = when {
         subscription.direction == SubscriptionDirection.INCOME ->
             if (isDark) income_dark else income_light

@@ -127,7 +127,7 @@ fun ChatMessageItem(
                 .animateContentSize(),
             color = containerColor,
             contentColor = contentColor,
-            shape = chatBubbleShape(isUser),
+            shape = if (isUser) chatBubbleShape(true) else androidx.compose.ui.graphics.RectangleShape,
         ) {
             Column(
                 modifier = if (isUser) Modifier.padding(
@@ -135,7 +135,7 @@ fun ChatMessageItem(
                     end = Dimensions.Padding.card,
                     top = Spacing.smd,
                     bottom = Spacing.xs,
-                ) else Modifier.padding(vertical = Spacing.xs),
+                ) else Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.xs),
             ) {
                 Text(
                     text = message.message,

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -42,7 +43,7 @@ fun GroupCard(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     val total = remember(transactions, convertedAmounts, displayCurrency) {
         transactions.fold(BigDecimal.ZERO) { acc, tx ->

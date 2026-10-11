@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -94,7 +95,7 @@ internal fun TxnDetailMarkAsLoanSheet(
         parsedLoanAmount <= transactionAmount
 
     val scheme = MaterialTheme.colorScheme
-    val loanColor = if (isSystemInDarkTheme()) loan_dark else loan_light
+    val loanColor = if (isAppInDarkTheme()) loan_dark else loan_light
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     TxnGlassSheet(onDismissRequest = onDismiss, sheetState = sheetState) {

@@ -1572,9 +1572,9 @@ private fun HomeBarCircleButton(
 
 /**
  * The Home "More options" menu: a compact floating card in Cashiro's dropdown style:
- * translucent `surfaceContainerLow`, 24dp corners, soft shadow, hairline dividers
+ * opaque `surfaceContainerHigh`, 24dp corners, soft shadow, hairline dividers
  * (`surface` at 60%), anchored top-end under the "..." button. A popup window can't
- * blur the page behind it, so the glass is a high-alpha tint (solid when blur is off).
+ * blur the page behind it, so the card is fully opaque (no page text may read through).
  */
 @Composable
 private fun HomeOptionsMenu(
@@ -1606,7 +1606,7 @@ private fun HomeOptionsMenu(
         Surface(
             modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
             shape = RoundedCornerShape(Dimensions.Glass.heroRadius),
-            color = scheme.surfaceContainerLow.copy(alpha = if (blurEffects) 0.88f else 1f),
+            color = scheme.surfaceContainerHigh,
             contentColor = scheme.onSurface,
             shadowElevation = 8.dp,
         ) {

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -624,7 +625,7 @@ private fun TxnDetailLoanRow(
 ) {
     val scheme = MaterialTheme.colorScheme
     if (loan != null) {
-        val loanColor = if (isSystemInDarkTheme()) loan_dark else loan_light
+        val loanColor = if (isAppInDarkTheme()) loan_dark else loan_light
         GroupedRow(position = position, onClick = { onOpen(loan.id) }) {
             IconTile(
                 icon = Icons.Default.SwapHoriz,
