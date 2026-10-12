@@ -92,6 +92,20 @@ fun BrandIcon(
     }
 }
 
+/** Share of the bank's brand colour mixed into an account card's surface. */
+private const val ACCOUNT_BRAND_WASH = 0.2f
+
+/**
+ * [base] (a card surface) washed with [merchantName]'s brand colour, as
+ * Cashiro tints each account card with its bank. Unknown brands return [base]
+ * unchanged, so the card stays neutral rather than guessing a colour.
+ */
+fun accountBrandTint(merchantName: String, base: Color): Color {
+    val hex = BrandIcons.getBrandColor(merchantName) ?: return base
+    val brand = runCatching { Color(hex.toColorInt()) }.getOrNull() ?: return base
+    return androidx.compose.ui.graphics.lerp(base, brand, ACCOUNT_BRAND_WASH)
+}
+
 /**
  * Letter avatar for merchants without icons
  */

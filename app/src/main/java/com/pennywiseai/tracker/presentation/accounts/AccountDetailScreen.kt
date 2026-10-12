@@ -328,7 +328,7 @@ private fun AccountBalanceCard(
     }
     val headlineAmount = creditLimit ?: balance
 
-    val cardColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = accountBrandTint(bankName, MaterialTheme.colorScheme.surfaceContainer)
     // The strip is solid, like the card fill.
     val stripColor = MaterialTheme.colorScheme.surfaceContainerLow
         .copy(alpha = Dimensions.Glass.fillAlphaSolid)

@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.components.TiledIconBackground
+import com.pennywiseai.tracker.ui.components.accountBrandTint
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
@@ -104,7 +105,7 @@ internal fun AccountCardShell(
     val topColor = when {
         isAlert -> scheme.errorContainer
         isHidden -> scheme.surfaceContainerLow
-        else -> scheme.surfaceContainer
+        else -> accountBrandTint(merchantName, scheme.surfaceContainer)
     }
     val onTopColor = if (isAlert) scheme.onErrorContainer else scheme.onSurface
     val labelColor = if (isAlert) scheme.onErrorContainer else scheme.onSurfaceVariant

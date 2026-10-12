@@ -41,6 +41,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.TiledIconBackground
+import com.pennywiseai.tracker.ui.components.accountBrandTint
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -130,7 +131,7 @@ private fun AccountCarouselCard(
     val glassTint = if (isLowBalance) {
         MaterialTheme.colorScheme.errorContainer
     } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
+        accountBrandTint(account.bankName, MaterialTheme.colorScheme.surfaceContainerLow)
     }
     val glassSolidAlpha = if (isLowBalance) Dimensions.Glass.fillAlphaTinted else Dimensions.Glass.fillAlphaSolid
     val containerColor = glassFill(glassTint, blurEffects && hazeState != null, glassSolidAlpha)

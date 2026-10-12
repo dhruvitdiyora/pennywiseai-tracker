@@ -35,6 +35,8 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.pennywiseai.tracker.ui.components.legibleOn
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -247,7 +249,7 @@ internal fun ContactsScreenContent(
 }
 
 /** How strongly the decorative initials show through a contact tile. */
-private const val TILE_WATERMARK_ALPHA = 0.25f
+private const val TILE_WASH_ALPHA = 0.12f
 
 /** How many currency balances a tile spells out before summarising the rest. */
 private const val TILE_MAX_BALANCES = 2
@@ -266,17 +268,28 @@ private fun PersonCard(
 ) {
     val person = row.person
     val color = parseProfileColor(person.color, MaterialTheme.colorScheme.primary)
-    val onColor = contentColorOn(color)
+    // Dark glass like the rest of the app: the contact's colour is a faint wash
+    // over the glass fill and the accent of the initials, never an opaque fill.
+    val scheme = MaterialTheme.colorScheme
+    val onColor = scheme.onSurface
+    val wash = color.copy(alpha = TILE_WASH_ALPHA)
+    val initialsColor = remember(color, scheme.surfaceContainerLow, onColor) {
+        color.legibleOn(
+            background = wash.compositeOver(scheme.surfaceContainerLow),
+            towards = onColor,
+            minContrast = 3f,
+        )
+    }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        tint = color,
         onClick = onClick,
         contentPadding = Dimensions.Padding.none,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(wash)
                 .heightIn(min = Dimensions.Component.listItemMinHeightTwoLine * TILE_HEIGHT_MULTIPLIER)
                 .padding(Dimensions.Padding.cardCompact),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -290,7 +303,7 @@ private fun PersonCard(
                         .padding(top = Spacing.sm),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
-                    color = onColor.copy(alpha = TILE_WATERMARK_ALPHA),
+                    color = initialsColor,
                     maxLines = 1,
                 )
                 IconButton(

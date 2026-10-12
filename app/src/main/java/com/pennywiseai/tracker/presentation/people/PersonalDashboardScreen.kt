@@ -152,7 +152,7 @@ private const val TILE_INITIALS_MIN_CONTRAST = 3f
 private const val TILE_FADE_START = 0.4f
 
 /** Strength of the contact colour wash over the glass tile. */
-private const val TILE_WASH_ALPHA = 0.28f
+private const val TILE_WASH_ALPHA = 0.12f
 
 /** The carousel shows this many contacts; "View all" opens the rest. */
 private const val DASHBOARD_PEOPLE_LIMIT = 10
