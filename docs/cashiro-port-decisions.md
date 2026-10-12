@@ -471,6 +471,46 @@ remains pending while the configured Pixel is disconnected.
 - Interaction coverage for expand/collapse and privacy toggling, ensuring nested
   controls do not accidentally collapse the card.
 
+## 2026-10-12 — Approved and implemented: Home Net worth hero
+
+**Decision:** The product owner explicitly approved replacing the collapsed
+spending-first Home hero with Cashiro's `Net worth` hero on 2026-10-12. This
+supersedes the "Explicitly excluded" items of the portfolio-trend entry above
+(net-worth headline, credit-card subtraction) for Home only.
+
+### Contract
+
+- **Definition** (mirrors Cashiro `HomeViewModel`): net worth = latest balance of
+  every visible non-credit-card account (bank, cash, mobile-money wallet) minus
+  the outstanding balance of every visible credit card. Unused credit limit is
+  never counted. Lend/borrow loans are not included, as in Cashiro.
+- **Scope:** same filter as the existing Home balance — selected profile and
+  user-hidden accounts excluded (`filterAccountsByProfile`).
+- **Currencies:** never summed. Without Unified mode the hero shows the selected
+  currency only and the currency chip switches currencies. In Unified mode each
+  currency subtotal is converted with the existing rate service; a currency with
+  no rate is left out and the figure is marked approximate (Cashiro silently
+  adds unconverted amounts — not ported).
+- **Change %:** net worth today vs. net worth on the last day before the current
+  budget cycle, read from the 180-day trend. Null (hidden) when that day is not
+  in recorded history, or when the previous value is zero and the current is not.
+  Cashiro instead compares this month's income − expenses with last month's and
+  reports +100% from zero; that is a cash-flow figure, not net worth.
+- **Trend:** the existing 180-day Home series now subtracts credit-card
+  outstanding so the chart matches the headline; high/low labels and a
+  "Last N days" caption follow Cashiro.
+- **Trio:** This month = cycle income − expenses (existing figure); This year =
+  calendar year-to-date income − expenses (same filters); Balance = the
+  accounts (asset) side in the selected currency. Cashiro repeats net worth in
+  Balance; showing assets adds information instead of duplicating the headline.
+- **Kept PennyWise information:** balances hidden by default; "Spent this month"
+  stays as a line on the collapsed card and as the full spending block
+  (comparison chart, Income/Expenses/Lent/Saved) inside the expanded card;
+  accounts and credit cards list. The accounts Total is now per currency
+  (`formatByCurrency`) instead of a cross-currency sum.
+- No schema, entity, or backup change. Logic lives in
+  `domain/usecase/NetWorthCalculator.kt` with unit tests.
+
 ## Implemented — Analytics category and chart-label polish
 
 **Decision:** Proceeded on 2026-09-09 after a read-only Cashiro/current-worktree

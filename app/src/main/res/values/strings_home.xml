@@ -173,6 +173,27 @@
     <string name="balance_card_spent_this_month">Spent this month</string>
     <string name="balance_card_change_currency">Change currency</string>
 
+    <!-- Net worth hero (Cashiro-style). Net worth = accounts minus credit-card outstanding. -->
+    <string name="net_worth_label">Net worth</string>
+    <!-- %1$s is a sign ("+" or "-"), %2$d a whole percent: "+4% this month" -->
+    <string name="net_worth_change_this_month">%1$s%2$d%% this month</string>
+    <!-- %1$s is a currency code -->
+    <string name="net_worth_no_accounts">No accounts in %1$s yet</string>
+    <string name="net_worth_approximate_note">* Some currencies have no exchange rate yet and are not included.</string>
+    <string name="net_worth_this_month">This month</string>
+    <string name="net_worth_this_year">This year</string>
+    <string name="net_worth_balance">Balance</string>
+    <!-- %1$s is a formatted (or masked) amount -->
+    <string name="net_worth_spent_this_month">Spent this month: %1$s</string>
+    <!-- %1$s is a formatted (or masked) amount: the highest value on the trend chart -->
+    <string name="net_worth_trend_high">High %1$s</string>
+    <!-- %1$s is a formatted (or masked) amount: the lowest value on the trend chart -->
+    <string name="net_worth_trend_low">Low %1$s</string>
+    <plurals name="net_worth_trend_last_days">
+        <item quantity="one">Last %1$d day</item>
+        <item quantity="other">Last %1$d days</item>
+    </plurals>
+
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s over budget</string>

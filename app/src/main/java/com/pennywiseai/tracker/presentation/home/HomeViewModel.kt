@@ -75,6 +75,8 @@ import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.domain.usecase.NetWorth
+import com.pennywiseai.tracker.domain.usecase.NetWorthCalculator
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import javax.inject.Inject
 
@@ -170,6 +172,8 @@ class HomeViewModel @Inject constructor(
     // Store currency breakdown maps for quick access when switching currencies
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
+    // Calendar year-to-date income/expense per currency, for the net-worth hero's This year figure.
+    private var currentYearBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
     // Per-currency total loss from LENT loans settled this month. Folded into the displayed
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
@@ -531,6 +535,8 @@ class HomeViewModel @Inject constructor(
                 // Conversion failures are non-blocking — convertAmount returns the
                 // original amount as fallback, so no account is silently dropped.
 
+                val netWorth = computeNetWorth(balances, selectedCurrency, isUnified)
+
                 _uiState.value = _uiState.value.copy(
                     accountBalances = regularAccounts,  // Pre-converted in unified mode
                     creditCards = creditCards,           // Pre-converted in unified mode
@@ -539,7 +545,7 @@ class HomeViewModel @Inject constructor(
                     availableCurrencies = updatedAvailableCurrencies,
                     isBalanceReady = true,
                     isApproximateBalance = hasApproximateBalance
-                )
+                ).withNetWorth(netWorth)
             }
         }
 
@@ -585,13 +591,28 @@ class HomeViewModel @Inject constructor(
                         hiddenAccounts = inputs.hiddenAccounts,
                         selectedCurrency = inputs.selectedCurrency,
                         unifiedMode = inputs.unifiedMode,
+                        // The Home trend plots net worth, so it matches the hero headline.
+                        creditCardsAsLiabilities = true,
                         convert = { amount, fromCurrency, toCurrency ->
                             currencyConversionService.convertAmountOrNull(amount, fromCurrency, toCurrency)
                         },
                     )
+                    // Change vs last month: net worth today against net worth on the
+                    // last day before the current budget cycle began (the same month
+                    // the card's other This-month figures use).
+                    val (cycleStart, _) = _currentCycleWindow.value
+                    val previous = balanceTrendValueOn(
+                        values = trend.values,
+                        endDate = inputs.endDate,
+                        date = cycleStart.minusDays(1),
+                    )
+                    val changePercent = trend.values.lastOrNull()?.let { current ->
+                        NetWorthCalculator.changePercent(current, previous)
+                    }
                     _uiState.value = _uiState.value.copy(
                         balanceHistory = trend.values,
                         isBalanceHistoryApproximate = trend.isApproximate,
+                        netWorthChangePercent = changePercent,
                     )
                 }
         }
@@ -708,6 +729,29 @@ class HomeViewModel @Inject constructor(
                 }
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
+                }
+        }
+
+        viewModelScope.launch {
+            // Calendar year-to-date income minus expenses per currency for the hero's
+            // This year figure (Cashiro's This year). Same filters as This month.
+            currentDateFlow()
+                .flatMapLatest { today ->
+                    transactionRepository.getTransactionsBetweenDates(today.withDayOfYear(1), today)
+                }
+                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
+                    transactions to profileId
+                }
+                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
+                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                        .filter { it.countsInTotals() }
+                }
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
+                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
+                }
+                .collect { breakdownByCurrency ->
+                    currentYearBreakdownMap = breakdownByCurrency
+                    updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
         }
 
@@ -1060,6 +1104,8 @@ class HomeViewModel @Inject constructor(
                 if (card.currency != selectedCurrency) hasApproximateBalance = true
             }
 
+            val netWorth = computeNetWorth(visibleBalances, selectedCurrency, isUnified)
+
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
@@ -1067,7 +1113,7 @@ class HomeViewModel @Inject constructor(
                 totalAvailableCredit = totalAvailableCredit,
                 isBalanceReady = true,
                 isApproximateBalance = hasApproximateBalance
-            )
+            ).withNetWorth(netWorth)
         }
     }
 
@@ -1177,6 +1223,8 @@ class HomeViewModel @Inject constructor(
                 if (card.currency != selectedCurrency) hasApproximateBalance = true
             }
 
+            val netWorth = computeNetWorth(balances, selectedCurrency, isUnified)
+
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
@@ -1184,7 +1232,7 @@ class HomeViewModel @Inject constructor(
                 totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                 isBalanceReady = true,
                 isApproximateBalance = hasApproximateBalance
-            )
+            ).withNetWorth(netWorth)
         }
     }
 
@@ -1425,6 +1473,7 @@ class HomeViewModel @Inject constructor(
             viewModelScope.launch {
                 val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
                 val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
+                val yearBreakdown = aggregateBreakdowns(currentYearBreakdownMap, selectedCurrency)
                 val loanLoss = aggregateAcrossCurrencies(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
                 val lent = aggregateAcrossCurrencies(currentMonthLentByCurrency, selectedCurrency, isUnified = true)
 
@@ -1436,6 +1485,7 @@ class HomeViewModel @Inject constructor(
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
+                    currentYearTotal = yearBreakdown.total,
                     selectedCurrency = selectedCurrency,
                     availableCurrencies = availableCurrencies
                 )
@@ -1455,6 +1505,7 @@ class HomeViewModel @Inject constructor(
                 expenses = BigDecimal.ZERO
             )
 
+            val yearTotal = currentYearBreakdownMap[selectedCurrency]?.total ?: BigDecimal.ZERO
             val loanLoss = currentMonthLoanLossByCurrency[selectedCurrency] ?: BigDecimal.ZERO
             val lent = currentMonthLentByCurrency[selectedCurrency] ?: BigDecimal.ZERO
 
@@ -1466,6 +1517,7 @@ class HomeViewModel @Inject constructor(
                 lastMonthTotal = lastBreakdown.total,
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
+                currentYearTotal = yearTotal,
                 selectedCurrency = selectedCurrency,
                 availableCurrencies = availableCurrencies
             )
@@ -1518,6 +1570,22 @@ class HomeViewModel @Inject constructor(
             expenses = totalExpenses
         )
     }
+
+    /**
+     * Net worth of the visible (profile-filtered, not hidden) latest balances in
+     * [selectedCurrency]; see [NetWorthCalculator]. Unconvertible currencies are
+     * left out rather than face-valued.
+     */
+    private suspend fun computeNetWorth(
+        visibleBalances: List<AccountBalanceEntity>,
+        selectedCurrency: String,
+        isUnified: Boolean,
+    ): NetWorth = NetWorthCalculator.calculate(
+        latestBalances = visibleBalances,
+        selectedCurrency = selectedCurrency,
+        unifiedMode = isUnified,
+        convert = { amount, from, to -> currencyConversionService.convertAmountOrNull(amount, from, to) },
+    )
 
     private suspend fun convertAccountEntities(
         entities: List<AccountBalanceEntity>,
@@ -1762,6 +1830,18 @@ data class HomeUiState(
     val isBalanceReady: Boolean = false,
     val isApproximateBalance: Boolean = false,
     val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
+    /** Net worth (accounts minus credit-card outstanding) in [selectedCurrency]. */
+    val netWorth: BigDecimal = BigDecimal.ZERO,
+    /** The accounts (assets) side of [netWorth], in [selectedCurrency]. */
+    val netWorthAssets: BigDecimal = BigDecimal.ZERO,
+    /** False when no visible account is held in (or convertible to) [selectedCurrency]. */
+    val hasNetWorth: Boolean = false,
+    /** Unified mode only: some currency had no rate and is not included. */
+    val isNetWorthApproximate: Boolean = false,
+    /** Whole-percent change since the end of the previous cycle; null when unknown. */
+    val netWorthChangePercent: Int? = null,
+    /** Calendar year-to-date income minus expenses in [selectedCurrency]. */
+    val currentYearTotal: BigDecimal = BigDecimal.ZERO,
     val loanSummary: LoanSummary? = null,
     val selectedProfileId: Long? = null,
     val profiles: List<ProfileEntity> = emptyList()
@@ -1820,3 +1900,10 @@ internal fun currentDateFlow(
         delay(untilMidnightMillis.coerceIn(1L, CURRENT_DATE_MAX_STEP_MILLIS))
     }
 }.distinctUntilChanged()
+
+private fun HomeUiState.withNetWorth(netWorth: NetWorth): HomeUiState = copy(
+    netWorth = netWorth.netWorth,
+    netWorthAssets = netWorth.assets,
+    hasNetWorth = netWorth.hasAccounts,
+    isNetWorthApproximate = netWorth.isApproximate,
+)

@@ -35,8 +35,40 @@ class BalanceCardTrendScreenshotTest {
         setContent(darkTheme = false, approximate = false)
 
         composeTestRule.onNodeWithText("Balance trend").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Last 180 days").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Last 5 days").assertIsDisplayed()
+        composeTestRule.onNodeWithText("This year").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Net worth").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun collapsedNetWorth_light() {
+        setContent(darkTheme = false, approximate = false, expanded = false)
+
+        composeTestRule.onNodeWithText("Net worth").assertIsDisplayed()
+        composeTestRule.onNodeWithText("+8% this month").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage()
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    fun collapsedNetWorthMultiCurrency_dark() {
+        setContent(
+            darkTheme = true,
+            approximate = false,
+            expanded = false,
+            currencies = listOf("INR", "USD"),
+        )
+
+        composeTestRule.onNodeWithText("INR").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun hiddenBalances_maskNetWorth() {
+        setContent(darkTheme = false, approximate = false, expanded = false, hidden = true)
+
+        composeTestRule.onNodeWithText("Spent this month: ••••••").assertIsDisplayed()
     }
 
     @Test
@@ -66,6 +98,9 @@ class BalanceCardTrendScreenshotTest {
     private fun setContent(
         darkTheme: Boolean,
         approximate: Boolean,
+        expanded: Boolean = true,
+        hidden: Boolean = false,
+        currencies: List<String> = listOf("INR"),
         history: List<BigDecimal> = listOf(
             BigDecimal("21000"),
             BigDecimal("22500"),
@@ -85,7 +120,10 @@ class BalanceCardTrendScreenshotTest {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     BalanceCard(
                         modifier = Modifier.padding(Dimensions.Padding.content),
-                        totalBalance = BigDecimal("26800"),
+                        netWorth = BigDecimal("24300"),
+                        netWorthAssets = BigDecimal("26800"),
+                        netWorthChangePercent = 8,
+                        currentYearTotal = BigDecimal("212000"),
                         monthlyChange = BigDecimal("1200"),
                         monthlyChangePercent = 8,
                         currency = "INR",
@@ -101,18 +139,28 @@ class BalanceCardTrendScreenshotTest {
                             BigDecimal("17500"),
                         ),
                         lastMonthSpending = BigDecimal("16300"),
-                        availableCurrencies = listOf("INR"),
+                        availableCurrencies = currencies,
                         isBalanceHistoryApproximate = approximate,
-                        isBalanceHidden = false,
+                        isBalanceHidden = hidden,
                         accountBalances = listOf(account()),
+                        creditCards = listOf(card()),
                         onCurrencyClick = {},
                         onShowBreakdown = {},
-                        initiallyExpanded = true,
+                        initiallyExpanded = expanded,
                     )
                 }
             }
         }
     }
+
+    private fun card() = AccountBalanceEntity(
+        bankName = "Rewards Card",
+        accountLast4 = "1357",
+        balance = BigDecimal("2500"),
+        timestamp = LocalDateTime.of(2026, 9, 3, 12, 0),
+        currency = "INR",
+        isCreditCard = true,
+    )
 
     private fun account() = AccountBalanceEntity(
         bankName = "Primary Bank",

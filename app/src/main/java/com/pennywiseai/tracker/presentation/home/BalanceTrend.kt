@@ -10,9 +10,13 @@ internal data class BalanceTrendResult(
 )
 
 /**
- * Builds a daily cash-account portfolio series without ever mixing native
- * currencies. The latest row for an account on each day wins and is carried
- * forward until that account receives another balance update.
+ * Builds a daily portfolio series without ever mixing native currencies. The
+ * latest row for an account on each day wins and is carried forward until that
+ * account receives another balance update.
+ *
+ * With [creditCardsAsLiabilities] the series is net worth (Cashiro's Home
+ * definition): credit-card outstanding balances are subtracted. Otherwise credit
+ * cards are left out and the series is the cash-account total.
  */
 internal suspend fun buildBalanceTrend(
     balances: List<AccountBalanceEntity>,
@@ -22,13 +26,14 @@ internal suspend fun buildBalanceTrend(
     hiddenAccounts: Set<String>,
     selectedCurrency: String,
     unifiedMode: Boolean,
+    creditCardsAsLiabilities: Boolean = false,
     convert: suspend (amount: BigDecimal, fromCurrency: String, toCurrency: String) -> BigDecimal?,
 ): BalanceTrendResult {
     if (endDate < startDate) return BalanceTrendResult(emptyList(), false)
 
     val eligible = balances
         .asSequence()
-        .filterNot { it.isCreditCard }
+        .filter { creditCardsAsLiabilities || !it.isCreditCard }
         .filter { it.timestamp.toLocalDate() <= endDate }
         .filter { selectedProfileId == null || it.profileId == selectedProfileId }
         .filterNot { "${it.bankName}_${it.accountLast4}" in hiddenAccounts }
@@ -45,7 +50,9 @@ internal suspend fun buildBalanceTrend(
                     if (it == null) missingConversion = true
                 }
             }
-            if (convertedBalance != null) add(row to convertedBalance)
+            if (convertedBalance != null) {
+                add(row to if (row.isCreditCard) convertedBalance.negate() else convertedBalance)
+            }
         }
     }
 
@@ -58,14 +65,14 @@ internal suspend fun buildBalanceTrend(
         return BalanceTrendResult(emptyList(), missingConversion)
     }
 
-    data class AccountKey(val bankName: String, val accountLast4: String)
+    data class AccountKey(val bankName: String, val accountLast4: String, val isCreditCard: Boolean)
 
     val latestByAccount = mutableMapOf<AccountKey, BigDecimal>()
     val rowsByDay = convertedRows.groupBy { (row, _) -> row.timestamp.toLocalDate() }
     convertedRows
         .filter { (row, _) -> row.timestamp.toLocalDate() < startDate }
         .forEach { (row, value) ->
-            latestByAccount[AccountKey(row.bankName, row.accountLast4)] = value
+            latestByAccount[AccountKey(row.bankName, row.accountLast4, row.isCreditCard)] = value
         }
 
     val firstObservedDay = observedDays.minOrNull() ?: return BalanceTrendResult(emptyList(), missingConversion)
@@ -76,7 +83,7 @@ internal suspend fun buildBalanceTrend(
             .orEmpty()
             .sortedBy { (row, _) -> row.timestamp }
             .forEach { (row, value) ->
-                latestByAccount[AccountKey(row.bankName, row.accountLast4)] = value
+                latestByAccount[AccountKey(row.bankName, row.accountLast4, row.isCreditCard)] = value
             }
         if (latestByAccount.isNotEmpty()) {
             values += latestByAccount.values.fold(BigDecimal.ZERO, BigDecimal::add)
@@ -85,4 +92,20 @@ internal suspend fun buildBalanceTrend(
     }
 
     return BalanceTrendResult(values, missingConversion)
+}
+
+/**
+ * The value [values] held on [date], where [values] is a [buildBalanceTrend]
+ * series ending on [endDate] (one entry per day, contiguous). Null when [date]
+ * falls outside the recorded series.
+ */
+internal fun balanceTrendValueOn(
+    values: List<BigDecimal>,
+    endDate: LocalDate,
+    date: LocalDate,
+): BigDecimal? {
+    if (values.isEmpty() || date.isAfter(endDate)) return null
+    val daysBack = java.time.temporal.ChronoUnit.DAYS.between(date, endDate)
+    val index = values.lastIndex - daysBack
+    return if (index < 0 || index > values.lastIndex) null else values[index.toInt()]
 }

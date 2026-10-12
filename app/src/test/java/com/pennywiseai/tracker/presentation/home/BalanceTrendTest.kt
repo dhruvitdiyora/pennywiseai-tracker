@@ -108,11 +108,51 @@ class BalanceTrendTest {
         assertTrue(result.values.isEmpty())
     }
 
+    @Test
+    fun `net worth mode subtracts credit card outstanding`() = runTest {
+        val result = trend(
+            rows = listOf(
+                row("Primary", "1111", "1000", start),
+                row("Primary", "1111", "1100", start.plusDays(1)),
+                row("Card", "4444", "300", start, isCreditCard = true),
+                row("Card", "4444", "450", start.plusDays(2), isCreditCard = true),
+            ),
+            creditCardsAsLiabilities = true,
+        )
+
+        assertEquals(listOf("700", "800", "650"), result.values.map(BigDecimal::toPlainString))
+    }
+
+    @Test
+    fun `net worth mode keeps a card and an account with the same digits apart`() = runTest {
+        val result = trend(
+            rows = listOf(
+                row("Same", "1111", "500", start),
+                row("Same", "1111", "200", start.plusDays(1), isCreditCard = true),
+            ),
+            creditCardsAsLiabilities = true,
+        )
+
+        assertEquals(listOf("500", "300", "300"), result.values.map(BigDecimal::toPlainString))
+    }
+
+    @Test
+    fun `value on a date indexes back from the series end`() {
+        val values = listOf("10", "20", "30").map(::BigDecimal)
+
+        assertEquals(BigDecimal("30"), balanceTrendValueOn(values, end, end))
+        assertEquals(BigDecimal("10"), balanceTrendValueOn(values, end, start))
+        assertEquals(null, balanceTrendValueOn(values, end, start.minusDays(1)))
+        assertEquals(null, balanceTrendValueOn(values, end, end.plusDays(1)))
+        assertEquals(null, balanceTrendValueOn(emptyList(), end, end))
+    }
+
     private suspend fun trend(
         rows: List<AccountBalanceEntity>,
         selectedProfileId: Long? = null,
         hiddenAccounts: Set<String> = emptySet(),
         unifiedMode: Boolean = false,
+        creditCardsAsLiabilities: Boolean = false,
         convert: suspend (BigDecimal, String, String) -> BigDecimal? = { _, _, _ -> null },
     ) = buildBalanceTrend(
         balances = rows,
@@ -122,6 +162,7 @@ class BalanceTrendTest {
         hiddenAccounts = hiddenAccounts,
         selectedCurrency = "INR",
         unifiedMode = unifiedMode,
+        creditCardsAsLiabilities = creditCardsAsLiabilities,
         convert = convert,
     )
 
