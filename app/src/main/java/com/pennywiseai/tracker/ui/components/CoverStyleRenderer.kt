@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.effects.bottomFade
 import dev.chrisbanes.haze.HazeState
@@ -50,18 +51,19 @@ fun CoverGradientBanner(
 }
 
 /**
- * The user's own banner image, drawn where [CoverGradientBanner] would be: full-bleed
+ * The user's own banner image (or the bundled default when none is chosen), drawn where [CoverGradientBanner] would be: full-bleed
  * behind the transparent top bar, same height, softened and faded into the background
  * so the cards below stay readable.
  */
 @Composable
 fun HomeBannerImage(
-    imageUri: String,
+    imageUri: String?,
     modifier: Modifier = Modifier,
     hazeStateBanner: HazeState? = null
 ) {
+    // No chosen photo: the bundled default banner, as in Cashiro.
     val request = ImageRequest.Builder(LocalContext.current)
-        .data(imageUri)
+        .data(imageUri ?: R.drawable.banner_bg_image)
         .crossfade(true)
         .build()
     AsyncImage(

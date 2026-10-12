@@ -165,6 +165,16 @@ internal fun AboutScreenContent(
                 )
             }
         }
+
+        SettingsSection(title = stringResource(R.string.about_credits_section)) {
+            GlassCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+                Text(
+                    text = stringResource(R.string.about_credits_banner),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

@@ -363,12 +363,12 @@ fun HomeScreen(
         }
     ) { paddingValues ->
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Banner at y=0 — paints behind the transparent TopAppBar. A user-chosen
-        // image wins over the cover style; with none set the cover style draws.
-        val homeBannerUri = uiState.homeBannerUri.takeIf { uiState.showHomeBanner }
-        if (homeBannerUri != null) {
+        // Banner at y=0 — paints behind the transparent TopAppBar.
+        // Toggle on: the user's photo, else the bundled default banner (as in
+        // Cashiro). Toggle off: the chosen cover style.
+        if (uiState.showHomeBanner) {
             HomeBannerImage(
-                imageUri = homeBannerUri,
+                imageUri = uiState.homeBannerUri,
                 hazeStateBanner = hazeStateBanner,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
