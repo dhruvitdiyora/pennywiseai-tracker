@@ -4,7 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -98,6 +100,11 @@ fun ListItemCardV2(
     trailingContent: @Composable (() -> Unit)? = null,
     shape: CornerBasedShape = ListItemPosition.Single.toShape(),
     contentPadding: Dp = Dimensions.Padding.cardCompact,
+    /**
+     * Separate horizontal / vertical insets (e.g. Cashiro's 16 x 12dp Home
+     * rows). When set it replaces [contentPadding].
+     */
+    contentPaddingValues: PaddingValues? = null,
     /** Overrides the card's container colour when set (e.g. for selected state). */
     containerColor: Color? = null,
     onClick: (() -> Unit)? = null,
@@ -112,7 +119,7 @@ fun ListItemCardV2(
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
-        contentPadding = contentPadding,
+        contentPadding = if (contentPaddingValues != null) 0.dp else contentPadding,
         containerColor = containerColor,
         // Cashiro rows are bare solid surfaces: no border.
         border = BorderStroke(0.dp, Color.Transparent),
@@ -121,6 +128,7 @@ fun ListItemCardV2(
     ) {
         Row(
             modifier = Modifier
+                .then(if (contentPaddingValues != null) Modifier.padding(contentPaddingValues) else Modifier)
                 .fillMaxWidth()
                 // Keeps a row tappable even when its content is a single short
                 // line, without padding out rows that are already tall.

@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import org.junit.Rule
@@ -36,8 +37,8 @@ class BalanceCardTrendScreenshotTest {
 
         composeTestRule.onNodeWithText("Balance trend").assertIsDisplayed()
         composeTestRule.onNodeWithText("Last 5 days").assertIsDisplayed()
-        composeTestRule.onNodeWithText("This year").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Net worth").assertIsDisplayed()
+        composeTestRule.onNodeWithText("THIS YEAR").assertIsDisplayed()
+        composeTestRule.onNodeWithText("User • Net worth").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
     }
 
@@ -45,18 +46,18 @@ class BalanceCardTrendScreenshotTest {
     fun collapsedNetWorth_light() {
         setContent(darkTheme = false, approximate = false, expanded = false)
 
-        composeTestRule.onNodeWithText("Net worth").assertIsDisplayed()
+        composeTestRule.onNodeWithText(CurrencyFormatter.formatCurrency(BigDecimal("24300"), "INR")).assertIsDisplayed()
         composeTestRule.onNodeWithText("+8% this month").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
     }
 
     @Test
     @Config(qualifiers = "+night")
-    fun collapsedNetWorthMultiCurrency_dark() {
+    fun expandedNetWorthMultiCurrency_dark() {
         setContent(
             darkTheme = true,
             approximate = false,
-            expanded = false,
+            expanded = true,
             currencies = listOf("INR", "USD"),
         )
 
@@ -65,10 +66,13 @@ class BalanceCardTrendScreenshotTest {
     }
 
     @Test
-    fun hiddenBalances_maskNetWorth() {
+    fun hiddenBalances_showNameInsteadOfNetWorth() {
         setContent(darkTheme = false, approximate = false, expanded = false, hidden = true)
 
-        composeTestRule.onNodeWithText("Spent this month: ••••••").assertIsDisplayed()
+        // Cashiro's collapsed headline: the abbreviated name, never the amount.
+        composeTestRule.onNodeWithText("USER").assertIsDisplayed()
+        composeTestRule.onNodeWithText(CurrencyFormatter.formatCurrency(BigDecimal("24300"), "INR")).assertDoesNotExist()
+        composeTestRule.onNodeWithText("••••").assertIsDisplayed()
     }
 
     @Test

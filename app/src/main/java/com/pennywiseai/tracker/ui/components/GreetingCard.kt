@@ -153,7 +153,8 @@ fun GreetingCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = stringResource(R.string.home_upgrade_pro),
-                    tint = yellow_dark
+                    tint = yellow_dark,
+                    modifier = Modifier.size(GREETING_ACTION_ICON_SIZE)
                 )
             }
         }
@@ -169,7 +170,8 @@ fun GreetingCard(
                     Icon(
                         imageVector = profileFilterIcon(profiles, selectedProfileId),
                         contentDescription = stringResource(R.string.greeting_profile_filter),
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(GREETING_ACTION_ICON_SIZE)
                     )
                 }
                 ProfileFilterDropdown(
@@ -190,7 +192,8 @@ fun GreetingCard(
             Icon(
                 imageVector = Icons.Default.MoreHoriz,
                 contentDescription = stringResource(R.string.greeting_more_options),
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(GREETING_ACTION_ICON_SIZE)
             )
         }
     }
@@ -288,3 +291,6 @@ fun ProfileAvatar(
         }
     }
 }
+
+/** Cashiro's greeting-row action glyphs are 28dp, a step above the 24dp default. */
+private val GREETING_ACTION_ICON_SIZE = Dimensions.Icon.medium + Spacing.xs

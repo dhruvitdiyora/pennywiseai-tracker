@@ -71,6 +71,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.compositeOver
+import com.pennywiseai.tracker.ui.components.legibleOn
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
@@ -104,10 +110,11 @@ import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
+import com.pennywiseai.tracker.ui.components.cards.cashFlowHasChannels
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
-import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
@@ -435,6 +442,7 @@ fun HomeScreen(
                             currentMonthLent = uiState.currentMonthLent,
                             currentMonthTotal = uiState.currentMonthTotal,
                             balanceHistory = uiState.balanceHistory,
+                            balanceHistoryEndDate = uiState.balanceHistoryEndDate,
                             isBalanceHistoryApproximate = uiState.isBalanceHistoryApproximate,
                             spendingHistory = uiState.spendingHistory,
                             lastMonthSpendingHistory = uiState.lastMonthSpendingHistory,
@@ -478,8 +486,12 @@ fun HomeScreen(
                 }
             }
 
-            // 1.5. Cash-flow card (25ms delay) — hides itself on dormant months.
-            item {
+            // 1.5. Cash-flow card (25ms delay) — absent on dormant months. Skipped
+            // as an item (not just drawn empty) so it leaves no list gap behind.
+            // When card spend counts as expense (#705) it's already in "Spent this
+            // month", so it's left out of this "outside cash flow" card.
+            val cashFlowCreditCard = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard
+            if (cashFlowHasChannels(cashFlowCreditCard, uiState.currentMonthInvestment, uiState.currentMonthTransfer)) item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
                     if (!hasAnimated) { delay(25); visible.value = true }
@@ -493,10 +505,7 @@ fun HomeScreen(
                 ) {
                     CashFlowCard(
                         currency = uiState.selectedCurrency,
-                        // When card spend counts as expense (#705) it's already in
-                        // "Spent this month", so drop it from this "outside cash flow"
-                        // card (a zero channel is filtered out) to avoid double-showing.
-                        creditCardSpend = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard,
+                        creditCardSpend = cashFlowCreditCard,
                         investments = uiState.currentMonthInvestment,
                         transfers = uiState.currentMonthTransfer,
                         isBalanceHidden = uiState.isBalanceHidden,
@@ -530,31 +539,15 @@ fun HomeScreen(
                                         animationSpec = tween(300)
                                     )
                                 ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_budgets),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToBudgets) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        BudgetCarousel(
-                                            summary = summary,
-                                            onClick = onNavigateToBudgets,
-                                            onCreateBudget = onNavigateToBudgets,
-                                            blurEffects = blurEffects,
-                                            hazeState = hazeStateBanner
-                                        )
-                                    }
+                                    // Header-less, as in Cashiro: the carousel's cards name
+                                    // their budgets and open the Budgets screen on tap.
+                                    BudgetCarousel(
+                                        summary = summary,
+                                        onClick = onNavigateToBudgets,
+                                        onCreateBudget = onNavigateToBudgets,
+                                        blurEffects = blurEffects,
+                                        hazeState = hazeStateBanner
+                                    )
                                 }
                             }
                         }
@@ -574,34 +567,16 @@ fun HomeScreen(
                                         animationSpec = tween(300)
                                     )
                                 ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_loans),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToLoans) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                            ActiveLoansSummaryCard(
-                                                totalLentRemaining = summary.totalLentRemaining,
-                                                totalBorrowedRemaining = summary.totalBorrowedRemaining,
-                                                currency = uiState.selectedCurrency,
-                                                onClick = onNavigateToLoans,
-                                                blurEffects = blurEffects,
-                                                hazeState = hazeStateBanner
-                                            )
-                                        }
-                                    }
+                                    // Cashiro's Lent / Borrowed card: header-less, the whole card
+                                    // opens Loans.
+                                    LendBorrowCard(
+                                        summary = summary,
+                                        currency = uiState.selectedCurrency,
+                                        onClick = onNavigateToLoans,
+                                        blurEffects = blurEffects,
+                                        hazeState = hazeStateBanner,
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                    )
                                 }
                             }
                         }
@@ -659,7 +634,9 @@ fun HomeScreen(
                         }
                     }
                     HomeSection.RECENT_TRANSACTIONS -> {
-                        // 3. Recent Transactions Section
+                        // 3. Recent Transactions — Cashiro's block: the "Recent" header
+                        // sits flush on a short grouped list, with a small "View All"
+                        // pill beneath it, all in one item so no list gap splits them.
                         item(key = section.name) {
                             val visible = remember { mutableStateOf(hasAnimated) }
                             LaunchedEffect(Unit) {
@@ -672,103 +649,73 @@ fun HomeScreen(
                                     animationSpec = tween(300)
                                 )
                             ) {
-                                // "Recent" in the accent colour with a Search action; the
-                                // "View All" link now sits under the list (Cashiro layout).
-                                RecentSectionHeader(
-                                    onSearchClick = onNavigateToTransactionsWithSearch,
-                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                )
-                            }
-                        }
-
-                        if (uiState.isLoading) {
-                            item(key = "${section.name}_body") {
                                 Column(
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    repeat(5) {
-                                        TransactionItemSkeleton()
-                                    }
-                                }
-                            }
-                        } else if (uiState.recentItems.isEmpty()) {
-                            item(key = "${section.name}_body") {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
-                                    )
-                                ) {
-                                    PennyWiseEmptyState(
-                                        icon = Icons.Default.Sync,
-                                        headline = stringResource(R.string.home_empty_headline),
-                                        description = stringResource(R.string.home_empty_description),
-                                        actionLabel = stringResource(R.string.home_empty_action),
-                                        onAction = { viewModel.scanSmsMessages() },
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        ghostContent = {
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                                            ) {
-                                                repeat(3) {
-                                                    TransactionItemSkeleton()
+                                    RecentSectionHeader(onSearchClick = onNavigateToTransactionsWithSearch)
+                                    when {
+                                        uiState.isLoading -> Column(
+                                            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+                                        ) {
+                                            repeat(HOME_RECENT_SKELETON_ROWS) {
+                                                TransactionItemSkeleton()
+                                            }
+                                        }
+                                        uiState.recentItems.isEmpty() -> PennyWiseEmptyState(
+                                            icon = Icons.Default.Sync,
+                                            headline = stringResource(R.string.home_empty_headline),
+                                            description = stringResource(R.string.home_empty_description),
+                                            actionLabel = stringResource(R.string.home_empty_action),
+                                            onAction = { viewModel.scanSmsMessages() },
+                                            ghostContent = {
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+                                                ) {
+                                                    repeat(HOME_RECENT_SKELETON_ROWS) {
+                                                        TransactionItemSkeleton()
+                                                    }
                                                 }
                                             }
-                                        }
-                                    )
-                                }
-                            }
-                        } else {
-                            item(key = "${section.name}_body") {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
-                                    )
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                                    ) {
-                                        val profileAccountKeys = remember(uiState.accountBalances) {
-                                            buildProfileAccountKeys(uiState.accountBalances)
-                                        }
-                                        uiState.recentItems.forEach { item ->
-                                            when (item) {
-                                                is HomeRecentItem.SingleTransaction -> TransactionItem(
-                                                    transaction = item.transaction,
-                                                    convertedAmount = item.convertedAmount,
-                                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                                    showTypeLabel = false,
-                                                    profileAccountKeys = profileAccountKeys,
-                                                    onClick = { onTransactionClick(item.transaction.id) }
-                                                )
-                                                is HomeRecentItem.GroupItem -> GroupCard(
-                                                    group = item.group,
-                                                    transactions = item.transactions,
-                                                    convertedAmounts = item.convertedAmounts,
-                                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                                    onClick = { onGroupClick(item.group.id) }
-                                                )
-                                            }
-                                        }
-
-                                        ViewAllPill(
-                                            onClick = onNavigateToTransactions,
-                                            blurEffects = blurEffects,
-                                            modifier = Modifier.align(Alignment.CenterHorizontally)
                                         )
+                                        else -> {
+                                            val profileAccountKeys = remember(uiState.accountBalances) {
+                                                buildProfileAccountKeys(uiState.accountBalances)
+                                            }
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+                                            ) {
+                                                val items = uiState.recentItems
+                                                items.forEachIndexed { index, item ->
+                                                    val position = ListItemPosition.from(index, items.size)
+                                                    when (item) {
+                                                        is HomeRecentItem.SingleTransaction -> TransactionItem(
+                                                            transaction = item.transaction,
+                                                            convertedAmount = item.convertedAmount,
+                                                            displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                                            showTypeLabel = false,
+                                                            listItemPosition = position,
+                                                            dense = true,
+                                                            profileAccountKeys = profileAccountKeys,
+                                                            onClick = { onTransactionClick(item.transaction.id) }
+                                                        )
+                                                        is HomeRecentItem.GroupItem -> GroupCard(
+                                                            group = item.group,
+                                                            transactions = item.transactions,
+                                                            convertedAmounts = item.convertedAmounts,
+                                                            displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
+                                                            listItemPosition = position,
+                                                            dense = true,
+                                                            onClick = { onGroupClick(item.group.id) }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            ViewAllPill(
+                                                onClick = onNavigateToTransactions,
+                                                blurEffects = blurEffects
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -861,20 +808,13 @@ fun HomeScreen(
                                     animationSpec = tween(300)
                                 )
                             ) {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                ) {
-                                    SectionHeaderV2(
-                                        title = stringResource(R.string.home_section_activity),
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                    )
-                                    com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
-                                        transactionHeatmap = uiState.transactionHeatmap,
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        blurEffects = blurEffects,
-                                        hazeState = hazeStateBanner
-                                    )
-                                }
+                                // Header-less, as in Cashiro: the month labels say what it is.
+                                com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
+                                    transactionHeatmap = uiState.transactionHeatmap,
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                    blurEffects = blurEffects,
+                                    hazeState = hazeStateBanner
+                                )
                             }
                         }
                     }
@@ -1327,6 +1267,8 @@ private fun UpcomingSubscriptionsCard(
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
+        // Cashiro's very round (48dp, so effectively pill-ended) card.
+        shape = RoundedCornerShape(Spacing.xxl),
         blurEffects = blurEffects,
         hazeState = hazeState,
         tint = baseColor,
@@ -1337,7 +1279,11 @@ private fun UpcomingSubscriptionsCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = Spacing.smd)
+            ) {
                 Text(
                     text = pluralStringResource(
                         R.plurals.home_active_subscriptions,
@@ -1346,7 +1292,7 @@ private fun UpcomingSubscriptionsCard(
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -1364,7 +1310,8 @@ private fun UpcomingSubscriptionsCard(
                                 fallbackCurrency = currency
                             )
                         },
-                        style = PennyWiseText.amountLarge,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         // A mixed-currency list can be long; let it wrap rather
                         // than shove the unit off the card.
@@ -1375,7 +1322,7 @@ private fun UpcomingSubscriptionsCard(
                         style = MaterialTheme.typography.bodySmall,
                         fontStyle = FontStyle.Italic,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle),
                         modifier = Modifier.padding(bottom = Spacing.xxs)
                     )
                 }
@@ -1384,7 +1331,8 @@ private fun UpcomingSubscriptionsCard(
             if (subscriptions.isNotEmpty()) {
                 SubscriptionIconsStack(
                     subscriptions = subscriptions,
-                    modifier = Modifier.padding(start = Spacing.sm),
+                    iconSize = SUBSCRIPTION_ICON_SIZE,
+                    modifier = Modifier.padding(start = Spacing.sm, end = Spacing.sm),
                     // Ring each logo in the surface it sits on so the overlap
                     // reads as a cut-out (the card is translucent over a blur,
                     // so use the opaque base tone).
@@ -1402,38 +1350,52 @@ private fun UpcomingSubscriptionsCard(
     }
 }
 
+/**
+ * Cashiro's Lent / Borrowed card (`LendBorrowCard`): two tonal tiles side by
+ * side, each with a small arrow badge, the label, the remaining amount and the
+ * people it is with as an overlapping avatar stack. The whole card opens Loans.
+ *
+ * Both amounts are in [currency]: the ViewModel only counts loans in that
+ * currency (or converts them in unified mode), never adding currencies.
+ */
 @Composable
-internal fun ActiveLoansSummaryCard(
-    totalLentRemaining: java.math.BigDecimal,
-    totalBorrowedRemaining: java.math.BigDecimal,
+internal fun LendBorrowCard(
+    summary: LoanSummary,
     currency: String,
-    onClick: () -> Unit = {},
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {
     GlassCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick,
+        shape = RoundedCornerShape(LEND_BORROW_CARD_RADIUS),
         blurEffects = blurEffects,
-        hazeState = hazeState
+        hazeState = hazeState,
+        contentPadding = Dimensions.Padding.content
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            HomeLoanSummaryItem(
-                label = stringResource(R.string.home_loans_label_owed_to_you),
-                amount = totalLentRemaining,
+            LendBorrowTile(
+                label = stringResource(R.string.loans_direction_lent),
+                amount = summary.totalLentRemaining,
+                people = summary.lentPeople,
                 currency = currency,
-                color = MaterialTheme.colorScheme.income,
+                color = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.ArrowUpward,
                 modifier = Modifier.weight(1f),
             )
-            HomeLoanSummaryItem(
-                label = stringResource(R.string.home_loans_label_you_owe),
-                amount = totalBorrowedRemaining,
+            LendBorrowTile(
+                label = stringResource(R.string.loans_direction_borrowed),
+                amount = summary.totalBorrowedRemaining,
+                people = summary.borrowedPeople,
                 currency = currency,
-                color = MaterialTheme.colorScheme.warning,
+                color = MaterialTheme.colorScheme.secondary,
                 icon = Icons.Default.ArrowDownward,
                 modifier = Modifier.weight(1f),
             )
@@ -1442,55 +1404,148 @@ internal fun ActiveLoansSummaryCard(
 }
 
 @Composable
-private fun HomeLoanSummaryItem(
+private fun LendBorrowTile(
     label: String,
     amount: java.math.BigDecimal,
+    people: List<LoanPerson>,
     currency: String,
     color: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    val tileColor = color.copy(alpha = LEND_BORROW_TILE_ALPHA)
+    // Cashiro tints the amount and arrow with the tile's own colour; nudge it
+    // until it reads on the tile (a dark primary would otherwise vanish).
+    val scheme = MaterialTheme.colorScheme
+    val accent = remember(color, scheme.surfaceContainerLow, scheme.onSurface) {
+        color.legibleOn(
+            background = tileColor.compositeOver(scheme.surfaceContainerLow),
+            towards = scheme.onSurface,
+        )
+    }
+    Surface(
+        modifier = modifier.fillMaxHeight(),
+        shape = RoundedCornerShape(Dimensions.Glass.heroRadius),
+        color = tileColor,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Icon.large)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = Dimensions.Alpha.tonalIconContainer)),
-                contentAlignment = Alignment.Center,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(Dimensions.Icon.inline),
+                Surface(
+                    color = color.copy(alpha = LEND_BORROW_TILE_ALPHA),
+                    shape = RoundedCornerShape(LEND_BORROW_BADGE_RADIUS),
+                    modifier = Modifier.size(Dimensions.Icon.inline)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(Dimensions.Icon.tiny)
+                        )
+                    }
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = CurrencyFormatter.formatCurrency(amount, currency),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = LEND_BORROW_AMOUNT_SIZE
+                ),
+                color = accent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            LoanPeopleStack(
+                people = people,
+                modifier = Modifier.align(Alignment.End)
             )
         }
-        Text(
-            text = CurrencyFormatter.formatCurrency(amount, currency),
-            style = PennyWiseText.amountMedium,
-            color = color,
-        )
     }
 }
 
+/** Cashiro's `PersonIconsStack`: up to four overlapping initials avatars, then "+N". */
+@Composable
+private fun LoanPeopleStack(
+    people: List<LoanPerson>,
+    modifier: Modifier = Modifier,
+) {
+    if (people.isEmpty()) return
+    val shown = people.take(LOAN_PEOPLE_MAX)
+    val remaining = people.size - shown.size
+    val circles = shown.size + if (remaining > 0) 1 else 0
+    val step = LOAN_PERSON_SIZE * LOAN_PERSON_OVERLAP
+    val outer = LOAN_PERSON_SIZE + Spacing.xs
+    Box(modifier = modifier.width(step * (circles - 1) + outer)) {
+        shown.forEachIndexed { index, person ->
+            val fill = person.colorHex?.let { hex ->
+                runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
+            } ?: MaterialTheme.colorScheme.primaryContainer
+            Box(
+                modifier = Modifier
+                    .offset(x = step * index)
+                    .zIndex(index.toFloat())
+                    .size(outer)
+                    .shadow(Spacing.xxs, CircleShape)
+                    .clip(CircleShape)
+                    .background(fill),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = person.name.trim().take(1).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (fill.luminance() > 0.5f) Color.Black else Color.White
+                )
+            }
+        }
+        if (remaining > 0) {
+            Box(
+                modifier = Modifier
+                    .offset(x = step * shown.size)
+                    .zIndex(shown.size.toFloat())
+                    .size(outer)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "+$remaining",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+    }
+}
+
+/** Cashiro's subscription-logo size on the Home card. */
+private val SUBSCRIPTION_ICON_SIZE = 38.dp
+private val LEND_BORROW_CARD_RADIUS = 32.dp
+private val LEND_BORROW_BADGE_RADIUS = 6.dp
+private const val LEND_BORROW_TILE_ALPHA = 0.2f
+private val LEND_BORROW_AMOUNT_SIZE = 22.sp
+private val LOAN_PERSON_SIZE = 24.dp
+private const val LOAN_PERSON_OVERLAP = 0.55f
+private const val LOAN_PEOPLE_MAX = 4
+
 /**
- * The "Recent" header: the title in the accent colour, with a Search action on
- * the right. Cashiro's section-header treatment — the accent marks the heading
- * of the one section that has transactions under it, and the action stays a
- * plain text button.
+ * Cashiro's "Recent" header: a `titleSmall` semibold title in the accent colour,
+ * inset to line up with the row content below, and a plain Search text button.
  */
 @Composable
 private fun RecentSectionHeader(
@@ -1500,15 +1555,15 @@ private fun RecentSectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = Spacing.sm)
-            .defaultMinSize(minHeight = Dimensions.Component.iconButton)
+            .padding(start = Spacing.md, end = Spacing.sm)
             .semantics { heading() },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = stringResource(R.string.home_recent_title),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1518,6 +1573,7 @@ private fun RecentSectionHeader(
             Icon(
                 imageVector = Iconax.Search,
                 contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
             Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1526,7 +1582,11 @@ private fun RecentSectionHeader(
     }
 }
 
-/** The small centred "View All ›" pill under the recent-transactions list. */
+/**
+ * Cashiro's small centred "View All" pill under the Recent list: 26dp tall,
+ * `bodySmall` in the accent colour. The touch target is still padded out to
+ * the 48dp minimum, which also supplies the gap above the pill.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ViewAllPill(
@@ -1537,29 +1597,28 @@ private fun ViewAllPill(
     val baseColor = MaterialTheme.colorScheme.surfaceContainerLow
     Surface(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize(),
-        shape = CircleShape,
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .height(VIEW_ALL_PILL_HEIGHT),
+        shape = RoundedCornerShape(Dimensions.Glass.heroRadius),
         // Over the translucent banner a solid pill would look pasted on.
-        color = if (blurEffects) baseColor.copy(alpha = 0.7f) else baseColor,
+        color = if (blurEffects) baseColor.copy(alpha = VIEW_ALL_PILL_GLASS_ALPHA) else baseColor,
         contentColor = MaterialTheme.colorScheme.primary
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             Text(
                 text = stringResource(R.string.home_view_all),
-                style = MaterialTheme.typography.labelLarge
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.small)
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = Spacing.md)
             )
         }
     }
 }
+
+/** Skeleton rows shown while Home's Recent list loads (it holds three). */
+private const val HOME_RECENT_SKELETON_ROWS = 3
+private val VIEW_ALL_PILL_HEIGHT = 26.dp
+private const val VIEW_ALL_PILL_GLASS_ALPHA = 0.7f
 
 /**
  * A 40dp round button for the compact Home bar (the "…" menu). The touch

@@ -511,6 +511,39 @@ supersedes the "Explicitly excluded" items of the portfolio-trend entry above
 - No schema, entity, or backup change. Logic lives in
   `domain/usecase/NetWorthCalculator.kt` with unit tests.
 
+## 2026-10-12 — Implemented: Home tab and Net worth hero visual parity
+
+Delegated Cashiro-parity UI pass; no financial meaning, data or backup change.
+
+- **Collapsed hero = Cashiro's layout:** one `headlineSmall` ExtraBold headline,
+  "▲ +4% this month" under it, a 100 x 40dp sparkline at the right, the long
+  chevron overlaid on the bottom edge; 24dp corners, 16dp padding. The label row,
+  eye, currency chip and "Spent this month" line left the collapsed state.
+- **Privacy kept:** while balances are hidden (the default) the headline is
+  Cashiro's abbreviated name (its own privacy device) instead of dots, and the
+  change % stays masked. Revealed, the headline is the net worth.
+- **Expanded hero = Cashiro's:** initials with "Name • Net worth" (+ a small eye,
+  the only show/hide control now) on the left, the amount and currency chip on the
+  right; Cashiro's chart (dashed grid, point dots, left-to-right reveal, ≤50
+  averaged points, first/last date, "Last N days"); uppercase trio. High/low labels
+  are the series' real extremes, not Cashiro's ±10% padded axis bounds.
+  PennyWise's spending breakdown and accounts stay below the trio. Expand/collapse
+  uses Cashiro's AnimatedVisibility + `fastSpatialSpec` motion.
+- **Recent:** header, 3 rows (was 5) and the 26dp "View All" pill form one block;
+  `titleSmall` semibold header inset 16dp; rows grouped (2dp gaps, 20/8dp corners),
+  40dp logos, 16 x 12dp insets (`TransactionItem(dense = true)`, Home only). The
+  empty Cash-flow item no longer leaves a list gap under the hero.
+- **Widgets:** Budgets, Loans and Activity lose their section headers as in
+  Cashiro (cards stay tappable; Groups keeps its header, Cashiro has no groups).
+  Subscriptions card takes Cashiro's 48dp corners, inset text, `titleLarge`
+  total and 38dp logos. Loans becomes Cashiro's Lent / Borrowed card: two tonal
+  tiles with arrow badges and an avatar stack of the people (contact colour,
+  initials). Tile colours are nudged with `legibleOn` so a dark accent stays
+  readable; tiles share one height (Cashiro's differ — not ported).
+- **Greeting row:** action glyphs 28dp as in Cashiro; PennyWise's actions (Pro
+  sparkle, profile filter, "…") and the stacked Sync/Add FABs are unchanged.
+- Trend chart and sparkline use `primary` nudged for contrast on the card.
+
 ## Implemented — Analytics category and chart-label polish
 
 **Decision:** Proceeded on 2026-09-09 after a read-only Cashiro/current-worktree

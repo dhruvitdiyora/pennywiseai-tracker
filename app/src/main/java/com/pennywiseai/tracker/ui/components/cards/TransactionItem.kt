@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -108,6 +109,11 @@ fun TransactionItem(
      */
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
+    /**
+     * Cashiro's denser Home row: a 40dp logo and 16 x 12dp insets instead of
+     * the 48dp logo and 12dp insets used by the full transaction lists.
+     */
+    dense: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -350,6 +356,7 @@ fun TransactionItem(
         amountColor = amountColor,
         shape = rowShape,
         contentPadding = Dimensions.Padding.cardCompact,
+        contentPaddingValues = if (dense) DenseRowPadding else null,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
@@ -367,7 +374,7 @@ fun TransactionItem(
             if (isSelectionMode) {
                 Box(
                     modifier = Modifier
-                        .size(Dimensions.Icon.avatarLarge)
+                        .size(if (dense) Dimensions.Icon.list else Dimensions.Icon.avatarLarge)
                         .semantics { selected = isSelected },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -397,7 +404,7 @@ fun TransactionItem(
                 } else {
                     Modifier
                 }
-                val avatarSize = Dimensions.Icon.avatarLarge
+                val avatarSize = if (dense) Dimensions.Icon.list else Dimensions.Icon.avatarLarge
                 // IconProvider decides logo vs category icon vs the user's emoji.
                 // A real brand logo keeps BrandIcon's brand-coloured tile; every
                 // other merchant gets its category colour at low alpha instead of
@@ -580,3 +587,6 @@ private fun transferTitleOverride(transaction: TransactionEntity, resources: Res
         else -> null
     }
 }
+
+/** Cashiro's Home row insets (`ListItem`: 16dp horizontal, 12dp vertical). */
+private val DenseRowPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.smd)

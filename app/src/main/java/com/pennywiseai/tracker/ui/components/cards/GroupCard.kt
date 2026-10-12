@@ -7,6 +7,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import com.pennywiseai.tracker.ui.theme.Spacing
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -40,7 +42,11 @@ fun GroupCard(
     convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     displayCurrency: String? = null,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Corner treatment when the card sits in a grouped list (Home's Recent). */
+    listItemPosition: ListItemPosition = ListItemPosition.Single,
+    /** Cashiro's 16 x 12dp Home-row insets instead of the default 12dp. */
+    dense: Boolean = false,
 ) {
     val view = LocalView.current
     val isDark = isAppInDarkTheme()
@@ -86,6 +92,12 @@ fun GroupCard(
         subtitle = subtitle,
         amount = formattedAmount,
         amountColor = amountColor,
+        shape = listItemPosition.toShape(),
+        contentPaddingValues = if (dense) {
+            PaddingValues(horizontal = Spacing.md, vertical = Spacing.smd)
+        } else {
+            null
+        },
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
