@@ -49,6 +49,13 @@ import java.math.BigDecimal
  * every channel is zero the card renders nothing so the feed stays quiet on
  * dormant months.
  */
+/** Whether [CashFlowCard] has anything to show (it draws nothing otherwise). */
+fun cashFlowHasChannels(
+    creditCardSpend: BigDecimal,
+    investments: BigDecimal,
+    transfers: BigDecimal,
+): Boolean = listOf(creditCardSpend, investments, transfers).any { it.signum() != 0 }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CashFlowCard(

@@ -616,6 +616,7 @@ class HomeViewModel @Inject constructor(
                     }
                     _uiState.value = _uiState.value.copy(
                         balanceHistory = trend.values,
+                        balanceHistoryEndDate = inputs.endDate,
                         isBalanceHistoryApproximate = trend.isApproximate,
                         netWorthChangePercent = changePercent,
                     )
@@ -1827,6 +1828,8 @@ data class HomeUiState(
     val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val spendingHistory: List<BigDecimal> = emptyList(),
     val balanceHistory: List<BigDecimal> = emptyList(),
+    /** The day [balanceHistory]'s last entry belongs to (one entry per day). */
+    val balanceHistoryEndDate: LocalDate? = null,
     val isBalanceHistoryApproximate: Boolean = false,
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
