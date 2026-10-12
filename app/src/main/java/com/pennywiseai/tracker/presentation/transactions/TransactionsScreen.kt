@@ -343,8 +343,9 @@ fun TransactionsScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             if (selectionMode) {
-                // Contextual top bar for bulk-edit (#369): close left, count as title,
-                // Change Category + Delete on the right.
+                // Contextual top bar for bulk-edit (#369), Cashiro-style: back on the
+                // left, select-all and delete as round tonal buttons on the right.
+                // The other bulk actions live behind the floating "Edit" pill.
                 CustomTitleTopAppBar(
                     scrollBehaviorSmall = scrollBehavior,
                     scrollBehaviorLarge = scrollBehavior,
@@ -354,38 +355,38 @@ fun TransactionsScreen(
                         TonalNavigationButton(
                             onClick = { viewModel.clearSelection() },
                             contentDescription = stringResource(R.string.txn_list_exit_selection),
-                            icon = Icons.Default.Close,
                         )
                     },
                     actionContent = {
-                        // Wrap explicitly in a Row so both action IconButtons render
-                        // even when the top-bar's actions slot is constrained.
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Link exactly two selected rows as a transfer — the
-                            // manual counterpart to the auto-detected chip (#614),
-                            // covering pairs the detector misses (fees, wide gaps).
-                            if (selectedIds.size == 2) {
-                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }) {
-                                    Icon(
-                                        Icons.Default.SwapHoriz,
-                                        contentDescription = stringResource(R.string.txn_list_mark_as_transfer)
-                                    )
-                                }
-                            }
-                            IconButton(onClick = { showBulkCategorySheet = true }) {
-                                Icon(Icons.Default.Category, contentDescription = stringResource(R.string.txn_list_change_category))
-                            }
-                            IconButton(onClick = { showBulkGroupSheet = true }) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            modifier = Modifier.padding(end = Dimensions.Padding.content)
+                        ) {
+                            IconButton(
+                                onClick = { viewModel.selectAllVisible() },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    contentColor = MaterialTheme.colorScheme.onBackground,
+                                ),
+                            ) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.PlaylistAdd,
-                                    contentDescription = stringResource(R.string.txn_list_add_to_group)
+                                    Icons.Default.SelectAll,
+                                    contentDescription = stringResource(R.string.txn_list_select_all),
+                                    modifier = Modifier.size(Dimensions.Icon.inline)
                                 )
                             }
-                            IconButton(onClick = { viewModel.bulkDelete() }) {
+                            IconButton(
+                                onClick = { viewModel.bulkDelete() },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    contentColor = MaterialTheme.colorScheme.error,
+                                ),
+                            ) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = stringResource(R.string.txn_list_delete_selected),
-                                    tint = MaterialTheme.colorScheme.error
+                                    modifier = Modifier.size(Dimensions.Icon.inline)
                                 )
                             }
                         }
@@ -409,6 +410,48 @@ fun TransactionsScreen(
             }
         },
         floatingActionButton = {
+            if (selectionMode) {
+                // Cashiro's "Edit - N" pill. It opens the bulk actions PennyWise
+                // already has: category, add to group, mark as transfer.
+                var editMenuOpen by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.padding(bottom = bottomBarClearance)) {
+                    ExtendedFloatingActionButton(
+                        onClick = { editMenuOpen = true },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        icon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        text = {
+                            Text(
+                                text = stringResource(R.string.txn_list_edit_selected, selectedIds.size),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        },
+                    )
+                    DropdownMenu(
+                        expanded = editMenuOpen,
+                        onDismissRequest = { editMenuOpen = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.txn_list_change_category)) },
+                            leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
+                            onClick = { editMenuOpen = false; showBulkCategorySheet = true },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.txn_list_add_to_group)) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
+                            onClick = { editMenuOpen = false; showBulkGroupSheet = true },
+                        )
+                        // Link exactly two selected rows as a transfer (#614).
+                        if (selectedIds.size == 2) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.txn_list_mark_as_transfer)) },
+                                leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
+                                onClick = { editMenuOpen = false; viewModel.bulkMarkAsTransfer() },
+                            )
+                        }
+                    }
+                }
+            } else
             Column(
                 modifier = Modifier.padding(bottom = bottomBarClearance),
                 horizontalAlignment = Alignment.CenterHorizontally,
