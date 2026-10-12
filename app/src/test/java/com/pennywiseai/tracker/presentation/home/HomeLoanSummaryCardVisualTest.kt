@@ -38,8 +38,8 @@ class HomeLoanSummaryCardVisualTest {
     fun dual_summary_light() {
         setContent(darkTheme = false)
 
-        composeTestRule.onNodeWithText("Owed to you").assertIsDisplayed()
-        composeTestRule.onNodeWithText("You owe").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Lent").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Borrowed").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
     }
 
@@ -48,7 +48,7 @@ class HomeLoanSummaryCardVisualTest {
     fun dual_summary_dark() {
         setContent(darkTheme = true)
 
-        composeTestRule.onNodeWithText("Owed to you").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Lent").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage()
     }
 
@@ -81,9 +81,17 @@ class HomeLoanSummaryCardVisualTest {
                         modifier = Modifier.padding(Dimensions.Padding.content),
                         contentAlignment = Alignment.TopCenter,
                     ) {
-                        ActiveLoansSummaryCard(
-                            totalLentRemaining = BigDecimal("1250.75"),
-                            totalBorrowedRemaining = BigDecimal("980.50"),
+                        LendBorrowCard(
+                            summary = LoanSummary(
+                                activeLoans = emptyList(),
+                                totalLentRemaining = BigDecimal("1250.75"),
+                                totalBorrowedRemaining = BigDecimal("980.50"),
+                                lentPeople = listOf(
+                                    LoanPerson("Asha", "#4CAF50"),
+                                    LoanPerson("Ben"),
+                                ),
+                                borrowedPeople = listOf(LoanPerson("Chris", "#3F51B5")),
+                            ),
                             currency = "USD",
                             onClick = onClick,
                         )

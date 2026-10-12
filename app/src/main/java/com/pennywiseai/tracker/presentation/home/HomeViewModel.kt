@@ -89,6 +89,7 @@ class HomeViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val loanRepository: LoanRepository,
+    private val personRepository: com.pennywiseai.tracker.data.repository.PersonRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -841,17 +842,18 @@ class HomeViewModel @Inject constructor(
             combine(
                 loanRepository.getActiveLoans(),
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { loans, isUnified, displayCurrency ->
+                userPreferencesRepository.displayCurrency,
+                personRepository.observePeople(includeArchived = true)
+            ) { loans, isUnified, displayCurrency, people ->
                 if (loans.isEmpty()) null
-                else Triple(loans, isUnified, displayCurrency)
+                else Quad(loans, isUnified, displayCurrency, people.associate { it.person.id to it.person })
             }.collect { summary ->
                 if (summary == null) {
                     _uiState.value = _uiState.value.copy(loanSummary = null)
                     return@collect
                 }
 
-                val (loans, isUnified, displayCurrency) = summary
+                val (loans, isUnified, displayCurrency, peopleById) = summary
                 val selectedCurrency = if (isUnified) displayCurrency else _uiState.value.selectedCurrency
 
                 val loanCurrencies = loans.map { it.currency }.distinct()
@@ -887,7 +889,15 @@ class HomeViewModel @Inject constructor(
                     loanSummary = LoanSummary(
                         activeLoans = loans,
                         totalLentRemaining = lentTotal,
-                        totalBorrowedRemaining = borrowedTotal
+                        totalBorrowedRemaining = borrowedTotal,
+                        lentPeople = loanPeople(
+                            loansForTotals.filter { it.direction == com.pennywiseai.tracker.data.database.entity.LoanDirection.LENT },
+                            peopleById
+                        ),
+                        borrowedPeople = loanPeople(
+                            loansForTotals.filter { it.direction == com.pennywiseai.tracker.data.database.entity.LoanDirection.BORROWED },
+                            peopleById
+                        )
                     )
                 )
             }
@@ -950,7 +960,7 @@ class HomeViewModel @Inject constructor(
             ) { singles, groups, isUnified, displayCurrency ->
                 val merged = (singles + groups)
                     .sortedByDescending { it.sortTime }
-                    .take(5)
+                    .take(HOME_RECENT_LIMIT)
 
                 if (!isUnified) return@combine merged
 
@@ -1784,6 +1794,8 @@ class HomeViewModel @Inject constructor(
         /** Below this the summary is too thin to be worth sending. */
         const val MIN_TRANSACTIONS_FOR_SHARE_PROMPT = 20
         const val BALANCE_TREND_DAYS = 180L
+        /** Rows in Home's Recent list (Cashiro shows three, then "View All"). */
+        const val HOME_RECENT_LIMIT = 3
     }
 
 }
@@ -1860,8 +1872,35 @@ data class HomeUiState(
 data class LoanSummary(
     val activeLoans: List<LoanEntity>,
     val totalLentRemaining: BigDecimal,
-    val totalBorrowedRemaining: BigDecimal
+    val totalBorrowedRemaining: BigDecimal,
+    /** Who the counted lent loans are with, for the Home tile's avatar stack. */
+    val lentPeople: List<LoanPerson> = emptyList(),
+    val borrowedPeople: List<LoanPerson> = emptyList()
 )
+
+/** A counterparty on the Home loans tiles: a name and the contact's colour, if linked. */
+data class LoanPerson(
+    val name: String,
+    val colorHex: String? = null
+)
+
+/**
+ * One entry per counterparty in [loans] (linked contacts by id, the rest by
+ * name), in first-seen order, using the contact's current name and colour.
+ */
+internal fun loanPeople(
+    loans: List<LoanEntity>,
+    peopleById: Map<Long, com.pennywiseai.tracker.data.database.entity.PersonEntity>
+): List<LoanPerson> =
+    loans
+        .distinctBy { loan -> loan.personId?.let { "id:$it" } ?: "name:${loan.personName.trim().lowercase()}" }
+        .map { loan ->
+            val contact = loan.personId?.let(peopleById::get)
+            LoanPerson(
+                name = contact?.name?.takeIf { it.isNotBlank() } ?: loan.personName,
+                colorHex = contact?.color
+            )
+        }
 
 private data class Quad<A, B, C, D>(
     val a: A,
