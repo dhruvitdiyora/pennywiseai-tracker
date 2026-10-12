@@ -1,9 +1,5 @@
 package com.pennywiseai.tracker.presentation.people
 
-import com.pennywiseai.tracker.ui.screens.settings.glassDialog
-import com.pennywiseai.tracker.ui.screens.settings.glassSheet
-import androidx.compose.ui.graphics.Color
-import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,7 +26,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,6 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.PersonEntity
 import com.pennywiseai.tracker.ui.components.ColorPickerContent
+import com.pennywiseai.tracker.ui.components.PennyWiseAlertDialog
+import com.pennywiseai.tracker.ui.components.PennyWiseBottomSheet
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.parseProfileColor
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -90,13 +86,11 @@ fun PersonEditorSheet(
 
     fun changed() = onInputChanged()
 
-    ModalBottomSheet(
+    // Cashiro's sheet: a solid `surface` container, so the tonal
+    // (surfaceContainerLow) fields read as raised.
+    PennyWiseBottomSheet(
         onDismissRequest = { if (!state.isSaving) onDismiss() },
         sheetState = sheetState,
-        // The fields are tonal (surfaceContainerLow), so the sheet sits one step
-        // lighter to let them read as raised fields.
-        containerColor = scheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(
             modifier = Modifier
@@ -209,11 +203,9 @@ fun PersonEditorSheet(
             Surface(
                 onClick = { showColorPicker = true },
                 enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .glassPanel(shape = MaterialTheme.shapes.large),
+                modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
-                color = Color.Transparent,
+                color = scheme.surfaceContainerLow,
             ) {
                 Row(
                     modifier = Modifier
@@ -275,11 +267,8 @@ fun PersonEditorSheet(
     }
 
     if (showColorPicker) {
-        AlertDialog(
-            modifier = Modifier.glassDialog(MaterialTheme.shapes.extraLarge),
-            containerColor = Color.Transparent,
+        PennyWiseAlertDialog(
             onDismissRequest = { showColorPicker = false },
-            shape = MaterialTheme.shapes.extraLarge,
             title = { Text(stringResource(R.string.people_choose_color)) },
             text = {
                 ColorPickerContent(

@@ -1,6 +1,14 @@
 package com.pennywiseai.tracker.presentation.loans
 
 import androidx.compose.foundation.background
+import com.pennywiseai.tracker.ui.icons.iconax.ReceiptItem
+import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,8 +69,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.people.PeopleExtendedFab
 import com.pennywiseai.tracker.presentation.people.PeopleTonalActionButton
+import com.pennywiseai.tracker.presentation.people.LiftedHeaderAvatarSize
 import com.pennywiseai.tracker.presentation.people.PersonAvatar
-import com.pennywiseai.tracker.presentation.people.PersonHeaderAvatarSize
 import com.pennywiseai.tracker.presentation.people.initialsOf
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SubtitleTag
@@ -70,7 +78,6 @@ import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -181,19 +188,21 @@ fun LoanDetailScreen(
                     loan = loan,
                     onSettle = { viewModel.showSettleDialog() },
                     onReopen = { viewModel.reopenLoan() },
-                    modifier = Modifier.padding(bottom = Spacing.sm),
+                    modifier = Modifier.padding(bottom = Dimensions.Padding.content),
                 )
             }
 
             // Transaction history
-            if (uiState.linkedTransactions.isNotEmpty()) {
-                item(key = "history-header") {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.loan_detail_history),
-                        modifier = Modifier.padding(bottom = Spacing.Layout.headerToContent),
-                    )
-                }
+            item(key = "history-header") {
+                SectionHeaderV2(
+                    title = stringResource(R.string.loan_detail_history),
+                    modifier = Modifier.padding(bottom = Spacing.Layout.headerToContent),
+                )
+            }
 
+            if (uiState.linkedTransactions.isEmpty()) {
+                item(key = "history-empty") { LoanHistoryEmpty() }
+            } else {
                 itemsIndexed(uiState.linkedTransactions, key = { _, txn -> txn.id }) { index, txn ->
                     // Original transaction type matches loan direction (LENT→EXPENSE, BORROWED→INCOME)
                     val isOriginal = if (loan.direction == LoanDirection.LENT)
@@ -295,9 +304,10 @@ private fun LoanOverflowMenu(
 }
 
 /**
- * The loan at a glance: who, which way, how much is still open, the note, the
- * repayment track, and the one action that fits the loan's state (settle it, or
- * reopen it once settled).
+ * The loan at a glance, drawn as Cashiro's person header — straight on the
+ * page, no card: the lifted avatar, the direction tag, how much is still open
+ * and of what, the repayment track, then the action row (Settle beside a
+ * status chip, or Reopen once settled) and the note.
  */
 @Composable
 private fun LoanHeroCard(
@@ -310,138 +320,191 @@ private fun LoanHeroCard(
     val directionColor = loanDirectionColor(loan.direction)
     val settled = loan.status == LoanStatus.SETTLED
     val progress = loanRepaidFraction(loan)
+    val statusColor = if (settled) scheme.onSurfaceVariant else scheme.income
+    val actionShape = RoundedCornerShape(Dimensions.CornerRadius.card)
 
-    PennyWiseCardV2(
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.smd),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        PersonAvatar(
+            initials = initialsOf(loan.personName),
+            color = directionColor,
+            modifier = Modifier.shadow(Spacing.xxs, CircleShape),
+            size = LiftedHeaderAvatarSize,
+            textStyle = MaterialTheme.typography.headlineMedium,
+        )
+        SubtitleTag(
+            text = stringResource(
+                if (loan.direction == LoanDirection.LENT) {
+                    R.string.loans_direction_lent
+                } else {
+                    R.string.loans_direction_borrowed
+                },
+            ),
+            color = directionColor,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+
+        Text(
+            text = CurrencyFormatter.formatCurrency(loan.remainingAmount, loan.currency),
+            style = PennyWiseText.heroAmount,
+            color = if (settled) scheme.onSurfaceVariant else directionColor,
+        )
+        Text(
+            text = if (settled) {
+                stringResource(R.string.loans_status_settled)
+            } else {
+                stringResource(
+                    R.string.loan_detail_remaining_of,
+                    CurrencyFormatter.formatCurrency(loan.originalAmount, loan.currency),
+                )
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = scheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle),
+        )
+
+        if (!settled) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs)
+                    .height(Dimensions.Component.progressBarHeight)
+                    .clip(CircleShape),
+                color = scheme.income,
+                trackColor = scheme.surfaceContainerHighest,
+                drawStopIndicator = {},
+            )
+        }
+
+        // Cashiro's action row: the primary action beside a washed status chip.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (settled) {
+                FilledTonalButton(
+                    onClick = onReopen,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Dimensions.Component.minTouchTarget),
+                    shape = actionShape,
+                ) {
+                    Text(
+                        text = stringResource(R.string.loan_detail_menu_reopen),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onSettle,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Dimensions.Component.minTouchTarget),
+                    shape = actionShape,
+                ) {
+                    Text(
+                        text = stringResource(R.string.loan_detail_settle),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = actionShape,
+                color = statusColor.copy(alpha = STATUS_CHIP_ALPHA),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Dimensions.Component.minTouchTarget),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (settled) {
+                            stringResource(R.string.loans_status_settled)
+                        } else {
+                            stringResource(R.string.loan_detail_percent_repaid, (progress * 100).toInt())
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = statusColor,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+
+        // The note captured in "mark as loan" had no home until now
+        // (#754) — it is the only place the user says what the loan
+        // was for, so it sits with the amount rather than below the
+        // transaction history. Cashiro shows a person's notes the same way.
+        loan.note?.takeIf { it.isNotBlank() }?.let { note ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.xs),
+                shape = actionShape,
+                color = scheme.surfaceContainerLow,
+            ) {
+                Text(
+                    text = note,
+                    modifier = Modifier.padding(Spacing.smd),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** Cashiro washes its status chip at 10%. */
+private const val STATUS_CHIP_ALPHA = 0.1f
+
+/** Cashiro's empty-transactions card, for a loan with no history yet. */
+@Composable
+private fun LoanHistoryEmpty(modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        contentPadding = Dimensions.Padding.card,
+        shape = MaterialTheme.shapes.large,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            PersonAvatar(
-                initials = initialsOf(loan.personName),
-                color = directionColor,
-                size = PersonHeaderAvatarSize,
-                textStyle = MaterialTheme.typography.headlineSmall,
-            )
-            SubtitleTag(
-                text = stringResource(
-                    if (loan.direction == LoanDirection.LENT) {
-                        R.string.loans_direction_lent
-                    } else {
-                        R.string.loans_direction_borrowed
-                    },
-                ),
-                color = directionColor,
-            )
-
-            // Amount
-            Text(
-                text = CurrencyFormatter.formatCurrency(loan.remainingAmount, loan.currency),
-                style = PennyWiseText.heroAmount,
-                color = if (settled) scheme.onSurfaceVariant else directionColor,
+            Icon(
+                imageVector = Iconax.ReceiptItem,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(bottom = Spacing.smd)
+                    .size(Dimensions.Icon.avatarLarge),
+                tint = scheme.onSurfaceVariant,
             )
             Text(
-                text = if (settled) {
-                    stringResource(R.string.loans_status_settled)
-                } else {
-                    stringResource(
-                        R.string.loan_detail_remaining_of,
-                        CurrencyFormatter.formatCurrency(loan.originalAmount, loan.currency),
-                    )
-                },
+                text = stringResource(R.string.loan_detail_history_empty_title),
+                style = MaterialTheme.typography.bodyLarge,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = stringResource(R.string.loan_detail_history_empty_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
-
-            // The note captured in "mark as loan" had no home until now
-            // (#754) — it is the only place the user says what the loan
-            // was for, so it sits with the amount rather than below the
-            // transaction history.
-            loan.note?.takeIf { it.isNotBlank() }?.let { note ->
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    color = scheme.surfaceContainerHigh,
-                ) {
-                    Text(
-                        text = note,
-                        modifier = Modifier.padding(Spacing.smd),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            // Progress bar
-            if (!settled) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Dimensions.Component.progressBarHeight)
-                        .clip(CircleShape),
-                    color = scheme.income,
-                    trackColor = scheme.surfaceContainerHighest,
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = Spacing.xs),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (settled) {
-                    FilledTonalButton(
-                        onClick = onReopen,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = Dimensions.Component.minTouchTarget),
-                    ) {
-                        Text(stringResource(R.string.loan_detail_menu_reopen))
-                    }
-                } else {
-                    Button(
-                        onClick = onSettle,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = Dimensions.Component.minTouchTarget),
-                    ) {
-                        Text(stringResource(R.string.loan_detail_settle))
-                    }
-                }
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = Dimensions.Component.minTouchTarget),
-                    shape = MaterialTheme.shapes.large,
-                    color = (if (settled) scheme.onSurfaceVariant else scheme.income)
-                        .copy(alpha = Dimensions.Alpha.tonalIconContainer),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = Dimensions.Component.minTouchTarget),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = if (settled) {
-                                stringResource(R.string.loans_status_settled)
-                            } else {
-                                stringResource(R.string.loan_detail_percent_repaid, (progress * 100).toInt())
-                            },
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (settled) scheme.onSurfaceVariant else scheme.income,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
         }
     }
 }

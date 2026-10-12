@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.presentation.people
 
-import com.pennywiseai.tracker.ui.screens.settings.glassDialog
-import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import com.pennywiseai.tracker.ui.screens.settings.GlassGroupedRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,12 +16,12 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -41,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -52,7 +50,9 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.PersonEntity
 import com.pennywiseai.tracker.presentation.loans.LendBorrowEntrySheet
 import com.pennywiseai.tracker.presentation.loans.LoanListItem
+import com.pennywiseai.tracker.ui.components.ConnectedButtonPair
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.PennyWiseAlertDialog
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
@@ -64,6 +64,7 @@ import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.parseProfileColor
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.iconax.Danger
 import com.pennywiseai.tracker.ui.icons.iconax.Edit2
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -138,13 +139,16 @@ fun PersonDetailScreen(
 
     if (showDeleteDialog && person != null) {
         val hasHistory = uiState.loans.isNotEmpty()
-        AlertDialog(
-            modifier = Modifier.glassDialog(MaterialTheme.shapes.extraLarge),
-            containerColor = Color.Transparent,
+        // Cashiro's delete-person dialog: danger glyph, joined Cancel / Delete pair.
+        PennyWiseAlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            shape = MaterialTheme.shapes.extraLarge,
-            iconContentColor = MaterialTheme.colorScheme.error,
-            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null) },
+            icon = {
+                Icon(
+                    imageVector = Iconax.Danger,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
             title = {
                 Text(stringResource(if (hasHistory) R.string.people_archive_title else R.string.people_delete_title))
             },
@@ -152,14 +156,13 @@ fun PersonDetailScreen(
                 Text(stringResource(if (hasHistory) R.string.people_archive_description else R.string.people_delete_description))
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteOrArchive(onNavigateBack) }) {
-                    Text(stringResource(if (hasHistory) R.string.people_archive else R.string.people_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(stringResource(R.string.profile_cancel))
-                }
+                ConnectedButtonPair(
+                    dismissLabel = stringResource(R.string.profile_cancel),
+                    onDismiss = { showDeleteDialog = false },
+                    confirmLabel = stringResource(if (hasHistory) R.string.people_archive else R.string.people_delete),
+                    onConfirm = { viewModel.deleteOrArchive(onNavigateBack) },
+                    destructive = true,
+                )
             },
         )
     }
@@ -364,7 +367,8 @@ private fun PersonHeader(
         PersonAvatar(
             initials = person.initials(),
             color = accent,
-            size = PersonHeaderAvatarSize,
+            modifier = Modifier.shadow(Spacing.xxs, CircleShape),
+            size = LiftedHeaderAvatarSize,
             textStyle = MaterialTheme.typography.headlineMedium,
         )
         Text(
@@ -402,15 +406,14 @@ private fun PersonHeader(
             }
         }
         person.notes?.let { notes ->
+            // Cashiro's notes card: a quiet surfaceContainerLow block, 12dp corners.
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .glassPanel(shape = MaterialTheme.shapes.large),
-                shape = MaterialTheme.shapes.large,
-                color = Color.Transparent,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(Dimensions.CornerRadius.card),
+                color = scheme.surfaceContainerLow,
             ) {
                 Column(
-                    modifier = Modifier.padding(Spacing.md),
+                    modifier = Modifier.padding(Spacing.smd),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     Text(
@@ -420,8 +423,8 @@ private fun PersonHeader(
                     )
                     Text(
                         text = notes,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.onSurface,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
                     )
                 }
             }

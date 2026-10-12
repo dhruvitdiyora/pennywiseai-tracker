@@ -76,6 +76,12 @@ private const val CONTENT_LUMINANCE_THRESHOLD = 0.5f
 internal val PersonHeaderAvatarSize: Dp = Dimensions.Icon.avatarLarge + Spacing.lg
 
 /**
+ * Cashiro's person-header avatar (84dp), drawn straight on the page and lifted
+ * with a soft shadow — used by the Person and Loan detail headers.
+ */
+internal val LiftedHeaderAvatarSize: Dp = Dimensions.Icon.extraLarge - Spacing.smd
+
+/**
  * A circular initials avatar. [tinted] washes [color] into a light container
  * with the initials in a legible shade of the same hue (used where the colour
  * means a loan direction); otherwise [color] fills the circle (a contact's own
