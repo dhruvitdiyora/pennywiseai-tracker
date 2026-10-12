@@ -251,6 +251,10 @@ class HomeViewModel @Inject constructor(
         )
     }
 
+    fun setShowHomeBanner(show: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setShowHomeBanner(show) }
+    }
+
     private fun loadUserName() {
         userPreferencesRepository.userPreferences
             .onEach { prefs ->
@@ -258,7 +262,8 @@ class HomeViewModel @Inject constructor(
                     userName = prefs.userName,
                     profileImageUri = prefs.profileImageUri,
                     profileBackgroundColor = prefs.profileBackgroundColor,
-                    homeBannerUri = prefs.homeBannerUri
+                    homeBannerUri = prefs.homeBannerUri,
+                    showHomeBanner = prefs.showHomeBanner
                 )
             }
             .launchIn(viewModelScope)
@@ -1788,6 +1793,8 @@ data class HomeUiState(
     val profileBackgroundColor: Int = 0,
     /** User-chosen banner image (private file URI); null keeps the cover style. */
     val homeBannerUri: String? = null,
+    /** Cashiro's "Show Banner Image" switch; false hides the photo and shows the cover style. */
+    val showHomeBanner: Boolean = true,
     val currentMonthTotal: BigDecimal = BigDecimal.ZERO,
     val currentMonthIncome: BigDecimal = BigDecimal.ZERO,
     val currentMonthExpenses: BigDecimal = BigDecimal.ZERO,

@@ -21,7 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import com.pennywiseai.tracker.ui.components.PennyWiseBottomSheet
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
@@ -54,26 +54,29 @@ fun CategoryEditDialog(
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
     var emoji by remember { mutableStateOf(category?.icon ?: "") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            shape = RoundedCornerShape(28.dp),
-            contentPadding = 0.dp
-        ) {
+    // Cashiro's category editor is a bottom sheet; same fields and behaviour.
+    PennyWiseBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        run {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .imePadding()
                     .verticalScroll(rememberScrollState())
-                    .padding(Dimensions.Padding.card),
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(top = Spacing.xs, bottom = Spacing.md)
+                    .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Title
                 Text(
                     text = stringResource(if (category == null) R.string.category_edit_title_add else R.string.category_edit_title_edit),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
 
                 // Category Name Input

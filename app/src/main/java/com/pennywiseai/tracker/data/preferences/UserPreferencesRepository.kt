@@ -161,6 +161,9 @@ open class UserPreferencesRepository @Inject constructor(
         // file:// URI of the user's Home banner image (a private copy in filesDir).
         // Not part of backups: the image file itself isn't in the backup archive.
         val HOME_BANNER_URI = stringPreferencesKey("home_banner_uri")
+        // Cashiro's "Show Banner Image": when false the Home screen ignores the
+        // chosen photo and draws the cover style. Defaults to true; not backed up.
+        val SHOW_HOME_BANNER = booleanPreferencesKey("show_home_banner")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
         // True once the user explicitly picks a currency in the Settings selector.
@@ -217,6 +220,7 @@ open class UserPreferencesRepository @Inject constructor(
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
                 homeBannerUri = preferences[PreferencesKeys.HOME_BANNER_URI],
+                showHomeBanner = preferences[PreferencesKeys.SHOW_HOME_BANNER] ?: true,
                 hasCompletedOnboarding = preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] ?: false,
                 mainAccountKey = preferences[PreferencesKeys.MAIN_ACCOUNT_KEY]
             )
@@ -954,6 +958,13 @@ open class UserPreferencesRepository @Inject constructor(
 
     suspend fun clearHomeBannerUri() = updateHomeBannerUri(null)
 
+    /** Shows or hides the chosen Home banner image (the cover style shows when hidden). */
+    suspend fun setShowHomeBanner(show: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_HOME_BANNER] = show
+        }
+    }
+
     /**
      * Writes name, avatar, avatar colour and banner in a single DataStore edit so the
      * profile sheet's Save is atomic (observers never see a half-applied profile).
@@ -1057,6 +1068,7 @@ data class UserPreferences(
     val profileBackgroundColor: Int = 0,
     /** Private file:// URI of the user-chosen Home banner, or null for the cover style. */
     val homeBannerUri: String? = null,
+    val showHomeBanner: Boolean = true,
     val hasCompletedOnboarding: Boolean = false,
     val mainAccountKey: String? = null,
     val selectedProfileId: Long? = null,

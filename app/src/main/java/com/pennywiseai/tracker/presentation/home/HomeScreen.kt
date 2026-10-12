@@ -57,7 +57,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -103,6 +105,7 @@ import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
@@ -174,6 +177,8 @@ fun HomeScreen(
 
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
+    // Cashiro's currency chip opens a picker listing the currencies the user holds.
+    var showCurrencySheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var showEditWidgetsSheet by remember { mutableStateOf(false) }
     // Period the sheet should open on. The monthly banner points it at the finished
@@ -360,7 +365,7 @@ fun HomeScreen(
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Banner at y=0 — paints behind the transparent TopAppBar. A user-chosen
         // image wins over the cover style; with none set the cover style draws.
-        val homeBannerUri = uiState.homeBannerUri
+        val homeBannerUri = uiState.homeBannerUri.takeIf { uiState.showHomeBanner }
         if (homeBannerUri != null) {
             HomeBannerImage(
                 imageUri = homeBannerUri,
@@ -438,15 +443,7 @@ fun HomeScreen(
                             isUnifiedMode = uiState.isUnifiedMode,
                             isBalanceHidden = uiState.isBalanceHidden,
                             onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                            onCurrencyClick = {
-                                // Cycle through currencies when tapped
-                                val currencies = uiState.availableCurrencies
-                                if (currencies.size > 1) {
-                                    val currentIdx = currencies.indexOf(uiState.selectedCurrency)
-                                    val nextIdx = (currentIdx + 1) % currencies.size
-                                    viewModel.selectCurrency(currencies[nextIdx])
-                                }
-                            },
+                            onCurrencyClick = { showCurrencySheet = true },
                             onShowBreakdown = { viewModel.showBreakdownDialog() },
                             accountBalances = uiState.accountBalances,
                             creditCards = uiState.creditCards,
@@ -1046,8 +1043,7 @@ fun HomeScreen(
         )
     }
 
-    // "More options": Cashiro's small floating glass card menu anchored under the
-    // top-bar "..." button, rather than a full-width sheet.
+    // "More options": Cashiro's bottom sheet of rounded rows.
     if (showMenuSheet) {
         val versionName = remember {
             try {
@@ -1059,6 +1055,8 @@ fun HomeScreen(
         HomeOptionsMenu(
             blurEffects = blurEffects,
             versionName = versionName,
+            showBannerImage = uiState.showHomeBanner,
+            onShowBannerImageChange = viewModel::setShowHomeBanner,
             onDismiss = { showMenuSheet = false },
             onMonthlyRecap = { showMenuSheet = false; showShareSheet = true },
             onSettings = { showMenuSheet = false; onNavigateToSettings() },
@@ -1078,6 +1076,18 @@ fun HomeScreen(
             },
         )
     }
+    }
+
+    if (showCurrencySheet) {
+        HomeCurrencySheet(
+            selected = uiState.selectedCurrency,
+            currencies = uiState.availableCurrencies,
+            onSelect = {
+                viewModel.selectCurrency(it)
+                showCurrencySheet = false
+            },
+            onDismiss = { showCurrencySheet = false },
+        )
     }
 
     // Edit home screen sheet (#770). Every change persists immediately — no Save.
@@ -1575,15 +1585,17 @@ private fun HomeBarCircleButton(
 }
 
 /**
- * The Home "More options" menu: a compact floating card in Cashiro's dropdown style:
- * opaque `surfaceContainerHigh`, 24dp corners, soft shadow, hairline dividers
- * (`surface` at 60%), anchored top-end under the "..." button. A popup window can't
- * blur the page behind it, so the card is fully opaque (no page text may read through).
+ * The Home "More options" sheet, as Cashiro's: a bottom sheet titled "More
+ * options" whose entries are rounded `surfaceContainerLow` rows (2dp gutter),
+ * ending with the "Show Banner Image" switch.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeOptionsMenu(
     blurEffects: Boolean,
     versionName: String?,
+    showBannerImage: Boolean,
+    onShowBannerImageChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onMonthlyRecap: () -> Unit,
     onSettings: () -> Unit,
@@ -1592,66 +1604,133 @@ private fun HomeOptionsMenu(
     onDiscord: () -> Unit,
     onRate: () -> Unit,
 ) {
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val offset = with(density) {
-        IntOffset(
-            x = -Dimensions.Padding.content.roundToPx(),
-            y = (topInset + Dimensions.Component.iconButton + Spacing.md).roundToPx(),
-        )
-    }
     val scheme = MaterialTheme.colorScheme
-    androidx.compose.ui.window.Popup(
-        alignment = Alignment.TopEnd,
-        offset = offset,
+    com.pennywiseai.tracker.ui.components.PennyWiseBottomSheet(
         onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.PopupProperties(focusable = true),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Surface(
-            modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
-            shape = RoundedCornerShape(Dimensions.Glass.heroRadius),
-            color = scheme.surfaceContainerHigh,
-            contentColor = scheme.onSurface,
-            shadowElevation = 8.dp,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Spacing.md)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Column(modifier = Modifier.padding(vertical = Spacing.xs)) {
-                HomeMenuItem(stringResource(R.string.home_menu_monthly_recap), onMonthlyRecap) {
-                    Icon(Icons.Default.Share, contentDescription = null)
-                }
-                HomeMenuDivider()
-                HomeMenuItem(stringResource(R.string.home_menu_settings), onSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = null)
-                }
-                HomeMenuDivider()
-                HomeMenuItem(stringResource(R.string.settings_manage_accounts_title), onManageAccounts) {
-                    Icon(Icons.Default.AccountBalance, contentDescription = null)
-                }
-                HomeMenuDivider()
-                HomeMenuItem(stringResource(R.string.home_menu_edit_home), onEditHome) {
-                    Icon(Icons.Default.Tune, contentDescription = null)
-                }
-                HomeMenuDivider()
-                HomeMenuItem(stringResource(R.string.home_menu_discord), onDiscord) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_discord),
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                }
-                HomeMenuDivider()
-                HomeMenuItem(stringResource(R.string.home_menu_rate), onRate) {
-                    Icon(Icons.Default.Star, contentDescription = null)
-                }
-                versionName?.let {
-                    Text(
-                        text = stringResource(R.string.home_version, it),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = Spacing.xs, bottom = Spacing.xs),
-                        textAlign = TextAlign.Center
-                    )
+            Text(
+                text = stringResource(R.string.home_menu_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.md),
+            )
+            val shapes = MaterialTheme.shapes
+            HomeMenuItem(stringResource(R.string.home_menu_monthly_recap), onMonthlyRecap, shape = shapes.large.top()) {
+                Icon(Icons.Default.Share, contentDescription = null)
+            }
+            HomeMenuItem(stringResource(R.string.home_menu_settings), onSettings, shape = shapes.small) {
+                Icon(Icons.Default.Settings, contentDescription = null)
+            }
+            HomeMenuItem(stringResource(R.string.settings_manage_accounts_title), onManageAccounts, shape = shapes.small) {
+                Icon(Icons.Default.AccountBalance, contentDescription = null)
+            }
+            HomeMenuItem(stringResource(R.string.home_menu_edit_home), onEditHome, shape = shapes.small) {
+                Icon(Icons.Default.Tune, contentDescription = null)
+            }
+            HomeMenuItem(stringResource(R.string.home_menu_discord), onDiscord, shape = shapes.small) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_discord),
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
+            HomeMenuItem(stringResource(R.string.home_menu_rate), onRate, shape = shapes.small) {
+                Icon(Icons.Default.Star, contentDescription = null)
+            }
+            HomeMenuItem(
+                label = stringResource(R.string.home_menu_show_banner),
+                onClick = { onShowBannerImageChange(!showBannerImage) },
+                shape = shapes.large.bottom(),
+                trailing = {
+                    Switch(checked = showBannerImage, onCheckedChange = null)
+                },
+            ) {
+                Icon(Icons.Default.Image, contentDescription = null)
+            }
+            versionName?.let {
+                Text(
+                    text = stringResource(R.string.home_version, it),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.sm),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.shape.CornerBasedShape.top() =
+    copy(bottomStart = CornerSize(4.dp), bottomEnd = CornerSize(4.dp))
+
+private fun androidx.compose.foundation.shape.CornerBasedShape.bottom() =
+    copy(topStart = CornerSize(4.dp), topEnd = CornerSize(4.dp))
+
+/**
+ * Cashiro's currency picker: a bottom sheet listing each currency the user
+ * holds as a grouped row with a radio. Choosing one only changes which
+ * currency Home displays; amounts are never converted or added here.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeCurrencySheet(
+    selected: String,
+    currencies: List<String>,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    com.pennywiseai.tracker.ui.components.PennyWiseBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Spacing.md)
+                .navigationBarsPadding(),
+        ) {
+            Text(
+                text = stringResource(R.string.home_currency_sheet_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.md),
+            )
+            GroupedList {
+                currencies.forEachIndexed { index, code ->
+                    val name = remember(code) {
+                        runCatching { java.util.Currency.getInstance(code).displayName }.getOrNull()
+                    }
+                    GroupedRow(
+                        position = ListItemPosition.from(index, currencies.size),
+                        onClick = { onSelect(code) },
+                    ) {
+                        Text(
+                            text = if (name != null && name != code) "$name ($code)" else code,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        RadioButton(selected = code == selected, onClick = null)
+                    }
                 }
             }
         }
@@ -1659,35 +1738,32 @@ private fun HomeOptionsMenu(
 }
 
 @Composable
-private fun HomeMenuDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = Spacing.sm),
-        thickness = 1.5.dp,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
-    )
-}
-
-@Composable
 private fun HomeMenuItem(
     label: String,
     onClick: () -> Unit,
+    shape: androidx.compose.ui.graphics.Shape,
+    trailing: (@Composable () -> Unit)? = null,
     icon: @Composable () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(onClick = onClick, role = Role.Button)
+            .heightIn(min = 56.dp)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) { icon() }
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { icon() }
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
         )
+        trailing?.invoke()
     }
 }
 
