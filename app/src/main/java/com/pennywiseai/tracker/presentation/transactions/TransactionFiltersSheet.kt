@@ -23,16 +23,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -173,10 +176,12 @@ internal fun TransactionFiltersSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
                 FilterSection(title = stringResource(R.string.transactions_filters_period)) {
-                    FlowRow(
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    // One scrolling chip row, as in Cashiro's filter sheet.
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = Dimensions.Padding.content),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         TimePeriod.entries.forEach { period ->
                             ChoiceChip(
@@ -447,8 +452,8 @@ internal fun TransactionFiltersSheet(
                 }
             }
 
-            // Cashiro's action bar: a wide pill Apply, with Reset and Cancel
-            // kept as quieter actions beside it.
+            // Cashiro's action bar: a wide pill Apply with a round Reset FAB.
+            // Cancel stays as a quiet text action.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -458,21 +463,11 @@ internal fun TransactionFiltersSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(
-                    onClick = {
-                        draft = draft.reset()
-                        validation = null
-                    },
+                    onClick = onDismiss,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     modifier = Modifier.defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
-                ) {
-                    Text(stringResource(R.string.transactions_filter_reset))
-                }
-                OutlinedButton(
-                    onClick = onDismiss,
-                    shape = CircleShape,
-                    modifier = Modifier.heightIn(min = Dimensions.Component.listItemMinHeight),
                 ) {
                     Text(stringResource(R.string.transactions_filter_cancel))
                 }
@@ -487,6 +482,20 @@ internal fun TransactionFiltersSheet(
                         text = stringResource(R.string.transactions_filter_apply),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                    )
+                }
+                FloatingActionButton(
+                    onClick = {
+                        draft = draft.reset()
+                        validation = null
+                    },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = stringResource(R.string.transactions_filter_reset),
                     )
                 }
             }
@@ -596,8 +605,10 @@ private fun CategoryTile(
     val marked = selected && showMark
     Column(
         modifier = Modifier
+            // No clip on the column: a rounded clip on the whole tile shaved
+            // the first letter off the label's left edge (the tile Box below
+            // is clipped on its own).
             .width(CategoryTileSize + Spacing.sm)
-            .clip(shape)
             .selectable(selected = selected, role = Role.Checkbox, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),

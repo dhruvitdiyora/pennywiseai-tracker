@@ -295,7 +295,10 @@ private fun TotalColumn(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             if (estimated) {
                 // A small badge, so the figure itself stays on one line.
@@ -303,6 +306,9 @@ private fun TotalColumn(
                     text = stringResource(R.string.account_detail_estimated_badge),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Never wraps ("es/t."): one line, shrinks the label instead.
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier
                         .background(
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.16f),
