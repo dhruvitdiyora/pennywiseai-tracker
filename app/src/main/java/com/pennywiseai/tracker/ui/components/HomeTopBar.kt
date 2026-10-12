@@ -111,7 +111,7 @@ fun HomeTopBar(
                 )
             )
             .windowInsetsPadding(WindowInsets.statusBars)
-            .alpha(1f - collapsedFraction)
+            .alpha((1f - collapsedFraction * 2f).coerceIn(0f, 1f))
     )
 
     // Compact: avatar · centred title · round actions, fading in as the bar collapses.

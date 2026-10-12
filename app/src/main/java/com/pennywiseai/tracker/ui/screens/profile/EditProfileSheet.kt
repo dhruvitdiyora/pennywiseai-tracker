@@ -94,7 +94,7 @@ private val BannerPreviewHeight = 168.dp
 private val AvatarPreviewSize = 88.dp
 private val PresetAvatarSize = 80.dp
 private val SaveButtonHeight = 56.dp
-private val SaveBarClearance = 104.dp
+private val SaveBarClearance = 128.dp
 
 /**
  * Modal sheet for editing the user's name, avatar (preset or gallery photo), avatar

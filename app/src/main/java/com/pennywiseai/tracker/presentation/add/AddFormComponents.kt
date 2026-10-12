@@ -722,7 +722,7 @@ internal fun AddSaveBarClearance() {
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .height(AddSaveBarHeight)
+            .height(AddSaveBarHeight + Spacing.md)
     )
 }
 

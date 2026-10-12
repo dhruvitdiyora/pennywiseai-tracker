@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -179,8 +181,10 @@ fun BudgetGroupEditScreen(
                     end = Dimensions.Padding.content,
                     top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
                     // Clears the sticky save bar that floats over the form.
-                    bottom = paddingValues.calculateBottomPadding() +
-                        Dimensions.Component.bottomBarHeight + Dimensions.Padding.content
+                    // Save bar = fade (lg) + button + gap (sm) + nav-bar inset.
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                        Spacing.lg + Dimensions.Component.listItemMinHeight + Spacing.sm +
+                        Dimensions.Padding.content
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.sectionGap),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState }

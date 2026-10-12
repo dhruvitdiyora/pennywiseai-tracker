@@ -71,12 +71,12 @@ fun TransactionTabContent(
     val fullShape = ListItemPosition.Single.toShape()
     val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // imePadding on the whole Box lifts the Save bar above the keyboard too.
+    Box(modifier = Modifier.fillMaxSize().imePadding()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .overScrollVertical()
-                .imePadding()
                 .verticalScroll(
                     state = scrollState,
                     flingBehavior = rememberOverscrollFlingBehavior { scrollState }

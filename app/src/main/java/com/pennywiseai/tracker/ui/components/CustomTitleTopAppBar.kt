@@ -201,7 +201,9 @@ private fun LargerTopAppBar(
                 )
             )
             .windowInsetsPadding(WindowInsets.statusBars)
-            .alpha(1f - collapsedFraction)
+            // Gone by half-collapse so the large title never lingers over the
+            // first row while the compact bar fades in.
+            .alpha((1f - collapsedFraction * 2f).coerceIn(0f, 1f))
     )
 }
 
@@ -401,7 +403,7 @@ fun Modifier.compactBarGlass(
             block = fun HazeEffectScope.() {
                 style = HazeDefaults.style(
                     backgroundColor = Color.Transparent,
-                    tint = tint(pageBackground.copy(alpha = 0.72f)),
+                    tint = tint(pageBackground.copy(alpha = 0.9f)),
                     blurRadius = 20.dp,
                     noiseFactor = -1f,
                 )
@@ -413,8 +415,8 @@ fun Modifier.compactBarGlass(
     .background(
         Brush.verticalGradient(
             colors = listOf(
-                pageBackground.copy(alpha = if (blurEffects) 0.9f else 0.98f),
-                pageBackground.copy(alpha = if (blurEffects) 0.55f else 0.9f),
+                pageBackground.copy(alpha = if (blurEffects) 0.97f else 1f),
+                pageBackground.copy(alpha = if (blurEffects) 0.88f else 0.97f),
             )
         )
     )
