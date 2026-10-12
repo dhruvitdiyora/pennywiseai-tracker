@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import com.pennywiseai.tracker.ui.icons.iconax.AiCommentary
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -162,6 +163,15 @@ fun AnalyticsScreen(
                 title = stringResource(R.string.analytics_title),
                 hazeState = hazeState
             )
+        },
+        floatingActionButton = {
+            AnalyticsOptionsFab(
+                onSearch = {
+                    onNavigateToTransactions(null, null, null, null, null, null)
+                },
+                onAskAi = onNavigateToChat,
+                modifier = Modifier.padding(bottom = Dimensions.Component.bottomBarHeight),
+            )
         }
     ) { paddingValues ->
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -178,7 +188,8 @@ fun AnalyticsScreen(
             top = paddingValues.calculateTopPadding() + Spacing.md,
             // The floating nav bar sits above the system navigation bar, so the
             // last section must clear both, plus a margin, to scroll into view.
-            bottom = navBarInset + Dimensions.Component.bottomBarHeight + Spacing.lg
+            // Extra room for the Search / Ask AI action so it never covers the last row.
+            bottom = navBarInset + Dimensions.Component.bottomBarHeight + Dimensions.Component.fabScrollClearance
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         flingBehavior = rememberOverscrollFlingBehavior { listState }
@@ -660,6 +671,19 @@ internal fun AnalyticsChartModeCard(
                 ChartType.HEATMAP -> SpendingHeatmap(data = data)
             }
         }
+        // The trend runs to today at most (never into the future), so say where
+        // it stops instead of leaving the empty right-hand side unexplained.
+        data.lastOrNull()?.let { last ->
+            Text(
+                text = stringResource(
+                    R.string.analytics_trend_through,
+                    last.timestamp.format(java.time.format.DateTimeFormatter.ofPattern("d MMM")),
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Spacing.md, bottom = Spacing.sm),
+            )
+        }
     }
 }
 
@@ -1132,5 +1156,54 @@ private fun EmptyAnalyticsState(
             actionLabel = stringResource(R.string.analytics_empty_action),
             onAction = onScanSmsClick
         )
+    }
+}
+
+/**
+ * Cashiro's Analytics action: a round "more" button that opens a small menu
+ * with Search (the transaction list) and Ask AI (the Chat tab).
+ */
+@Composable
+private fun AnalyticsOptionsFab(
+    onSearch: () -> Unit,
+    onAskAi: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        FloatingActionButton(
+            onClick = { expanded = true },
+            shape = CircleShape,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = stringResource(R.string.analytics_fab_options),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.analytics_fab_search)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onSearch()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.analytics_fab_ask_ai)) },
+                leadingIcon = { Icon(Iconax.AiCommentary, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onAskAi()
+                },
+            )
+        }
     }
 }

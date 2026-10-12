@@ -516,6 +516,10 @@
     <string name="onboarding_step_progress">Step %1$d of %2$d</string>
     <string name="balance_trend_title">Balance trend</string>
     <string name="analytics_spending_trend">Spending trend</string>
+    <string name="analytics_fab_options">Search and AI</string>
+    <string name="analytics_fab_search">Search</string>
+    <string name="analytics_fab_ask_ai">Ask AI</string>
+    <string name="analytics_trend_through">Through %1$s</string>
     <string name="budget_screen_title">Budgets</string>
     <string name="budget_navigate_back">Back</string>
     <string name="budget_add">Add budget</string>
