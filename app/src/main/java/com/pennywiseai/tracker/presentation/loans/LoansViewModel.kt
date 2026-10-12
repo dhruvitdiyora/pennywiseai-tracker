@@ -8,11 +8,13 @@ import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
+import com.pennywiseai.tracker.data.repository.PersonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -27,10 +29,21 @@ data class LoansUiState(
     val summaryCurrency: String = "INR",
     val defaultEntryCurrency: String = "INR",
     val isLoading: Boolean = true,
-    val showSettledLoans: Boolean = false,
+    /**
+     * How each linked contact looks (their colour and relationship label), by
+     * person id. Purely presentational: loans without a contact keep the
+     * direction-tinted initials.
+     */
+    val contacts: Map<Long, LoanContactStyle> = emptyMap(),
     val showAddEntrySheet: Boolean = false,
     val isSavingEntry: Boolean = false,
     val entryError: LoanEntryError? = null,
+)
+
+/** The look of a contact on the lend & borrow list: their own colour and relationship label. */
+data class LoanContactStyle(
+    val color: String,
+    val category: String?,
 )
 
 enum class LoanEntryError {
@@ -44,7 +57,8 @@ enum class LoanEntryError {
 class LoansViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val personRepository: PersonRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoansUiState())
@@ -52,6 +66,21 @@ class LoansViewModel @Inject constructor(
 
     init {
         loadLoans()
+        loadContacts()
+    }
+
+    private fun loadContacts() {
+        viewModelScope.launch {
+            personRepository.observePeople(includeArchived = true).collect { rows ->
+                val contacts = rows.associate { row ->
+                    row.person.id to LoanContactStyle(
+                        color = row.person.color,
+                        category = row.person.category?.takeIf { it.isNotBlank() },
+                    )
+                }
+                _uiState.update { it.copy(contacts = contacts) }
+            }
+        }
     }
 
     private fun loadLoans() {
@@ -90,20 +119,18 @@ class LoansViewModel @Inject constructor(
                     computeNativeTotals(loansForTotals)
                 }
 
-                _uiState.value = LoansUiState(
-                    activeLoans = inputs.activeLoans,
-                    settledLoans = inputs.allLoans.filter { it.status == LoanStatus.SETTLED },
-                    people = groupLoansByPerson(inputs.allLoans),
-                    totalLentRemaining = lent,
-                    totalBorrowedRemaining = borrowed,
-                    summaryCurrency = summaryCurrency,
-                    defaultEntryCurrency = inputs.baseCurrency.ifBlank { "INR" },
-                    isLoading = false,
-                    showSettledLoans = _uiState.value.showSettledLoans,
-                    showAddEntrySheet = _uiState.value.showAddEntrySheet,
-                    isSavingEntry = _uiState.value.isSavingEntry,
-                    entryError = _uiState.value.entryError,
-                )
+                _uiState.update { state ->
+                    state.copy(
+                        activeLoans = inputs.activeLoans,
+                        settledLoans = inputs.allLoans.filter { it.status == LoanStatus.SETTLED },
+                        people = groupLoansByPerson(inputs.allLoans),
+                        totalLentRemaining = lent,
+                        totalBorrowedRemaining = borrowed,
+                        summaryCurrency = summaryCurrency,
+                        defaultEntryCurrency = inputs.baseCurrency.ifBlank { "INR" },
+                        isLoading = false,
+                    )
+                }
             }
         }
     }
@@ -152,10 +179,6 @@ class LoansViewModel @Inject constructor(
         viewModelScope.launch {
             loanRepository.settleLoans(person.activeLoans.map { it.id })
         }
-    }
-
-    fun toggleShowSettled() {
-        _uiState.value = _uiState.value.copy(showSettledLoans = !_uiState.value.showSettledLoans)
     }
 
     fun showAddEntrySheet(show: Boolean) {

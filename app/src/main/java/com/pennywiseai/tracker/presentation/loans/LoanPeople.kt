@@ -21,6 +21,9 @@ data class LoanPerson(
 ) {
     val activeLoans: List<LoanEntity> get() = loans.filter { it.status == LoanStatus.ACTIVE }
     val hasActive: Boolean get() = loans.any { it.status == LoanStatus.ACTIVE }
+
+    /** The contact these loans are linked to, if any (used only for the avatar's look). */
+    val personId: Long? get() = loans.firstNotNullOfOrNull { it.personId }
 }
 
 /**

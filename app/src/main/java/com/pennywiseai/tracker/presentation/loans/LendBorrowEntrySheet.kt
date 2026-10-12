@@ -1,31 +1,28 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -35,17 +32,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.presentation.people.TonalTextField
+import com.pennywiseai.tracker.ui.components.PennyWiseBottomSheet
+import com.pennywiseai.tracker.ui.components.PennyWiseSegmentedSwitcher
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.icons.iconax.Iconax
-import com.pennywiseai.tracker.ui.icons.iconax.Information
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -78,12 +83,11 @@ fun LendBorrowEntrySheet(
     ) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
+    // Cashiro's sheet: a solid `surface` container, so the tonal
+    // (surfaceContainerLow) fields read as raised.
+    PennyWiseBottomSheet(
         onDismissRequest = { if (!isSaving) onDismiss() },
         sheetState = sheetState,
-        // The fields are tonal (surfaceContainerLow), so the sheet sits one step
-        // lighter to let them read as raised fields.
-        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         LendBorrowEntryForm(
             initialDraft = LoanEntryDraft(
@@ -108,7 +112,6 @@ fun LendBorrowEntrySheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LendBorrowEntryForm(
     initialDraft: LoanEntryDraft,
@@ -138,7 +141,6 @@ internal fun LendBorrowEntryForm(
         mutableStateOf(initialDraft.currency)
     }
     var note by remember(initialDraft.note) { mutableStateOf(initialDraft.note) }
-    var currencyMenuExpanded by remember { mutableStateOf(false) }
     val amount = amountText.trim().toBigDecimalOrNull()
     val currencies = remember { CurrencyFormatter.getSupportedCurrencies().sorted() }
 
@@ -146,145 +148,60 @@ internal fun LendBorrowEntryForm(
         onInputChanged()
     }
 
+    // Cashiro's AddEditLendBorrowTransactionSheet order: title, type switcher,
+    // info card, the big amount, then who and why, then save.
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.smd),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                text = stringResource(R.string.lend_borrow_entry_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.lend_borrow_entry_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-
-        val directions = listOf(
-            LoanDirection.LENT to R.string.lend_borrow_entry_lent,
-            LoanDirection.BORROWED to R.string.lend_borrow_entry_borrowed,
+        LoanSheetTitle(
+            title = stringResource(R.string.lend_borrow_entry_title),
+            subtitle = stringResource(R.string.lend_borrow_entry_description),
+            modifier = Modifier.padding(bottom = Spacing.xs),
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            directions.forEachIndexed { index, (option, label) ->
-                SegmentedButton(
-                    selected = direction == option,
-                    onClick = {
-                        direction = option
-                        changed()
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = directions.size),
-                    modifier = Modifier.heightIn(min = Dimensions.Component.minTouchTarget),
-                    enabled = !isSaving,
-                    label = {
-                        Text(
-                            text = stringResource(label),
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    },
-                )
-            }
-        }
 
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = Dimensions.Alpha.medium),
-        ) {
-            Row(
-                modifier = Modifier.padding(Spacing.smd),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Iconax.Information,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.inline),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(
-                        if (direction == LoanDirection.LENT) {
-                            R.string.lend_borrow_entry_hint_lent
-                        } else {
-                            R.string.lend_borrow_entry_hint_borrowed
-                        },
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
-        // The amount leads: a large figure with its currency sign, and the
-        // currency picker beside it.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            TonalTextField(
-                value = amountText,
-                onValueChange = {
-                    amountText = it
+        val directions = listOf(LoanDirection.LENT, LoanDirection.BORROWED)
+        PennyWiseSegmentedSwitcher(
+            options = listOf(
+                stringResource(R.string.lend_borrow_entry_lent),
+                stringResource(R.string.lend_borrow_entry_borrowed),
+            ),
+            selectedIndex = directions.indexOf(direction),
+            onIndexChange = { index ->
+                if (!isSaving) {
+                    direction = directions[index]
                     changed()
-                },
-                label = stringResource(R.string.lend_borrow_entry_amount),
-                modifier = Modifier.weight(1f),
-                enabled = !isSaving,
-                textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                prefix = {
-                    Text(
-                        text = CurrencyFormatter.getCurrencySymbol(currency),
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                },
-                isError = error == LoanEntryError.AMOUNT_REQUIRED ||
-                    (amountText.isNotBlank() && (amount == null || amount <= BigDecimal.ZERO)),
-            )
-
-            ExposedDropdownMenuBox(
-                expanded = currencyMenuExpanded,
-                onExpandedChange = { if (!isSaving) currencyMenuExpanded = it },
-                modifier = Modifier.width(Dimensions.Component.currencySelectorWidth),
-            ) {
-                TonalTextField(
-                    value = currency,
-                    onValueChange = {},
-                    label = stringResource(R.string.lend_borrow_entry_currency),
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                    readOnly = true,
-                    enabled = !isSaving,
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(currencyMenuExpanded)
-                    },
-                    isError = error == LoanEntryError.CURRENCY_REQUIRED,
-                )
-                ExposedDropdownMenu(
-                    expanded = currencyMenuExpanded,
-                    onDismissRequest = { currencyMenuExpanded = false },
-                ) {
-                    currencies.forEach { code ->
-                        DropdownMenuItem(
-                            text = { Text(code) },
-                            onClick = {
-                                currency = code
-                                currencyMenuExpanded = false
-                                changed()
-                            },
-                        )
-                    }
                 }
-            }
-        }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        LoanInfoCard(
+            text = stringResource(
+                if (direction == LoanDirection.LENT) {
+                    R.string.lend_borrow_entry_hint_lent
+                } else {
+                    R.string.lend_borrow_entry_hint_borrowed
+                },
+            ),
+        )
+
+        LoanAmountInput(
+            amountText = amountText,
+            currency = currency,
+            currencies = currencies,
+            enabled = !isSaving,
+            isError = error == LoanEntryError.AMOUNT_REQUIRED ||
+                (amountText.isNotBlank() && (amount == null || amount <= BigDecimal.ZERO)),
+            onAmountChange = {
+                amountText = it
+                changed()
+            },
+            onCurrencyChange = {
+                currency = it
+                changed()
+            },
+        )
 
         // Person and note read as one connected pair of fields.
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)) {
@@ -324,7 +241,8 @@ internal fun LendBorrowEntryForm(
             )
         }
 
-        Button(
+        LoanSheetButton(
+            label = stringResource(R.string.lend_borrow_entry_save),
             onClick = {
                 onSubmit(
                     personName.trim(),
@@ -334,24 +252,128 @@ internal fun LendBorrowEntryForm(
                     note.trim().ifBlank { null },
                 )
             },
+            modifier = Modifier.padding(top = Spacing.xs),
+            enabled = !isSaving && validateLoanEntry(personName, amount, currency) == null,
+            isLoading = isSaving,
+        )
+    }
+}
+
+/**
+ * Cashiro's AmountInput: the figure large, bold and centred on a page-coloured
+ * panel with its currency sign in front. It stays a real text field (keyboard
+ * and paste work as before), and the currency chip under it switches the entry
+ * currency, so the amount is never shown untagged.
+ */
+@Composable
+private fun LoanAmountInput(
+    amountText: String,
+    currency: String,
+    currencies: List<String>,
+    enabled: Boolean,
+    isError: Boolean,
+    onAmountChange: (String) -> Unit,
+    onCurrencyChange: (String) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val symbol = CurrencyFormatter.getCurrencySymbol(currency)
+    val color = when {
+        isError -> scheme.error
+        amountText.isBlank() -> scheme.onSurfaceVariant
+        else -> scheme.onSurface
+    }
+    val style = amountStyle(symbol.length + amountText.length)
+        .copy(color = color, textAlign = TextAlign.Center)
+    val prefix = remember(symbol) { AmountPrefixTransformation(symbol) }
+    val amountLabel = stringResource(R.string.lend_borrow_entry_amount)
+    val currencyLabel = stringResource(R.string.lend_borrow_entry_currency)
+    var currencyMenuExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(scheme.background, RoundedCornerShape(Dimensions.CornerRadius.card))
+            .padding(Spacing.smd),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        BasicTextField(
+            value = amountText,
+            onValueChange = onAmountChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = Dimensions.Component.fab),
-            enabled = !isSaving && validateLoanEntry(personName, amount, currency) == null,
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(Dimensions.Icon.inline),
-                    strokeWidth = Dimensions.Component.progressRingStroke,
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.lend_borrow_entry_save),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                .semantics { contentDescription = amountLabel },
+            enabled = enabled,
+            textStyle = style,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            cursorBrush = SolidColor(scheme.primary),
+            visualTransformation = prefix,
+        )
+        Box {
+            AssistChip(
+                onClick = { currencyMenuExpanded = true },
+                enabled = enabled,
+                label = { Text("$symbol $currency") },
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(AssistChipDefaults.IconSize),
+                    )
+                },
+                shape = CircleShape,
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = scheme.surfaceContainerLow,
+                    labelColor = scheme.onSurface,
+                    trailingIconContentColor = scheme.onSurfaceVariant,
+                ),
+                border = null,
+                modifier = Modifier.semantics { contentDescription = "$currencyLabel, $currency" },
+            )
+            DropdownMenu(
+                expanded = currencyMenuExpanded,
+                onDismissRequest = { currencyMenuExpanded = false },
+                shape = MaterialTheme.shapes.large,
+            ) {
+                currencies.forEach { code ->
+                    DropdownMenuItem(
+                        text = { Text("${CurrencyFormatter.getCurrencySymbol(code)} $code") },
+                        onClick = {
+                            onCurrencyChange(code)
+                            currencyMenuExpanded = false
+                        },
+                    )
+                }
             }
         }
+    }
+}
+
+/** Steps the figure down a type role as it grows, so a long amount never clips. */
+@Composable
+private fun amountStyle(displayLength: Int): TextStyle {
+    val typography = MaterialTheme.typography
+    val base = when {
+        displayLength <= 8 -> typography.displayMedium
+        displayLength <= 11 -> typography.displaySmall
+        displayLength <= 14 -> typography.headlineLarge
+        else -> typography.headlineMedium
+    }
+    // tnum: tabular figures, so digits don't shimmer in width as they are typed.
+    return base.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+}
+
+/** Draws the currency sign in front of the typed figure; an empty field shows a muted "₹0"-style hint. */
+private class AmountPrefixTransformation(private val symbol: String) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val shown = if (text.isEmpty()) "${symbol}0" else symbol + text.text
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = offset + symbol.length
+            override fun transformedToOriginal(offset: Int): Int =
+                (offset - symbol.length).coerceIn(0, text.length)
+        }
+        return TransformedText(AnnotatedString(shown), mapping)
     }
 }
 

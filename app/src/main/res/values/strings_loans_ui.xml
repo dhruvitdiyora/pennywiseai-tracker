@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Lend & Borrow, Cashiro look and feel ══ -->
+
+    <!-- Overflow chip at the end of an avatar stack: %1$d = how many more people are not shown. -->
+    <string name="loans_avatar_more">+%1$d</string>
+    <!-- Accessibility state of a person row whose loans are shown. -->
+    <string name="loans_person_expanded">Expanded</string>
+    <!-- Accessibility state of a person row whose loans are hidden. -->
+    <string name="loans_person_collapsed">Collapsed</string>
+    <!-- Tag on a person row: how many of their loans are still open. -->
+    <plurals name="loans_person_open_count">
+        <item quantity="one">%1$d open</item>
+        <item quantity="other">%1$d open</item>
+    </plurals>
+
+    <!-- Segmented filter on the Lend & Borrow list: everyone. -->
+    <string name="loans_filter_all">All</string>
+    <!-- Segmented filter: people who owe the user money. -->
+    <string name="loans_filter_you_get">You get</string>
+    <!-- Segmented filter: people the user owes money to. -->
+    <string name="loans_filter_you_owe">You owe</string>
+    <!-- Segmented filter: people with nothing open. -->
+    <string name="loans_filter_settled">Settled</string>
+    <!-- Placeholder of the search field on the Lend & Borrow list. -->
+    <string name="loans_search_placeholder">Search people</string>
+    <!-- Accessibility label of the button that clears the search field. -->
+    <string name="loans_search_clear">Clear search</string>
+    <!-- Shown when the filter or search matches nobody. -->
+    <string name="loans_no_matches_title">No one here</string>
+    <!-- Supporting line when the filter or search matches nobody. -->
+    <string name="loans_no_matches_description">Try another filter or search.</string>
+
+    <!-- Shown on a loan with no linked transactions yet. -->
+    <string name="loan_detail_history_empty_title">No transactions yet</string>
+    <!-- Supporting line for the empty loan history. -->
+    <string name="loan_detail_history_empty_description">Repayments you record or link will appear here.</string>
+</resources>
