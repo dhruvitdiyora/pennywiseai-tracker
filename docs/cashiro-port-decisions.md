@@ -1711,3 +1711,54 @@ replace the fixed tooltip with a window-aware anchored coach mark, tokenized
 surface roles, explicit `Scan messages` and `Dismiss` semantics, localized copy,
 and reduced-motion handling. That is ordinary PennyWise design-system debt and
 is not required for Cashiro parity.
+
+## Implemented — Lend & Borrow visual refresh (UI only)
+
+**Scope:** Owner direction "for loan just UI and no category section changes
+for now". Restyle only: no entity, DAO, backup, migration, or category changes;
+every existing loan flow (add entry, expand person, open loan, settle up,
+record/link repayment, set expected return, reopen, delete) is kept.
+
+### Screen mapping
+
+- **Loans list ← `LendBorrowScreen`.** Summary card is Cashiro's
+  `LoanBalanceContent` (plain `surfaceContainerLow` card, status pill with dot,
+  44sp net figure with faint decimals, Lent/Borrowed tiles washed in
+  `primary`/`secondary` with arrow chips and an overlapping avatar stack).
+  Below it, Cashiro's segmented switcher (All / You get / You owe / Settled —
+  Settled replaces Cashiro's Overdue and the old "Settled (n)" toggle) and the
+  search pill, both ephemeral UI filters. Person rows use Cashiro's row
+  (40dp avatar, name, tags, trailing "Owes you …" status); PennyWise keeps its
+  in-place expansion (rotating chevron) to the person's loans and Settle up.
+- **Avatars.** A loan linked to a contact shows Cashiro's solid avatar in the
+  contact's colour plus the contact's relationship tag (read-only lookup via
+  `PersonRepository`); unlinked names keep direction-tinted initials.
+- **Loan detail ← `PersonDetailScreen` header.** Header now sits on the page
+  (no card): 84dp lifted avatar, direction tag, amount, repayment track, a
+  Settle/Reopen button beside a 10%-washed status chip (12dp corners), note
+  card. History always shows its header; an empty history uses Cashiro's
+  empty-transactions card.
+- **Sheets/dialogs.** Entry, settle-up, record-payment and person-editor sheets
+  use `PennyWiseBottomSheet`; entry follows Cashiro's order (title, switcher,
+  info card, large centred amount on a page-coloured panel with a currency chip,
+  person + note, 56dp pill save). Settle loan / expected return / delete loan /
+  delete person / colour picker use `PennyWiseAlertDialog` with
+  `ConnectedButtonPair` (destructive where it deletes).
+
+### Money rules
+
+- The summary's single figure stays what the view model already produces
+  (converted in unified mode, base-currency-filtered otherwise); the
+  per-currency breakdown is kept whenever loans span currencies. Person rows,
+  the settle-up sheet, and the You get / You owe filters work per currency and
+  never net across currencies.
+
+### Explicitly excluded
+
+- Cashiro's Overdue filter, due dates, partial settlement amount, settlement
+  account picker, number pad, person category menu filter, multi-select and
+  bulk delete, long-press record actions, call/SMS/WhatsApp/Telegram reminder
+  buttons, photo avatars, and shared-element transitions: each needs new data,
+  new behavior, or an external intent rather than restyling.
+- FAB blur: other PennyWise screens use a solid `primaryContainer` FAB.
+- Personal dashboard and Contacts: unchanged in this pass.
