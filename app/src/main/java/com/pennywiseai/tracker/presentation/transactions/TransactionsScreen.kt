@@ -632,8 +632,10 @@ fun TransactionsScreen(
                                 // Modifier.background on a wrapping Box was painted *under* the
                                 // Card and was completely covered by the Card's own surface, so
                                 // selection had no visible effect.
+                                // Cashiro's selected row: a neutral raised-grey fill (never a
+                                // tonal primary, which can sink the light row text).
                                 val rowContainerColor = if (isSelected)
-                                    MaterialTheme.colorScheme.primaryContainer
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
                                 else null
 
                                 // Long-press now lives on TransactionItem's own

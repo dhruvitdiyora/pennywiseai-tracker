@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -134,11 +135,9 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = stringResource(R.string.txn_totals_income),
-                            amount = totalAmountText(
-                                CurrencyFormatter.formatCurrency(income, currency),
-                                isEstimated
-                            ),
+                            amount = CurrencyFormatter.formatCurrency(income, currency),
                             color = if (!isAppInDarkTheme()) income_light else income_dark,
+                            estimated = isEstimated,
                             modifier = Modifier.alpha(incomeAlpha)
                         )
                     }
@@ -173,11 +172,9 @@ fun TransactionTotalsCard(
                             },
                             // Four tiles leave no room for the plural — it wraps.
                             label = if (credit != null) stringResource(R.string.txn_totals_expense) else stringResource(R.string.txn_totals_expenses),
-                            amount = totalAmountText(
-                                CurrencyFormatter.formatCurrency(expenses, currency),
-                                isEstimated
-                            ),
+                            amount = CurrencyFormatter.formatCurrency(expenses, currency),
                             color = if (!isAppInDarkTheme()) expense_light else expense_dark,
+                            estimated = isEstimated,
                             modifier = Modifier.alpha(expenseAlpha)
                         )
                     }
@@ -255,11 +252,9 @@ fun TransactionTotalsCard(
                                 )
                             },
                             label = stringResource(R.string.txn_totals_net),
-                            amount = totalAmountText(
-                                "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
-                                isEstimated
-                            ),
+                            amount = "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
                             color = netColor,
+                            estimated = isEstimated,
                             modifier = Modifier.alpha(netAlpha)
                         )
                     }
@@ -278,21 +273,13 @@ fun TransactionTotalsCard(
     }
 }
 
-/** [formatted], prefixed "est." when the figure comes from converted currencies. */
-@Composable
-private fun totalAmountText(formatted: String, isEstimated: Boolean): String =
-    if (isEstimated) {
-        stringResource(R.string.account_detail_estimated_amount, formatted)
-    } else {
-        formatted
-    }
-
 @Composable
 private fun TotalColumn(
     icon: @Composable (() -> Unit)?,
     label: String,
     amount: String,
     color: androidx.compose.ui.graphics.Color,
+    estimated: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -310,13 +297,27 @@ private fun TotalColumn(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (estimated) {
+                // A small badge, so the figure itself stays on one line.
+                Text(
+                    text = stringResource(R.string.account_detail_estimated_badge),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.16f),
+                            CircleShape,
+                        )
+                        .padding(horizontal = Spacing.xs, vertical = 1.dp),
+                )
+            }
         }
         Text(
             text = amount,
             style = PennyWiseText.amountRow,
             color = color,
             textAlign = TextAlign.Center,
-            // Wrap rather than marquee-clip: a long "est. 2,533.01" must show in full.
+            // Wrap rather than marquee-clip: a long figure must show in full.
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )

@@ -205,8 +205,13 @@ fun TransactionItem(
     // its chip; nudged only when it would not read on the row's own background.
     val rowBackground = containerColor ?: colors.surfaceContainerLow
     val categoryColor = CategoryMapping.colorFor(transaction.category)
+    // Measured against the chip as drawn (its tint composited over the row).
     val categoryTextColor = remember(categoryColor, rowBackground, colors.onSurface) {
-        categoryColor.legibleOn(rowBackground, towards = colors.onSurface)
+        categoryColor.legibleOn(
+            background = categoryColor.copy(alpha = TINTED_CONTAINER_ALPHA).compositeOver(rowBackground),
+            towards = colors.onSurface,
+            minContrast = CHIP_TEXT_MIN_CONTRAST,
+        )
     }
     // Neutral chip text is measured against the chip as actually drawn (its
     // tint washed over the row). On a selected row the container is a tonal

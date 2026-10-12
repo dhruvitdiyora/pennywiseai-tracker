@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -628,7 +627,8 @@ private fun CategoryTile(
             color = if (marked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             textAlign = TextAlign.Center,
-            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -901,7 +901,8 @@ private fun CurrencyTile(
             color = if (selected) content else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             textAlign = TextAlign.Center,
-            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
