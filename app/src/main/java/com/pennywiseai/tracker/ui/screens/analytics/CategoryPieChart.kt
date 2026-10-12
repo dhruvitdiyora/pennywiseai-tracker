@@ -53,8 +53,10 @@ fun CategoryPieChart(
     val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.amount }.toDouble()
     if (total == 0.0) return
 
+    // One ordering (largest first) feeds both the ring and the legend, so a
+    // segment's colour always matches its legend row and none is hidden.
     val pieData = remember(categories) {
-        categories.map { category ->
+        categories.sortedByDescending { it.amount }.map { category ->
             val sliceColor = CategoryMapping.colorFor(category.name, category.color)
             Pie(
                 label = category.name,
@@ -73,7 +75,7 @@ fun CategoryPieChart(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .heightIn(min = 200.dp)
             .padding(Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -81,7 +83,7 @@ fun CategoryPieChart(
         Box(
             modifier = Modifier
                 .weight(1.2f)
-                .fillMaxHeight(),
+                .heightIn(min = 184.dp),
             contentAlignment = Alignment.Center
         ) {
             PieChart(
@@ -125,13 +127,12 @@ fun CategoryPieChart(
             }
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight()
                 .padding(start = Spacing.md)
         ) {
-            items(chartData.sortedByDescending { it.data }) { pie ->
+            chartData.forEach { pie ->
                 PieLegendItem(
                     label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
                     value = pie.data,

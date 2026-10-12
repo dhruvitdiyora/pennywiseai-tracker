@@ -660,7 +660,7 @@ internal fun AnalyticsChartModeCard(
                 ChartType.LINE -> BalanceChart(
                     primaryCurrency = selectedCurrency,
                     balanceHistory = data,
-                    height = 220,
+                    height = 280,
                     seriesLabel = stringResource(R.string.analytics_spending_trend),
                 )
                 ChartType.BAR -> SpendingBarChart(

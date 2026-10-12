@@ -40,7 +40,7 @@ fun TagPieChart(
     if (total == 0.0) return
 
     val pieData = remember(tags) {
-        tags.map { tag ->
+        tags.sortedByDescending { it.amount }.map { tag ->
             Pie(
                 label = tag.name,
                 data = tag.amount.toDouble(),
@@ -58,7 +58,7 @@ fun TagPieChart(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .heightIn(min = 200.dp)
             .padding(Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -66,7 +66,7 @@ fun TagPieChart(
         Box(
             modifier = Modifier
                 .weight(1.2f)
-                .fillMaxHeight(),
+                .heightIn(min = 184.dp),
             contentAlignment = Alignment.Center
         ) {
             PieChart(
@@ -90,13 +90,12 @@ fun TagPieChart(
             )
         }
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight()
                 .padding(start = Spacing.md)
         ) {
-            items(chartData.sortedByDescending { it.data }) { pie ->
+            chartData.forEach { pie ->
                 TagLegendItem(
                     label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
                     value = pie.data,
