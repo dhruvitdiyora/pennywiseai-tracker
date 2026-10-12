@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -152,17 +154,22 @@ fun IconTile(
     glyphSize: Dp = Dimensions.Icon.medium,
     contentDescription: String? = null
 ) {
+    // Cashiro's tinted tile: on a dark surface the pastel container becomes a
+    // low-alpha wash of the glyph colour so the circles don't glare on dark glass.
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val tileColor = if (dark) contentColor.copy(alpha = 0.18f) else containerColor
+    val glyphColor = if (dark) lerp(contentColor, Color.White, 0.35f) else contentColor
     Box(
         modifier = modifier
             .defaultMinSize(minWidth = size, minHeight = size)
             .clip(CircleShape)
-            .background(containerColor),
+            .background(tileColor),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = contentColor,
+            tint = glyphColor,
             modifier = Modifier.size(glyphSize)
         )
     }

@@ -639,11 +639,7 @@ private fun SettingsProfileHeaderCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            // Profile card in its primary tone.
-            .glassPanel(
-                shape = MaterialTheme.shapes.extraLarge,
-                tint = MaterialTheme.colorScheme.primaryContainer,
-            )
+            .glassPanel(shape = MaterialTheme.shapes.extraLarge)
             .clickable(onClick = onClick)
             .padding(Spacing.md),
         contentAlignment = Alignment.Center
@@ -690,7 +686,7 @@ private fun SettingsProfileHeaderCard(
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -705,12 +701,12 @@ private fun SettingsProfileHeaderCard(
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Medium
                     ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = pluralStringResource(R.plurals.settings_profile_header_subtitle, transactionCount, transactionCount),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -719,7 +715,7 @@ private fun SettingsProfileHeaderCard(
                 Icon(
                     Iconax.Edit2,
                     contentDescription = stringResource(R.string.edit_profile_title),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(Dimensions.Icon.inline)
                 )
             }
@@ -728,7 +724,7 @@ private fun SettingsProfileHeaderCard(
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(Dimensions.Icon.inline)
             )
         }

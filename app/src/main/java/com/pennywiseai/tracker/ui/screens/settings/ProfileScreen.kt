@@ -158,7 +158,6 @@ internal fun ProfileScreenContent(
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    tint = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -181,12 +180,12 @@ internal fun ProfileScreenContent(
                                 text = stringResource(R.string.profile_settings_summary),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
                                 text = stringResource(R.string.profile_settings_description),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
