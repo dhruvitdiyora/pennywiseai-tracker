@@ -300,23 +300,6 @@ private fun TotalColumn(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            if (estimated) {
-                // A small badge, so the figure itself stays on one line.
-                Text(
-                    text = stringResource(R.string.account_detail_estimated_badge),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // Never wraps ("es/t."): one line, shrinks the label instead.
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.16f),
-                            CircleShape,
-                        )
-                        .padding(horizontal = Spacing.xs, vertical = 1.dp),
-                )
-            }
         }
         Text(
             text = amount,
@@ -327,6 +310,23 @@ private fun TotalColumn(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        if (estimated) {
+            // Under the figure, not beside the label: in a three-column row the
+            // badge would squeeze "Expenses" down to "Expen…".
+            Text(
+                text = stringResource(R.string.account_detail_estimated_badge),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.16f),
+                        CircleShape,
+                    )
+                    .padding(horizontal = Spacing.xs, vertical = 1.dp),
+            )
+        }
     }
 }
 

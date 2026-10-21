@@ -46,7 +46,10 @@ fun HeatmapWidget(
 
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(Unit) {
+    // Open on the latest weeks. maxValue is 0 until the grid has been laid
+    // out, so key on it: a one-shot effect scrolled nowhere and left the card
+    // showing the oldest months with today's weeks off the edge.
+    LaunchedEffect(scrollState.maxValue) {
         scrollState.scrollTo(scrollState.maxValue)
     }
 
@@ -95,62 +98,64 @@ fun HeatmapWidget(
                         }
                     }
 
-                    // Heatmap grid
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = Modifier
-                            .horizontalScroll(scrollState)
-                            .padding(bottom = Spacing.sm)
-                    ) {
-                        for (w in 0 until weeksToShow) {
-                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
-                                for (d in 0 until 7) {
-                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                    val epochDay = date.toEpochDay()
-                                    val count = transactionHeatmap[epochDay] ?: 0
+                    // Heatmap grid and its month labels scroll together, so a
+                    // label stays over the week it names.
+                    Column(modifier = Modifier.horizontalScroll(scrollState)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(gapSize),
+                            modifier = Modifier.padding(bottom = Spacing.sm)
+                        ) {
+                            for (w in 0 until weeksToShow) {
+                                Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                    for (d in 0 until 7) {
+                                        val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                        val epochDay = date.toEpochDay()
+                                        val count = transactionHeatmap[epochDay] ?: 0
 
-                                    val primary = MaterialTheme.colorScheme.primary
-                                    val color = when {
-                                        date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 1 -> primary.copy(alpha = 0.25f)
-                                        count == 2 -> primary.copy(alpha = 0.5f)
-                                        count in 3..4 -> primary.copy(alpha = 0.75f)
-                                        else -> primary
+                                        val primary = MaterialTheme.colorScheme.primary
+                                        val color = when {
+                                            date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                            count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                            count == 1 -> primary.copy(alpha = 0.25f)
+                                            count == 2 -> primary.copy(alpha = 0.5f)
+                                            count in 3..4 -> primary.copy(alpha = 0.75f)
+                                            else -> primary
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(cellSize)
+                                                .clip(MaterialTheme.shapes.extraSmall)
+                                                .background(color)
+                                        )
                                     }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .clip(MaterialTheme.shapes.extraSmall)
-                                            .background(color)
-                                    )
                                 }
                             }
                         }
-                    }
-                }
-
-                // Month labels
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = dayLabelWidth)
-                ) {
-                    monthLabels.forEach { (weekIndex, label) ->
-                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.offset(x = xOffset)
-                        )
+                        // Month labels
+                        Box {
+                            monthLabels
+                                // A label in the last two weeks would hang past the grid's end.
+                                .filter { (weekIndex, _) -> weekIndex <= weeksToShow - MONTH_LABEL_MIN_WEEKS }
+                                .forEach { (weekIndex, label) ->
+                                    val xOffset = (weekIndex * (cellSize + gapSize).value).dp
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.offset(x = xOffset)
+                                    )
+                                }
+                        }
                     }
                 }
             }
         }
     }
 }
+
+/** Weeks of grid a month label needs to its right so it isn't cut off. */
+private const val MONTH_LABEL_MIN_WEEKS = 2
 
 // Heatmap cell geometry. The grid is 7 rows tall and sized to fit a year of
 // weeks across a phone, so these are laid out by hand rather than by a token —

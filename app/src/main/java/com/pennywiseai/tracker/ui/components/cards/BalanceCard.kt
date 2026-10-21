@@ -332,7 +332,8 @@ fun BalanceCard(
                         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         Spacer(modifier = Modifier.height(Spacing.md))
 
-                        // Cashiro's This month / This year / Balance trio.
+                        // Cashiro's This month / This year / Balance trio. As there, the
+                        // period labels are set in caps and "Balance" is not.
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -340,13 +341,13 @@ fun BalanceCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TrioItem(
-                                label = stringResource(R.string.net_worth_this_month),
+                                label = stringResource(R.string.net_worth_this_month).uppercase(),
                                 value = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
                                 modifier = Modifier.weight(1f)
                             )
                             TrioDivider()
                             TrioItem(
-                                label = stringResource(R.string.net_worth_this_year),
+                                label = stringResource(R.string.net_worth_this_year).uppercase(),
                                 value = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(currentYearTotal, currency),
                                 modifier = Modifier.weight(1f)
                             )
@@ -518,9 +519,9 @@ private fun TrioItem(label: String, value: String, modifier: Modifier = Modifier
             )
         )
         Text(
-            text = label.uppercase(),
+            text = label,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = TRIO_LABEL_SIZE),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
