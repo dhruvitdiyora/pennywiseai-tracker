@@ -69,6 +69,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
@@ -99,6 +100,7 @@ import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.people.initialsOf
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
@@ -1505,7 +1507,8 @@ private fun LoanPeopleStack(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = person.name.trim().take(1).uppercase(),
+                    // Same initials as the Loans screen draws for this person.
+                    text = initialsOf(person.name),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (fill.luminance() > 0.5f) Color.Black else Color.White
@@ -1598,6 +1601,17 @@ private fun ViewAllPill(
     Surface(
         onClick = onClick,
         modifier = modifier
+            // The 48dp touch target pads above and below the pill; drop the
+            // padding below from the layout so nothing trails the pill, as in
+            // Cashiro (touches there still reach it through the padding above).
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val trailing = ((placeable.height - VIEW_ALL_PILL_HEIGHT.roundToPx()) / 2)
+                    .coerceAtLeast(0)
+                layout(placeable.width, placeable.height - trailing) {
+                    placeable.place(0, 0)
+                }
+            }
             .minimumInteractiveComponentSize()
             .height(VIEW_ALL_PILL_HEIGHT),
         shape = RoundedCornerShape(Dimensions.Glass.heroRadius),

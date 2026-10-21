@@ -333,6 +333,7 @@ private fun PersonLedger(
                     loan = loan,
                     onClick = { onNavigateToLoan(loan.id) },
                     shape = ListItemPosition.from(index, loans.size).toShape(),
+                    showPerson = false,
                 )
             }
         }

@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -69,6 +71,8 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /**
  * The colour a loan direction reads in everywhere on the lend & borrow
@@ -219,6 +223,7 @@ fun LoanListItem(
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    showPerson: Boolean = true,
 ) {
     val directionColor = loanDirectionColor(loan.direction)
     val settled = loan.status == LoanStatus.SETTLED
@@ -233,8 +238,17 @@ fun LoanListItem(
         loan.currency,
     )
 
+    // Under a person (their expanded row or their own screen) every row would
+    // repeat the same name and initials, so name the loan by its note or date.
+    val title = if (showPerson) {
+        loan.personName
+    } else {
+        loan.note?.trim()?.takeIf { it.isNotEmpty() }
+            ?: loan.createdAt.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    }
+
     ListItemCardV2(
-        title = loan.personName,
+        title = title,
         subtitle = if (settled) "$directionLabel, $settledLabel" else directionLabel,
         amount = shownAmount,
         modifier = modifier,
@@ -242,11 +256,32 @@ fun LoanListItem(
         containerColor = containerColor,
         onClick = onClick,
         leadingContent = {
-            PersonAvatar(
-                initials = initialsOf(loan.personName),
-                color = directionColor,
-                tinted = true,
-            )
+            if (showPerson) {
+                PersonAvatar(
+                    initials = initialsOf(loan.personName),
+                    color = directionColor,
+                    tinted = true,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(Dimensions.Icon.avatar)
+                        .clip(CircleShape)
+                        .background(directionColor.copy(alpha = Dimensions.Alpha.tonalIconContainer)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (loan.direction == LoanDirection.LENT) {
+                            Icons.Default.ArrowUpward
+                        } else {
+                            Icons.Default.ArrowDownward
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.inline),
+                        tint = directionColor,
+                    )
+                }
+            }
         },
         subtitleContent = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -438,6 +473,7 @@ internal fun LoanPersonBlock(
                             onClick = { onOpenLoan(loan.id) },
                             shape = ListItemPosition.from(index, person.loans.size).toShape(),
                             containerColor = scheme.surfaceContainerHigh,
+                            showPerson = false,
                         )
                     }
                     if (person.hasActive) {
