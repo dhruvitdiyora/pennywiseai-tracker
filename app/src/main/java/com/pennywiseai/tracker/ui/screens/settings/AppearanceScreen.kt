@@ -61,6 +61,7 @@ import com.pennywiseai.tracker.data.preferences.AppFont
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
+import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -278,6 +279,42 @@ fun AppearanceScreen(
                 currentStyle = themeUiState.navBarStyle,
                 onStyleSelected = { themeViewModel.updateNavBarStyle(it) }
             )
+        }
+
+        // Bottom bar tabs (#912). Home always stays, so it isn't listed.
+        SettingsSection(
+            title = stringResource(R.string.appearance_bottom_bar_section),
+            headerHorizontalPadding = Dimensions.Padding.content
+        ) {
+            Text(
+                text = stringResource(R.string.appearance_bottom_bar_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+            )
+            val hideableTabs = BottomNavItem.hideable
+            GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+                hideableTabs.forEachIndexed { index, tab ->
+                    val shown = tab.route !in themeUiState.hiddenNavTabs
+                    GlassPreferenceSwitch(
+                        title = stringResource(tab.titleRes),
+                        checked = shown,
+                        onCheckedChange = { themeViewModel.setNavTabVisible(tab.route, it) },
+                        leadingIcon = {
+                            IconTile(
+                                icon = tab.icon,
+                                containerColor = if (shown) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = if (shown) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        position = ListItemPosition.from(index, hideableTabs.size)
+                    )
+                }
+            }
         }
 
         // Cover Style Section

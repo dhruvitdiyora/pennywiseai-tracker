@@ -134,7 +134,7 @@ fun OnboardingRefreshLayout(
             label = "onboarding_step"
         ) { step ->
             when (step) {
-                OnBoardingStep.WELCOME -> OnboardingWelcomeStep()
+                OnBoardingStep.WELCOME -> OnboardingWelcomeStep(uiState, viewModel)
                 OnBoardingStep.PROFILE -> OnboardingProfileStep(uiState, viewModel)
                 OnBoardingStep.PERMISSIONS -> OnboardingPermissionsStep(uiState.smsPermissionGranted)
                 OnBoardingStep.SMS_SCAN -> OnboardingScanStep(uiState)

@@ -28,6 +28,10 @@ import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
+import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
+import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
+import com.pennywiseai.tracker.data.database.dao.GoalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -294,6 +298,11 @@ object DatabaseModule {
     fun provideRecurringTransactionDao(database: PennyWiseDatabase): RecurringTransactionDao {
         return database.recurringTransactionDao()
     }
+
+    @Provides @Singleton fun provideWebhookProfileDao(database: PennyWiseDatabase): WebhookProfileDao = database.webhookProfileDao()
+    @Provides @Singleton fun provideWebhookLogDao(database: PennyWiseDatabase): WebhookLogDao = database.webhookLogDao()
+    @Provides @Singleton fun provideWebhookCursorDao(database: PennyWiseDatabase): WebhookCursorDao = database.webhookCursorDao()
+    @Provides @Singleton fun provideGoalDao(database: PennyWiseDatabase): GoalDao = database.goalDao()
 }
 
 /**
@@ -315,9 +324,9 @@ class DatabaseCallback : RoomDatabase.Callback() {
 
         categories.forEachIndexed { index, seed ->
             db.execSQL("""
-                INSERT OR IGNORE INTO categories (name, color, is_system, is_income, display_order, created_at, updated_at)
-                VALUES (?, ?, 1, ?, ?, datetime('now'), datetime('now'))
-            """.trimIndent(), arrayOf<Any>(seed.name, seed.colorHex, if (seed.isIncome) 1 else 0, index + 1))
+                INSERT OR IGNORE INTO categories (name, color, is_system, system_name, is_income, display_order, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?, ?, datetime('now'), datetime('now'))
+            """.trimIndent(), arrayOf<Any>(seed.name, seed.colorHex, seed.name, if (seed.isIncome) 1 else 0, index + 1))
         }
     }
 

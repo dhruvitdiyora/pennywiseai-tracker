@@ -4,6 +4,35 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import java.time.Duration
 
 object TransactionDeduplication {
+    /** A credit-limit figure in the SMS: "Avl Limit: INR 57888.3", "Available Limit: INR 3,30,022.99". */
+    private val limitFigure = Regex(
+        """(?:Limit|Lmt)\b[^0-9]{0,15}([0-9][0-9,]*(?:\.\d+)?)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Whether [stored] — an earlier read of the same SMS as [fresh] — carries an
+     * amount an older parser is known to have got wrong, so it's safe to correct
+     * in place. Two known artifacts:
+     *  - dropped decimals: "Rs.11348.7" stored as 11348 (#886)
+     *  - the card's available limit stored as the amount (#888)
+     * Anything else may be the user's own edit, and is left alone.
+     */
+    fun isParseArtifact(stored: TransactionEntity, fresh: TransactionEntity): Boolean {
+        if (stored.amount.compareTo(fresh.amount) == 0 && stored.currency == fresh.currency) return false
+
+        if (stored.currency == fresh.currency &&
+            stored.amount.compareTo(fresh.amount.setScale(0, java.math.RoundingMode.DOWN)) == 0
+        ) return true
+
+        val body = stored.smsBody ?: return false
+        return limitFigure.findAll(body).any { match ->
+            val limit = match.groupValues[1].replace(",", "").toBigDecimalOrNull() ?: return@any false
+            stored.amount.compareTo(limit) == 0 ||
+                stored.amount.compareTo(limit.setScale(0, java.math.RoundingMode.DOWN)) == 0
+        }
+    }
+
     private val upiReferencePattern = Regex("""\d{12}""")
     val UPI_DUPLICATE_WINDOW: Duration = Duration.ofHours(24)
 
@@ -37,7 +66,34 @@ object TransactionDeduplication {
         incoming: TransactionEntity
     ): Boolean {
         if (existing.bankName != incoming.bankName) return false
+        // Equal numbers in different currencies are different charges (a
+        // multi-currency provider can post £0.24 and €0.24 together).
+        if (existing.currency != incoming.currency) return false
         return existing.merchantName.equals(incoming.merchantName, ignoreCase = true)
+    }
+
+    /**
+     * Cross-channel check: when a bank both texts and pushes an app notification
+     * for the same charge, whichever is saved second must not book it again. The
+     * two carry different senders (shortcode vs app alias), so their hashes never
+     * match. Callers run this inside the same lock as the insert, so an SMS and a
+     * notification arriving together can't both pass before either is saved.
+     *
+     * Only a row from the *other* channel counts — two identical SMS charges a
+     * minute apart are two real purchases — and the accounts must agree, so an
+     * equal withdrawal from a different account is kept.
+     */
+    fun isBookedByOtherChannel(
+        incoming: TransactionEntity,
+        nearby: List<TransactionEntity>,
+        notificationAliases: Set<String>
+    ): Boolean {
+        val incomingIsNotification = incoming.smsSender in notificationAliases
+        return nearby.any {
+            (it.smsSender in notificationAliases) != incomingIsNotification &&
+                isSameCharge(it, incoming) &&
+                accountsMatch(it.accountNumber, incoming.accountNumber)
+        }
     }
 
     fun shouldReplaceWithIncoming(
@@ -54,7 +110,11 @@ object TransactionDeduplication {
         return existing.balanceAfter == null && incoming.balanceAfter != null
     }
 
-    fun duplicateIdsToDelete(transactions: List<TransactionEntity>): List<Long> {
+    fun duplicateIdsToDelete(transactions: List<TransactionEntity>): List<Long> =
+        duplicatesToKeepers(transactions).keys.toList()
+
+    /** Each duplicate's id → the id of the row kept in its place, in deletion order. */
+    fun duplicatesToKeepers(transactions: List<TransactionEntity>): Map<Long, Long> {
         return transactions
             .filter { !it.isDeleted && hasUpiReference(it) }
             .groupBy {
@@ -69,9 +129,10 @@ object TransactionDeduplication {
             .values
             .map { group -> duplicateIdsFromGroup(group) }
             .flatten()
+            .toMap()
     }
 
-    private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Long> {
+    private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Pair<Long, Long>> {
         val duplicateClusters = mutableListOf<MutableList<TransactionEntity>>()
 
         group.sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
@@ -92,7 +153,7 @@ object TransactionDeduplication {
             cluster
                 .filter { it.id != keeper.id }
                 .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
-                .map { it.id }
+                .map { it.id to keeper.id }
         }.flatten()
     }
 

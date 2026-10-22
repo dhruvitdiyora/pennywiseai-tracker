@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
@@ -79,12 +80,10 @@ class CategoriesViewModel @Inject constructor(
     }
     
     fun showEditDialog(category: CategoryEntity) {
-        if (!category.isSystem) {
-            _editingCategory.value = category
-            _showAddEditDialog.value = true
-        } else {
-            _snackbarMessage.value = UiText.Res(R.string.categories_msg_system_not_editable)
-        }
+        // Built-ins can be renamed and restyled too (#823); the dialog locks their
+        // type and parent, and they still can't be deleted.
+        _editingCategory.value = category
+        _showAddEditDialog.value = true
     }
     
     fun hideDialog() {
@@ -104,15 +103,24 @@ class CategoriesViewModel @Inject constructor(
                 val editingCat = _editingCategory.value
                 
                 if (editingCat != null) {
-                    // Update existing category
+                    // Renaming onto another category's name would merge two
+                    // categories' transactions silently; refuse it.
+                    val clash = categoryRepository.getCategoryByName(name)
+                    if (clash != null && clash.id != editingCat.id) {
+                        _snackbarMessage.value = UiText.Res(R.string.categories_msg_already_exists, listOf(name))
+                        return@launch
+                    }
                     categoryRepository.updateCategory(
                         editingCat.copy(
                             name = name,
                             color = color,
-                            isIncome = isIncome,
+                            isIncome = if (editingCat.isSystem) editingCat.isIncome else isIncome,
+                            // Pin the built-in's identity before its name changes (#823).
+                            systemName = editingCat.builtinKey,
                             icon = icon,
-                            parentId = parentId
-                        )
+                            parentId = if (editingCat.isSystem) editingCat.parentId else parentId
+                        ),
+                        previousName = editingCat.name
                     )
                     _snackbarMessage.value = UiText.Res(R.string.categories_msg_updated)
                 } else {

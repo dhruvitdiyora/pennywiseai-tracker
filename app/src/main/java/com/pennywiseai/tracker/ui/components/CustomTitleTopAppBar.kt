@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import android.os.Build
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -413,10 +415,17 @@ fun Modifier.compactBarGlass(
         ) else Modifier
     )
     .background(
-        Brush.verticalGradient(
-            colors = listOf(
-                pageBackground.copy(alpha = if (blurEffects) 0.97f else 1f),
-                pageBackground.copy(alpha = if (blurEffects) 0.88f else 0.97f),
+        // Without a real blur (turned off, or Android 11 and older where Haze
+        // can't blur) content would show through the fade behind the back
+        // button and title, so the bar is solid there (#958).
+        if (blurEffects && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    pageBackground.copy(alpha = 0.97f),
+                    pageBackground.copy(alpha = 0.88f),
+                )
             )
-        )
+        } else {
+            SolidColor(pageBackground)
+        }
     )

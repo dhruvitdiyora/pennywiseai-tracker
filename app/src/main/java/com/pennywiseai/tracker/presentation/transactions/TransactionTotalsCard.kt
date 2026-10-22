@@ -1,6 +1,10 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -40,11 +44,10 @@ fun TransactionTotalsCard(
     onCurrencySelected: (String) -> Unit = {},
     isUnifiedMode: Boolean = false,
     isLoading: Boolean = false,
-    // Optional fourth tile (#634): credit-card spend of the shown set. The
-    // regular list totals leave it off — credit lives on the Cash-Flow card —
-    // but selection totals show it, since the ask was income/expense/credit
-    // for exactly the rows the user picked.
-    credit: BigDecimal? = null,
+    // Optional fourth tile: a total the Income/Expenses/Net tiles leave out —
+    // credit-card spend, or the transfers/investments a type filter shows
+    // (#634, #893). See [extraTotalFor].
+    extra: ExtraTotal? = null,
     // Optional heading, e.g. "3 selected".
     title: String? = null,
     // The figures were converted across currencies, so they are approximate:
@@ -101,162 +104,46 @@ fun TransactionTotalsCard(
                         modifier = Modifier.padding(start = Spacing.xs, bottom = Spacing.xs)
                     )
                 }
-                // Totals Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Income Column
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .weight(1f)
-                            .background(
-                                color = totalsTileColor(),
-                                shape = RoundedCornerShape(
-                                    topEnd = Spacing.xs,
-                                    topStart = Spacing.lg,
-                                    bottomEnd = Spacing.xs,
-                                    bottomStart = Spacing.lg
-                                )
-                            )
-                            .padding(Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TotalColumn(
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                    contentDescription = stringResource(R.string.txn_totals_income),
-                                    modifier = Modifier.size(Dimensions.Icon.inline),
-                                    tint = if (!isAppInDarkTheme()) income_light else income_dark
-                                )
-                            },
-                            label = stringResource(R.string.txn_totals_income),
-                            amount = CurrencyFormatter.formatCurrency(income, currency),
-                            color = if (!isAppInDarkTheme()) income_light else income_dark,
-                            estimated = isEstimated,
-                            modifier = Modifier.alpha(incomeAlpha)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(Spacing.xxs))
-
-                    // Expenses Column
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .weight(1f)
-                            .background(
-                                color = totalsTileColor(),
-                                shape = RoundedCornerShape(
-                                    topEnd = Spacing.xs,
-                                    topStart = Spacing.xs,
-                                    bottomEnd = Spacing.xs,
-                                    bottomStart = Spacing.xs
-                                )
-                            )
-                            .padding(Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TotalColumn(
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                                    contentDescription = stringResource(R.string.txn_totals_expenses),
-                                    modifier = Modifier.size(Dimensions.Icon.inline),
-                                    tint = if (!isAppInDarkTheme()) expense_light else expense_dark
-                                )
-                            },
-                            // Four tiles leave no room for the plural — it wraps.
-                            label = if (credit != null) stringResource(R.string.txn_totals_expense) else stringResource(R.string.txn_totals_expenses),
-                            amount = CurrencyFormatter.formatCurrency(expenses, currency),
-                            color = if (!isAppInDarkTheme()) expense_light else expense_dark,
-                            estimated = isEstimated,
-                            modifier = Modifier.alpha(expenseAlpha)
-                        )
-                    }
-
-                    if (credit != null) {
-                        Spacer(modifier = Modifier.width(Spacing.xxs))
-
-                        // Credit Column (selection totals only)
-                        val creditColor = if (!isAppInDarkTheme()) credit_light else credit_dark
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(1f)
-                                .background(
-                                    color = totalsTileColor(),
-                                    shape = RoundedCornerShape(Spacing.xs)
-                                )
-                                .padding(Spacing.sm),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            TotalColumn(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Filled.CreditCard,
-                                        contentDescription = stringResource(R.string.txn_totals_credit),
-                                        modifier = Modifier.size(Dimensions.Icon.inline),
-                                        tint = creditColor
-                                    )
-                                },
-                                label = stringResource(R.string.txn_totals_credit),
-                                amount = CurrencyFormatter.formatCurrency(credit, currency),
-                                color = creditColor,
-                                modifier = Modifier.alpha(expenseAlpha)
-                            )
+                val dark = isAppInDarkTheme()
+                val netColor = when {
+                    netBalance > BigDecimal.ZERO -> if (!dark) income_light else income_dark
+                    netBalance < BigDecimal.ZERO -> if (!dark) expense_light else expense_dark
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                val tiles = buildList {
+                    add(TotalTileData(Icons.AutoMirrored.Filled.TrendingUp, stringResource(R.string.txn_totals_income),
+                        CurrencyFormatter.formatCurrency(income, currency), if (!dark) income_light else income_dark, incomeAlpha, isEstimated))
+                    add(TotalTileData(Icons.AutoMirrored.Filled.TrendingDown, stringResource(R.string.txn_totals_expenses),
+                        CurrencyFormatter.formatCurrency(expenses, currency), if (!dark) expense_light else expense_dark, expenseAlpha, isEstimated))
+                    if (extra != null) {
+                        val (extraIcon, extraLabel, extraColor) = when (extra.kind) {
+                            ExtraTotalKind.CREDIT -> Triple(Icons.Filled.CreditCard, stringResource(R.string.txn_totals_credit), if (dark) credit_dark else credit_light)
+                            ExtraTotalKind.TRANSFER -> Triple(Icons.Filled.SwapHoriz, stringResource(R.string.txn_totals_transfer), if (dark) transfer_dark else transfer_light)
+                            ExtraTotalKind.INVESTMENT -> Triple(Icons.AutoMirrored.Filled.ShowChart, stringResource(R.string.txn_totals_invest), if (dark) investment_dark else investment_light)
                         }
+                        add(TotalTileData(extraIcon, extraLabel, CurrencyFormatter.formatCurrency(extra.amount, currency), extraColor, expenseAlpha, isEstimated))
                     }
-
-                    Spacer(modifier = Modifier.width(Spacing.xxs))
-
-                    // Net Balance Column
-                    val netColor = when {
-                        netBalance > BigDecimal.ZERO -> if (!isAppInDarkTheme()) income_light else income_dark
-                        netBalance < BigDecimal.ZERO -> if (!isAppInDarkTheme()) expense_light else expense_dark
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-
-                    val netPrefix = when {
-                        netBalance > BigDecimal.ZERO -> "+"
-                        else -> ""
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .weight(1f)
-                            .background(
-                                color = totalsTileColor(),
-                                shape = RoundedCornerShape(
-                                    topEnd = Spacing.lg,
-                                    topStart = Spacing.xs,
-                                    bottomEnd = Spacing.lg,
-                                    bottomStart = Spacing.xs
+                    val netPrefix = if (netBalance > BigDecimal.ZERO) "+" else ""
+                    add(TotalTileData(Icons.Filled.SettingsEthernet, stringResource(R.string.txn_totals_net),
+                        CurrencyFormatter.signed(netPrefix, CurrencyFormatter.formatCurrency(netBalance, currency)), netColor, netAlpha, isEstimated))
+                }
+                // Four tiles in one row squeezed the amounts; two rows of two keep
+                // every figure whole (#920).
+                val rows = if (tiles.size > 3) tiles.chunked(2) else listOf(tiles)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                    rows.forEachIndexed { r, row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                        ) {
+                            row.forEachIndexed { c, tile ->
+                                TotalTile(
+                                    tile = tile,
+                                    shape = tileShape(r == 0, r == rows.lastIndex, c == 0, c == row.lastIndex),
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
                                 )
-                            )
-                            .padding(Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TotalColumn(
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Filled.SettingsEthernet,
-                                    contentDescription = stringResource(R.string.txn_totals_net),
-                                    modifier = Modifier.size(Dimensions.Icon.inline),
-                                    tint = netColor
-                                )
-                            },
-                            label = stringResource(R.string.txn_totals_net),
-                            amount = "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}",
-                            color = netColor,
-                            estimated = isEstimated,
-                            modifier = Modifier.alpha(netAlpha)
-                        )
+                            }
+                        }
                     }
                 }
             }
@@ -297,7 +184,12 @@ private fun TotalColumn(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                // One line, shrinking to fit: four tiles at a large font size
+                // otherwise break "Income" mid-word.
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = PennyWiseText.autoSizeFloor,
+                    maxFontSize = MaterialTheme.typography.labelMedium.fontSize
+                ),
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
@@ -396,3 +288,65 @@ private fun totalsTileColor(): androidx.compose.ui.graphics.Color =
     MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = TOTALS_TILE_ALPHA)
 
 private const val TOTALS_TILE_ALPHA = 0.55f
+
+enum class ExtraTotalKind { CREDIT, TRANSFER, INVESTMENT }
+
+data class ExtraTotal(val kind: ExtraTotalKind, val amount: BigDecimal)
+
+/**
+ * The fourth tile for the totals card. Income/Expenses/Net never include
+ * credit-card spend, transfers or investments (Net is cash flow), so a list of
+ * only those read 0 / 0 / 0 (#893). Transfer and Investment filters show
+ * their own total; the Credit filter and a selection (#634) always show the
+ * credit tile, even at zero; otherwise it shows whenever the shown rows have
+ * card spend.
+ */
+internal fun extraTotalFor(totals: FilteredTotals, typeFilter: TransactionTypeFilter, selectionMode: Boolean): ExtraTotal? = when {
+    !selectionMode && typeFilter == TransactionTypeFilter.TRANSFER -> ExtraTotal(ExtraTotalKind.TRANSFER, totals.transfer)
+    !selectionMode && typeFilter == TransactionTypeFilter.INVESTMENT -> ExtraTotal(ExtraTotalKind.INVESTMENT, totals.investment)
+    selectionMode || typeFilter == TransactionTypeFilter.CREDIT || totals.credit.signum() != 0 -> ExtraTotal(ExtraTotalKind.CREDIT, totals.credit)
+    else -> null
+}
+
+private data class TotalTileData(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val label: String,
+    val amount: String,
+    val color: Color,
+    val alpha: Float,
+    val estimated: Boolean,
+)
+
+/** Outer corners of the grid follow the glass pill (large), inner ones are small. */
+private fun tileShape(top: Boolean, bottom: Boolean, start: Boolean, end: Boolean) = RoundedCornerShape(
+    topStart = if (top && start) Spacing.lg else Spacing.xs,
+    topEnd = if (top && end) Spacing.lg else Spacing.xs,
+    bottomStart = if (bottom && start) Spacing.lg else Spacing.xs,
+    bottomEnd = if (bottom && end) Spacing.lg else Spacing.xs
+)
+
+@Composable
+private fun TotalTile(tile: TotalTileData, shape: RoundedCornerShape, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(color = totalsTileColor(), shape = shape)
+            .padding(Spacing.sm),
+        contentAlignment = Alignment.Center
+    ) {
+        TotalColumn(
+            icon = {
+                Icon(
+                    imageVector = tile.icon,
+                    contentDescription = tile.label,
+                    modifier = Modifier.size(Dimensions.Icon.inline),
+                    tint = tile.color
+                )
+            },
+            label = tile.label,
+            amount = tile.amount,
+            color = tile.color,
+            estimated = tile.estimated,
+            modifier = Modifier.alpha(tile.alpha)
+        )
+    }
+}

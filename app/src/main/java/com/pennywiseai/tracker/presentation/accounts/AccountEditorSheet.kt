@@ -36,6 +36,12 @@ import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.domain.model.icon
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import com.pennywiseai.tracker.presentation.people.TonalTextField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -61,8 +67,12 @@ private val AmountInputPattern = Regex("^\\d*\\.?\\d*$")
 internal fun EditAccountSheet(
     account: AccountBalanceEntity,
     onDismiss: () -> Unit,
-    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?, currency: String) -> Unit
+    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?, currency: String, type: AccountType) -> Unit
 ) {
+    // Editable for every account, SMS-created ones included (#792).
+    var selectedType by remember { mutableStateOf(account.getAccountType()) }
+    var showTypeMenu by remember { mutableStateOf(false) }
+    val isCreditForm = selectedType == AccountType.CREDIT
     var bankNameText by remember { mutableStateOf(account.bankName) }
     var balanceText by remember { mutableStateOf(account.balance.toString()) }
     var creditLimitText by remember { mutableStateOf(account.creditLimit?.toString() ?: "") }
@@ -84,7 +94,7 @@ internal fun EditAccountSheet(
     val isValid = bankNameText.isNotBlank() &&
         balanceText.isNotBlank() &&
         balanceText.toDoubleOrNull() != null &&
-        (if (account.isCreditCard) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
+        (if (isCreditForm) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
@@ -93,7 +103,8 @@ internal fun EditAccountSheet(
     val limit = creditLimitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
     // Bank name, account number, currency, balance and (credit cards) limit read
     // as one connected block of fields.
-    val fieldCount = if (account.isCreditCard) 5 else 4
+    // Plus the account type row (#792).
+    val fieldCount = if (isCreditForm) 6 else 5
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -128,13 +139,7 @@ internal fun EditAccountSheet(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = stringResource(
-                        if (account.isCreditCard) {
-                            R.string.manage_accounts_type_credit_card
-                        } else {
-                            R.string.manage_accounts_type_bank_account
-                        }
-                    ),
+                    text = selectedType.displayName(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -152,8 +157,8 @@ internal fun EditAccountSheet(
                     accountLast4 = account.accountLast4,
                     balance = outstanding,
                     currencyCode = currencyText,
-                    accountType = account.getAccountType(),
-                    creditLimit = if (account.isCreditCard) limit else null,
+                    accountType = selectedType,
+                    creditLimit = if (isCreditForm) limit else null,
                 )
                 Text(
                     text = stringResource(R.string.account_editor_preview_caption),
@@ -189,7 +194,34 @@ internal fun EditAccountSheet(
                     onClick = { showCurrencySheet = true },
                 )
 
-                if (account.isCreditCard) {
+                // Account type (#792). Changing it only changes how the balance is
+                // counted from now on; past transactions are not rewritten.
+                Box {
+                    AccountPickerField(
+                        label = stringResource(R.string.add_account_type_label),
+                        value = selectedType.displayName(),
+                        position = ListItemPosition.from(3, fieldCount),
+                        trailingIcon = Icons.Default.KeyboardArrowDown,
+                        onClick = { showTypeMenu = true },
+                    )
+                    DropdownMenu(
+                        expanded = showTypeMenu,
+                        onDismissRequest = { showTypeMenu = false },
+                    ) {
+                        AccountType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.displayName()) },
+                                leadingIcon = { Icon(type.icon, contentDescription = null) },
+                                onClick = {
+                                    selectedType = type
+                                    showTypeMenu = false
+                                },
+                            )
+                        }
+                    }
+                }
+
+                if (isCreditForm) {
                     // Outstanding Balance (Credit Card)
                     TonalTextField(
                         value = balanceText,
@@ -201,7 +233,7 @@ internal fun EditAccountSheet(
                         supportingText = stringResource(R.string.manage_accounts_outstanding_balance_hint),
                         prefix = { Text(symbol) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        position = ListItemPosition.from(3, fieldCount),
+                        position = ListItemPosition.from(4, fieldCount),
                     )
 
                     // Credit Limit
@@ -215,7 +247,7 @@ internal fun EditAccountSheet(
                         supportingText = stringResource(R.string.manage_accounts_credit_limit_hint),
                         prefix = { Text(symbol) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        position = ListItemPosition.from(4, fieldCount),
+                        position = ListItemPosition.from(5, fieldCount),
                     )
                 } else {
                     // Account Balance (Regular Account)
@@ -224,17 +256,33 @@ internal fun EditAccountSheet(
                         onValueChange = { text ->
                             if (text.matches(AmountInputPattern)) balanceText = text
                         },
-                        label = stringResource(R.string.manage_accounts_account_balance_label),
+                        label = if (selectedType == AccountType.LOAN) {
+                            stringResource(R.string.manage_accounts_outstanding_balance)
+                        } else {
+                            stringResource(R.string.manage_accounts_account_balance_label)
+                        },
                         placeholder = stringResource(R.string.manage_accounts_amount_placeholder),
+                        supportingText = if (selectedType == AccountType.LOAN) {
+                            stringResource(R.string.manage_accounts_loan_outstanding_hint)
+                        } else null,
                         prefix = { Text(symbol) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        position = ListItemPosition.from(3, fieldCount),
+                        position = ListItemPosition.from(4, fieldCount),
                     )
                 }
             }
 
+            if (selectedType != account.getAccountType()) {
+                Text(
+                    text = stringResource(R.string.manage_accounts_type_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             // Show available credit preview
-            if (account.isCreditCard && limit > BigDecimal.ZERO) {
+            if (isCreditForm && limit > BigDecimal.ZERO) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
@@ -276,10 +324,10 @@ internal fun EditAccountSheet(
                 Button(
                     onClick = {
                         val balance = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                        val creditLimit = if (account.isCreditCard) {
+                        val creditLimit = if (isCreditForm) {
                             creditLimitText.toBigDecimalOrNull()
                         } else null
-                        onConfirm(bankNameText, balance, creditLimit, currencyText)
+                        onConfirm(bankNameText, balance, creditLimit, currencyText, selectedType)
                     },
                     enabled = isValid,
                     modifier = Modifier

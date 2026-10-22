@@ -55,6 +55,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.domain.model.icon
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -1416,11 +1417,7 @@ private fun EditSubscriptionDialog(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        when (account.getAccountType()) {
-                                            AccountType.CASH -> Icons.Default.Money
-                                            AccountType.CREDIT -> Icons.Default.CreditCard
-                                            else -> Icons.Default.AccountBalance
-                                        },
+                                        account.getAccountType().icon,
                                         contentDescription = null
                                     )
                                 },

@@ -164,6 +164,7 @@ fun HomeScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
+    onGoalClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
 ) {
@@ -174,6 +175,7 @@ fun HomeScreen(
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val groupSummaries by viewModel.groupSummaries.collectAsState()
+    val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
@@ -549,6 +551,35 @@ fun HomeScreen(
                                         onCreateBudget = onNavigateToBudgets,
                                         blurEffects = blurEffects,
                                         hazeState = hazeStateBanner
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    HomeSection.GOALS -> {
+                        // 2.25. Goals (#914) — only when there's a non-archived goal.
+                        if (goals.isNotEmpty()) {
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    // Cashiro glass, header-less like Subscriptions and
+                                    // Lent / Borrowed below Recent.
+                                    com.pennywiseai.tracker.presentation.goals.GoalsHomeCard(
+                                        goals = goals,
+                                        onOpenGoal = onGoalClick,
+                                        onViewAll = onNavigateToBudgets,
+                                        blurEffects = blurEffects,
+                                        hazeState = hazeStateBanner,
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                     )
                                 }
                             }
@@ -932,19 +963,28 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_resync_title))
                 },
                 text = {
-                    Text(stringResource(R.string.home_resync_message))
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showFullResyncDialog = false
-                            viewModel.scanSmsMessages(forceResync = true)
-                        }
-                    ) {
-                        Text(stringResource(R.string.home_resync_confirm))
+                    // Two ways to re-read: the gentle one first, since a full rebuild
+                    // resets edits to SMS transactions.
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        ResyncOption(
+                            title = stringResource(R.string.home_resync_scan_again),
+                            description = stringResource(R.string.home_resync_scan_again_desc),
+                            onClick = {
+                                showFullResyncDialog = false
+                                viewModel.scanSmsMessages(rescanAll = true)
+                            }
+                        )
+                        ResyncOption(
+                            title = stringResource(R.string.home_resync_rebuild),
+                            description = stringResource(R.string.home_resync_rebuild_desc),
+                            onClick = {
+                                showFullResyncDialog = false
+                                viewModel.scanSmsMessages(forceResync = true)
+                            }
+                        )
                     }
                 },
-                dismissButton = {
+                confirmButton = {
                     TextButton(
                         onClick = { showFullResyncDialog = false }
                     ) {
@@ -1232,7 +1272,7 @@ private fun BreakdownRow(
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
         )
         Text(
-            text = "${if (isIncome) "+" else "-"}${CurrencyFormatter.formatCurrency(amount.abs(), currency)}",
+            text = CurrencyFormatter.signed(if (isIncome) "+" else "-", CurrencyFormatter.formatCurrency(amount.abs(), currency)),
             style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
                 fontWeight = FontWeight.Normal
             ),
@@ -1843,10 +1883,36 @@ private fun HomeMenuItem(
 @StringRes
 private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.BUDGETS -> R.string.home_section_budgets
+    HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups
     HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
     HomeSection.ACCOUNTS -> R.string.home_section_accounts
     HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
     HomeSection.ACTIVITY -> R.string.home_section_activity
+}
+
+/** One choice in the "Read messages again" dialog: a tappable title + what it does. */
+@Composable
+private fun ResyncOption(title: String, description: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        // The dialog itself is surfaceContainerHigh, so a step up keeps each
+        // option reading as a tappable card.
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

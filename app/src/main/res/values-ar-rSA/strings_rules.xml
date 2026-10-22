@@ -71,14 +71,14 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">بيان الاستيراد</string>
     <string name="import_statement_back">الرجوع</string>
-    <string name="import_statement_description">استيراد المعاملات من Google Pay, PhonePe, Paytm أو شريحة PDF. يتم الكشف عن التكرار والتخطي تلقائيًا.</string>
+    <string name="import_statement_description">استورد كشف حساب PDF من Google Pay أو PhonePe أو Paytm أو slice أو ICICI Bank، أو كشف حساب Excel (.xlsx) أو CSV من أي بنك. سترى ما هو جديد قبل إضافة أي شيء.</string>
     <string name="import_statement_select_pdf">حدد بيان PDF</string>
     <string name="import_statement_loading_title">استيراد المعاملات...</string>
-    <string name="import_statement_loading_body">تحليل PDF والتحقق من التكرارات</string>
+    <string name="import_statement_loading_body">جارٍ قراءة كشف الحساب والتحقق من التكرارات</string>
     <string name="import_statement_complete">اكتمل الاستيراد</string>
     <string name="import_statement_result_imported">المعاملات المستوردة</string>
     <string name="import_statement_result_enriched">المعاملات المثرية</string>
-    <string name="import_statement_result_total_parsed">إجمالي التحليل من PDF</string>
+    <string name="import_statement_result_total_parsed">الصفوف في كشف الحساب</string>
     <string name="import_statement_result_duplicates">تم تخطي التكرار: %1$d</string>
     <string name="import_statement_result_exact">إعادة الاستيراد بالضبط</string>
     <string name="import_statement_result_by_reference">حسب مرجع UPI</string>
@@ -87,6 +87,12 @@
     <string name="import_statement_done">تم</string>
     <string name="import_statement_failed">فشل الاستيراد</string>
     <string name="import_statement_try_again">حاول مرة أخرى</string>
+    <string name="import_statement_password_title">ملف PDF محمي بكلمة مرور</string>
+    <string name="import_statement_password_body">كشف الحساب هذا مقفل. أدخل كلمة المرور التي زوّدك بها البنك. تُستخدم فقط لفتح الملف ولا يتم حفظها.</string>
+    <string name="import_statement_password_label">كلمة مرور PDF</string>
+    <string name="import_statement_password_wrong">كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
+    <string name="import_statement_password_open">فتح</string>
+    <string name="import_statement_password_cancel">إلغاء</string>
     <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_title">PennyWise Pro</string>
     <string name="upgrade_subtitle_member">جميع القدرات المحترفة نشطة</string>
@@ -98,7 +104,7 @@
     <string name="upgrade_copy_address">نسخ العنوان</string>
     <string name="upgrade_includes">يشمل</string>
     <string name="upgrade_feature_rules">قواعد مخصصة غير محدودة</string>
-    <string name="upgrade_feature_statements">استيراد بيان PDF غير محدود</string>
+    <string name="upgrade_feature_statements">استيراد غير محدود لكشوف الحساب</string>
     <string name="upgrade_feature_csv">تصدير CSV غير محدود</string>
     <string name="upgrade_feature_merge_accounts">دمج الحسابات المكررة</string>
     <string name="upgrade_restoring">إستعادة…</string>
@@ -133,6 +139,9 @@
     <string name="onboarding_setup_steps">1. ملفك الشخصي\n2. أذونات الرسائل القصيرة للكشف التلقائي\n3. فحص المعاملات الأولية\n4. حسابك المصرفي الرئيسي</string>
     <string name="onboarding_name_title">بماذا نطلق عليك؟</string>
     <string name="onboarding_name_label">اسمك</string>
+    <string name="onboarding_currency_title">عملتك</string>
+    <string name="onboarding_language_device">لغة الجهاز</string>
+    <string name="onboarding_currency_hint">تُستخدم للمجاميع والميزانيات. يمكنك تغييرها من الإعدادات.</string>
     <string name="onboarding_avatar_title">اختر الصورة الرمزية</string>
     <string name="onboarding_avatar_cd">الصورة الرمزية %1$d</string>
     <string name="onboarding_photo_selected_cd">تم تحديد الصورة</string>
@@ -185,7 +194,7 @@
     <string name="onboarding_start_scanning">بدء الفحص</string>
     <string name="onboarding_finish">إنهاء</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">كاشيرو AI</string>
+    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">جاري تحميل الموديل...</string>
     <string name="chat_model_required_title">نموذج AI مطلوب</string>
     <string name="chat_model_required_body">تحميل نموذج الذكاء الاصطناعي لبدء الدردشة</string>
@@ -256,6 +265,7 @@
     <string name="chat_error_download_start_failed">فشل في بدء التنزيل. الرجاء المحاولة مرة أخرى.</string>
     <string name="chat_error_integrity_failed">فشل تنزيل النموذج في التحقق من سلامته وتمت إزالته. الرجاء محاولة التنزيل مرة أخرى.</string>
     <string name="chat_error_download_failed">فشل التنزيل. الرجاء المحاولة مرة أخرى.</string>
+    <string name="chat_error_download_roaming">لن يتم التنزيل أثناء التجوال. اتصل بشبكة Wi-Fi أو أوقف التجوال، ثم حاول مرة أخرى.</string>
     <string name="chat_download_notification_title">نموذج الدردشة AI</string>
     <string name="chat_download_notification_description">تحميل مساعد دردشة AI لـ PennyWise</string>
     <!-- ══ Smart Rules list ══ -->
@@ -282,6 +292,7 @@
     <string name="rules_group_other">أخرى</string>
     <string name="rules_footer_info">يتم تطبيق القواعد تلقائيًا على المعاملات الجديدة. القواعد ذات الأولوية الأعلى تعمل أولاً.</string>
     <string name="rules_summary_small_payments">المبلغ &lt; 200</string>
+    <string name="rules_summary_upi_cashback">المبلغ &lt; 10 من NPCI</string>
     <string name="rules_summary_salary">الاعتمادات مع كلمات مرتب</string>
     <string name="rules_summary_rent">المدفوعات مع كلمات إيجار</string>
     <string name="rules_summary_emi">كلمات القرض / EMI</string>
@@ -453,13 +464,13 @@
     <string name="rules_type_investment">استثمار</string>
     <string name="rules_select_transaction_type">حدد نوع المعاملة:</string>
     <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
-    <string name="rules_day_mon">Mon</string>
-    <string name="rules_day_tue">توت</string>
-    <string name="rules_day_wed">اربعاء</string>
-    <string name="rules_day_thu">Thu</string>
+    <string name="rules_day_mon">الاثنين</string>
+    <string name="rules_day_tue">الثلاثاء</string>
+    <string name="rules_day_wed">الأربعاء</string>
+    <string name="rules_day_thu">الخميس</string>
     <string name="rules_day_fri">الجمعة</string>
-    <string name="rules_day_sat">جلس</string>
-    <string name="rules_day_sun">الشمس</string>
+    <string name="rules_day_sat">السبت</string>
+    <string name="rules_day_sun">الأحد</string>
     <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">اليوم (1-31)</string>
     <string name="rules_day_of_month_placeholder">مثلاً: 1</string>
@@ -501,6 +512,7 @@
     <string name="rules_preview_title">معاينة القاعدة</string>
     <string name="rules_preview_sentence">عندما %1$s، %2$s</string>
     <string name="rules_preview_conditions_and">%1$s و %2$s</string>
+    <string name="rules_preview_conditions_or">%1$s أو %2$s</string>
     <string name="rules_preview_actions_and">%1$sو %2$s</string>
     <!-- field, operator, value -->
     <string name="rules_preview_condition">%1$s %2$s %3$s</string>
@@ -521,6 +533,8 @@
     <string name="rules_preview_field_generic">الحقل</string>
     <string name="rules_preview_op_before">قبل</string>
     <string name="rules_preview_op_after">هو بعد</string>
+    <string name="rules_preview_op_less_than">أقل من</string>
+    <string name="rules_preview_op_greater_than">أكبر من</string>
     <string name="rules_preview_op_at_or_before">هو في أو قبل</string>
     <string name="rules_preview_op_at_or_after">هو في أو بعد</string>
     <string name="rules_preview_op_is">هو</string>

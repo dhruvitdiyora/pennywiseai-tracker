@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.material.icons.filled.RequestQuote
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -245,10 +246,12 @@ private fun AccountType.localizedDisplayName(): String = when (this) {
     AccountType.CURRENT -> stringResource(R.string.account_type_current)
     AccountType.CREDIT -> stringResource(R.string.account_type_credit)
     AccountType.CASH -> stringResource(R.string.account_type_cash)
+    AccountType.LOAN -> stringResource(R.string.account_type_loan)
 }
 
 private fun AccountType.icon() = when (this) {
     AccountType.CASH -> Icons.Default.Money
     AccountType.CREDIT -> Icons.Default.CreditCard
     AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
+    AccountType.LOAN -> Icons.Default.RequestQuote
 }

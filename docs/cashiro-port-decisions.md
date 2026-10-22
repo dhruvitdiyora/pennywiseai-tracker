@@ -1795,3 +1795,29 @@ record/link repayment, set expected return, reopen, delete) is kept.
   new behavior, or an external intent rather than restyling.
 - FAB blur: other PennyWise screens use a solid `primaryContainer` FAB.
 - Personal dashboard and Contacts: unchanged in this pass.
+
+## 2026-10-21 — Merge upstream/main (sarim2000, 90 commits)
+
+**Decision:** Product-owner decisions recorded with the merge request.
+
+- **Database.** Upstream's v63–v67 win unchanged (webhooks, transfer bank names,
+  category `system_name`, goals, loan shares). People moves to v68:
+  `MIGRATION_67_68` creates `people`, adds `loans.person_id` + index (guarded),
+  and links loans by `LOWER(TRIM(person_name))`. It first re-runs upstream's
+  idempotent webhook DDL so a database left at this branch's old v63 (People as
+  62→63) upgrades cleanly. `PeopleMigrationUpgradeTest` covers 67→68 and that
+  old-v63 path through Room's schema validation.
+- **Loans.** Split-bill shares resolve or create the person the same way
+  "Mark as loan" does (case-insensitive name), and new share loans carry
+  `person_id`; split duplicate names are compared case-insensitively.
+  Repayments keep upstream's cap (#831) plus this branch's currency checks.
+- **Home.** Goals card kept, restyled as a header-less glass card, placed after
+  Recent in the default layout. Upstream's one-time Pro Home card (#945) is left
+  out (card, eligibility, preference removed); the Pro sheet is unchanged.
+- **Settings placement.** User guide → root Help group; UPI ID → Privacy &
+  security › Contacts; receipt toggles → Backup & import; AI access (Pro) →
+  Advanced › AI; Webhooks (Pro) → Advanced › Developer; bottom-bar tabs →
+  Appearance; language + currency → onboarding welcome step.
+- **Other upstream features** (Group by, Excel/CSV statement import, loan
+  account type, goals in Budgets, totals-card grid, split sheet) are rendered
+  in the Cashiro components; upstream behaviour wins, this branch's visuals win.

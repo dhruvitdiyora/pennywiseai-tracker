@@ -15,7 +15,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +33,7 @@ import androidx.navigation.navArgument
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.contacts.displayMerchantName
 import com.pennywiseai.tracker.navigation.safePopBackStack
+import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
@@ -108,6 +112,30 @@ fun MainScreen(
             }
             launchSingleTop = true
             restoreState = true
+        }
+    }
+
+    // Hiding the tab you're on (or the one under Settings) sends you Home, once,
+    // on the next tab you land on. Other ways into a hidden tab's screen (e.g.
+    // Home cards) keep working afterwards. Saveable so a rotation between
+    // hiding and going back doesn't drop the redirect. (#912)
+    val hiddenTabs = themeState.hiddenNavTabs
+    val chatHidden = BottomNavItem.Chat.route in hiddenTabs
+    var lastHiddenTabs by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
+    var fallBackPending by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(themeState.isLoading, hiddenTabs) {
+        if (themeState.isLoading) return@LaunchedEffect
+        if (lastHiddenTabs?.containsAll(hiddenTabs) == false) fallBackPending = true
+        lastHiddenTabs = ArrayList(hiddenTabs)
+    }
+    LaunchedEffect(fallBackPending, baseRoute) {
+        if (!fallBackPending || BottomNavItem.all.none { it.route == baseRoute }) return@LaunchedEffect
+        fallBackPending = false
+        BottomNavItem.fallbackFor(baseRoute, hiddenTabs)?.let { home ->
+            navController.navigate(home) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
     }
 
@@ -194,7 +222,7 @@ fun MainScreen(
                             },
                             onNavigateToBudgets = {
                                 rootNavController?.navigate(
-                                    com.pennywiseai.tracker.navigation.BudgetGroups
+                                    com.pennywiseai.tracker.navigation.BudgetGroups()
                                 ) { launchSingleTop = true }
                             },
                             onNavigateToLoans = {
@@ -232,6 +260,11 @@ fun MainScreen(
                                     com.pennywiseai.tracker.navigation.TransactionGroupDetail(groupId)
                                 ) { launchSingleTop = true }
                             },
+                            onGoalClick = { goalId ->
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+                                ) { launchSingleTop = true }
+                            },
                             onTransactionTypeClick = { type ->
                                 val route = if (type != null) {
                                     "transactions?type=$type"
@@ -250,7 +283,7 @@ fun MainScreen(
                 )
 
                 composable(
-                    route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}&startDate={startDate}&endDate={endDate}",
+                    route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}&startDate={startDate}&endDate={endDate}&account={account}&tag={tag}",
                     arguments = listOf(
                         navArgument("category") {
                             type = NavType.StringType
@@ -290,6 +323,16 @@ fun MainScreen(
                             type = NavType.StringType
                             nullable = true
                             defaultValue = null
+                        },
+                        navArgument("account") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("tag") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
                         }
                     ),
                     content = { backStackEntry: NavBackStackEntry ->
@@ -301,6 +344,8 @@ fun MainScreen(
                         val transactionType = backStackEntry.arguments?.getString("type")
                         val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
                         val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
+                        val account = backStackEntry.arguments?.getString("account")
+                        val tag = backStackEntry.arguments?.getString("tag")
 
                         TransactionsScreen(
                             modifier = Modifier.imePadding(),
@@ -310,13 +355,16 @@ fun MainScreen(
                             initialCurrency = currency,
                             initialCustomStartEpochDay = startDate,
                             initialCustomEndEpochDay = endDate,
+                            initialAccount = account,
+                            initialTag = tag,
                             focusSearch = focusSearch,
                             initialTransactionType = transactionType,
                             // No back arrow for a plain tab tap; show it for a filtered
                             // drill-down (Home category/search) so the user can return. (#635)
                             showBackButton = category != null || merchant != null ||
                                 period != null || currency != null || focusSearch ||
-                                transactionType != null || startDate != null || endDate != null,
+                                transactionType != null || startDate != null || endDate != null ||
+                                account != null || tag != null,
                             // The bottom nav is overlaid on this route — always reserve clearance.
                             reserveBottomBarSpace = true,
                             onNavigateBack = {
@@ -372,33 +420,44 @@ fun MainScreen(
                     content = { _: NavBackStackEntry ->
                         com.pennywiseai.tracker.ui.screens.analytics.AnalyticsScreen(
                             onNavigateToChat = {
-                                navController.navigate("chat") {
-                                    launchSingleTop = true
+                                if (!chatHidden) {
+                                    navController.navigate("chat") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             },
-                            onNavigateToTransactions = { category, merchant, period, currency, startDateEpochDay, endDateEpochDay ->
+                            onNavigateToTransactions = { drill ->
                                 val route = buildString {
                                     append("transactions")
                                     val params = mutableListOf<String>()
-                                    category?.let {
+                                    drill.category?.let {
                                         val encoded = java.net.URLEncoder.encode(it, "UTF-8")
                                         params.add("category=$encoded")
                                     }
-                                    merchant?.let {
+                                    drill.merchant?.let {
                                         val encoded = java.net.URLEncoder.encode(it, "UTF-8")
                                         params.add("merchant=$encoded")
                                     }
-                                    period?.let {
+                                    drill.period?.let {
                                         params.add("period=$it")
                                     }
-                                    currency?.let {
+                                    drill.currency?.let {
                                         params.add("currency=$it")
                                     }
-                                    startDateEpochDay?.let {
+                                    drill.startDateEpochDay?.let {
                                         params.add("startDate=$it")
                                     }
-                                    endDateEpochDay?.let {
+                                    drill.endDateEpochDay?.let {
                                         params.add("endDate=$it")
+                                    }
+                                    drill.account?.let {
+                                        params.add("account=${android.net.Uri.encode(it)}")
+                                    }
+                                    drill.tag?.let {
+                                        params.add("tag=${android.net.Uri.encode(it)}")
+                                    }
+                                    drill.type?.let {
+                                        params.add("type=$it")
                                     }
                                     if (params.isNotEmpty()) {
                                         append("?")
@@ -425,15 +484,19 @@ fun MainScreen(
                 composable(
                     route = "chat",
                     content = { _: NavBackStackEntry ->
-                        com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
-                            modifier = Modifier.imePadding(),
-                            onNavigateToSettings = {
-                                navController.navigate("settings") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateBack = { navController.safePopBackStack() }
-                        )
+                        // Hidden AI tab: don't start the chat (and its model) for
+                        // the frame before the fallback to Home lands.
+                        if (!chatHidden) {
+                            com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
+                                modifier = Modifier.imePadding(),
+                                onNavigateToSettings = {
+                                    navController.navigate("settings") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateBack = { navController.safePopBackStack() }
+                            )
+                        }
                     }
                 )
 
@@ -467,7 +530,7 @@ fun MainScreen(
                             },
                             onNavigateToBudgets = {
                                 rootNavController?.navigate(
-                                    com.pennywiseai.tracker.navigation.BudgetGroups
+                                    com.pennywiseai.tracker.navigation.BudgetGroups()
                                 ) { launchSingleTop = true }
                             },
                             onNavigateToLoans = {
@@ -586,6 +649,16 @@ fun MainScreen(
                     route = "settings_advanced",
                     content = { _: NavBackStackEntry ->
                         AdvancedSettingsScreen(
+                            onNavigateToWebhooks = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.Webhooks
+                                ) { launchSingleTop = true }
+                            },
+                            onNavigateToAiAccess = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.AiAccess
+                                ) { launchSingleTop = true }
+                            },
                             onNavigateBack = {
                                 navController.safePopBackStack()
                             },
@@ -762,11 +835,13 @@ fun MainScreen(
             }
 
             // Bottom navigation OVERLAID on content
-            if (baseRoute in listOf("home", "transactions", "analytics", "chat")) {
+            // Wait for prefs so a hidden tab never flashes in on launch.
+            if (!themeState.isLoading && baseRoute in listOf("home", "transactions", "analytics", "chat")) {
                 PennyWiseBottomNavigation(
                     navController = navController,
                     currentDestination = navBackStackEntry?.destination,
                     navBarStyle = themeState.navBarStyle,
+                    hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
                     modifier = Modifier.align(Alignment.BottomCenter)

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.domain.model.icon
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -109,6 +111,7 @@ fun AccountDetailScreen(
                 AccountBalanceCard(
                     balance = uiState.currentBalance?.balance ?: BigDecimal.ZERO,
                     creditLimit = uiState.currentBalance?.creditLimit,
+                    isLoan = uiState.currentBalance?.isLoan == true,
                     bankName = uiState.bankName,
                     alias = accountAlias,
                     accountLast4 = uiState.accountLast4,
@@ -116,9 +119,11 @@ fun AccountDetailScreen(
                     billedOutstanding = uiState.billedOutstanding,
                     unbilledOutstanding = uiState.unbilledOutstanding,
                     isCardAccount = uiState.currentBalance?.let {
-                        it.isCreditCard ||
-                            it.creditLimit != null ||
-                            it.accountType.equals(AccountType.CREDIT.name, ignoreCase = true)
+                        !it.isLoan && (
+                            it.isCreditCard ||
+                                it.creditLimit != null ||
+                                it.accountType.equals(AccountType.CREDIT.name, ignoreCase = true)
+                            )
                     } == true,
                     isCashAccount = uiState.currentBalance?.accountType
                         .equals(AccountType.CASH.name, ignoreCase = true),
@@ -310,6 +315,7 @@ private fun AccountBalanceCard(
     creditLimit: BigDecimal?,
     bankName: String,
     alias: String?,
+    isLoan: Boolean = false,
     accountLast4: String,
     primaryCurrency: String,
     modifier: Modifier = Modifier,
@@ -320,13 +326,14 @@ private fun AccountBalanceCard(
     /** True for a cash account, whose placeholder last4 ("CASH") is not a number. */
     isCashAccount: Boolean = false
 ) {
-    val isCreditCard = creditLimit != null
-    val headlineLabel = if (isCreditCard) {
-        stringResource(R.string.account_detail_available_credit)
-    } else {
-        stringResource(R.string.account_detail_current_balance)
+    // A limit left over from an account re-typed from credit card to loan is ignored (#792).
+    val isCreditCard = creditLimit != null && !isLoan
+    val headlineLabel = when {
+        isCreditCard -> stringResource(R.string.account_detail_available_credit)
+        isLoan -> stringResource(R.string.manage_accounts_outstanding)
+        else -> stringResource(R.string.account_detail_current_balance)
     }
-    val headlineAmount = creditLimit ?: balance
+    val headlineAmount = if (isCreditCard) creditLimit ?: balance else balance
 
     val cardColor = accountBrandTint(bankName, MaterialTheme.colorScheme.surfaceContainer)
     // The strip is solid, like the card fill.

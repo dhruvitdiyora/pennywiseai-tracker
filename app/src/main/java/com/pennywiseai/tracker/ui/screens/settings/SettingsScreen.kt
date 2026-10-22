@@ -23,6 +23,8 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -323,6 +325,18 @@ fun SettingsScreen(
                     position = ListItemPosition.Top
                 )
                 SettingsNavItem(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = stringResource(R.string.settings_user_guide_title),
+                    subtitle = stringResource(R.string.settings_user_guide_subtitle),
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.USER_GUIDE_URL)))
+                    },
+                    position = ListItemPosition.Middle,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                )
+                SettingsNavItem(
                     icon = Icons.Default.BugReport,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
@@ -463,11 +477,15 @@ internal fun SettingsBackupSections(
     scheduledFolderBackupEnabled: Boolean,
     scheduledFolderBackupLastTimestamp: Long?,
     isProEntitled: Boolean,
+    exportIncludeReceipts: Boolean = true,
+    folderBackupIncludeReceipts: Boolean = false,
     smsScanAllTime: Boolean,
     smsScanUseCustomDate: Boolean,
     smsScanCustomDate: Long?,
     smsScanMonths: Int,
     onExportData: () -> Unit,
+    onExportIncludeReceiptsChange: (Boolean) -> Unit = {},
+    onFolderBackupIncludeReceiptsChange: (Boolean) -> Unit = {},
     onScheduledFolderBackupChange: (Boolean) -> Unit,
     onBackupNow: () -> Unit,
     onChangeBackupFolder: () -> Unit,
@@ -488,6 +506,16 @@ internal fun SettingsBackupSections(
                 subtitle = stringResource(R.string.settings_export_data_subtitle),
                 onClick = onExportData,
                 position = ListItemPosition.Top,
+            )
+            SettingsSwitchRow(
+                icon = Icons.Default.Receipt,
+                iconBgColor = blue_light,
+                iconTint = blue_dark,
+                title = stringResource(R.string.settings_export_include_receipts_title),
+                subtitle = stringResource(R.string.settings_export_include_receipts_subtitle),
+                checked = exportIncludeReceipts,
+                onCheckedChange = onExportIncludeReceiptsChange,
+                position = ListItemPosition.Middle,
             )
             SettingsSwitchRow(
                 icon = Icons.Default.Backup,
@@ -518,6 +546,16 @@ internal fun SettingsBackupSections(
                         stringResource(R.string.settings_backup_now_last_backup, formatted)
                     } ?: stringResource(R.string.settings_backup_now_subtitle),
                     onClick = onBackupNow,
+                    position = ListItemPosition.Middle,
+                )
+                SettingsSwitchRow(
+                    icon = Icons.Default.Receipt,
+                    iconBgColor = purple_light,
+                    iconTint = purple_dark,
+                    title = stringResource(R.string.settings_folder_backup_include_receipts_title),
+                    subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
+                    checked = folderBackupIncludeReceipts,
+                    onCheckedChange = onFolderBackupIncludeReceiptsChange,
                     position = ListItemPosition.Middle,
                 )
                 SettingsNavItem(
@@ -748,7 +786,7 @@ internal fun SettingsNavItem(
     onClick: () -> Unit,
     position: ListItemPosition,
     trailingText: String? = null,
-    trailingIcon: ImageVector = Icons.Default.ChevronRight
+    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight
 ) {
     GlassGroupedRow(position = position, onClick = onClick) {
         IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
@@ -1060,6 +1098,8 @@ internal fun numberFormatStyleExample(style: NumberFormatStyle): String = string
  */
 internal fun ordinalSuffix(day: Int): String {
     val safe = day.coerceIn(1, 31)
+    // English-only suffixes; other languages get the bare day number.
+    if (java.util.Locale.getDefault().language != "en") return "$safe"
     val suffix = when {
         safe in 11..13 -> "th"
         safe % 10 == 1 -> "st"

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -48,6 +49,12 @@ class LicenseManager @Inject constructor(
         data object Offline : ActivationOutcome()
     }
 
+    // Must be initialised before [isLicensed]: its Eagerly-started collection
+    // runs the ticker, which calls revalidate() on another thread while this
+    // constructor may still be running. Declared later, mutex was still null
+    // there (NPE in revalidate, 2.21.0).
+    private val mutex = Mutex()
+
     val license: StateFlow<StoredLicense?> = preferences.storedLicense
         .stateIn(scope, SharingStarted.Eagerly, null)
 
@@ -65,12 +72,13 @@ class LicenseManager @Inject constructor(
     }.onEach { scope.launch { revalidateIfDue() } }
 
     /** True while the stored key is within [LicensePolicy]'s window. */
-    val isLicensed: StateFlow<Boolean> =
+    val resolvedLicenseEntitlement: StateFlow<Boolean?> =
         combine(preferences.storedLicense, ticker) { license, _ ->
             license != null && LicensePolicy.grantsPro(license.validatedAt, System.currentTimeMillis())
-        }.stateIn(scope, SharingStarted.Eagerly, false)
+        }.stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val mutex = Mutex()
+    val isLicensed: StateFlow<Boolean> = resolvedLicenseEntitlement
+        .map { it == true }.stateIn(scope, SharingStarted.Eagerly, false)
 
     suspend fun activate(rawKey: String): ActivationOutcome = mutex.withLock {
         val key = rawKey.trim()

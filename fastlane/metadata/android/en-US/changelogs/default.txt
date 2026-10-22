@@ -1,5 +1,4 @@
-• App is now fully translatable — per-app language switching and Crowdin integration are live, with fresh translations already applied
-• Loans are now listed by person, showing the net balance owed and a Settle up action
-• Ignoring an account now correctly hides all its transactions everywhere in the app
-• Budget cards show how much you can spend per day to stay within the limit
-• Fixed UCO Bank SMS parsing — the account balance was being recorded as the debit amount
+• Goals and Budgets — set spending goals, track progress, and add transactions to a goal directly from the transaction detail screen
+• Fixed a crash that prevented launch on Android 13 and older devices after the last database migration
+• New Spending filter in Analytics combines Expense and Card transactions into a single view
+• Fixed Tamilnad Mercantile Bank SMS messages being incorrectly captured by Thailand's TTB parser

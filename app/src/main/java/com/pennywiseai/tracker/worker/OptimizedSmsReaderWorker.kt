@@ -1,5 +1,11 @@
 package com.pennywiseai.tracker.worker
 
+import androidx.room.withTransaction
+import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import kotlinx.coroutines.sync.withLock
+
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
@@ -17,6 +23,8 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
+import com.pennywiseai.tracker.data.mapper.atEnqueuedAccount
+import com.pennywiseai.tracker.data.mapper.DeferredBalanceInput
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.utils.BalanceCalculator
@@ -42,6 +50,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Currency
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.system.measureTimeMillis
 
@@ -74,16 +83,21 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val ruleRepository: RuleRepository,
+    private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
     private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
 ) : CoroutineWorker(appContext, workerParams) {
+    private val bankAccountMerges = BankAccountMergeStore(appContext)
 
     companion object {
         const val TAG                               = "OptimizedSmsReaderWorker"
         const val WORK_NAME                         = "optimized_sms_reader_work"
         const val INPUT_FORCE_RESYNC                = "input_force_resync"
+        // Re-read the whole scan window without deleting anything: adds what an
+        // earlier scan missed and keeps every edit (the gentle "scan again").
+        const val INPUT_RESCAN_ALL                  = "input_rescan_all"
         const val PROGRESS_TOTAL                    = "progress_total"
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"
@@ -114,6 +128,28 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // the one dedup collapses and the only one that leaves a phantom account (#456).
         // Matches SBIBankParser.getBankName() and the literal in TransactionDeduplication.
         private const val GPAY_PARTNER_BANK         = "State Bank of India"
+
+        private val ISO_CURRENCY_CODES: Set<String> by lazy {
+            Currency.getAvailableCurrencies().mapTo(HashSet()) { it.currencyCode }
+        }
+        private val AMOUNT_NEAR_SYMBOL = Regex("""[€$£₹]\s?\.?\d|\d[\d.,]*\s?[€$£₹]""")
+        private val AMOUNT_NEAR_CODE = Regex("""\b([A-Z]{3})\s?\.?\d|\d[\d.,]*\s?([A-Z]{3})\b""")
+
+        /**
+         * Whether an SMS no parser claims belongs in Unrecognized SMS (the user's way to report a bank).
+         * Indian DLT senders (-T/-S) always do. Senders outside India have no DLT suffix, so for those
+         * keep alphanumeric senders whose body shows an amount in a currency ("12,50 EUR", "€12.50", "EUR .93");
+         * phone-number senders (people) and amount-less SMS (OTPs, promos) stay out.
+         */
+        internal fun isUnrecognizedCandidate(sender: String, body: String): Boolean {
+            val upper = sender.uppercase()
+            if (upper.endsWith("-T") || upper.endsWith("-S")) return true
+            if (upper.none { it.isLetter() }) return false
+            return AMOUNT_NEAR_SYMBOL.containsMatchIn(body) ||
+                AMOUNT_NEAR_CODE.findAll(body).any { m ->
+                    m.groupValues[1].ifEmpty { m.groupValues[2] } in ISO_CURRENCY_CODES
+                }
+        }
 
         private val SMS_PROJECTION = arrayOf(
             Telephony.Sms._ID,
@@ -169,6 +205,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      * Now: one call per TransactionType (4 total), zero DB calls per transaction.
      */
     private var ruleCache: Map<TransactionType, List<TransactionRule>> = emptyMap()
+
+    /**
+     * Typed accounts as they were before a force resync wiped their rebuildable
+     * balance rows, keyed by (bank, last4). A user-chosen type (#792) lives only on
+     * those rows, so the rebuild reads it from here and re-tags the account after.
+     * Empty unless this run is a force resync.
+     */
+    private var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
 
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
@@ -296,8 +340,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     }
 
     private data class DeferredBalanceUpdate(
-        val parsed: ParsedTransaction,
-        val entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
+        // Capture the rule-selected account, then check it again at consumption.
+        val input: DeferredBalanceInput,
         val transactionId: Long
     )
 
@@ -315,13 +359,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         Trace.beginSection("SmsWorker.doWork")
         try {
             val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
-            Log.i(TAG, "Starting SMS worker (forceResync=$forceResync)")
+            val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
+            Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")
+
+            // The window is computed before any delete: a rebuild may only drop
+            // rows it will re-read.
+            val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
 
             if (forceResync) {
                 Trace.beginSection("clearDatabase")
                 try {
-                    // Preserve user-curated rows (loan-linked + grouped) so
-                    // months of curation work survive a rescan. Re-parse uses
+                    // Delete only what the inbox can rebuild (active SMS rows
+                    // outside loans/groups); manual, imported, notification and
+                    // deleted rows survive — nothing would bring them back. Re-parse uses
                     // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
                     // surviving rows are not duplicated. Fixes #401.
                     //
@@ -333,15 +383,21 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    transactionRepository.deleteUncuratedTransactions()
+                    accountsBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                        .filter { it.accountType != null }
+                        .associateBy { it.bankName to it.accountLast4 }
+                    transactionRepository.deleteRebuildableSmsTransactions(
+                        java.time.LocalDateTime.ofInstant(
+                            java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                        )
+                    )
                     accountBalanceRepository.deleteRebuildableBalances()
                 } finally {
                     Trace.endSection()
                 }
-                Log.i(TAG, "Force resync: uncurated rows cleared (loans + groups preserved)")
+                Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
             }
 
-            val (scanStartTime, needsFullScan) = computeScanParams(forceResync)
             val now = System.currentTimeMillis()
 
             Trace.beginSection("preloadCaches")
@@ -370,6 +426,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
 
             Log.i(TAG, buildSummary(stats, totalTime))
+            // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
+            // so put each typed account's type back on the rows that lost it (#792).
+            for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
             cleanUpAndFinalize(stats)
             // Materialise any due income-autopay phantoms (#371). Runs after
             // SMS processing so a real INCOME SMS that landed for the same
@@ -451,7 +510,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
-                try { processBalanceUpdate(update.parsed, update.entity, update.transactionId) }
+                try { BankAccountMergeStore.mutationMutex.withLock {
+                    processBalanceUpdate(update.input, update.transactionId)
+                } }
                 catch (e: Exception) {
                     if (e is CancellationException) throw e
                     Log.e(TAG, "Balance update failed: ${e.message}")
@@ -554,7 +615,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val parsers = cachedParsers(sms.sender)
         val parser = parsers.firstOrNull()
-            ?: return if (upper.endsWith("-T") || upper.endsWith("-S"))
+            ?: return if (isUnrecognizedCandidate(sms.sender, sms.body))
                 ParseResult.StoreUnrecognized(sms)
             else
                 ParseResult.Discard(sms)
@@ -635,19 +696,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val actions = mutableListOf<suspend () -> Unit>()
             if (parser.isBalanceUpdateNotification(sms.body)) {
                 parser.parseBalanceUpdate(sms.body)?.let { info ->
-                    // Balance-only messages never reach saveTransaction, so the
-                    // ignore gate has to be applied here too (#826).
-                    if (!ignoredAccountsStore.isIgnored(info.bankName, info.accountLast4)) {
-                        actions += {
-                            accountBalanceRepository.insertBalanceUpdate(
-                                bankName     = info.bankName,
-                                accountLast4 = info.accountLast4 ?: "XXXX",
-                                balance      = info.balance,
-                                timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
-                                currency     = parser.getCurrency()
-                            )
-                        }
-                    }
+                    actions += { saveBalanceNotification(info, parser.getCurrency(), sms) }
                 }
                 // If unparseable as balance update, fall through to check eMandate/futureDebit below
             }
@@ -679,18 +728,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         is IndusIndBankParser -> {
             if (!parser.isBalanceUpdateNotification(sms.body)) null
-            else parser.parseBalanceUpdate(sms.body)?.takeUnless {
-                // Balance-only messages never reach saveTransaction (#826).
-                ignoredAccountsStore.isIgnored(it.bankName, it.accountLast4)
-            }?.let { info ->
+            else parser.parseBalanceUpdate(sms.body)?.let { info ->
                 ParseResult.SpecialNotification(sms) {
-                    accountBalanceRepository.insertBalanceUpdate(
-                        bankName     = info.bankName,
-                        accountLast4 = info.accountLast4 ?: "XXXX",
-                        balance      = info.balance,
-                        timestamp    = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
-                        currency     = parser.getCurrency()
-                    )
+                    saveBalanceNotification(info, parser.getCurrency(), sms)
                 }
             }
         }
@@ -698,96 +738,151 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         else -> null
     }
 
+    private suspend fun saveBalanceNotification(
+        info: BaseIndianBankParser.BaseBalanceUpdateInfo,
+        currency: String,
+        sms: SmsMessage
+    ) = BankAccountMergeStore.mutationMutex.withLock {
+        val suffix = info.accountLast4?.let { bankAccountMerges.resolveSuffix(info.bankName, currency, it) }
+        // Balance-only notifications bypass saveTransaction, so apply the same account gates here.
+        if (!ignoredAccountsStore.isIgnored(info.bankName, suffix)) {
+            accountBalanceRepository.insertBalanceUpdate(
+                bankName = info.bankName,
+                accountLast4 = suffix ?: "XXXX",
+                balance = info.balance,
+                timestamp = info.asOfDate?.toJavaLocalDateTime() ?: sms.timestamp.toLocalDateTime(),
+                currency = currency
+            )
+        }
+    }
+
     // ─── Stage 3b: Regular transactions ──────────────────────────────────────
 
     private suspend fun saveTransaction(
-        parsed: ParsedTransaction,
+        parsedInput: ParsedTransaction,
         sms: SmsMessage,
         stats: ProcessingStats,
         balanceUpdates: SendChannel<DeferredBalanceUpdate>
     ): SaveOutcome = try {
-        coroutineScope {
-            val entity = parsed.toEntity()
+        var pendingBalance: DeferredBalanceUpdate? = null
+        val outcome = BankAccountMergeStore.mutationMutex.withLock {
+            coroutineScope {
+                val parsed = bankAccountMerges.resolve(parsedInput)
+                val entity = parsed.toEntity()
 
-            // Same gate as the live receiver, including the linked account
-            // behind a debit card (#826), so a rescan can't re-import what the
-            // user excluded.
-            val linkedAccountLast4 = if (parsed.isFromCard) {
-                parsed.accountLast4?.let {
-                    cardRepository.getCard(parsed.bankName, it)?.accountLast4
-                }
-            } else null
-            if (ignoredAccountsStore.isIgnored(
-                    entity.bankName,
-                    entity.accountNumber,
-                    linkedAccountLast4
-                )
-            ) {
-                return@coroutineScope SaveOutcome.SKIPPED
-            }
-
-            val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
-
-            val customCategory = merchantMappingCache[entity.merchantName]
-            val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
-
-            val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
-            val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
-
-            if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
-
-            // Durable deletion: skip re-inserting a transaction the user deleted,
-            // even when its hash shifted across an app/parser update (the hash
-            // includes the parsed amount). The raw SMS is stable, so a matching
-            // soft-deleted row means "the user deleted this" — don't resurrect it. (#703)
-            entity.smsBody?.let { body ->
-                if (transactionRepository.getDeletedBySms(body, entity.smsSender) != null) {
+                // Same gate as the live receiver, including the linked account
+                // behind a debit card (#826), so a rescan can't re-import what the
+                // user excluded.
+                val linkedAccountLast4 = if (parsed.isFromCard) {
+                    parsed.accountLast4?.let {
+                        cardRepository.getCard(parsed.bankName, it)?.accountLast4
+                    }
+                } else null
+                if (ignoredAccountsStore.isIgnored(
+                        entity.bankName,
+                        entity.accountNumber,
+                        linkedAccountLast4
+                    )
+                ) {
                     return@coroutineScope SaveOutcome.SKIPPED
                 }
-            }
 
-            if (isBlocked) {
-                stats.blocked.incrementAndGet()
-                return@coroutineScope SaveOutcome.SKIPPED
-            }
+                val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
 
-            val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
+                val customCategory = merchantMappingCache[entity.merchantName]
+                val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
 
-            val matchedSub = subscriptionRepository.matchTransactionToSubscription(
-                withRules.merchantName, withRules.amount
-            )
-            val finalEntity = if (matchedSub != null) {
-                subscriptionRepository.updateNextPaymentDateAfterCharge(
-                    matchedSub.id, withRules.dateTime.toLocalDate()
-                )
-                withRules.copy(isRecurring = true)
-            } else withRules
+                val activeRules = ruleCache[mapped.transactionType] ?: emptyList()
+                val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
 
-            val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
-            if (duplicate != null) {
-                if (TransactionDeduplication.shouldReplaceWithIncoming(duplicate, finalEntity)) {
-                    val replacement = finalEntity.copy(
-                        id = duplicate.id,
-                        transactionHash = duplicate.transactionHash,
-                        isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
-                        createdAt = duplicate.createdAt
+                if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
+
+                // Same charge already booked from the bank's app notification. Only
+                // banks that can arrive by notification pay for the lookup.
+                if (entity.bankName in BankNotificationConfig.notificationBankNames) {
+                    // Deleted rows count too: a charge the user deleted after
+                    // its notification booked it must not return via the SMS.
+                    val nearby = transactionRepository.getTransactionByAmountAndDateIncludingDeleted(
+                        entity.amount,
+                        entity.dateTime.minusMinutes(2),
+                        entity.dateTime.plusMinutes(2)
                     )
-                    transactionRepository.updateTransaction(replacement)
-                    accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
-                    replaceRuleApplications(duplicate.id, ruleApps)
-                    balanceUpdates.send(DeferredBalanceUpdate(parsed, replacement, duplicate.id))
-                    return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
+                    if (TransactionDeduplication.isBookedByOtherChannel(
+                            entity, nearby, BankNotificationConfig.notificationAliases
+                        )
+                    ) {
+                        return@coroutineScope SaveOutcome.SKIPPED
+                    }
                 }
-                return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
+
+                // The raw SMS is the stable identity: the hash includes the parsed
+                // amount, so it shifts whenever a parser fix changes that amount.
+                //  - a soft-deleted row means the user deleted it — don't resurrect (#703)
+                //  - an active row means it's already booked — don't insert it twice,
+                //    and repair an amount an older parser got wrong (#886)
+                entity.smsBody?.let { body ->
+                    transactionRepository.getAnyBySms(body, entity.smsSender)?.let { stored ->
+                        if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
+                            transactionRepository.correctParsedAmount(stored, entity)
+                        }
+                        return@coroutineScope SaveOutcome.SKIPPED
+                    }
+                }
+
+                if (isBlocked) {
+                    stats.blocked.incrementAndGet()
+                    return@coroutineScope SaveOutcome.SKIPPED
+                }
+
+                val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
+
+                val matchedSub = subscriptionRepository.matchTransactionToSubscription(
+                    withRules.merchantName, withRules.amount
+                )
+                val finalEntity = if (matchedSub != null) {
+                    subscriptionRepository.updateNextPaymentDateAfterCharge(
+                        matchedSub.id, withRules.dateTime.toLocalDate()
+                    )
+                    withRules.copy(isRecurring = true)
+                } else withRules
+
+                val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
+                if (duplicate != null) {
+                    if (TransactionDeduplication.shouldReplaceWithIncoming(duplicate, finalEntity)) {
+                        val replacement = finalEntity.copy(
+                            id = duplicate.id,
+                            transactionHash = duplicate.transactionHash,
+                            isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
+                            createdAt = duplicate.createdAt,
+                            // Loan and split-bill (#346) links belong to the row, not the SMS.
+                            loanId = duplicate.loanId,
+                            loanContribution = duplicate.loanContribution,
+                            lentSharesTotal = duplicate.lentSharesTotal
+                        )
+                        transactionRepository.updateTransaction(replacement)
+                        accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
+                        replaceRuleApplications(duplicate.id, ruleApps)
+                        pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
+                            DeferredBalanceUpdate(it, duplicate.id)
+                        }
+                        return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
+                    }
+                    return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
+                }
+
+                val rowId = transactionRepository.insertTransaction(finalEntity)
+                if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
+
+                saveRuleApplications(rowId, ruleApps)
+                pendingBalance = parsedInput.atEnqueuedAccount(parsed, finalEntity)?.let {
+                    DeferredBalanceUpdate(it, rowId)
+                }
+                SaveOutcome.SAVED
             }
-
-            val rowId = transactionRepository.insertTransaction(finalEntity)
-            if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
-
-            saveRuleApplications(rowId, ruleApps)
-            balanceUpdates.send(DeferredBalanceUpdate(parsed, finalEntity, rowId))
-            SaveOutcome.SAVED
         }
+        // Send outside the mutation lock so the balance consumer can drain a full channel.
+        pendingBalance?.let { balanceUpdates.send(it) }
+        outcome
     } catch (e: Exception) {
         if (e is CancellationException) throw e
         Log.e(TAG, "Error saving transaction: ${e.message}")
@@ -820,17 +915,20 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 // ─── Balance update ───────────────────────────────────────────────────────
 
     private suspend fun processBalanceUpdate(
-        parsed: ParsedTransaction,
-        entity: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
+        input: DeferredBalanceInput,
         rowId: Long
     ) {
+        // The transaction may have moved again since enqueue, including a merge
+        // that invalidated its original short-mask mapping. Follow the saved row.
+        val current = transactionRepository.getTransactionById(rowId) ?: return
+        val parsed = input.forSavedTransaction(bankAccountMerges.resolve(input.account), current) ?: return
         val accountLast4 = parsed.accountLast4 ?: run {
             // Mobile-money wallets (eMola, M-Pesa Mozambique) have no per-account
             // number — the whole wallet is one account. Derive a service-level row
             // from the running balance so a full re-scan also creates it, matching
             // SmsTransactionProcessor.
             if (parsed.isMobileWallet && parsed.balance != null) {
-                upsertWalletBalance(parsed, entity, rowId)
+                upsertWalletBalance(parsed, current, rowId)
             }
             return
         }
@@ -866,13 +964,29 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
-        val resolvedIsCreditCard = isCreditCard || (existing?.isCreditCard ?: false)
+        // A force resync may have wiped this account's rows; until a typed row exists
+        // again, its type comes from the snapshot taken before the rebuild (#792). A
+        // typed row wins, so a type the user sets while the resync runs is kept.
+        // Balance math still starts from the rebuilt history (`existing`), never from
+        // the pre-resync balance.
+        val typed = existing?.takeIf { it.accountType != null }
+            ?: accountsBeforeRebuild[parsed.bankName to targetAccount]
+            ?: existing
+        val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, typed)
 
-        val newBalance = BalanceCalculator.calculateNewBalance(
+        // The account keeps its own currency; a foreign-currency spend isn't
+        // added to it (see BalanceCalculator.balanceAfter).
+        val accountCurrency = existing?.currency
+            ?: parsed.accountCurrency
+            ?: parsed.currency
+        val newBalance = BalanceCalculator.balanceAfter(
             explicitBalance = parsed.balance,
-            isCreditCard = resolvedIsCreditCard,
+            // A loan account's balance is owed too: a payment lowers it (#792).
+            isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
             transactionType = parsed.type.toEntityType(),
             transactionAmount = parsed.amount,
+            transactionCurrency = parsed.currency,
+            accountCurrency = accountCurrency,
             currentBalance = existing?.balance
         )
 
@@ -890,14 +1004,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             bankName      = parsed.bankName,
             accountLast4  = targetAccount,
             balance       = newBalance,
-            timestamp     = entity.dateTime,
+            timestamp     = current.dateTime,
             transactionId = if (rowId != -1L) rowId else null,
             creditLimit   = resolvedCreditLimit,
             isCreditCard  = resolvedIsCreditCard,
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
-            accountType   = BalanceCalculator.preservedAccountType(existing),
-            currency      = parsed.currency,
+            accountType   = BalanceCalculator.preservedAccountType(typed),
+            currency      = accountCurrency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold
@@ -940,7 +1054,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
             accountType   = BalanceCalculator.preservedAccountType(existing),
-            currency      = parsed.currency,
+            // The balance is in the account's currency, which can differ from the spend's.
+            currency      = parsed.accountCurrency ?: parsed.currency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold
@@ -977,6 +1092,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Log.e(TAG, "Cleanup error: ${e.message}")
         }
         try {
+            val smsDuplicates = cleanupSmsDuplicates()
+            if (smsDuplicates > 0) {
+                Log.i(TAG, "Removed $smsDuplicates duplicate rows of the same SMS")
+            }
             val deletedDuplicates = cleanupExistingGPayDuplicates()
             if (deletedDuplicates > 0) {
                 Log.i(TAG, "Cleaned up $deletedDuplicates existing GPay duplicate transactions")
@@ -994,16 +1113,53 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         }
     }
 
+    /**
+     * Earlier rescans could store one SMS twice when a parser fix changed its
+     * amount (#886). Keep the oldest row — it carries the user's category, notes
+     * and tags — repairing its amount from the newest read when the old one is a
+     * known parser artifact, and remove the rest the same way GPay duplicates are
+     * removed.
+     */
+    private suspend fun cleanupSmsDuplicates(): Int {
+        var removed = 0
+        transactionRepository.getActiveSmsDuplicateRows()
+            .groupBy { it.smsBody to (it.smsSender ?: "") }
+            .values
+            .forEach { group ->
+                val keep = group.minBy { it.id }
+                val newest = group.maxBy { it.id }
+                // One transaction per SMS: an interrupted run must not leave a
+                // duplicate soft-deleted with its balance rows or rule
+                // applications behind — once deleted it no longer shows up here.
+                database.withTransaction {
+                    if (TransactionDeduplication.isParseArtifact(keep, newest)) {
+                        transactionRepository.correctParsedAmount(keep, newest)
+                    }
+                    group.filter { it.id != keep.id }.forEach { dup ->
+                        // Goal contributions on the duplicate move to [keep] (#914); a
+                        // duplicate whose split shares can't move is kept (#346).
+                        if (!transactionRepository.deleteDuplicate(dup.id, keep.id)) return@forEach
+                        accountBalanceRepository.deleteBalancesForTransaction(dup.id)
+                        ruleRepository.deleteRuleApplicationsForTransaction(dup.id.toString())
+                        removed++
+                    }
+                }
+            }
+        return removed
+    }
+
     private suspend fun cleanupExistingGPayDuplicates(): Int {
-        val duplicateIds = transactionRepository.findGPayDuplicateIdsForCleanup()
-        duplicateIds.forEach { id ->
-            transactionRepository.deleteTransactionById(id)
+        val duplicates = transactionRepository.findGPayDuplicatesForCleanup()
+        var removed = 0
+        duplicates.forEach { (id, keeperId) ->
+            if (!transactionRepository.deleteDuplicate(id, keeperId)) return@forEach
             accountBalanceRepository.deleteBalancesForTransaction(id)
             ruleRepository.deleteRuleApplicationsForTransaction(id.toString())
+            removed++
         }
 
         prunePhantomGPayAccounts()
-        return duplicateIds.size
+        return removed
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -10,7 +11,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -27,8 +28,19 @@ import kotlin.math.min
 open class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionSplitDao: TransactionSplitDao,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao,
+    private val goalRepository: GoalRepository
 ) {
+    suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String) =
+        transactionDao.getWebhookChanges(start, end, currency, profileId)
+
+    suspend fun getWebhookCurrencyRemovals(currency: String, profileId: String) =
+        transactionDao.getWebhookCurrencyRemovals(currency, profileId)
+
+    fun getWebhookTransactions(start: LocalDateTime, end: LocalDateTime, currency: String) =
+        transactionDao.getTransactionsFiltered(start, end, currency, null)
+
     fun getAllTransactions(): Flow<List<TransactionEntity>> = 
         transactionDao.getAllTransactions()
     
@@ -110,14 +122,48 @@ open class TransactionRepository @Inject constructor(
         endDate: LocalDateTime
     ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
     
-    suspend fun insertTransaction(transaction: TransactionEntity): Long = 
-        transactionDao.insertTransaction(transaction)
+    suspend fun insertTransaction(transaction: TransactionEntity): Long =
+        transactionDao.insertTransaction(withCurrentCategoryNames(listOf(transaction)).single())
+
+    suspend fun insertTransactions(transactions: List<TransactionEntity>) =
+        transactionDao.insertTransactions(withCurrentCategoryNames(transactions))
+
+    /**
+     * Auto-categorization speaks in built-in names ("Food & Dining"); if the user
+     * renamed that category (#823), new rows get its current name instead.
+     */
+    private suspend fun withCurrentCategoryNames(transactions: List<TransactionEntity>): List<TransactionEntity> {
+        val categories = categoryDao.getAllCategoriesList()
+        if (categories.none { it.systemName != null && it.systemName != it.name }) return transactions
+        return transactions.map { tx ->
+            tx.copy(
+                category = categories.currentNameFor(tx.category),
+                budgetCategory = tx.budgetCategory?.let { categories.currentNameFor(it) }
+            )
+        }
+    }
     
-    suspend fun insertTransactions(transactions: List<TransactionEntity>) = 
-        transactionDao.insertTransactions(transactions)
-    
-    suspend fun updateTransaction(transaction: TransactionEntity) = 
-        transactionDao.updateTransaction(transaction)
+    /**
+     * Every edit goes through here, so a lowered amount also caps the goal
+     * contributions taken from this transaction (#914).
+     */
+    suspend fun updateTransaction(transaction: TransactionEntity) = goalRepository.writeAndCap(transaction.id) {
+        writeKeepingSplit(transaction)
+    }
+
+    /**
+     * Writes [transaction] so a split bill (#346) survives a stale copy of the
+     * row: whether it's split comes from its loan_shares rows, not the stored
+     * total; it stays an expense in its currency, at least its shares; and
+     * `lent_shares_total` is written from those same rows.
+     */
+    private suspend fun writeKeepingSplit(transaction: TransactionEntity) {
+        val amounts = transactionDao.getShareAmounts(transaction.id)
+        val shares = if (amounts.isEmpty()) null else amounts.fold(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
+        val persisted = if (shares == null) null else transactionDao.getTransactionById(transaction.id)
+        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted, transaction, shares)
+        transactionDao.updateTransaction(safe.copy(lentSharesTotal = shares, updatedAt = LocalDateTime.now()))
+    }
     
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
         if (hardDelete) {
@@ -143,13 +189,28 @@ open class TransactionRepository @Inject constructor(
     fun observeAllTransactionCount(): Flow<Int> =
         transactionDao.observeAllTransactionCount()
 
+    /** See [TransactionDao.observeActiveTransactionCount]. */
+    fun observeActiveTransactionCount(): Flow<Int> =
+        transactionDao.observeActiveTransactionCount()
+
     /** See [TransactionDao.countAllTransactions]. */
     suspend fun countAllTransactions(): Int =
         transactionDao.countAllTransactions()
 
-    /** See [TransactionDao.deleteUncuratedTransactions]. */
-    suspend fun deleteUncuratedTransactions() =
-        transactionDao.deleteUncuratedTransactions()
+    /** See [TransactionDao.deleteRebuildableSmsTransactions]. */
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime) =
+        transactionDao.deleteRebuildableSmsTransactions(
+            com.pennywiseai.tracker.receiver.BankNotificationConfig.notificationAliases.toList(),
+            from
+        )
+
+    /** See [TransactionDao.getTransactionByAmountAndDateIncludingDeleted]. */
+    suspend fun getTransactionByAmountAndDateIncludingDeleted(
+        amount: BigDecimal,
+        dateStart: LocalDateTime,
+        dateEnd: LocalDateTime
+    ): List<TransactionEntity> =
+        transactionDao.getTransactionByAmountAndDateIncludingDeleted(amount, dateStart, dateEnd)
 
     // Helper method to check if transaction exists by hash
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
@@ -158,6 +219,46 @@ open class TransactionRepository @Inject constructor(
     /** A soft-deleted transaction from the same raw SMS, if any (#703). */
     suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity? =
         transactionDao.getDeletedBySms(smsBody, smsSender)
+
+    /** See [TransactionDao.getAnyBySms]. */
+    suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity? =
+        transactionDao.getAnyBySms(smsBody, smsSender)
+
+    /** See [TransactionDao.getActiveSmsDuplicateRows]. */
+    suspend fun getActiveSmsDuplicateRows(): List<TransactionEntity> =
+        transactionDao.getActiveSmsDuplicateRows()
+
+    /**
+     * Rewrites a stored row's amount and currency with a fresh read of the same
+     * SMS — only for amounts [TransactionDeduplication.isParseArtifact] proves
+     * were an older parser's mistake. Only those two columns change, and only if
+     * the row still holds the bad amount, so nothing the user saved is lost.
+     *
+     * Left for the user to review instead:
+     *  - split transactions — the splits were sized to the old amount
+     *  - a loan-linked row whose currency would change — loan totals sum their
+     *    linked rows as one currency (the manual edit path forbids this too)
+     *
+     * The hash is left alone (it's unique; a soft-deleted duplicate may hold the
+     * new one), and account balances aren't shifted: these are historical rows,
+     * since re-anchored by the bank's own figures, so a delta now would
+     * double-count.
+     *
+     * @return whether the row was repaired.
+     */
+    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean =
+        // The split, loan and goal guards live in the UPDATE itself, so they see
+        // the row as it is at write time, not as it was when [stored] was read.
+        goalRepository.writeAndCap(stored.id) {
+            transactionDao.repairParsedAmount(
+                id = stored.id,
+                amount = fresh.amount,
+                currency = fresh.currency,
+                now = LocalDateTime.now(),
+                expectedAmount = stored.amount,
+                expectedCurrency = stored.currency
+            ) > 0
+        }
 
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999
@@ -178,6 +279,13 @@ open class TransactionRepository @Inject constructor(
 
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
+
+    /** Transactions (deleted included) with any of [hashes], in chunks under SQLite's bound-variable limit. */
+    suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
+        hashes.chunked(500).flatMap { transactionDao.getTransactionsByHashes(it) }
+
+    suspend fun getTransactionsBetweenDatesList(startDate: LocalDateTime, endDate: LocalDateTime): List<TransactionEntity> =
+        transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
 
     suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
         val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
@@ -211,13 +319,31 @@ open class TransactionRepository @Inject constructor(
     ): List<TransactionEntity> =
         transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
 
-    suspend fun findGPayDuplicateIdsForCleanup(): List<Long> {
+    /** Duplicate id → the id of the row that stays. */
+    suspend fun findGPayDuplicatesForCleanup(): Map<Long, Long> {
         val candidates = transactionDao.findPotentialDuplicatesByReference()
-        return TransactionDeduplication.duplicateIdsToDelete(candidates)
+        return TransactionDeduplication.duplicatesToKeepers(candidates)
     }
 
+    /**
+     * Soft-deletes an automatically found duplicate, first moving any goal
+     * contributions on it to [keeperId] so they aren't lost with it (#914).
+     * A duplicate whose split shares (#346) can't move to [keeperId] is kept:
+     * deleting it would hide the bill those debts came from.
+     * @return whether the duplicate was deleted.
+     */
+    suspend fun deleteDuplicate(duplicateId: Long, keeperId: Long): Boolean {
+        if (transactionDao.getShareAmounts(duplicateId).isNotEmpty() &&
+            !transactionDao.moveSharesToKeeper(duplicateId, keeperId)
+        ) return false
+        goalRepository.moveContributions(duplicateId, keeperId)
+        deleteTransactionById(duplicateId)
+        return true
+    }
+
+    /** Restores a deleted row from its snapshot, through the split-bill guard (#346). */
     open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
-        transactionDao.updateTransaction(transaction.copy(isDeleted = false))
+        writeKeepingSplit(transaction.copy(isDeleted = false))
     }
     
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String) {
@@ -305,7 +431,7 @@ open class TransactionRepository @Inject constructor(
             val endDate = cycleEnd.atTime(LocalTime.MAX)
             transactionDao.getTransactionsBetweenDates(startDate, endDate)
                 // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.filter { it.countsInTotals() } }
+                .map { txns -> txns.forTotals() }
         }
     }
 
@@ -318,7 +444,7 @@ open class TransactionRepository @Inject constructor(
             val endDate = prevEnd.atTime(LocalTime.MAX)
             transactionDao.getTransactionsBetweenDates(startDate, endDate)
                 // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.filter { it.countsInTotals() } }
+                .map { txns -> txns.forTotals() }
         }
     }
 
@@ -333,13 +459,13 @@ open class TransactionRepository @Inject constructor(
     }
 
     private fun List<TransactionEntity>.toMonthlyBreakdownByCurrency(): Map<String, MonthlyBreakdown> {
-        return filter { it.countsInTotals() }
+        return forTotals()
             .groupBy { it.currency }
             .mapValues { (_, transactions) -> transactions.toMonthlyBreakdown() }
     }
 
     private fun List<TransactionEntity>.sumTransactionType(type: TransactionType): BigDecimal {
-        return filter { it.countsInTotals() && it.transactionType == type }
+        return forTotals().filter { it.transactionType == type }
             .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
     }
     
@@ -378,13 +504,23 @@ open class TransactionRepository @Inject constructor(
 
     /** Re-target TRANSFER from/to-account refs after an account merge (#368). */
     suspend fun retargetTransferLegRefs(
+        sourceBankName: String,
         sourceAccountLast4: String,
-        targetAccountLast4: String
-    ): Int = transactionDao.retargetTransferLegRefs(
-        sourceAccountLast4 = sourceAccountLast4,
-        targetAccountLast4 = targetAccountLast4,
-        updatedAt = LocalDateTime.now()
-    )
+        targetAccountLast4: String,
+        targetBankName: String = sourceBankName
+    ): Int {
+        val ids = transactionDao.getAccountTransferLegRefIds(sourceBankName, sourceAccountLast4)
+        return ids.chunked(500).sumOf { batch ->
+            transactionDao.retargetTransferLegRefs(
+                transactionIds = batch,
+                sourceBankName = sourceBankName,
+                targetBankName = targetBankName,
+                sourceAccountLast4 = sourceAccountLast4,
+                targetAccountLast4 = targetAccountLast4,
+                updatedAt = LocalDateTime.now()
+            )
+        }
+    }
 
     fun getTransactionsByAccountAndDateRange(
         bankName: String,

@@ -98,6 +98,10 @@
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Save a backup to a folder every day at 2:00 AM</string>
+    <string name="settings_export_include_receipts_title">Include receipt photos</string>
+    <string name="settings_export_include_receipts_subtitle">Add attached receipt photos to exported backups (larger file)</string>
+    <string name="settings_folder_backup_include_receipts_title">Include receipt photos in automatic backups</string>
+    <string name="settings_folder_backup_include_receipts_subtitle">Makes each daily backup larger</string>
     <string name="settings_backup_now_title">Back Up Now</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Last backup: %1$s</string>
@@ -109,7 +113,7 @@
     <string name="settings_import_csv_title">Import Transactions (CSV)</string>
     <string name="settings_import_csv_subtitle">Import from a PennyWise CSV export</string>
     <string name="settings_import_statement_title">Import Statement</string>
-    <string name="settings_import_statement_subtitle">Import from GPay, PhonePe, Paytm</string>
+    <string name="settings_import_statement_subtitle">Bank statements (Excel, CSV) or UPI app PDFs</string>
     <string name="settings_unrecognized_sms_title">Unrecognized SMS</string>
     <string name="settings_unrecognized_sms_subtitle">View and report unsupported bank messages</string>
     <string name="settings_delete_all_title">Delete All Transactions</string>
@@ -242,6 +246,8 @@
     <string name="settings_support_section">Support &amp; Community</string>
     <string name="settings_help_faq_title">Help &amp; FAQ</string>
     <string name="settings_help_faq_subtitle">Answers to common questions</string>
+    <string name="settings_user_guide_title">User Guide</string>
+    <string name="settings_user_guide_subtitle">Step-by-step guides with screenshots</string>
     <string name="settings_report_issue_title">Report an Issue</string>
     <string name="settings_report_issue_subtitle">Submit bug reports on GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
@@ -270,6 +276,8 @@
 
     <!-- Navigation -->
     <string name="appearance_navigation_section">Navigation</string>
+    <string name="appearance_bottom_bar_section">Bottom bar</string>
+    <string name="appearance_bottom_bar_subtitle">Choose which tabs to show. Home always stays.</string>
     <string name="appearance_nav_floating">Floating</string>
     <string name="appearance_nav_floating_subtitle">Modern &amp; Sleek</string>
     <string name="appearance_nav_normal">Normal</string>

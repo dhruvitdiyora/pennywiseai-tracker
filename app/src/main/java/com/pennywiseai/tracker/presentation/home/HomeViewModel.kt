@@ -43,7 +43,7 @@ import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,6 +80,13 @@ import com.pennywiseai.tracker.domain.usecase.NetWorthCalculator
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import javax.inject.Inject
 
+/**
+ * Accounts that make up Home's spendable "bank" total: not credit cards or loan
+ * accounts (their balance is owed, #792), and not zero-balance accounts.
+ */
+internal fun spendableAccounts(balances: List<AccountBalanceEntity>): List<AccountBalanceEntity> =
+    balances.filter { !it.isLiability && it.balance != BigDecimal.ZERO }
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -90,6 +97,7 @@ class HomeViewModel @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
     private val loanRepository: LoanRepository,
     private val personRepository: com.pennywiseai.tracker.data.repository.PersonRepository,
+    goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -132,6 +140,11 @@ class HomeViewModel @Inject constructor(
      */
     val groupSummaries: StateFlow<List<com.pennywiseai.tracker.data.repository.GroupSummary>> =
         transactionGroupRepository.observeGroupSummaries()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Active goals for the Home "Goals" card (#914): soonest due first, Reached last; empty hides the card. */
+    val goals: StateFlow<List<com.pennywiseai.tracker.data.repository.GoalProgress>> =
+        goalRepository.observeActiveGoals()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Home section order + visibility (#770); default until DataStore emits. */
@@ -205,6 +218,7 @@ class HomeViewModel @Inject constructor(
     private val _showSharePrompt = MutableStateFlow(false)
     val showSharePrompt: StateFlow<Boolean> = _showSharePrompt.asStateFlow()
 
+
     init {
         loadUnifiedModePreferences()
         loadUserName()
@@ -239,6 +253,13 @@ class HomeViewModel @Inject constructor(
      * (or once on first emission). Cheap: just two `LocalDate` reads + arithmetic.
      */
     private fun observeBudgetCycle() {
+        // Read once: the toggle owns the state after that, so a slow save can't
+        // flip it back. Skipped if the user already toggled before it loaded.
+        viewModelScope.launch {
+            val hidden = userPreferencesRepository.isBalanceHidden.first()
+            if (!balanceVisibilityToggled) _uiState.value = _uiState.value.copy(isBalanceHidden = hidden)
+        }
+
         userPreferencesRepository.budgetCycleStartDay
             .onEach { startDay ->
                 _currentCycleWindow.value = BudgetCycle.currentCycle(LocalDate.now(), startDay)
@@ -246,10 +267,14 @@ class HomeViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    private var balanceVisibilityToggled = false
+
     fun toggleBalanceVisibility() {
-        _uiState.value = _uiState.value.copy(
-            isBalanceHidden = !_uiState.value.isBalanceHidden
-        )
+        balanceVisibilityToggled = true
+        val hidden = !_uiState.value.isBalanceHidden
+        _uiState.value = _uiState.value.copy(isBalanceHidden = hidden)
+        // Remembered across launches, so a revealed balance stays revealed.
+        viewModelScope.launch { userPreferencesRepository.setBalanceHidden(hidden) }
     }
 
     fun setShowHomeBanner(show: Boolean) {
@@ -342,10 +367,10 @@ class HomeViewModel @Inject constructor(
         // "Exclude from analytics" transactions stay in history & account balances
         // but must not count toward the home card's income/spend figures — same as
         // the Analytics screen, budgets and AI summaries already do (#451). Loan
-        // exclusion already happened upstream in loadHomeData(); countsInTotals()
-        // still covers both so this stays correct if that upstream filter ever moves.
+        // exclusion already happened upstream in loadHomeData(); forTotals() is
+        // idempotent, so this stays correct if that upstream filter ever moves.
         return transactions
-            .filter { it.countsInTotals() }
+            .forTotals()
             .groupBy { it.currency }.mapValues { (_, txs) ->
             // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
             // expense, so it should shrink "Spent this month" and not appear as
@@ -393,8 +418,8 @@ class HomeViewModel @Inject constructor(
         selectedCurrency: String
     ): Map<LocalDate, BigDecimal> {
         val daily = mutableMapOf<LocalDate, BigDecimal>()
-        for (tx in transactions) {
-            if (!tx.countsInTotals()) continue  // keep the trend line consistent with the income/spend figures (#451)
+        for (raw in transactions) {
+            val tx = raw.forTotals() ?: continue  // keep the trend line consistent with the income/spend figures (#451)
             if (!isUnified && tx.currency != selectedCurrency) continue
 
             val sign = when {
@@ -457,7 +482,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
                     filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .filter { it.countsInTotals() }
+                        .forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     computeBreakdownByCurrency(nonLoan, creditAsExpense)
@@ -489,8 +514,9 @@ class HomeViewModel @Inject constructor(
 
                 // Filter out hidden accounts and apply business filter
                 val balances = filterVisibleBalances(allBalances, hiddenAccounts)
-                // Separate credit cards from regular accounts (hide zero balance accounts)
-                val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+                // Separate credit cards from regular accounts (hide zero balance accounts).
+                // Loan accounts land in neither: they are owed, not spendable (#792).
+                val rawRegularAccounts = spendableAccounts(balances)
                 val rawCreditCards = balances.filter { it.isCreditCard }
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
@@ -691,6 +717,11 @@ class HomeViewModel @Inject constructor(
                     settledLoans to profileId
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (settledLoans, profileId), balances ->
+                    Triple(settledLoans, profileId, balances)
+                }
+                // A collect, not a trailing combine: a flow with no collector never runs,
+                // so settlement losses silently stopped reaching "Spent" after #571.
+                .collect { (settledLoans, profileId, balances) ->
                     val keys = buildProfileAccountKeys(balances)
                     val byCurrency = mutableMapOf<String, BigDecimal>()
                     for (loan in settledLoans) {
@@ -729,7 +760,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
                     filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .filter { it.countsInTotals() }
+                        .forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     computeBreakdownByCurrency(nonLoan, creditAsExpense)
@@ -751,7 +782,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
                     filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .filter { it.countsInTotals() }
+                        .forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     computeBreakdownByCurrency(nonLoan, creditAsExpense)
@@ -1096,7 +1127,7 @@ class HomeViewModel @Inject constructor(
 
             val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
-            val rawRegularAccounts = visibleBalances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+            val rawRegularAccounts = spendableAccounts(visibleBalances)
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
 
             val selectedCurrency = _uiState.value.selectedCurrency
@@ -1138,10 +1169,13 @@ class HomeViewModel @Inject constructor(
      * @param forceResync If true, performs a full resync from scratch, reprocessing all SMS messages.
      *                    This is useful when bank parsers have been updated and old transactions need to be re-parsed.
      *                    If false (default), performs an incremental scan for new messages only.
+     * @param rescanAll If true, re-reads the whole scan window without deleting
+     *                  anything: adds missed messages and keeps every edit.
      */
-    fun scanSmsMessages(forceResync: Boolean = false) {
+    fun scanSmsMessages(forceResync: Boolean = false, rescanAll: Boolean = false) {
         val inputData = workDataOf(
-            OptimizedSmsReaderWorker.INPUT_FORCE_RESYNC to forceResync
+            OptimizedSmsReaderWorker.INPUT_FORCE_RESYNC to forceResync,
+            OptimizedSmsReaderWorker.INPUT_RESCAN_ALL to rescanAll
         )
 
         val workRequest = OneTimeWorkRequestBuilder<OptimizedSmsReaderWorker>()
@@ -1206,7 +1240,7 @@ class HomeViewModel @Inject constructor(
             if (allBalances.isEmpty()) return@launch
 
             val balances = filterVisibleBalances(allBalances, hiddenAccounts)
-            val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+            val rawRegularAccounts = spendableAccounts(balances)
             val rawCreditCards = balances.filter { it.isCreditCard }
 
             val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
@@ -1354,6 +1388,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** "See Pro" or ✕ on the Pro card — either way it never comes back. */
+
     fun checkForInAppReview(activity: ComponentActivity) {
         viewModelScope.launch {
             // Get current transaction count as additional eligibility factor
@@ -1390,7 +1426,7 @@ class HomeViewModel @Inject constructor(
         val isUnified = _uiState.value.isUnifiedMode
         // Drop excluded-from-analytics rows here too, so the home CREDIT/TRANSFER/
         // INVESTMENT totals stay consistent with the income/spend breakdown (#451).
-        val nonLoanTransactions = transactions.filter { it.countsInTotals() }
+        val nonLoanTransactions = transactions.forTotals()
 
         if (isUnified) {
             // Convert all transactions to display currency
@@ -1668,7 +1704,7 @@ class HomeViewModel @Inject constructor(
         // from a category by aggregateBudgetCategorySpending (categorised refund);
         // orphaned DEDUCT_SPENT income stays in the total so netSavings doesn't
         // understate.
-        val analyticsTransactions = raw.allTransactions.filter { it.transaction.countsInTotals() }
+        val analyticsTransactions = raw.allTransactions.forTotals()
         var totalIncome = BigDecimal.ZERO
         for (txWithSplits in analyticsTransactions) {
             val tx = txWithSplits.transaction

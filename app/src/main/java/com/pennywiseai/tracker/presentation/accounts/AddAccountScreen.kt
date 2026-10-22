@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.Card
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Information
 import com.pennywiseai.tracker.ui.icons.iconax.Wallet3
+import com.pennywiseai.tracker.ui.icons.iconax.WalletMinus
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -231,7 +232,11 @@ fun AddAccountScreen(
                 TonalTextField(
                     value = formState.balance,
                     onValueChange = viewModel::updateBalance,
-                    label = stringResource(R.string.add_account_balance_label),
+                    label = if (formState.accountType == AccountType.LOAN) {
+                        stringResource(R.string.manage_accounts_outstanding_balance)
+                    } else {
+                        stringResource(R.string.add_account_balance_label)
+                    },
                     placeholder = stringResource(R.string.manage_accounts_amount_placeholder),
                     prefix = { Text(symbol) },
                     position = ListItemPosition.from(3, fieldCount),
@@ -290,4 +295,5 @@ private fun AccountType.glyph(): ImageVector = when (this) {
     AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
     AccountType.CREDIT -> Iconax.Card
     AccountType.CASH -> Iconax.Wallet3
+    AccountType.LOAN -> Iconax.WalletMinus
 }

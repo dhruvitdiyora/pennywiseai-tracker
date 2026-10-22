@@ -14,8 +14,52 @@ object BalanceCalculator {
     fun preservedAccountType(existing: AccountBalanceEntity?): String? = existing?.accountType
 
     /**
+     * `is_credit_card` for a balance row rebuilt from an SMS. An account with no
+     * type yet (or typed CREDIT) is marked by a card SMS and an existing card stays
+     * one. An account with a non-card type (set on Add Account, or changed in Edit
+     * Account) keeps that type: a later card SMS must not undo the user's choice.
+     * A LOAN is never a card; its balance is still handled as owed, through
+     * [AccountBalanceEntity.isLiability]. (#792)
+     */
+    fun resolvedIsCreditCard(smsIsCard: Boolean, existing: AccountBalanceEntity?): Boolean {
+        val wasCard = existing?.isCreditCard == true
+        val type = existing?.accountType
+        val hasNonCardType = type != null && !type.equals("CREDIT", ignoreCase = true)
+        return if (hasNonCardType) wasCard && existing?.isLoan != true else smsIsCard || wasCard
+    }
+
+    /**
+     * Balance an account row should carry after a parsed SMS whose amount is in
+     * [transactionCurrency] while the account is kept in [accountCurrency].
+     *
+     * A spend in another currency (USD on an INR card) can't be added to the
+     * balance — that would sum across currencies, and the bank's own converted
+     * figure only arrives with a later SMS. So it keeps the explicit balance the
+     * SMS reports (that is the account's own figure), else the current balance.
+     * Same-currency SMS go through [calculateNewBalance] unchanged. (#888)
+     */
+    fun balanceAfter(
+        explicitBalance: BigDecimal?,
+        isCreditCard: Boolean,
+        transactionType: TransactionType,
+        transactionAmount: BigDecimal,
+        transactionCurrency: String,
+        accountCurrency: String,
+        currentBalance: BigDecimal?
+    ): BigDecimal =
+        if (transactionCurrency == accountCurrency) {
+            calculateNewBalance(explicitBalance, isCreditCard, transactionType, transactionAmount, currentBalance)
+        } else {
+            explicitBalance ?: currentBalance ?: BigDecimal.ZERO
+        }
+
+    /**
      * Calculates the new account balance post-transaction.
      * For credit cards, balance represents outstanding debt.
+     *
+     * Throughout this object `isCreditCard` means "the balance is an amount
+     * owed": pass [AccountBalanceEntity.isLiability], so loan accounts get the
+     * credit-card rules (a payment lowers what's owed). (#792)
      */
     fun calculateNewBalance(
         explicitBalance: BigDecimal?,

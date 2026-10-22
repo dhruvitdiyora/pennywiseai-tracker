@@ -269,7 +269,10 @@ fun SubscriptionTabContent(
     if (showCategoryPicker) {
         QuickCategoryPickerSheet(
             currentCategory = uiState.category,
-            categories = categories,
+            // Income subscriptions pick income categories, like the transaction tab (#854).
+            categories = categories.filter {
+                it.isIncome == (uiState.direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
+            },
             title = stringResource(R.string.category_picker_select_title),
             searchPlaceholder = stringResource(R.string.category_picker_search_placeholder),
             onCategorySelected = { category ->

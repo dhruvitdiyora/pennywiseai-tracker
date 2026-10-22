@@ -15,6 +15,12 @@
     <!-- Internet permission for downloading AI model -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- AI access: a user-started, timed session that keeps a line open to the relay (ADR 0002) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Biometric permission for app lock feature -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
@@ -28,6 +34,7 @@
     <application
         android:name=".PennyWiseApplication"
         android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -49,6 +56,15 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- "Share to PennyWise": text shared from any app (a UPI receipt, a
+                 forwarded bank message, a quick note) opens Add Transaction
+                 pre-filled. Nothing is saved until the user taps Save. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
 
             <!-- pennywise://add — the single quick-add entry point. Used by the
@@ -74,6 +90,22 @@
             android:theme="@style/Theme.PennyWise.Transparent" />
 
         <!-- Quick Settings tile: swipe down -> tap -> Add Transaction -->
+        <service
+            android:name=".aiaccess.AiSessionService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <service
+            android:name=".aiaccess.AiSessionTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_ai_session"
+            android:label="@string/ai_session_tile"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".tile.QuickAddTileService"
             android:exported="true"
@@ -175,6 +207,41 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/recent_transactions_widget_info" />
         </receiver>
+
+        <!-- Goal widgets (#914): one chosen goal (2x2) and up to three goals (4x2) -->
+        <receiver
+            android:name=".widget.GoalWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_goal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/goal_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.GoalsListWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_goals">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/goals_list_widget_info" />
+        </receiver>
+
+        <!-- Picks the goal a 2x2 goal widget shows; the launcher opens it on add. -->
+        <activity
+            android:name=".widget.GoalWidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <!-- Add Transaction Quick Widget -->
         <receiver

@@ -283,7 +283,7 @@ internal fun AccountItem(
     // Low-balance alert: only for non-credit accounts with a threshold set, when the
     // current balance has fallen at or below it. (Credit cards invert this — their
     // "low" concept is available limit, not balance — so they're excluded.)
-    val isLowBalance = !account.isCreditCard &&
+    val isLowBalance = !account.isLiability &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
     val alias = account.alias?.takeIf { it.isNotBlank() }
@@ -299,7 +299,12 @@ internal fun AccountItem(
     AccountCardShell(
         merchantName = account.bankName,
         label = stringResource(
-            if (isLowBalance) R.string.manage_accounts_low_balance else R.string.manage_accounts_balance
+            when {
+                isLowBalance -> R.string.manage_accounts_low_balance
+                // A loan account's balance is what's owed (#792).
+                account.isLoan -> R.string.manage_accounts_outstanding
+                else -> R.string.manage_accounts_balance
+            }
         ),
         amount = CurrencyFormatter.formatCurrency(account.balance, currencyCode),
         title = alias ?: account.bankName,
@@ -314,6 +319,18 @@ internal fun AccountItem(
         isAlert = isLowBalance,
         menu = {
             AccountMoreMenu { closeMenu ->
+                // SMS-tracked accounts reach the edit sheet (name, currency, type)
+                // from here; manual ones have it as the primary button (#792).
+                if (!isManualAccount) {
+                    AccountMenuItem(
+                        text = stringResource(R.string.manage_accounts_action_edit),
+                        icon = Iconax.Edit2,
+                        onClick = {
+                            closeMenu()
+                            onEditAccount()
+                        },
+                    )
+                }
                 AccountMenuItem(
                     text = stringResource(R.string.manage_accounts_menu_history),
                     icon = Iconax.History,
@@ -364,8 +381,9 @@ internal fun AccountItem(
                 )
                 // Only non-credit accounts — credit cards' "low" concept is
                 // available limit, not balance, so the alert (and this entry)
-                // don't apply (matches the isLowBalance exclusion above).
-                if (!account.isCreditCard) {
+                // don't apply (matches the isLowBalance exclusion above). Same
+                // for loans, whose balance is owed.
+                if (!account.isLiability) {
                     AccountMenuItem(
                         text = stringResource(
                             if (account.lowBalanceThreshold == null) {
@@ -561,6 +579,18 @@ internal fun CreditCardItem(
         amountColor = if (card.balance > BigDecimal.ZERO) scheme.error else null,
         menu = {
             AccountMoreMenu { closeMenu ->
+                // SMS-tracked accounts reach the edit sheet (name, currency, type)
+                // from here; manual ones have it as the primary button (#792).
+                if (!isManualAccount) {
+                    AccountMenuItem(
+                        text = stringResource(R.string.manage_accounts_action_edit),
+                        icon = Iconax.Edit2,
+                        onClick = {
+                            closeMenu()
+                            onEditAccount()
+                        },
+                    )
+                }
                 AccountMenuItem(
                     text = stringResource(R.string.manage_accounts_menu_history),
                     icon = Iconax.History,

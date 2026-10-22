@@ -23,6 +23,11 @@ class MainActivity : FragmentActivity() {
     companion object {
         const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
 
+        /** Goal widgets (#914): open a goal, the Budgets screen, or "New goal" there. */
+        const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
+        const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
+        const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
+
         /**
          * Deep link that jumps straight to Add Transaction: `pennywise://add`.
          * The single entry point every quick-add surface routes through — the
@@ -33,6 +38,8 @@ class MainActivity : FragmentActivity() {
         const val DEEP_LINK_HOST_ADD = "add"
 
         fun addDeepLink(): Uri = "$DEEP_LINK_SCHEME://$DEEP_LINK_HOST_ADD".toUri()
+
+        private const val MAX_SHARED_TEXT = 1000
     }
 
     // Transaction ID to edit when launched from notification
@@ -41,6 +48,14 @@ class MainActivity : FragmentActivity() {
 
     // Flag to navigate directly to Add Transaction when launched from a shortcut/widget
     var openAddTransaction by mutableStateOf(false)
+        private set
+
+    // Screen a goal widget asked for (a nav destination), consumed by PennyWiseApp.
+    var widgetDestination by mutableStateOf<Any?>(null)
+        private set
+
+    // Text shared to PennyWise from another app; opens Add Transaction pre-filled.
+    var sharedText by mutableStateOf<String?>(null)
         private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,9 +67,12 @@ class MainActivity : FragmentActivity() {
 
         // Handle intent if activity is launched from notification
         handleEditIntent(intent)
+        // Not on recreation: the launch intent comes back and would re-open the screen.
+        if (savedInstanceState == null) handleWidgetIntent(intent)
 
         val editCompleteCallback = { editTransactionId = null }
         val addShortcutCallback = { openAddTransaction = false }
+        val sharedTextCallback = { sharedText = null }
 
         registerQuickAddShortcut()
 
@@ -63,7 +81,11 @@ class MainActivity : FragmentActivity() {
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
                 onEditComplete = editCompleteCallback,
-                onAddTransactionShortcutHandled = addShortcutCallback
+                onAddTransactionShortcutHandled = addShortcutCallback,
+                sharedText = sharedText,
+                onSharedTextHandled = sharedTextCallback,
+                widgetDestination = widgetDestination,
+                onWidgetDestinationHandled = { widgetDestination = null }
             )
         }
     }
@@ -72,6 +94,18 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         // Handle intent when activity is already running
         handleEditIntent(intent)
+        handleWidgetIntent(intent)
+    }
+
+    private fun handleWidgetIntent(intent: Intent?) {
+        intent ?: return
+        val goalId = intent.getLongExtra(EXTRA_OPEN_GOAL_ID, -1L)
+        widgetDestination = when {
+            goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+            intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
+                com.pennywiseai.tracker.navigation.BudgetGroups(createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false))
+            else -> return
+        }
     }
 
     private fun handleEditIntent(intent: Intent?) {
@@ -80,6 +114,10 @@ class MainActivity : FragmentActivity() {
             if (transactionId != -1L) {
                 editTransactionId = transactionId
             }
+        }
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            // Capped: it travels as a navigation argument and ends up as a note.
+            sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
         }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = true

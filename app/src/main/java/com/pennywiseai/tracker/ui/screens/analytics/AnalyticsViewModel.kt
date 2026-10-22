@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -24,7 +27,9 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -36,6 +41,124 @@ import javax.inject.Inject
 import com.pennywiseai.tracker.ui.components.BalancePoint
 
 enum class ChartType { LINE, BAR, HEATMAP }
+
+/**
+ * The rows an Analytics type view totals: those of [filter]'s types (Spending =
+ * expense + card spend, #898), cut to what counts toward totals — loan-linked and
+ * analytics-excluded parts drop out (#451, #800); they stay in history and balance.
+ *
+ * The Income view also drops refunds (INCOME + DEDUCT_SPENT): they offset spending
+ * and are netted out of the spend views instead, so counting them as income too
+ * would double-count them. Mirrors the Home card (#629).
+ */
+internal fun analyticsRowsFor(
+    rows: List<TransactionWithSplits>,
+    filter: TransactionTypeFilter
+): List<TransactionWithSplits> {
+    val types = filter.transactionTypes
+    return (if (types == null) rows else rows.filter { it.transaction.transactionType in types })
+        .forTotals()
+        .filter {
+            !(filter == TransactionTypeFilter.INCOME &&
+                it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT)
+        }
+}
+
+/** [gross] less [refund], floored at zero: a spend bucket never shows negative spend. */
+internal fun netOf(gross: BigDecimal, refund: BigDecimal?): BigDecimal =
+    (gross - (refund ?: BigDecimal.ZERO)).coerceAtLeast(BigDecimal.ZERO)
+
+/** Refund value to net off each spend surface, keyed like that surface's rows. */
+internal class RefundNetting(
+    val total: BigDecimal = BigDecimal.ZERO,
+    val byCategory: Map<String, BigDecimal> = emptyMap(),
+    /** Keyed "bankName_accountNumber". */
+    val byAccount: Map<String, BigDecimal> = emptyMap(),
+    val byMerchant: Map<String, BigDecimal> = emptyMap(),
+    val byDay: Map<LocalDate, BigDecimal> = emptyMap()
+)
+
+/**
+ * The type view Analytics opens on. With "count credit card as expense" on, Home's
+ * "Spent" is Expense + Card, so open on Spending to show the same figure. Off, open
+ * on Expense: those users count the card bill payment instead, and adding card
+ * spends would count the same money twice.
+ */
+internal fun defaultTypeFilter(countCreditCardAsExpense: Boolean): TransactionTypeFilter =
+    if (countCreditCardAsExpense) TransactionTypeFilter.SPENDING else TransactionTypeFilter.EXPENSE
+
+/**
+ * The Analytics type filter: follows the setting-based default (the screen
+ * outlives a trip to Settings) until the user picks a type; Clear hands it back
+ * to the default, which it then follows again.
+ */
+internal class TypeFilterSelection {
+    private var chosen = false
+    private var default = TransactionTypeFilter.EXPENSE
+    private val _value = MutableStateFlow(default)
+    val value: StateFlow<TransactionTypeFilter> = _value.asStateFlow()
+
+    fun onDefaultChanged(newDefault: TransactionTypeFilter) {
+        default = newDefault
+        if (!chosen) _value.value = newDefault
+    }
+
+    fun pick(filter: TransactionTypeFilter) {
+        chosen = true
+        _value.value = filter
+    }
+
+    fun reset() {
+        chosen = false
+        _value.value = default
+    }
+}
+
+/**
+ * Refunds (INCOME + DEDUCT_SPENT) to net out of a spend view ([TransactionTypeFilter.netsRefunds]:
+ * Expense and Spending), so every spend surface (total, category, account, merchant
+ * and the trend) agrees with the Home card and the Transactions page, which are net
+ * of refunds. Other views get nothing to net.
+ *
+ * [rows] is the untyped, scoped list: the type filter dropped these refunds, so they're
+ * pulled back in here. A refund comes off its budgetCategory (rolled up via [parentOf];
+ * skipped when outside [categoryFilter]), its account, its merchant (when it carries the
+ * same merchant name) and its day. The FULL refund always comes off the headline total,
+ * while each bucket floors at zero ([netOf]); so an over-refund or orphaned refund can
+ * leave the total below the sum of the visible rows, exactly as on the Home card (#704).
+ *
+ * [amountOf] gives the refund in the view's currency, or null to skip it (unified mode,
+ * never-rated pair: never face-value a foreign amount, #670).
+ */
+internal suspend fun refundNetting(
+    rows: List<TransactionWithSplits>,
+    filter: TransactionTypeFilter,
+    categoryFilter: Set<String>?,
+    parentOf: Map<String, String>,
+    amountOf: suspend (TransactionEntity) -> BigDecimal?
+): RefundNetting {
+    if (!filter.netsRefunds) return RefundNetting()
+    var total = BigDecimal.ZERO
+    val byCategory = mutableMapOf<String, BigDecimal>()
+    val byAccount = mutableMapOf<String, BigDecimal>()
+    val byMerchant = mutableMapOf<String, BigDecimal>()
+    val byDay = mutableMapOf<LocalDate, BigDecimal>()
+    fun <K> MutableMap<K, BigDecimal>.add(key: K, amount: BigDecimal) { this[key] = (this[key] ?: BigDecimal.ZERO) + amount }
+    for (tw in rows) {
+        val tx = tw.transaction.forTotals() ?: continue
+        if (tx.transactionType != TransactionType.INCOME || tx.budgetImpactType != BudgetImpactType.DEDUCT_SPENT) continue
+        val rawCategory = (tx.budgetCategory ?: "").ifEmpty { "Others" }
+        if (categoryFilter != null && rawCategory !in categoryFilter) continue
+        val amount = amountOf(tx) ?: continue
+        if (amount <= BigDecimal.ZERO) continue
+        total += amount
+        byCategory.add(parentOf[rawCategory] ?: rawCategory, amount)
+        byAccount.add("${tx.bankName}_${tx.accountNumber}", amount)
+        byMerchant.add(tx.merchantName, amount)
+        byDay.add(tx.dateTime.toLocalDate(), amount)
+    }
+    return RefundNetting(total, byCategory, byAccount, byMerchant, byDay)
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -52,8 +175,8 @@ class AnalyticsViewModel @Inject constructor(
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
 
-    // Top Tags analytics breakdown is a Pro feature — basic tagging (create /
-    // apply / filter-by-tag) stays free; only the aggregated breakdown is gated.
+    // The tag and day-of-week groupings are Pro (#422); basic tagging (create /
+    // apply / filter-by-tag) stays free.
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     // name -> hex color for the user's categories (incl. recolored built-ins), so
@@ -91,8 +214,13 @@ class AnalyticsViewModel @Inject constructor(
     val budgetCycleStartDay: StateFlow<Int> = userPreferencesRepository.budgetCycleStartDay
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
     
-    private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
-    val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
+    private val typeFilter = TypeFilterSelection()
+    val transactionTypeFilter: StateFlow<TransactionTypeFilter> = typeFilter.value
+
+    /** The type view Analytics opens on and resets to; follows the card-spend setting. */
+    val defaultTypeFilter: StateFlow<TransactionTypeFilter> = userPreferencesRepository.countCreditCardAsExpense
+        .map { defaultTypeFilter(it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TransactionTypeFilter.EXPENSE)
 
     private val _selectedCurrency = MutableStateFlow("")
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
@@ -113,10 +241,30 @@ class AnalyticsViewModel @Inject constructor(
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
+    /**
+     * The breakdown's grouping (#422), remembered like the chart type. A stored Pro
+     * grouping shows as Category while the user isn't Pro (a lapsed subscription).
+     */
+    val groupBy: StateFlow<AnalyticsGroupBy> = combine(
+        userPreferencesRepository.getAnalyticsGroupBy(),
+        isProEntitled
+    ) { saved, isPro -> AnalyticsGroupBy.fromSaved(saved).allowedFor(isPro) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AnalyticsGroupBy.CATEGORY)
+
+    /** Picks a grouping. A Pro one without Pro is ignored; the screen shows the upgrade sheet instead. */
+    fun setGroupBy(groupBy: AnalyticsGroupBy) {
+        if (groupBy.allowedFor(isProEntitled.value) != groupBy) return
+        viewModelScope.launch { userPreferencesRepository.saveAnalyticsGroupBy(groupBy.name) }
+    }
+
     private val _selectedChartType = MutableStateFlow(ChartType.LINE)
     val selectedChartType: StateFlow<ChartType> = _selectedChartType.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            defaultTypeFilter.collect { typeFilter.onDefaultChanged(it) }
+        }
+
         viewModelScope.launch {
             userPreferencesRepository.getAnalyticsChartType().collect { saved ->
                 if (saved != null) {
@@ -172,7 +320,7 @@ class AnalyticsViewModel @Inject constructor(
         // reloads along with the chip label (#686).
         combine(_selectedPeriod, budgetCycleStartDay) { period, _ -> period },
         customDateRange,
-        _transactionTypeFilter,
+        transactionTypeFilter,
         _selectedCurrency,
         combine(_isUnifiedMode, _categoryFilter, selectedProfileId, _accountFilter) { u, c, p, a ->
             UnifiedCatProfileAccount(u, c, p, a)
@@ -246,17 +394,6 @@ class AnalyticsViewModel @Inject constructor(
                     _selectedCurrency.value = if (allCurrencies.contains(baseCurrency)) baseCurrency else allCurrencies.first()
                 }
 
-                // Use database-level filtering for better performance
-                // Convert TransactionTypeFilter to TransactionType for database query
-                val dbTransactionType = when (filterState.typeFilter) {
-                    TransactionTypeFilter.ALL -> null // null means no type filter at DB level
-                    TransactionTypeFilter.INCOME -> com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
-                    TransactionTypeFilter.EXPENSE -> com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE
-                    TransactionTypeFilter.CREDIT -> com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT
-                    TransactionTypeFilter.TRANSFER -> com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER
-                    TransactionTypeFilter.INVESTMENT -> com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT
-                }
-
                 // Scope a loaded transaction list to the selected profile and exclude
                 // hidden accounts (mirrors the Home screen's account scoping).
                 fun scopeTransactions(
@@ -286,35 +423,17 @@ class AnalyticsViewModel @Inject constructor(
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second
-                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, true) }
+                    ).map { txs -> scopeTransactions(txs) to true }
                 } else {
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second,
                         currency = filterState.currency
-                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, false) }
+                    ).map { txs -> scopeTransactions(txs) to false }
                 }
-            }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
-                // Filter by transaction type in memory (splits are already loaded)
-                val filteredTransactionsWithSplits = (if (transactionTypeFilter != null) {
-                    allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
-                } else {
-                    allTransactionsWithSplits
-                })
-                    // Drop loan-linked and analytics-excluded transactions (#451, #800). They
-                    // stay in history and count toward balance — only these breakdowns,
-                    // totals, averages and the spending trend ignore them.
-                    .filter { it.transaction.countsInTotals() }
-                    // On the Income view, drop refunds (INCOME + DEDUCT_SPENT): they
-                    // offset spending and are already netted out of the Expense view
-                    // below, so counting them as income too would double-count them
-                    // (and inflate net savings). Mirrors the Home card, which excludes
-                    // DEDUCT_SPENT from its income figure. Other views are unaffected —
-                    // the Expense view pulls these refunds back in separately. (#629)
-                    .filter {
-                        !(transactionTypeFilter == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME &&
-                            it.transaction.budgetImpactType == com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT)
-                    }
+            }.mapLatest { (allTransactionsWithSplits, isUnified) ->
+                val filteredTransactionsWithSplits =
+                    analyticsRowsFor(allTransactionsWithSplits, filterState.typeFilter)
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits
@@ -377,58 +496,22 @@ class AnalyticsViewModel @Inject constructor(
                     }
                 }
 
-                // Net "Refund" income (INCOME + DEDUCT_SPENT) out of Expenses so EVERY
-                // spend surface — total, category, account, merchant and the trend —
-                // agrees with the Home card and the Transactions page (both already net
-                // of refunds). A categorised refund subtracts from its budgetCategory;
-                // it also shrinks the headline total, its account, its merchant (when
-                // the refund carries the same merchant) and the trend on its day. All
-                // spend surfaces are floored at zero. Refunds live in
-                // allTransactionsWithSplits (loaded untyped) but were dropped by the
-                // EXPENSE type filter above, so pull them back in here. Only the Expense
-                // view is adjusted; Income/other views are untouched.
-                val refundByAccount = mutableMapOf<String, BigDecimal>()
-                val refundByMerchant = mutableMapOf<String, BigDecimal>()
-                val refundByDay = mutableMapOf<LocalDate, BigDecimal>()
+                // Net refunds out of the spend views (Expense, Spending) — see [refundNetting].
+                val refunds = refundNetting(
+                    allTransactionsWithSplits, filterState.typeFilter, categoryFilterSet, parentOf
+                ) { tx ->
+                    if (isUnified) {
+                        // never-rated pair → null: skip, don't face-value (#670)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    } else tx.amount
+                }
+                refunds.byCategory.forEach { (category, refund) ->
+                    categoryAmounts[category] = netOf(categoryAmounts[category] ?: BigDecimal.ZERO, refund)
+                }
+                if (filterState.typeFilter.netsRefunds) totalSpending = netOf(totalSpending, refunds.total)
                 // Total refund value netted off the headline total. Used to explain the
                 // gap when the per-category floor leaves the bars summing above the total (#704).
-                var refundNettedTotal = BigDecimal.ZERO
-                if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
-                    for (tw in allTransactionsWithSplits) {
-                        val tx = tw.transaction
-                        if (!tx.countsInTotals()) continue
-                        if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
-                            tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
-                        ) continue
-                        val rawCategory = (tx.budgetCategory ?: "").ifEmpty { "Others" }
-                        // Respect an active category filter.
-                        if (categoryFilterSet != null && rawCategory !in categoryFilterSet) continue
-                        val category = parentOf[rawCategory] ?: rawCategory
-                        val converted = if (isUnified) {
-                            currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                                ?: continue // never-rated pair — skip, don't face-value (#670)
-                        } else tx.amount
-                        if (converted <= BigDecimal.ZERO) continue
-                        // A refund (INCOME + DEDUCT_SPENT) reverses a prior expense, so the
-                        // FULL amount always comes off the headline total — keeping Analytics
-                        // consistent with the Home card, widget and Transactions page, which
-                        // are all net of refunds. The per-category / account / merchant / trend
-                        // buckets floor at zero (a bucket can't show negative spend), so an
-                        // over-refund or an orphaned refund (whose category has no expense
-                        // here) can leave the total below the sum of the visible rows — exactly
-                        // as it does on the Home card.
-                        val existing = categoryAmounts[category] ?: BigDecimal.ZERO
-                        categoryAmounts[category] = (existing - converted).coerceAtLeast(BigDecimal.ZERO)
-                        totalSpending -= converted
-                        refundNettedTotal += converted
-                        val accountKey = "${tx.bankName}_${tx.accountNumber}"
-                        refundByAccount[accountKey] = (refundByAccount[accountKey] ?: BigDecimal.ZERO) + converted
-                        refundByMerchant[tx.merchantName] = (refundByMerchant[tx.merchantName] ?: BigDecimal.ZERO) + converted
-                        val day = tx.dateTime.toLocalDate()
-                        refundByDay[day] = (refundByDay[day] ?: BigDecimal.ZERO) + converted
-                    }
-                    totalSpending = totalSpending.coerceAtLeast(BigDecimal.ZERO)
-                }
+                val refundNettedTotal = refunds.total
 
                 val categoryBreakdown = categoryAmounts.map { (categoryName, categoryTotal) ->
                     CategoryData(
@@ -454,42 +537,35 @@ class AnalyticsViewModel @Inject constructor(
                     if (refundNettedTotal > BigDecimal.ZERO && categorySum > totalSpending) refundNettedTotal
                     else BigDecimal.ZERO
 
-                // Build tag breakdown from the many-to-many tag map. A
-                // transaction can carry several tags, and its full amount
-                // counts toward each of them (tags overlap, unlike categories),
-                // so tag percentages can sum to more than 100%. Untagged
-                // transactions are skipped.
-                val tagAmounts = mutableMapOf<String, BigDecimal>()
-                val tagTransactionCounts = mutableMapOf<String, Int>()
-
-                for (tx in filteredTransactions) {
-                    val tagNames = tagMap[tx.id]?.takeIf { it.isNotEmpty() } ?: continue
-                    val converted = if (isUnified) {
+                // Every counted row with its amount in the view's currency, converted
+                // once for the tag, account and weekday groups (#422). Unified mode
+                // leaves out a never-rated pair rather than face-value it (#670).
+                val counted = filteredTransactions.mapNotNull { tx ->
+                    if (isUnified) {
                         currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                            ?: continue // never-rated pair — skip, don't face-value (#670)
+                            ?.let { CountedRow(tx, Money(it, displayCurrency)) }
                     } else {
-                        tx.amount
-                    }
-                    for (tagName in tagNames) {
-                        tagAmounts[tagName] = (tagAmounts[tagName] ?: BigDecimal.ZERO) + converted
-                        tagTransactionCounts[tagName] = (tagTransactionCounts[tagName] ?: 0) + 1
+                        CountedRow(tx, Money(tx.amount, tx.currency))
                     }
                 }
 
-                val tagBreakdown = tagAmounts.map { (tagName, tagTotal) ->
-                    TagData(
-                        name = tagName,
-                        amount = tagTotal,
-                        // Clamp at 100% like categoryBreakdown: refunds reduce totalSpending
-                        // but not a tag's summed amount, so the raw ratio for a single tag can
-                        // exceed 100%. (Different tags can still each be <100% yet sum to more,
-                        // since a transaction counts toward every tag it carries.)
-                        percentage = if (totalSpending > BigDecimal.ZERO) {
-                            (tagTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
-                        } else 0f,
-                        transactionCount = tagTransactionCounts[tagName] ?: 0
-                    )
-                }.sortedByDescending { it.amount }
+                // Tags overlap, unlike categories: a transaction counts in full under
+                // each of its tags, so tag totals can add up to more than the total.
+                // Untagged rows go under "No tag".
+                val noTagLabel = context.getString(R.string.analytics_no_tag)
+                val tagBreakdown = groupTotals(counted) { tagKeys(tagMap[it.id]) }
+                    .map { (tag, group) ->
+                        val amount = group.amountIn(displayCurrency)
+                        TagData(
+                            name = tag ?: noTagLabel,
+                            amount = amount,
+                            percentage = shareOf(amount, totalSpending),
+                            transactionCount = group.rows.size,
+                            isUntagged = tag == null
+                        )
+                    }
+                    .sortedByDescending { it.amount }
+                val tagsOverlap = counted.any { (tagMap[it.tx.id]?.size ?: 0) > 1 }
 
                 // Group by merchant — convert if unified
                 val merchantBreakdown = filteredTransactions
@@ -510,8 +586,7 @@ class AnalyticsViewModel @Inject constructor(
                             txns.map { it.amount.toDouble() }.sum().toBigDecimal()
                         }
                         // Net any refund that carries this merchant's name (floored at zero).
-                        val merchantAmount = (gross - (refundByMerchant[merchant] ?: BigDecimal.ZERO))
-                            .coerceAtLeast(BigDecimal.ZERO)
+                        val merchantAmount = netOf(gross, refunds.byMerchant[merchant])
                         MerchantData(
                             name = merchant,
                             amount = merchantAmount,
@@ -523,46 +598,40 @@ class AnalyticsViewModel @Inject constructor(
                     .sortedByDescending { it.amount }
                     .take(10)
 
-                // Group by account — convert if unified. Labels prefer the alias
-                // (via accountOptions) and fall back to "$bankName ••$last4".
+                // Group by account. Labels prefer the alias, as the account filter does.
                 val accountLabels = accountOptions(balances).associate { it.key to it.label }
-                val accountBreakdown = filteredTransactions
-                    .groupBy { "${it.bankName}_${it.accountNumber}" }
-                    .entries
-                    .map { (accountKey, txns) ->
-                        var convertedCount = 0
-                        val gross = if (isUnified) {
-                            var sum = BigDecimal.ZERO
-                            for (tx in txns) {
-                                sum += currencyConversionService
-                                    .convertAmountOrNull(tx.amount, tx.currency, displayCurrency) ?: continue
-                                convertedCount++
-                            }
-                            sum
-                        } else {
-                            convertedCount = txns.size
-                            txns.sumOf { it.amount.toDouble() }.toBigDecimal()
-                        }
+                val accountBreakdown = groupTotals(counted) { listOf(accountKeyOf(it)) }
+                    .map { (accountKey, group) ->
                         // Net refunds credited back to this account (floored at zero) so
                         // the account total — and its % of the net grand total — stay sane.
-                        val accountAmount = (gross - (refundByAccount[accountKey] ?: BigDecimal.ZERO))
-                            .coerceAtLeast(BigDecimal.ZERO)
+                        val accountAmount = netOf(group.amountIn(displayCurrency), refunds.byAccount[accountKey])
                         AccountBreakdownData(
                             key = accountKey,
-                            label = accountLabels[accountKey] ?: run {
-                                val first = txns.first()
-                                com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-                                    .accountLabel(first.bankName ?: "Unknown", first.accountNumber ?: "----")
-                            },
+                            label = accountLabelFor(accountKey, group.rows.first().tx, accountLabels),
                             amount = accountAmount,
-                            percentage = if (totalSpending > BigDecimal.ZERO) {
-                                (accountAmount.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
-                            } else 0f,
-                            // Count only converted rows so it matches the amount (#670).
-                            transactionCount = convertedCount
+                            percentage = shareOf(accountAmount, totalSpending),
+                            transactionCount = group.rows.size
                         )
                     }
                     .sortedByDescending { it.amount }
+
+                // Group by day of week, all seven days in the locale's week order.
+                // Refunds net off the weekday they landed on, as the trend nets per day.
+                val locale = java.util.Locale.getDefault()
+                val weekdayRefunds = refunds.byDay.entries
+                    .groupBy({ it.key.dayOfWeek }, { it.value })
+                    .mapValues { (_, amounts) -> amounts.fold(BigDecimal.ZERO, BigDecimal::add) }
+                val byWeekday = groupTotals(counted) { listOf(it.dateTime.dayOfWeek) }
+                val dayOfWeekBreakdown = if (counted.isEmpty()) emptyList() else weekdayOrder(locale).map { day ->
+                    val group = byWeekday[day]
+                    val amount = netOf(group?.amountIn(displayCurrency) ?: BigDecimal.ZERO, weekdayRefunds[day])
+                    TagData(
+                        name = day.getDisplayName(java.time.format.TextStyle.FULL, locale),
+                        amount = amount,
+                        percentage = shareOf(amount, totalSpending),
+                        transactionCount = group?.rows?.size ?: 0
+                    )
+                }
 
                 // Calculate average amount — divide by the converted count so the
                 // average isn't dragged down by rows excluded from totalSpending (#670).
@@ -586,12 +655,14 @@ class AnalyticsViewModel @Inject constructor(
                     currency = displayCurrency,
                     isLoading = false,
                     spendingTrend = calculateSpendingTrend(
-                        filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency, refundByDay
+                        filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency, refunds.byDay
                     ),
                     availableCategories = allCategoryNames,
                     refundNettedFromTotal = refundNettedFromTotal,
                     accountBreakdown = accountBreakdown,
-                    tagBreakdown = tagBreakdown
+                    tagBreakdown = tagBreakdown,
+                    tagsOverlap = tagsOverlap,
+                    dayOfWeekBreakdown = dayOfWeekBreakdown
                 )
             }
         }
@@ -605,9 +676,10 @@ class AnalyticsViewModel @Inject constructor(
         _selectedPeriod.value = period
     }
 
-    fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
-        _transactionTypeFilter.value = filter
-    }
+    /** Back to the default view, which then follows the card-spend setting again. */
+    fun resetTransactionTypeFilter() = typeFilter.reset()
+
+    fun setTransactionTypeFilter(filter: TransactionTypeFilter) = typeFilter.pick(filter)
 
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency
@@ -817,7 +889,12 @@ data class AnalyticsUiState(
     // the bars reconcile; the UI shows an explainer only when this is positive.
     val refundNettedFromTotal: BigDecimal = BigDecimal.ZERO,
     val accountBreakdown: List<AccountBreakdownData> = emptyList(),
-    val tagBreakdown: List<TagData> = emptyList()
+    val tagBreakdown: List<TagData> = emptyList(),
+    // A counted row carries several tags, so the tag totals can add up to more
+    // than the total; the tag view says so in a footnote (#422).
+    val tagsOverlap: Boolean = false,
+    // Mon–Sun in the locale's week order; reuses TagData's name/amount/share shape.
+    val dayOfWeekBreakdown: List<TagData> = emptyList()
 )
 
 data class AccountBreakdownData(
@@ -842,7 +919,9 @@ data class TagData(
     val name: String,
     val amount: BigDecimal,
     val percentage: Float,
-    val transactionCount: Int
+    val transactionCount: Int,
+    // The "No tag" row: there's no Transactions filter for it, so it isn't tappable.
+    val isUntagged: Boolean = false
 )
 
 data class MerchantData(

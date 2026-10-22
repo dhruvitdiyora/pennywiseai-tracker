@@ -352,7 +352,7 @@ fun TransactionItem(
                 }
             }
         },
-        amount = "$amountPrefix$formattedAmount",
+        amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
         shape = rowShape,
         contentPadding = Dimensions.Padding.cardCompact,
@@ -460,7 +460,7 @@ fun TransactionItem(
                         verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
                     ) {
                         Text(
-                            text = "$amountPrefix${CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)}",
+                            text = CurrencyFormatter.signed(amountPrefix, CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)),
                             style = PennyWiseText.amountRow,
                             color = amountColor,
                             maxLines = 1,
@@ -476,7 +476,7 @@ fun TransactionItem(
                     }
                 } else {
                     Text(
-                        text = "$amountPrefix$formattedAmount",
+                        text = CurrencyFormatter.signed(amountPrefix, formattedAmount),
                         style = PennyWiseText.amountRow,
                         color = amountColor,
                         maxLines = 1,

@@ -85,6 +85,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.Chart2
 import com.pennywiseai.tracker.ui.icons.iconax.Danger
 import com.pennywiseai.tracker.ui.icons.iconax.DocumentText2
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.Receipt1
 import com.pennywiseai.tracker.ui.icons.iconax.Messages
 import com.pennywiseai.tracker.ui.icons.iconax.ReceiptItem
 import com.pennywiseai.tracker.ui.icons.iconax.RefreshCircle
@@ -130,8 +131,14 @@ internal fun TxnDetailReadOnlyBody(
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long?,
     modifier: Modifier = Modifier,
+    towardGoals: @Composable () -> Unit = {},
+    splitWith: @Composable () -> Unit = {},
 ) {
     val currentAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
+    val receiptMissing by viewModel.receiptMissing.collectAsStateWithLifecycle()
+    // The reported balance is in the account's currency, which can differ from the
+    // transaction's (e.g. a USD card purchase on an INR account).
+    val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
     val detailTags by viewModel.transactionTags.collectAsStateWithLifecycle()
     val discrepancy by viewModel.balanceDiscrepancy.collectAsStateWithLifecycle()
     val addingAdjustment by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()
@@ -155,9 +162,14 @@ internal fun TxnDetailReadOnlyBody(
                 primaryCurrency = primaryCurrency,
                 splitCount = if (isSplit) splits.size else 0,
                 tags = detailTags,
-                accountProfileId = accountProfileId
+                accountProfileId = accountProfileId,
+                balanceCurrency = accountCurrency ?: transaction.currency
             )
         }
+
+        // Goals this transaction counts toward (#914) and who it's split with (#346).
+        towardGoals()
+        splitWith()
 
         // Bank balance vs. ledger prediction (#734/#135): surface the gap and
         // offer to record it as an untracked transaction.
@@ -169,14 +181,19 @@ internal fun TxnDetailReadOnlyBody(
             )
         }
 
+        // A split bill (#346) is already on Loans, one share per person, so it
+        // can't also be marked as a loan.
+        val showLoanRow = loan != null || transaction.lentSharesTotal == null
         GroupedList {
-            TxnDetailLoanRow(
-                position = ListItemPosition.Top,
-                loan = loan,
-                onMark = { viewModel.showMarkAsLoanSheet() },
-                onOpen = onNavigateToLoanDetail,
-                onUnmark = onUnmarkLoanClick
-            )
+            if (showLoanRow) {
+                TxnDetailLoanRow(
+                    position = ListItemPosition.Top,
+                    loan = loan,
+                    onMark = { viewModel.showMarkAsLoanSheet() },
+                    onOpen = onNavigateToLoanDetail,
+                    onUnmark = onUnmarkLoanClick
+                )
+            }
             // Exclude from analytics (#451). The switch carries its own
             // semantics; the row tap is the single toggle handler.
             PreferenceSwitch(
@@ -184,7 +201,7 @@ internal fun TxnDetailReadOnlyBody(
                 subtitle = stringResource(R.string.txn_detail_exclude_analytics_subtitle),
                 checked = transaction.excludedFromAnalytics,
                 onCheckedChange = { viewModel.setExcludedFromAnalytics(it) },
-                position = ListItemPosition.Bottom,
+                position = if (showLoanRow) ListItemPosition.Bottom else ListItemPosition.Single,
                 leadingIcon = { TxnDetailIcon(Iconax.Chart2) }
             )
         }
@@ -211,6 +228,17 @@ internal fun TxnDetailReadOnlyBody(
                     }
                 },
             )
+        }
+
+        // Restored from a backup made without photos (#839): say so instead of
+        // silently showing nothing.
+        if (receiptUri == null && receiptMissing) {
+            GroupedList {
+                GroupedRow(position = ListItemPosition.Single) {
+                    TxnDetailIcon(Iconax.Receipt1)
+                    RowLabels(title = stringResource(R.string.txn_detail_receipt_missing), titleMaxLines = 3)
+                }
+            }
         }
 
         if (isSplit) {
@@ -269,6 +297,10 @@ internal fun buildTransactionShareIntent(text: String, subject: String): Intent 
 private fun maskAccount(value: String): String =
     if (value.length > 4) "*".repeat(value.length - 4) + value.takeLast(4) else value
 
+/** A leg on an account without a number (a Cash account is ("Cash", "")) shows its name (#913). */
+private fun maskedLeg(account: String, bank: String?): String =
+    if (account.isBlank()) bank ?: account else maskAccount(account)
+
 /** Every detail of the transaction, as the receipt's dotted-leader rows. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -278,6 +310,7 @@ private fun TxnDetailReceiptRows(
     splitCount: Int,
     tags: List<String>,
     accountProfileId: Long?,
+    balanceCurrency: String = primaryCurrency,
 ) {
     val scheme = MaterialTheme.colorScheme
     val bankName = transaction.bankName
@@ -362,14 +395,14 @@ private fun TxnDetailReceiptRows(
     if (fromAccount != null && toAccount != null) {
         TxnReceiptRow(label = stringResource(R.string.txn_detail_label_account)) {
             TxnReceiptChip(
-                text = "${maskAccount(fromAccount)} → ${maskAccount(toAccount)}",
+                text = "${maskedLeg(fromAccount, transaction.fromBankName)} → ${maskedLeg(toAccount, transaction.toBankName)}",
                 container = bankChipContainer,
                 content = bankChipText,
                 leading = { TxnReceiptChipIcon(Iconax.Transfer, bankChipText) }
             )
         }
     } else {
-        if (accountNumber != null && fromAccount == null && toAccount == null) {
+        if (!accountNumber.isNullOrBlank() && fromAccount == null && toAccount == null) {
             TxnReceiptRow(label = stringResource(R.string.txn_detail_label_account)) {
                 TxnReceiptChip(
                     text = maskAccount(accountNumber),
@@ -382,7 +415,7 @@ private fun TxnDetailReceiptRows(
         if (fromAccount != null) {
             TxnReceiptRow(label = stringResource(R.string.txn_detail_label_from)) {
                 TxnReceiptChip(
-                    text = maskAccount(fromAccount),
+                    text = maskedLeg(fromAccount, transaction.fromBankName),
                     container = bankChipContainer,
                     content = bankChipText,
                     leading = { TxnReceiptChipIcon(Iconax.Wallet3, bankChipText) }
@@ -392,7 +425,7 @@ private fun TxnDetailReceiptRows(
         if (toAccount != null) {
             TxnReceiptRow(label = stringResource(R.string.txn_detail_label_to)) {
                 TxnReceiptChip(
-                    text = maskAccount(toAccount),
+                    text = maskedLeg(toAccount, transaction.toBankName),
                     container = bankChipContainer,
                     content = bankChipText,
                     leading = { TxnReceiptChipIcon(Iconax.Wallet3, bankChipText) }
@@ -405,7 +438,7 @@ private fun TxnDetailReceiptRows(
     if (balanceAfter != null) {
         TxnReceiptRow(label = stringResource(R.string.txn_detail_label_balance)) {
             TxnReceiptChip(
-                text = CurrencyFormatter.formatCurrency(balanceAfter, primaryCurrency),
+                text = CurrencyFormatter.formatCurrency(balanceAfter, balanceCurrency),
                 leading = { TxnReceiptChipIcon(Iconax.WalletMoney) }
             )
         }

@@ -85,7 +85,7 @@ fun GroupCard(
 
     val sign = if (isPositive) "+" else "-"
 
-    val formattedAmount = "$sign${CurrencyFormatter.formatCurrency(total.abs(), currency)}"
+    val formattedAmount = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(total.abs(), currency))
 
     ListItemCardV2(
         title = group.name,

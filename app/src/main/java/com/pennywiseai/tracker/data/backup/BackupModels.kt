@@ -42,16 +42,36 @@ data class PennyWiseBackup(
     val database: DatabaseSnapshot = DatabaseSnapshot(),
 
     @SerialName("preferences")
-    val preferences: PreferencesSnapshot = PreferencesSnapshot()
+    val preferences: PreferencesSnapshot = PreferencesSnapshot(),
+
+    // Receipt photos (#839), embedded so the backup stays one JSON file that
+    // every app version can read — older apps just ignore this key, and
+    // backups written before it existed decode to an empty list.
+    @SerialName("receipts")
+    val receipts: List<BackupReceipt> = emptyList()
 ) {
     companion object {
         /** Current format string written by this app version. */
-        const val CURRENT_FORMAT = "PennyWise Backup v1.2"
+        const val CURRENT_FORMAT = "PennyWise Backup v1.3"
 
         /** Prefix accepted on import — any `v1.x` backup is compatible. */
         const val COMPATIBLE_PREFIX = "PennyWise Backup v1"
     }
 }
+
+/**
+ * One receipt photo. [path] is the transaction's `receiptPath` (relative to
+ * `filesDir`, e.g. `receipts/receipt_123.jpg`); [dataBase64] is the file's
+ * bytes, standard Base64. Untrusted on import — see [BackupReceipts].
+ */
+@Serializable
+data class BackupReceipt(
+    @SerialName("path")
+    val path: String = "",
+
+    @SerialName("data_base64")
+    val dataBase64: String = ""
+)
 
 /**
  * Metadata about the backup. Informational only — never block an import on it,
@@ -140,6 +160,18 @@ data class BackupStatistics(
 
     @SerialName("total_recurring_transactions")
     val totalRecurringTransactions: Int = 0,
+
+    @SerialName("total_receipts")
+    val totalReceipts: Int = 0,
+
+    @SerialName("total_goals")
+    val totalGoals: Int = 0,
+
+    @SerialName("total_goal_contributions")
+    val totalGoalContributions: Int = 0,
+
+    @SerialName("total_loan_shares")
+    val totalLoanShares: Int = 0,
 
     @SerialName("date_range")
     val dateRange: DateRange? = null
@@ -239,7 +271,20 @@ data class DatabaseSnapshot(
     val transactionTagCrossRefs: List<TransactionTagCrossRef> = emptyList(),
 
     @SerialName("recurring_transactions")
-    val recurringTransactions: List<RecurringTransactionEntity> = emptyList()
+    val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
+
+    // Savings goals (#914). Contributions reference goals by id and,
+    // optionally, transactions by id; the importer remaps both.
+    @SerialName("goals")
+    val goals: List<GoalEntity> = emptyList(),
+
+    @SerialName("goal_contributions")
+    val goalContributions: List<GoalContributionEntity> = emptyList(),
+
+    // Split-bill shares (#346): each points at a loan and a transaction by id;
+    // the importer remaps both.
+    @SerialName("loan_shares")
+    val loanShares: List<LoanShareEntity> = emptyList()
 )
 
 /**
@@ -267,7 +312,12 @@ data class ThemePreferences(
     val isDarkThemeEnabled: Boolean? = null,
 
     @SerialName("is_dynamic_color_enabled")
-    val isDynamicColorEnabled: Boolean = false
+    val isDynamicColorEnabled: Boolean = false,
+
+    // Routes of hidden bottom-bar tabs (#912). Null in older backups, so a
+    // restore of one leaves the current choice alone.
+    @SerialName("hidden_nav_tabs")
+    val hiddenNavTabs: List<String>? = null
 )
 
 @Serializable
@@ -327,7 +377,14 @@ data class AppPreferences(
     // Without this a restore silently starts tracking a relative's account
     // again. Defaulted, so pre-#826 backups still import.
     @SerialName("ignored_accounts")
-    val ignoredAccounts: List<String> = emptyList()
+    val ignoredAccounts: List<String> = emptyList(),
+
+    @SerialName("bank_account_merges")
+    val bankAccountMerges: Map<String, String> = emptyMap(),
+
+    // The user's own UPI ID for split-bill requests (#346). FULL exports only.
+    @SerialName("upi_id")
+    val upiId: String? = null
 )
 
 /**

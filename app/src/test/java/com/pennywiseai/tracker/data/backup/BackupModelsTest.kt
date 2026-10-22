@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.backup
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
 import kotlinx.serialization.decodeFromString
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,6 +16,17 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 class BackupModelsTest {
+
+    @Test
+    fun transferBanksSurviveBackupRoundtrip() {
+        val transaction = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer",
+            category = "Transfer", transactionType = TransactionType.TRANSFER,
+            dateTime = LocalDateTime.of(2026, 1, 1, 0, 0), transactionHash = "synthetic-transfer-backup",
+            fromAccount = "000", toAccount = "1000", fromBankName = "Example Bank", toBankName = "Another Bank")
+        val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(transaction))
+        assertEquals(transaction, restored)
+    }
+
 
     @Test
     fun backupSerializationRoundtripWithAllFields() {
@@ -475,6 +487,8 @@ class BackupModelsTest {
         assertEquals(false, tx.isDeleted)        // default
         assertEquals("INR", tx.currency)          // default
         assertNull(tx.profileId)                  // nullable default
+        assertNull(tx.fromBankName)
+        assertNull(tx.toBankName)
 
         // Subscription: billingCycle + direction were added later — must
         // default, not crash.
@@ -609,6 +623,28 @@ class BackupModelsTest {
         assertTrue(db.merchantAliases.isEmpty())
         // The sibling table that existed before still decodes.
         assertEquals(1, db.merchantMappings.size)
+    }
+
+    @Test
+    fun oldBackupCategoryWithoutSystemName_defaultsToNull() {
+        // Backups from before #823 have no systemName on categories.
+        val json = """
+        {
+          "database": {
+            "categories": [
+              { "name": "Food & Dining", "color": "#FC8019", "isSystem": true },
+              { "name": "Pets", "color": "#757575" }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val categories = backupJson.decodeFromString<PennyWiseBackup>(json).database.categories
+
+        assertEquals(listOf(null, null), categories.map { it.systemName })
+        // A system row from an old backup is still recognised as its own built-in.
+        assertEquals("Food & Dining", categories[0].builtinKey)
+        assertEquals(null, categories[1].builtinKey)
     }
 
     @Test
@@ -920,5 +956,205 @@ class BackupModelsTest {
         val legacyLoan = backupJson.decodeFromString<PennyWiseBackup>(legacy)
             .database.loans.single()
         assertNull(legacyLoan.personId)
+    }
+
+    /**
+     * #839 regression. Backups written before receipt photos existed have no
+     * top-level `receipts` key (nor `total_receipts`); they must decode with an
+     * empty list, not crash.
+     */
+    @Test
+    fun oldBackupWithoutReceipts_defaultsToEmptyList() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.2",
+          "metadata": { "statistics": { "total_transactions": 1 } },
+          "database": {
+            "transactions": [
+              {
+                "id": 1,
+                "amount": "10.00",
+                "merchantName": "Shop",
+                "category": "X",
+                "transactionType": "EXPENSE",
+                "dateTime": "2024-01-01T00:00:00",
+                "transactionHash": "r1",
+                "receiptPath": "receipts/receipt_1.jpg"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertTrue(backup.receipts.isEmpty())
+        assertEquals(0, backup.metadata.statistics.totalReceipts)
+        assertEquals("receipts/receipt_1.jpg", backup.database.transactions.single().receiptPath)
+    }
+
+    @Test
+    fun receipts_roundTripBytes() {
+        val bytes = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0, 1, 2, 127, -128)
+        val backup = PennyWiseBackup(
+            receipts = listOf(
+                BackupReceipt(
+                    path = "receipts/receipt_1.jpg",
+                    dataBase64 = java.util.Base64.getEncoder().encodeToString(bytes)
+                )
+            )
+        )
+        val json = backupJson.encodeToString(backup)
+        assertTrue(json.contains("\"receipts\""))
+
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(json).receipts.single()
+        assertEquals("receipts/receipt_1.jpg", restored.path)
+        assertTrue(bytes.contentEquals(java.util.Base64.getDecoder().decode(restored.dataBase64)))
+    }
+
+    /** A receipt entry missing one of its own keys still decodes (defaults). */
+    @Test
+    fun receiptEntryMissingKeys_usesDefaults() {
+        val json = """{ "receipts": [ { "path": "receipts/a.jpg" }, {} ] }"""
+        val receipts = backupJson.decodeFromString<PennyWiseBackup>(json).receipts
+        assertEquals(2, receipts.size)
+        assertEquals("", receipts[0].dataBase64)
+        assertEquals("", receipts[1].path)
+    }
+
+    /**
+     * #914 regression. Backups written before savings goals have no `goals` /
+     * `goal_contributions` keys (nor the stat counters): they must decode with
+     * empty lists and zero counts, not crash.
+     */
+    @Test
+    fun oldBackupMissingGoals_defaultsToEmptyLists() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.3",
+          "metadata": { "statistics": { "total_transactions": 1, "total_recurring_transactions": 0 } },
+          "database": {
+            "transactions": [
+              { "id": 3, "amount": "250.00", "merchantName": "Shop", "category": "Others",
+                "transactionType": "EXPENSE", "dateTime": "2026-09-01T10:00:00", "transactionHash": "h3" }
+            ],
+            "recurring_transactions": []
+          }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        assertTrue(backup.database.goals.isEmpty())
+        assertTrue(backup.database.goalContributions.isEmpty())
+        assertEquals(0, backup.metadata.statistics.totalGoals)
+        assertEquals(0, backup.metadata.statistics.totalGoalContributions)
+        assertEquals(1, backup.database.transactions.size)
+    }
+
+    /** #914. Goals and contributions keep every field, and a row missing keys falls back to defaults. */
+    @Test
+    fun goals_roundTripAndTolerateMissingFields() {
+        val goal = GoalEntity(
+            id = 4, uid = "g-uid", name = "Insurance", targetAmount = BigDecimal("24000.00"), currency = "INR",
+            dueDate = LocalDate.of(2027, 3, 31), color = "#2E7D32", alreadySaved = BigDecimal("5000"),
+            isArchived = true, createdAt = LocalDateTime.of(2026, 4, 1, 9, 30), updatedAt = LocalDateTime.of(2026, 5, 1, 9, 30)
+        )
+        val contribution = GoalContributionEntity(
+            id = 8, uid = "c-uid", goalId = 4, amount = BigDecimal("-41.50"), date = LocalDate.of(2026, 6, 2),
+            note = "Took some out", originalAmount = BigDecimal("-0.50"), originalCurrency = "USD", transactionId = 3,
+            createdAt = LocalDateTime.of(2026, 6, 2, 8, 0), updatedAt = LocalDateTime.of(2026, 6, 2, 8, 0)
+        )
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalGoals = 1, totalGoalContributions = 1)),
+            database = DatabaseSnapshot(goals = listOf(goal), goalContributions = listOf(contribution))
+        )
+
+        val json = backupJson.encodeToString(backup)
+        assertTrue(json.contains("\"goals\""))
+        assertTrue(json.contains("\"goal_contributions\""))
+        assertTrue(json.contains("\"-41.50\"")) // BigDecimal stays a plain string
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertEquals(listOf(goal), restored.database.goals)
+        assertEquals(listOf(contribution), restored.database.goalContributions)
+        assertEquals(1, restored.metadata.statistics.totalGoals)
+        assertEquals(1, restored.metadata.statistics.totalGoalContributions)
+
+        val minimal = backupJson.decodeFromString<PennyWiseBackup>(
+            """{ "database": { "goals": [ { "name": "Trip" } ], "goal_contributions": [ { "goalId": 1, "amount": "10" } ] } }"""
+        ).database
+        with(minimal.goals.single()) {
+            assertEquals("INR", currency)
+            assertEquals(0, BigDecimal.ZERO.compareTo(alreadySaved))
+            assertFalse(isArchived)
+            assertTrue(uid.isNotBlank())
+        }
+        with(minimal.goalContributions.single()) {
+            assertNull(transactionId)
+            assertNull(originalAmount)
+            assertTrue(uid.isNotBlank())
+        }
+    }
+
+    /** #346. A split bill round-trips: its shares, the bill's lent total and your UPI ID. */
+    @Test
+    fun splitBill_roundTrips() {
+        val bill = TransactionEntity(
+            id = 3, amount = BigDecimal("1000.00"), merchantName = "Dinner", category = "Food",
+            transactionType = TransactionType.EXPENSE, dateTime = LocalDateTime.of(2026, 10, 1, 20, 0),
+            transactionHash = "h3", lentSharesTotal = BigDecimal("666.66")
+        )
+        val loan = LoanEntity(
+            id = 5, personName = "Alex", direction = LoanDirection.LENT,
+            originalAmount = BigDecimal("333.33"), remainingAmount = BigDecimal("333.33"),
+            createdAt = LocalDateTime.of(2026, 10, 1, 20, 1), updatedAt = LocalDateTime.of(2026, 10, 1, 20, 1)
+        )
+        val share = LoanShareEntity(id = 7, transactionId = 3, loanId = 5, amount = BigDecimal("333.33"), createdAt = LocalDateTime.of(2026, 10, 1, 20, 1))
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalLoanShares = 1)),
+            database = DatabaseSnapshot(transactions = listOf(bill), loans = listOf(loan), loanShares = listOf(share)),
+            preferences = PreferencesSnapshot(app = AppPreferences(upiId = "you@okbank"))
+        )
+
+        val json = backupJson.encodeToString(backup)
+        assertTrue(json.contains("\"loan_shares\""))
+        assertTrue(json.contains("\"lentSharesTotal\":\"666.66\""))
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertEquals(listOf(bill), restored.database.transactions)
+        assertEquals(listOf(loan), restored.database.loans)
+        assertEquals(listOf(share), restored.database.loanShares)
+        assertEquals(1, restored.metadata.statistics.totalLoanShares)
+        assertEquals("you@okbank", restored.preferences.app.upiId)
+    }
+
+    /** #346. A backup from before split bills still restores: no shares, no lent total, no UPI ID. */
+    @Test
+    fun oldBackupMissingSplitBills_defaultsApply() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.3",
+          "database": {
+            "transactions": [
+              { "id": 3, "amount": "250.00", "merchantName": "Shop", "category": "Others",
+                "transactionType": "EXPENSE", "dateTime": "2026-09-01T10:00:00", "transactionHash": "h3",
+                "loanId": 5, "loanContribution": "100" }
+            ]
+          },
+          "preferences": { "app": { "has_shown_scan_tutorial": true } }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        assertTrue(backup.database.loanShares.isEmpty())
+        assertEquals(0, backup.metadata.statistics.totalLoanShares)
+        assertNull(backup.database.transactions.single().lentSharesTotal)
+        assertNull(backup.preferences.app.upiId)
+
+        // A share missing keys falls back to defaults.
+        val minimal = backupJson.decodeFromString<PennyWiseBackup>("""{ "database": { "loan_shares": [ { "loanId": 1 } ] } }""")
+        with(minimal.database.loanShares.single()) {
+            assertEquals(0L, transactionId)
+            assertEquals(0, BigDecimal.ZERO.compareTo(amount))
+        }
     }
 }

@@ -70,24 +70,32 @@ import java.math.BigDecimal
 
 private enum class CategoryViewType { CHART, LIST }
 
+/** The Transactions slice an Analytics row drills into: its group plus the view's filters. */
+data class TransactionsDrillDown(
+    val category: String? = null,
+    val merchant: String? = null,
+    val account: String? = null,
+    val tag: String? = null,
+    /** A [TransactionTypeFilter] name; null (all types) for Spending, which Transactions can't show. */
+    val type: String? = null,
+    val period: String? = null,
+    val currency: String? = null,
+    val startDateEpochDay: Long? = null,
+    val endDateEpochDay: Long? = null
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
-    onNavigateToTransactions: (
-        category: String?,
-        merchant: String?,
-        period: String?,
-        currency: String?,
-        startDateEpochDay: Long?,
-        endDateEpochDay: Long?
-    ) -> Unit = { _, _, _, _, _, _ -> },
+    onNavigateToTransactions: (TransactionsDrillDown) -> Unit = {},
     onNavigateToHome: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsStateWithLifecycle()
+    val defaultTypeFilter by viewModel.defaultTypeFilter.collectAsStateWithLifecycle()
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
@@ -100,7 +108,8 @@ fun AnalyticsScreen(
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
     val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
-    var showTagsUpgradeSheet by remember { mutableStateOf(false) }
+    val groupBy by viewModel.groupBy.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
@@ -113,6 +122,7 @@ fun AnalyticsScreen(
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showProfileMenu by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
+    var showGroupByMenu by remember { mutableStateOf(false) }
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
@@ -127,6 +137,20 @@ fun AnalyticsScreen(
     // screen (and its CSV export) shows exactly the slice being viewed here.
     val navStartEpochDay = if (selectedPeriod == TimePeriod.CUSTOM) customDateRange?.first?.toEpochDay() else null
     val navEndEpochDay = if (selectedPeriod == TimePeriod.CUSTOM) customDateRange?.second?.toEpochDay() else null
+    // Drill into Transactions for one group, keeping this view's period, currency,
+    // type and category filter so the list matches the figure that was tapped.
+    val drillDown: (TransactionsDrillDown) -> Unit = { group ->
+        onNavigateToTransactions(
+            group.copy(
+                category = group.category ?: categoryFilter,
+                type = transactionTypeFilter.takeIf { it.inTransactionsList }?.name,
+                period = selectedPeriod.name,
+                currency = selectedCurrency,
+                startDateEpochDay = navStartEpochDay,
+                endDateEpochDay = navEndEpochDay
+            )
+        )
+    }
     val primaryVisibleCurrency = availableCurrencies.firstOrNull() ?: selectedCurrency
     val hasCurrencyFilter = !isUnifiedMode &&
             availableCurrencies.size > 1 &&
@@ -134,7 +158,7 @@ fun AnalyticsScreen(
             !selectedCurrency.equals(primaryVisibleCurrency, ignoreCase = true)
     val hasActiveAnalyticsFilter = selectedPeriod != TimePeriod.THIS_MONTH ||
             customDateRange != null ||
-            transactionTypeFilter != TransactionTypeFilter.EXPENSE ||
+            transactionTypeFilter != defaultTypeFilter ||
             categoryFilter != null ||
             accountFilter != null ||
             hasCurrencyFilter
@@ -142,7 +166,7 @@ fun AnalyticsScreen(
     // has its own always-visible chips.
     val moreFilterCount = listOf(
         selectedProfileId != null,
-        transactionTypeFilter != TransactionTypeFilter.EXPENSE,
+        transactionTypeFilter != defaultTypeFilter,
         hasCurrencyFilter,
         categoryFilter != null,
         accountFilter != null,
@@ -167,7 +191,7 @@ fun AnalyticsScreen(
         floatingActionButton = {
             AnalyticsOptionsFab(
                 onSearch = {
-                    onNavigateToTransactions(null, null, null, null, null, null)
+                    onNavigateToTransactions(TransactionsDrillDown())
                 },
                 onAskAi = onNavigateToChat,
                 modifier = Modifier.padding(bottom = Dimensions.Component.bottomBarHeight),
@@ -220,6 +244,7 @@ fun AnalyticsScreen(
                 ) {
                     AnalyticsFilterBar(
                         transactionTypeFilter = transactionTypeFilter,
+                        defaultTypeFilter = defaultTypeFilter,
                         selectedCurrency = selectedCurrency,
                         availableCurrencies = availableCurrencies,
                         isUnifiedMode = isUnifiedMode,
@@ -272,7 +297,7 @@ fun AnalyticsScreen(
                         onResetFilters = {
                             viewModel.selectPeriod(TimePeriod.THIS_MONTH)
                             if (customDateRange != null) viewModel.clearCustomDateRange()
-                            viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE)
+                            viewModel.resetTransactionTypeFilter()
                             viewModel.clearCategoryFilter()
                             viewModel.setAccountFilter(null)
                             if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
@@ -385,8 +410,32 @@ fun AnalyticsScreen(
             }
         }
 
+        // Group by (#422): a view choice rather than a filter, so it sits above the
+        // breakdown it switches (not behind More Filters) and Clear leaves it alone.
+        if (uiState.transactionCount > 0) {
+            item(key = "group-by") {
+                AnalyticsGroupByRow(
+                    groupBy = groupBy,
+                    isProEntitled = isProEntitled,
+                    expanded = showGroupByMenu,
+                    onClick = { showGroupByMenu = true },
+                    onDismiss = { showGroupByMenu = false },
+                    onSelected = { option ->
+                        showGroupByMenu = false
+                        // A Pro grouping without Pro opens the upgrade sheet; the view stays put.
+                        if (option.allowedFor(isProEntitled) == option) {
+                            viewModel.setGroupBy(option)
+                        } else {
+                            showUpgradeSheet = true
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                )
+            }
+        }
+
         // Category Breakdown Section with Pie/List toggle
-        if (uiState.categoryBreakdown.isNotEmpty()) {
+        if (groupBy == AnalyticsGroupBy.CATEGORY && uiState.categoryBreakdown.isNotEmpty()) {
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -438,7 +487,7 @@ fun AnalyticsScreen(
                                     categories = uiState.categoryBreakdown,
                                     currency = selectedCurrency,
                                     onCategoryClick = { category ->
-                                        onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                                        drillDown(TransactionsDrillDown(category = category.name))
                                     }
                                 )
                             }
@@ -446,7 +495,7 @@ fun AnalyticsScreen(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
                                 onCategoryClick = { category ->
-                                    onNavigateToTransactions(category.name, null, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                                    drillDown(TransactionsDrillDown(category = category.name))
                                 }
                             )
                         }
@@ -470,7 +519,7 @@ fun AnalyticsScreen(
         }
 
         // Tag Breakdown Section with Pie/List toggle
-        if (uiState.tagBreakdown.isNotEmpty()) {
+        if (groupBy == AnalyticsGroupBy.TAG && uiState.tagBreakdown.isNotEmpty()) {
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
@@ -479,36 +528,24 @@ fun AnalyticsScreen(
                     AnalyticsSectionHeader(
                         title = stringResource(R.string.analytics_top_tags),
                         action = {
-                            // View-toggle only makes sense once the breakdown is
-                            // unlocked; free users get no toggle over the locked card.
-                            if (isProEntitled) {
-                                IconButton(onClick = {
-                                    tagViewType = if (tagViewType == CategoryViewType.CHART) {
-                                        CategoryViewType.LIST
-                                    } else {
-                                        CategoryViewType.CHART
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = if (tagViewType == CategoryViewType.CHART)
-                                            Iconax.Menu
-                                        else Iconax.Status,
-                                        contentDescription = stringResource(R.string.analytics_toggle_view),
-                                        modifier = Modifier.size(Dimensions.Icon.medium),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                            IconButton(onClick = {
+                                tagViewType = if (tagViewType == CategoryViewType.CHART) {
+                                    CategoryViewType.LIST
+                                } else {
+                                    CategoryViewType.CHART
                                 }
+                            }) {
+                                Icon(
+                                    imageVector = if (tagViewType == CategoryViewType.CHART)
+                                        Iconax.Menu
+                                    else Iconax.Status,
+                                    contentDescription = stringResource(R.string.analytics_toggle_view),
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                     )
-
-                    if (!isProEntitled) {
-                        // Basic tagging (create / apply / filter-by-tag) stays free;
-                        // only the aggregated Top Tags breakdown is Pro. Show a subtle,
-                        // on-brand locked card that routes to the paywall at the buy moment.
-                        TagBreakdownLockedCard(onClick = { showTagsUpgradeSheet = true })
-                        return@Column
-                    }
 
                     AnimatedContent(
                         targetState = tagViewType,
@@ -531,7 +568,7 @@ fun AnalyticsScreen(
                                     tags = uiState.tagBreakdown,
                                     currency = selectedCurrency,
                                     onTagClick = { tag ->
-                                        onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                                        if (!tag.isUntagged) drillDown(TransactionsDrillDown(tag = tag.name))
                                     }
                                 )
                             }
@@ -539,17 +576,47 @@ fun AnalyticsScreen(
                                 tags = uiState.tagBreakdown,
                                 currency = selectedCurrency,
                                 onTagClick = { tag ->
-                                    onNavigateToTransactions(null, tag.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                                    drillDown(TransactionsDrillDown(tag = tag.name))
                                 }
                             )
                         }
+                    }
+
+                    if (uiState.tagsOverlap) {
+                        Text(
+                            text = stringResource(R.string.analytics_tag_overlap_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.sm)
+                        )
                     }
                 }
             }
         }
 
+        // Day-of-week breakdown: there's no Transactions filter for a weekday, so rows don't drill in.
+        if (groupBy == AnalyticsGroupBy.DAY_OF_WEEK && uiState.dayOfWeekBreakdown.isNotEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    AnalyticsSectionHeader(title = stringResource(R.string.analytics_by_day_of_week))
+                    val barColor = MaterialTheme.colorScheme.primary
+                    TagBreakdownCard(
+                        tags = uiState.dayOfWeekBreakdown,
+                        currency = selectedCurrency,
+                        title = null,
+                        visibleItemCount = uiState.dayOfWeekBreakdown.size,
+                        barColor = { barColor },
+                        onTagClick = null
+                    )
+                }
+            }
+        }
+
         // Top Merchants Section
-        if (uiState.topMerchants.isNotEmpty()) {
+        if (groupBy == AnalyticsGroupBy.MERCHANT && uiState.topMerchants.isNotEmpty()) {
             item {
                 AnalyticsSectionHeader(
                     title = stringResource(R.string.analytics_top_merchants),
@@ -572,7 +639,7 @@ fun AnalyticsScreen(
                         position = position,
                         amountColor = analyticsAmountColor(transactionTypeFilter),
                         onClick = {
-                            onNavigateToTransactions(null, merchant.name, selectedPeriod.name, selectedCurrency, navStartEpochDay, navEndEpochDay)
+                            drillDown(TransactionsDrillDown(merchant = merchant.name))
                         }
                     )
                 }
@@ -581,7 +648,7 @@ fun AnalyticsScreen(
 
 
         // By Account Section
-        if (uiState.accountBreakdown.isNotEmpty()) {
+        if (groupBy == AnalyticsGroupBy.ACCOUNT && uiState.accountBreakdown.isNotEmpty()) {
             item {
                 AnalyticsSectionHeader(
                     title = stringResource(R.string.analytics_by_account),
@@ -601,7 +668,8 @@ fun AnalyticsScreen(
                         account = account,
                         currency = selectedCurrency,
                         position = position,
-                        amountColor = analyticsAmountColor(transactionTypeFilter)
+                        amountColor = analyticsAmountColor(transactionTypeFilter),
+                        onClick = { drillDown(TransactionsDrillDown(account = account.key)) },
                     )
                 }
             }
@@ -630,9 +698,9 @@ fun AnalyticsScreen(
         )
     }
 
-    if (showTagsUpgradeSheet) {
+    if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showTagsUpgradeSheet = false }
+            onDismiss = { showUpgradeSheet = false }
         )
     }
 }
@@ -698,43 +766,6 @@ private fun AnalyticsDonutCard(content: @Composable () -> Unit) {
     }
 }
 
-@Composable
-private fun TagBreakdownLockedCard(onClick: () -> Unit) {
-    GlassCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                Text(
-                    text = stringResource(R.string.analytics_pro_tags_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = stringResource(R.string.analytics_pro_tags_body),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 /**
  * The profile / type / currency / category / account chips (plus "Clear"),
  * shown when "More Filters" is expanded. The period has its own chip row above.
@@ -742,6 +773,7 @@ private fun TagBreakdownLockedCard(onClick: () -> Unit) {
 @Composable
 private fun AnalyticsFilterBar(
     transactionTypeFilter: TransactionTypeFilter,
+    defaultTypeFilter: TransactionTypeFilter,
     selectedCurrency: String,
     availableCurrencies: List<String>,
     isUnifiedMode: Boolean,
@@ -830,9 +862,9 @@ private fun AnalyticsFilterBar(
                 ExpressiveFilterChip(
                     colors = analyticsFilterChipColors(),
                     border = analyticsFilterChipBorder(
-                        selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE
+                        selected = transactionTypeFilter != defaultTypeFilter
                     ),
-                    selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE,
+                    selected = transactionTypeFilter != defaultTypeFilter,
                     text = transactionTypeFilter.shortLabel(),
                     icon = transactionTypeFilter.filterIcon(),
                     onClick = onTypeClick
@@ -1107,7 +1139,8 @@ private fun AccountBreakdownListItem(
     account: AccountBreakdownData,
     currency: String,
     position: ListItemPosition,
-    amountColor: Color
+    amountColor: Color,
+    onClick: () -> Unit
 ) {
     AnalyticsGlassRow(
         position = position,
@@ -1135,7 +1168,8 @@ private fun AccountBreakdownListItem(
         ),
         amount = CurrencyFormatter.formatCurrency(account.amount, currency),
         amountColor = amountColor,
-        supporting = stringResource(R.string.analytics_percent, account.percentage.toInt())
+        supporting = stringResource(R.string.analytics_percent, account.percentage.toInt()),
+        onClick = onClick
     )
 }
 
@@ -1206,4 +1240,81 @@ private fun AnalyticsOptionsFab(
             )
         }
     }
+}
+
+/** "Group by" chip with its menu (#422), in the analytics filter-chip style. */
+@Composable
+private fun AnalyticsGroupByRow(
+    groupBy: AnalyticsGroupBy,
+    isProEntitled: Boolean,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    onDismiss: () -> Unit,
+    onSelected: (AnalyticsGroupBy) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Box {
+            ExpressiveFilterChip(
+                colors = analyticsFilterChipColors(),
+                border = analyticsFilterChipBorder(selected = groupBy != AnalyticsGroupBy.CATEGORY),
+                selected = groupBy != AnalyticsGroupBy.CATEGORY,
+                text = groupBy.label(),
+                icon = groupBy.icon(),
+                onClick = onClick
+            )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = onDismiss,
+                shape = MaterialTheme.shapes.large
+            ) {
+                AnalyticsGroupBy.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.label()) },
+                        leadingIcon = {
+                            Icon(
+                                if (groupBy == option) Icons.Default.Check else option.icon(),
+                                contentDescription = null
+                            )
+                        },
+                        // Subtle Pro hint for free users; picking it opens the upgrade sheet.
+                        trailingIcon = if (option.isPro && !isProEntitled) {
+                            {
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = stringResource(R.string.analytics_group_by_pro),
+                                    tint = yellow_dark,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                            }
+                        } else null,
+                        onClick = { onSelected(option) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsGroupBy.label(): String = stringResource(
+    when (this) {
+        AnalyticsGroupBy.CATEGORY -> R.string.analytics_group_by_category
+        AnalyticsGroupBy.MERCHANT -> R.string.analytics_group_by_merchant
+        AnalyticsGroupBy.ACCOUNT -> R.string.analytics_group_by_account
+        AnalyticsGroupBy.TAG -> R.string.analytics_group_by_tag
+        AnalyticsGroupBy.DAY_OF_WEEK -> R.string.analytics_group_by_day_of_week
+    }
+)
+
+private fun AnalyticsGroupBy.icon() = when (this) {
+    AnalyticsGroupBy.CATEGORY -> Icons.Default.Category
+    AnalyticsGroupBy.MERCHANT -> Icons.Default.Store
+    AnalyticsGroupBy.ACCOUNT -> Icons.Default.AccountBalanceWallet
+    AnalyticsGroupBy.TAG -> Icons.Default.Sell
+    AnalyticsGroupBy.DAY_OF_WEEK -> Icons.Default.DateRange
 }

@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room.*
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
@@ -120,12 +121,9 @@ interface LoanDao {
     // No currency filter here on purpose: linked transactions can't change
     // currency (TransactionDetailViewModel.saveChanges blocks it), and filtering
     // would drop a loan's own principal from unlinkTransaction's recount.
-    @Query("""
-        SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
-        WHERE t.loan_id = :loanId AND t.is_deleted = 0
-        AND t.transaction_type = :repaymentType
-    """)
-    suspend fun getTotalRepaidByType(loanId: Long, repaymentType: String): BigDecimal
+    // LoanMath splits these into principal and repayments.
+    @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0")
+    suspend fun getLinkedTransactions(loanId: Long): List<TransactionEntity>
 
     @Query("SELECT COALESCE(SUM(remaining_amount), 0) FROM loans WHERE direction = 'LENT' AND status = 'ACTIVE'")
     fun getTotalLentRemaining(): Flow<BigDecimal>
@@ -169,26 +167,93 @@ interface LoanDao {
         endDate: LocalDateTime
     ): Flow<List<LoanEntity>>
 
-    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL WHERE id = :transactionId")
+    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun unlinkTransaction(transactionId: Long)
 
-    @Query("UPDATE transactions SET loan_id = :loanId WHERE id = :transactionId")
+    @Query("UPDATE transactions SET loan_id = :loanId, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun linkTransaction(transactionId: Long, loanId: Long)
 
-    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL WHERE loan_id = :loanId")
+    @Query("UPDATE transactions SET loan_id = NULL, loan_contribution = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE loan_id = :loanId")
     suspend fun unlinkAllTransactions(loanId: Long)
 
     @Query("""
         SELECT * FROM transactions
         WHERE loan_id IS NULL AND is_deleted = 0
-        AND transaction_type = :type
+        AND id NOT IN (SELECT transaction_id FROM loan_shares)
+        AND (transaction_type = 'INCOME') = :moneyIn
         AND currency = :currency
         ORDER BY date_time DESC
         LIMIT :limit
     """)
-    fun getRecentUnlinkedTransactionsByType(type: String, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
+    fun getRecentUnlinkedTransactions(moneyIn: Boolean, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
 
     // Used by BackupImporter.replaceAllData to clear loans before re-import.
     @Query("DELETE FROM loans")
     suspend fun deleteAllLoans()
+
+    // ── Split-bill shares (#346) ──
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertShare(share: LoanShareEntity): Long
+
+    @Update
+    suspend fun updateShare(share: LoanShareEntity)
+
+    @Delete
+    suspend fun deleteShare(share: LoanShareEntity)
+
+    @Query("SELECT * FROM loan_shares WHERE transaction_id = :transactionId ORDER BY id")
+    suspend fun getSharesForTransaction(transactionId: Long): List<LoanShareEntity>
+
+    @Query("SELECT * FROM loan_shares WHERE transaction_id = :transactionId ORDER BY id")
+    fun observeSharesForTransaction(transactionId: Long): Flow<List<LoanShareEntity>>
+
+    @Query("SELECT * FROM loan_shares WHERE loan_id = :loanId")
+    suspend fun getSharesForLoan(loanId: Long): List<LoanShareEntity>
+
+    @Query("SELECT * FROM loan_shares ORDER BY id")
+    suspend fun getAllShares(): List<LoanShareEntity>
+
+    @Query("DELETE FROM loan_shares WHERE loan_id = :loanId")
+    suspend fun deleteSharesForLoan(loanId: Long)
+
+    /** Transactions split with [loanId]'s person, each with that person's share. */
+    @Query("""
+        SELECT t.*, s.amount AS share_amount FROM transactions t
+        INNER JOIN loan_shares s ON s.transaction_id = t.id
+        WHERE s.loan_id = :loanId AND t.is_deleted = 0
+        ORDER BY t.date_time ASC
+    """)
+    fun getSharedTransactionsForLoan(loanId: Long): Flow<List<SharedTransaction>>
+
+    @Query("""
+        SELECT t.* FROM transactions t
+        INNER JOIN loan_shares s ON s.transaction_id = t.id
+        WHERE s.loan_id = :loanId AND t.is_deleted = 0
+        ORDER BY t.date_time ASC LIMIT 1
+    """)
+    suspend fun getFirstSharedTransactionForLoan(loanId: Long): TransactionEntity?
+
+    /** [getActiveLentTransactionsInPeriod] for split shares: one row per share. */
+    @Query("""
+        SELECT t.*, s.amount AS share_amount FROM transactions t
+        INNER JOIN loan_shares s ON s.transaction_id = t.id
+        INNER JOIN loans l ON l.id = s.loan_id
+        WHERE l.direction = 'LENT'
+          AND l.status = 'ACTIVE'
+          AND t.transaction_type = 'EXPENSE'
+          AND t.is_deleted = 0
+          AND t.date_time BETWEEN :startDate AND :endDate
+        ORDER BY t.date_time DESC
+    """)
+    fun getActiveLentSharesInPeriod(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): Flow<List<SharedTransaction>>
 }
+
+/** A split transaction with one person's share of it. */
+data class SharedTransaction(
+    @Embedded val transaction: TransactionEntity,
+    @ColumnInfo(name = "share_amount") val shareAmount: BigDecimal
+)

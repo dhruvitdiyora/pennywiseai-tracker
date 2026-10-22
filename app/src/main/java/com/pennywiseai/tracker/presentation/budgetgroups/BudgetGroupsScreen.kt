@@ -16,6 +16,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +30,8 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -97,8 +101,18 @@ fun BudgetGroupsScreen(
     onNavigateToGroupEdit: (Long) -> Unit = {},
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateToDetail: (Long, Int, Int) -> Unit = { _, _, _ -> },
-    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> }
+    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
+    onNavigateToGoal: (Long) -> Unit = {},
+    onNavigateToGoalEdit: (Long) -> Unit = {},
+    createGoalOnOpen: Boolean = false
 ) {
+    val goalsSection: @Composable () -> Unit = {
+        com.pennywiseai.tracker.presentation.goals.GoalsSection(
+            onOpenGoal = onNavigateToGoal,
+            onCreateGoal = { onNavigateToGoalEdit(-1L) },
+            createOnOpen = createGoalOnOpen
+        )
+    }
     val uiState by viewModel.uiState.collectAsState()
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -165,6 +179,15 @@ fun BudgetGroupsScreen(
                     .background(MaterialTheme.colorScheme.background)
                     .padding(top = paddingValues.calculateTopPadding() + Dimensions.Padding.content)
             ) {
+                // The empty state scrolls itself and takes the rest of the height,
+                // so Goals (#914) sit above it without an outer scroll.
+                Box(
+                    Modifier.padding(
+                        start = Dimensions.Padding.content,
+                        end = Dimensions.Padding.content,
+                        bottom = Dimensions.Padding.content
+                    )
+                ) { goalsSection() }
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -186,6 +209,7 @@ fun BudgetGroupsScreen(
                 modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
                 topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
+                goalsSection = goalsSection,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
                 onGroupClick = { groupId -> onNavigateToGroupEdit(groupId) },
@@ -308,6 +332,7 @@ private fun BudgetGroupsContent(
     modifier: Modifier = Modifier,
     topPadding: Dp = Spacing.none,
     uiState: BudgetGroupsUiState,
+    goalsSection: @Composable () -> Unit = {},
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGroupClick: (Long) -> Unit,
@@ -349,6 +374,9 @@ private fun BudgetGroupsContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
+        // Goals (#914) sit above the spending budgets; they aren't month-based.
+        item(key = "goals") { goalsSection() }
+
         // Month Selector
         item {
             val visible = remember { mutableStateOf(hasAnimated) }
@@ -458,7 +486,7 @@ private fun MonthSelector(
             modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
-                Icons.Default.ChevronLeft,
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = stringResource(R.string.budgets_previous_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
@@ -487,7 +515,7 @@ private fun MonthSelector(
             modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
-                Icons.Default.ChevronRight,
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = stringResource(R.string.budgets_next_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
@@ -748,6 +776,9 @@ internal fun BudgetOverviewCard(
                                         text = catSpending.categoryName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
+                                        // Explicit: the card's tinted container doesn't supply a
+                                        // content colour, so this inherited black in dark mode.
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
                                     if (catSpending.budgetAmount > BigDecimal.ZERO) {

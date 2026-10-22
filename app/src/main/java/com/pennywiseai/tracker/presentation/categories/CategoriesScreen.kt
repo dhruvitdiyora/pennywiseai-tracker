@@ -198,7 +198,9 @@ fun CategoriesScreen(
     if (showAddEditDialog) {
         CategoryEditDialog(
             category = editingCategory,
-            parentOptions = categories,
+            // A built-in keeps its type and stays top-level; only name/colour/icon change.
+            lockType = editingCategory?.isSystem == true,
+            parentOptions = if (editingCategory?.isSystem == true) emptyList() else categories,
             onDismiss = { viewModel.hideDialog() },
             onSave = { name, color, isIncome, icon, parentId ->
                 viewModel.saveCategory(name, color, isIncome, icon, parentId)
@@ -573,7 +575,8 @@ private fun CategoryGroupCard(
     val children = group.children
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = if (!category.isSystem) ({ onEdit(category) }) else null,
+        // Built-ins can be renamed too (#875); their type stays locked.
+        onClick = { onEdit(category) },
         contentPadding = Spacing.none
     ) {
         Row(
@@ -662,7 +665,7 @@ private fun CategoryGroupCard(
                 items(items = children, key = { it.id }) { child ->
                     SubCategoryChip(
                         category = child,
-                        onEdit = if (!child.isSystem) ({ onEdit(child) }) else null,
+                        onEdit = { onEdit(child) },
                         onToggleHidden = { onToggleHidden(child) }
                     )
                 }

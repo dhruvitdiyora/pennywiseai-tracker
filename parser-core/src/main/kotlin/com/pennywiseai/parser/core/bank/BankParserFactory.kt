@@ -25,6 +25,8 @@ object BankParserFactory {
         UtkarshBankParser(),
         ICICIBankParser(),
         KarnatakaBankParser(),
+        SVCBankParser(),  // SVC Co-operative Bank (India) (#928)
+        TamilnadMercantileBankParser(),  // Tamilnad Mercantile Bank (India) (#917) — ahead of TTB, which used to claim any "TMB" sender
         KeralaGraminBankParser(),
         KeralaBankParser(),  // Kerala State Co-operative Bank (India) — KELBNK; distinct from Kerala Gramin (KGBANK)
         IDBIBankParser(),
@@ -105,9 +107,14 @@ object BankParserFactory {
         MixxByYasParser(),  // Mixx by Yas (Tanzania) — must precede TigoPesaParser (shares MIXXBYYAS sender; claims newer Mixx-specific formats)
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
         DiamondTrustBankParser(),  // Diamond Trust Bank (DTB) Tanzania
+        EquityBankKenyaParser(),  // Equity Bank (Kenya) (#894)
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
         ArabBankParser(),  // Arab Bank (Egypt) — multi-currency card, English + Arabic SMS
         NationalBankOfEgyptParser(),  // National Bank of Egypt / NBE (Egypt) — Arabic SMS (#762)
+        JordanIslamicBankParser(),  // Jordan Islamic Bank (Jordan) — JIB, Arabic SMS
+        IslamicInternationalArabBankParser(),  // Islamic International Arab Bank (Jordan) — ARABIISLAMI
+        BankAlEtihadParser(),  // Bank al Etihad (Jordan) — BankEtihad
+        SafwaIslamicBankParser(),  // Safwa Islamic Bank (Jordan)
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)
@@ -141,7 +148,9 @@ object BankParserFactory {
         CIMBThaiParser(),  // CIMB Thai (Thailand)
         KTCCreditCardParser(),  // KTC Credit Card (Thailand)
         TBankParser(),  // T-Bank / Tinkoff (Russia)
+        ChaseUKParser(),  // Chase UK (GBP, app notifications) — before the US Chase parser
         ChaseBankParser(),  // Chase Bank (USA)
+        Trading212Parser(),  // Trading 212 (app notifications)
         AlRajhiBankParser(),  // Al Rajhi Bank (Saudi Arabia)
         BSFBankParser(),  // Banque Saudi Fransi / BSF (Saudi Arabia)
         SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
@@ -158,6 +167,7 @@ object BankParserFactory {
         NationsTrustBankParser(),  // Nations Trust Bank (Sri Lanka)
         NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
         NDBBankParser(),  // National Development Bank / NDB (Sri Lanka)
+        BRACBankParser(),  // BRAC Bank (Bangladesh) (#943)
         BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)
         ZenithBankParser(),  // Zenith Bank (Nigeria)

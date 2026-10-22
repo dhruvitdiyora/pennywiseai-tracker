@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -54,7 +55,8 @@ fun TransactionTabContent(
     onSave: () -> Unit
 ) {
     val uiState by viewModel.transactionUiState.collectAsState()
-    val categories by viewModel.categories.collectAsState()
+    val categories by viewModel.transactionCategories.collectAsStateWithLifecycle()
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
     val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -315,7 +317,25 @@ fun TransactionTabContent(
                 viewModel.updateTransactionCategory(category)
                 showCategoryPicker = false
             },
-            onDismiss = { showCategoryPicker = false }
+            onDismiss = { showCategoryPicker = false },
+            onAddCategory = {
+                showCategoryPicker = false
+                showAddCategoryDialog = true
+            }
+        )
+    }
+
+    if (showAddCategoryDialog) {
+        com.pennywiseai.tracker.presentation.categories.CategoryEditDialog(
+            defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
+            lockType = true,
+            parentOptions = categories,
+            onDismiss = { showAddCategoryDialog = false },
+            onSave = { name, color, _, icon, parentId ->
+                // Close only once the category is created and selected, so the
+                // dialog blocks Save / type changes until it lands.
+                viewModel.createAndSelectCategory(name, color, icon, parentId) { showAddCategoryDialog = false }
+            }
         )
     }
 

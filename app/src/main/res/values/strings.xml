@@ -12,6 +12,7 @@
 
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Add Transaction</string>
+    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Add</string>
     <string name="shortcut_add_transaction_long">Add transaction</string>
     <string name="chat_waiting_for_response">Waiting for a response</string>
@@ -672,4 +673,8 @@
     <!-- Home loans summary: labels above each per-direction amount -->
     <string name="home_loans_label_owed_to_you">Owed to you</string>
     <string name="home_loans_label_you_owe">You owe</string>
+    <string name="duplicate_accounts_title">Possible duplicate accounts</string>
+    <string name="duplicate_accounts_message">Differences in bank SMS formats or earlier parsing may have created duplicate accounts with three and four digits. If %1$s and %2$s are the same account, merge them? Transactions will move to the four-digit account, its balance history will be kept, and future SMS will use it automatically.</string>
+    <string name="duplicate_accounts_merge">Merge and remember</string>
+    <string name="duplicate_accounts_keep">Keep separate</string>
 </resources>

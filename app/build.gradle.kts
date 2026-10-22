@@ -22,8 +22,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 105
-        versionName = "2.21.0"
+        versionCode = 107
+        versionName = "2.23.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -260,6 +260,9 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    // AI access: WebSocket line to the relay (ADR 0002)
+    implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
+    implementation(libs.ktor.client.websockets)
     
     // Gson for backup/restore
     implementation(libs.gson)
@@ -307,6 +310,8 @@ dependencies {
     "standardImplementation"(libs.review)
     "standardImplementation"(libs.review.ktx)
     
+    testImplementation(libs.mockk)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.junit)
     testImplementation(libs.androidx.ui.test.junit4)
@@ -314,6 +319,7 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -325,6 +331,8 @@ dependencies {
     
     // Coil for image loading
     implementation(libs.coil.compose)
+    // On-device QR for split-bill UPI requests (#346): pure-Java encoder, no Play services, no network.
+    implementation(libs.zxing.core)
 
     // Haze blur effects
     implementation(libs.haze)
@@ -349,6 +357,7 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
+android.sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
 // StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
 // infer. Without this the test task stays UP-TO-DATE when only translations
 // change — i.e. for exactly the pull requests it exists to check.

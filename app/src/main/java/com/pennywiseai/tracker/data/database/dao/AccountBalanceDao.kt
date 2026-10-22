@@ -124,7 +124,7 @@ interface AccountBalanceDao {
     suspend fun deleteAllBalances()
 
     /**
-     * Resync companion to [TransactionDao.deleteUncuratedTransactions].
+     * Resync companion to [TransactionDao.deleteRebuildableSmsTransactions].
      * Wipes balance entries the SMS re-parse will regenerate, while
      * preserving:
      *
@@ -257,6 +257,12 @@ interface AccountBalanceDao {
 
     @Query("UPDATE account_balances SET alias = :alias WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int
+
+    @Query("UPDATE account_balances SET account_type = :accountType, is_credit_card = :isCreditCard WHERE bank_name = :bankName AND account_last4 = :accountLast4")
+    suspend fun updateAccountType(bankName: String, accountLast4: String, accountType: String, isCreditCard: Boolean): Int
+
+    @Query("UPDATE account_balances SET account_type = :accountType, is_credit_card = :isCreditCard WHERE bank_name = :bankName AND account_last4 = :accountLast4 AND account_type IS NULL")
+    suspend fun fillMissingAccountType(bankName: String, accountLast4: String, accountType: String, isCreditCard: Boolean): Int
 
     /**
      * Sets the per-account low-balance alert threshold across ALL rows of an

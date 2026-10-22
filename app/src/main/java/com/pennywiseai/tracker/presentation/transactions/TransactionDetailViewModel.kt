@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.data.mapper.withTransferAccount
+
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
@@ -65,6 +67,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,
     private val detectBalanceDiscrepancy: com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase,
+    private val goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -79,6 +82,11 @@ class TransactionDetailViewModel @Inject constructor(
 
     private val _accountProfileId = MutableStateFlow<Long?>(null)
     val accountProfileId: StateFlow<Long?> = _accountProfileId.asStateFlow()
+
+    // The reported balance is in the account's currency, which can differ from the
+    // transaction's (e.g. a USD card purchase on an INR account).
+    private val _accountCurrency = MutableStateFlow<String?>(null)
+    val accountCurrency: StateFlow<String?> = _accountCurrency.asStateFlow()
 
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
@@ -371,10 +379,14 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private suspend fun loadAccountProfileId(transaction: TransactionEntity) {
+        _accountCurrency.value = null
         val bankName = transaction.bankName ?: return
         val accountLast4 = transaction.accountNumber ?: return
         val balance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
         _accountProfileId.value = balance?.profileId
+        _accountCurrency.value = balance?.let {
+            CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
+        }
     }
 
     private suspend fun loadSplits(transactionId: Long) {
@@ -603,7 +615,7 @@ class TransactionDetailViewModel @Inject constructor(
      * uses this to keep the add-category dialog open on failure so the user's typed
      * name/color aren't lost and they can correct them in place.
      */
-    fun createAndSelectCategory(name: String, color: String, icon: String? = null, onResult: (Boolean) -> Unit = {}) {
+    fun createAndSelectCategory(name: String, color: String, icon: String? = null, parentId: Long? = null, onResult: (Boolean) -> Unit = {}) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) { onResult(false); return }
         val isIncome = (_editableTransaction.value ?: _transaction.value)
@@ -623,8 +635,18 @@ class TransactionDetailViewModel @Inject constructor(
                     onResult(false)
                     return@launch
                 }
-                if (existing == null) {
-                    categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                if (existing != null && parentId != null && existing.parentId != parentId) {
+                    // Reusing it would silently drop the parent the user picked.
+                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_category_exists_other_parent, listOf(trimmed))
+                    onResult(false)
+                    return@launch
+                }
+                when {
+                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon, parentId)
+                    // Re-adding a hidden category brings it back, so the selection
+                    // is one the picker actually offers. The cascading toggle also
+                    // restores its sub-categories / parent, like Settings does (#374).
+                    existing.isHidden -> categoryRepository.toggleCategoryHidden(existing.id)
                 }
                 updateCategory(trimmed)
                 onResult(true)
@@ -675,29 +697,26 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     /**
-     * Set the transaction's bank when the user picks an account from the
-     * dropdown. The account is keyed by (bankName, accountLast4), so selecting
-     * "HDFC ••1234" must update BOTH fields — otherwise a transaction that
-     * started on a different bank (e.g. a subscription-created row, or a
-     * "Manual Entry" row) keeps its stale bankName, saveChanges() looks up
-     * getLatestBalance(staleBank, newLast4), misses, and the account balance
-     * silently never updates (issues #566, #570).
+     * The user picked an account from the dropdown. The account is keyed by
+     * (bankName, accountLast4), so selecting "HDFC ••1234" must update BOTH
+     * fields — otherwise a transaction that started on a different bank keeps
+     * its stale bankName and the balance lookup misses (#566, #570). The suffix
+     * is kept even when blank: a Cash account added without a number is
+     * ("Cash", ""), and treating "" as "no account" dropped it on save (#913).
      */
-    fun updateBankName(bankName: String?) {
-        _editableTransaction.update { current ->
-            current?.copy(bankName = if (bankName.isNullOrEmpty()) null else bankName)
-        }
+    fun selectAccount(account: String, bankName: String) {
+        _editableTransaction.update { it?.copy(accountNumber = account, bankName = bankName) }
     }
 
-    fun updateFromAccount(account: String?) {
-        _editableTransaction.update { current ->
-            current?.copy(fromAccount = if (account.isNullOrEmpty()) null else account)
-        }
-    }
+    fun updateFromAccount(account: String?, bankName: String? = null) =
+        updateTransferAccount(account, bankName, incoming = false)
 
-    fun updateToAccount(account: String?) {
+    fun updateToAccount(account: String?, bankName: String? = null) =
+        updateTransferAccount(account, bankName, incoming = true)
+
+    private fun updateTransferAccount(account: String?, bankName: String?, incoming: Boolean) {
         _editableTransaction.update { current ->
-            current?.copy(toAccount = if (account.isNullOrEmpty()) null else account)
+            current?.withTransferAccount(account, bankName, incoming)
         }
     }
 
@@ -860,16 +879,53 @@ class TransactionDetailViewModel @Inject constructor(
             return
         }
 
+        // Likewise its money direction: retyping a linked row between income and
+        // money out would turn the loan's principal into a repayment, or back (#876).
+        if (original != null && com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(
+                original.loanId, original.transactionType, toSave.transactionType
+            )
+        ) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_type_locked)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&
             toSave.toAccount != null &&
-            toSave.fromAccount == toSave.toAccount) {
+            toSave.fromAccount == toSave.toAccount &&
+            (toSave.fromBankName == null || toSave.toBankName == null || toSave.fromBankName == toSave.toBankName)) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_same_accounts)
             return
         }
 
         viewModelScope.launch {
+            // Goal contributions keep their share in the transaction's currency (#914).
+            if (original != null && original.currency != toSave.currency &&
+                goalRepository.observeContributionsForTransaction(original.id).first().isNotEmpty()
+            ) {
+                _errorMessage.value = UiText.Res(R.string.goal_currency_locked_by_goal)
+                return@launch
+            }
+            // A split bill's shares (#346) are in its currency and sized to its
+            // amount. Read fresh: the split may have changed since this loaded.
+            val persisted = original?.let { transactionRepository.getTransactionById(it.id) }
+            val sharesTotal = persisted?.lentSharesTotal
+            if (persisted != null && sharesTotal != null) {
+                if (!persisted.currency.equals(toSave.currency, ignoreCase = true)) {
+                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
+                    return@launch
+                }
+                // Only an expense can be split: as income the shares would be debt with no outlay behind it.
+                if (toSave.transactionType != TransactionType.EXPENSE) {
+                    _errorMessage.value = UiText.Res(R.string.split_error_type_locked)
+                    return@launch
+                }
+                if (toSave.amount < sharesTotal) {
+                    _errorMessage.value = UiText.Res(R.string.split_error_amount_below_shares)
+                    return@launch
+                }
+            }
             _isSaving.value = true
             try {
                 // Handle receipt changes
@@ -894,7 +950,7 @@ class TransactionDetailViewModel @Inject constructor(
                 // the same last-4 exists on multiple banks, or when it's a
                 // novel/unknown number. Clearing (accountNumber == null) keeps
                 // the existing bank untouched. Belt-and-braces with the picker's
-                // onBankNameChange so no edit path can desync (#566, #570).
+                // selectAccount so no edit path can desync (#566, #570).
                 val resolvedBankName = toSave.accountNumber
                     ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
                     ?.singleOrNull()
@@ -909,23 +965,25 @@ class TransactionDetailViewModel @Inject constructor(
                 // (#688). Carry the current persisted values through the save.
                 val currentPersisted = _transaction.value
                 val normalizedTransaction = toSave.copy(
-                    merchantName = normalizeMerchantName(toSave.merchantName),
+                    // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
+                    merchantName = toSave.merchantName.trim(),
                     bankName = resolvedBankName,
                     receiptPath = newReceiptPath,
                     loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
-                    loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution
+                    loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution,
+                    // Owned by the split sheet (#346), same reasoning.
+                    lentSharesTotal = if (persisted != null) persisted.lentSharesTotal else toSave.lentSharesTotal
                 )
 
                 // Pin opening anchors from the PRE-update snapshot for the affected
                 // manual accounts, so the recompute after the edit reflects the change
-                // (amount/date/account). No-op for SMS accounts.
-                _transaction.value?.let { pre ->
-                    val pb = pre.bankName; val pa = pre.accountNumber
-                    if (pb != null && pa != null) accountBalanceRepository.ensureManualOpening(pb, pa)
-                }
-                normalizedTransaction.bankName?.let { nb ->
-                    normalizedTransaction.accountNumber?.let { na ->
-                        accountBalanceRepository.ensureManualOpening(nb, na)
+                // (amount/date/account). No-op for SMS accounts. Transfer legs too:
+                // pinned after the update, a leg's opening would absorb the edit and
+                // its balance would never move (#913).
+                listOfNotNull(_transaction.value, normalizedTransaction).forEach { t ->
+                    for ((bank, acct) in listOf(t.bankName to t.accountNumber,
+                        t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)) {
+                        if (bank != null && acct != null) accountBalanceRepository.ensureManualOpening(bank, acct)
                     }
                 }
 
@@ -951,6 +1009,8 @@ class TransactionDetailViewModel @Inject constructor(
                     accountChanged ||
                     originalTxn.transactionType != normalizedTransaction.transactionType ||
                     originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
+                    originalTxn.fromBankName != normalizedTransaction.fromBankName ||
+                    originalTxn.toBankName != normalizedTransaction.toBankName ||
                     originalTxn.fromAccount != normalizedTransaction.fromAccount ||
                     originalTxn.toAccount != normalizedTransaction.toAccount
                 )
@@ -994,12 +1054,13 @@ class TransactionDetailViewModel @Inject constructor(
                     _originalSplits.value = emptyList()
                 }
 
+                // The merchant-wide writes below key on the merchant as it was
+                // before this edit: future SMS still arrive under that name.
+                val merchantKey = merchantKeyForApply(original?.merchantName, normalizedTransaction.merchantName)
+
                 // Save merchant mapping if checkbox is checked
                 if (_applyToAllFromMerchant.value) {
-                    merchantMappingRepository.setMapping(
-                        normalizedTransaction.merchantName,
-                        normalizedTransaction.category
-                    )
+                    merchantMappingRepository.setMapping(merchantKey, normalizedTransaction.category)
                 }
 
                 // #752: persist the tags for future transactions from this merchant.
@@ -1008,7 +1069,7 @@ class TransactionDetailViewModel @Inject constructor(
                 var ruleError: UiText? = null
                 if (_applyTagsToAllFromMerchant.value) {
                     try {
-                        upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
+                        upsertMerchantTagRule(merchantKey, _editableTags.value)
                     } catch (e: Exception) {
                         ruleError = UiText.Res(R.string.txn_detail_error_tag_rule, listOf(e.message.toString()))
                     }
@@ -1016,36 +1077,27 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Update existing transactions if checkbox is checked
                 if (_updateExistingTransactions.value) {
-                    transactionRepository.updateCategoryForMerchant(
-                        normalizedTransaction.merchantName,
-                        normalizedTransaction.category
-                    )
+                    transactionRepository.updateCategoryForMerchant(merchantKey, normalizedTransaction.category)
                 }
 
                 // Persist the merchant display alias (#583), keyed on the saved
-                // merchant name so it applies to every transaction from it. A
-                // blank alias clears any existing one.
-                val trimmedAlias = _merchantAlias.value.trim()
+                // merchant name so it applies to every transaction from it. Only an
+                // edit to the alias field writes anything: renaming *this*
+                // transaction's merchant must not move or delete the alias other
+                // transactions from the old merchant still use.
                 val newMerchantName = normalizedTransaction.merchantName
-                // _transaction still holds the pre-save transaction here (it is
-                // replaced below), so this is the original merchant name.
-                val oldMerchantName = _transaction.value?.merchantName
-                val merchantRenamed = oldMerchantName != null && oldMerchantName != newMerchantName
-
-                // If the merchant was renamed, drop any alias still keyed under
-                // the old name so it isn't orphaned under a name nothing uses.
-                if (merchantRenamed && _originalMerchantAlias.isNotBlank()) {
-                    merchantAliasRepository.removeAlias(oldMerchantName!!)
+                val originalMerchantName = _transaction.value?.merchantName
+                val write = aliasWriteOnSave(
+                    originalMerchantName, newMerchantName, _originalMerchantAlias, _merchantAlias.value,
+                    existingAliasForMerchant = merchantAliasRepository.getAliasForMerchant(newMerchantName)
+                )
+                when (write) {
+                    is AliasWrite.Set -> merchantAliasRepository.setAlias(write.merchant, write.alias)
+                    is AliasWrite.Remove -> merchantAliasRepository.removeAlias(write.merchant)
+                    null -> Unit
                 }
-                // Write the alias under the current name when it changed, or when
-                // the merchant was renamed (so a carried-over alias re-homes).
-                if (trimmedAlias != _originalMerchantAlias.trim() || merchantRenamed) {
-                    if (trimmedAlias.isEmpty()) {
-                        merchantAliasRepository.removeAlias(newMerchantName)
-                    } else {
-                        merchantAliasRepository.setAlias(newMerchantName, trimmedAlias)
-                    }
-                }
+                // Whatever is stored for the saved merchant is now the truth.
+                val trimmedAlias = merchantAliasRepository.getAliasForMerchant(newMerchantName) ?: ""
 
                 _transaction.value = normalizedTransaction
                 loadReceiptUri(normalizedTransaction)
@@ -1086,24 +1138,6 @@ class TransactionDetailViewModel @Inject constructor(
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
         } else {
             _errorMessage.value = null
-        }
-    }
-    
-    /**
-     * Normalizes merchant name to consistent format.
-     * Converts all-caps to proper case, preserves already mixed case.
-     */
-    private fun normalizeMerchantName(name: String): String {
-        val trimmed = name.trim()
-        
-        // If it's all uppercase, convert to proper case
-        return if (trimmed == trimmed.uppercase()) {
-            trimmed.lowercase().split(" ").joinToString(" ") { word ->
-                if (word.isEmpty()) word else word.substring(0, 1).uppercase() + word.substring(1)
-            }
-        } else {
-            // Already has mixed case, keep as is
-            trimmed
         }
     }
     
@@ -1177,11 +1211,19 @@ class TransactionDetailViewModel @Inject constructor(
         ?.receiptPath
         ?.let(receiptManager::getShareableUri)
 
+    // True when the transaction points at a receipt whose file isn't on this
+    // device, e.g. restored from a backup made without photos (#839).
+    private val _receiptMissing = MutableStateFlow(false)
+    val receiptMissing: StateFlow<Boolean> = _receiptMissing.asStateFlow()
+
     private fun loadReceiptUri(transaction: TransactionEntity) {
+        _receiptMissing.value = false
         transaction.receiptPath?.let { path ->
             val file = receiptManager.getReceiptFile(path)
             if (file.exists()) {
                 _receiptUri.value = file.toUri()
+            } else {
+                _receiptMissing.value = true
             }
         }
     }
@@ -1226,13 +1268,17 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
+                // Only while something is still owed: an active loan left at zero (the
+                // refresh never settles one, #876) would cap this payment to nothing and
+                // swallow the new debt it should open.
                 val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
+                    ?.takeIf { it.remainingAmount.signum() > 0 }
 
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the
                     // user-chosen partial amount so only that portion counts
                     // toward the loan's remaining balance.
-                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution)
+                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution, note)
                     _transaction.value = transactionRepository.getTransactionById(txn.id)
                     _loan.value = loanRepository.getLoanById(oppositeLoan.id)
                     _showMarkAsLoanSheet.value = false
@@ -1243,7 +1289,7 @@ class TransactionDetailViewModel @Inject constructor(
                 val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan with the user-chosen contribution.
-                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id)
+                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id, note)
                     existingLoan.id
                 } else {
                     // Create new loan; principal = user-chosen contribution.
@@ -1285,3 +1331,46 @@ class TransactionDetailViewModel @Inject constructor(
         val SPLITTABLE_TYPES = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
     }
 }
+
+/**
+ * The merchant "apply to all from X" writes key on: the name the transaction
+ * had before this edit, which is what the parser gives future SMS. Renaming
+ * the merchant in the same edit must not move the mapping, the tag rule or
+ * "update existing" to a name no SMS carries.
+ */
+internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: String): String =
+    originalMerchant ?: savedMerchant
+
+internal sealed class AliasWrite {
+    data class Set(val merchant: String, val alias: String) : AliasWrite()
+    data class Remove(val merchant: String) : AliasWrite()
+}
+
+/**
+ * The alias change a save should make, or null for none. An edited alias field
+ * is written under the saved merchant. A renamed merchant on one transaction
+ * leaves every existing alias where it is (the old merchant's other
+ * transactions still use it); a merchant that was only re-cased on save keeps
+ * its alias under the new spelling.
+ */
+internal fun aliasWriteOnSave(
+    originalMerchant: String?,
+    merchant: String,
+    originalAlias: String,
+    editedAlias: String,
+    existingAliasForMerchant: String? = null
+): AliasWrite? {
+    val edited = editedAlias.trim()
+    val recasedOnly = originalMerchant != null && originalMerchant != merchant &&
+        originalMerchant.equals(merchant, ignoreCase = true)
+    return when {
+        edited != originalAlias.trim() -> if (edited.isEmpty()) AliasWrite.Remove(merchant) else AliasWrite.Set(merchant, edited)
+        // Same merchant, only re-cased on save: give the new spelling the alias too
+        // (the old key stays for its other, still all-caps, transactions).
+        // ...unless that spelling already has its own alias, which its other
+        // transactions use: never overwrite it.
+        recasedOnly && edited.isNotEmpty() && existingAliasForMerchant.isNullOrBlank() -> AliasWrite.Set(merchant, edited)
+        else -> null
+    }
+}
+

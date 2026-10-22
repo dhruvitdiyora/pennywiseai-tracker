@@ -121,6 +121,17 @@
       "reference": null,
       "balance": null
     },
+    "BRAC Bank": {
+      "sender": "BRAC BANK",
+      "message": "TK 500.00 withdrawn from A/C#11111**1111 on 18-10-26 @12:24 PM from TEST MARKET ATM DHAKA BD. Balance TK 22,639.95. BRAC Bank.",
+      "currency": "BDT",
+      "amount": "500.00",
+      "type": "EXPENSE",
+      "merchant": "ATM Withdrawal",
+      "accountLast4": "1111",
+      "reference": null,
+      "balance": "22639.95"
+    },
     "Banco Agricola": {
       "sender": "Transfer365",
       "message": "B.AGRICOLA-TRANSFER365: ha recibido un Abono a Cuenta de GIVEN NAME SURNAME por USD20.00 desde ANOTHER BANK NAME",
@@ -306,6 +317,17 @@
       "merchant": "TACO BELL 740493",
       "accountLast4": null,
       "reference": "with",
+      "balance": null
+    },
+    "Chase UK": {
+      "sender": "ChaseUK",
+      "message": "🎉 £0.01 just landed in Test's Account from Jane Doe",
+      "currency": "GBP",
+      "amount": "0.01",
+      "type": "INCOME",
+      "merchant": "Jane Doe",
+      "accountLast4": null,
+      "reference": null,
       "balance": null
     },
     "Citi Bank": {
@@ -605,6 +627,17 @@
       "reference": "BR000CAUBYON",
       "balance": null
     },
+    "Jordan Islamic Bank": {
+      "sender": "JIB",
+      "message": "تحويل الكتروني لحسابكم 1234567 - 003 بقيمة 46.0 دينار اردني الرصيد المتوفر 223.069 دينار اردني",
+      "currency": "JOD",
+      "amount": "46.0",
+      "type": "INCOME",
+      "merchant": "Electronic Transfer",
+      "accountLast4": "4567",
+      "reference": null,
+      "balance": "223.069"
+    },
     "Jupiter": {
       "sender": "VK-JTEDGE-S",
       "message": "Rs.25.00 debited to your Edge CSB Bank RuPay Credit Card ending 6788 on 3/18/26, 6:39 PM - (UPI Ref no.702711160776). To dispute, call 8655055086.",
@@ -624,6 +657,17 @@
       "type": "CREDIT",
       "merchant": "LAZADA",
       "accountLast4": null,
+      "reference": null,
+      "balance": null
+    },
+    "Karnataka Bank": {
+      "sender": "BG-KBLBNK-T",
+      "message": "Your a/c XX1111 debited for Rs.20.00 on 06-10-26 trf to SK FAST FOOD CORNER. UPI:6*********28.For dispute SMS BLOCK 1111 to 1800000000 -KarnatakaBank",
+      "currency": "INR",
+      "amount": "20.00",
+      "type": "EXPENSE",
+      "merchant": "SK FAST FOOD CORNER",
+      "accountLast4": "1111",
       "reference": null,
       "balance": null
     },
@@ -915,14 +959,36 @@
     },
     "Punjab National Bank": {
       "sender": "VM-PNBSMS-S",
-      "message": "A/c XX1234 debited with Rs.5000.00,21-11-2025 13:23:22 thru card XX9239  . Out of 5 free txn on PNB ATM, you utilized 1 txn. Chrgs applicable as per policy. Bal 27000.00 CR. If not done, fwd SMS to 9264192641 to block card/call 18001800/18002021-PNB",
+      "message": "A/c X0000 credited INR 125.00 From 000000/UPI:000000000004. Bal INR 9000.00-PNB",
       "currency": "INR",
-      "amount": "5000.00",
+      "amount": "125.00",
+      "type": "INCOME",
+      "merchant": "UPI Transaction",
+      "accountLast4": "0000",
+      "reference": "000000000004",
+      "balance": "9000.00"
+    },
+    "SVC Co-operative Bank": {
+      "sender": "SVC",
+      "message": "SVC Bank A/c *1111 DEBITED for Rs.30.00 Clr Bal Rs.696.96. CR UPI/DR/600000000001/TEST PAYEE/. Not You? SMS STOPUPI to 9000000000 /Call 18000000000",
+      "currency": "INR",
+      "amount": "30.00",
       "type": "EXPENSE",
-      "merchant": "Card XX9239",
-      "accountLast4": "1234",
-      "reference": "on",
-      "balance": "27000.00"
+      "merchant": "TEST PAYEE",
+      "accountLast4": "1111",
+      "reference": "600000000001",
+      "balance": "696.96"
+    },
+    "Safwa Islamic Bank": {
+      "sender": "Safwa Bank",
+      "message": "تغطية عمولات البنك بمبلغ 0.500 دينار الرصيد المتوفر 174.750 دينار",
+      "currency": "JOD",
+      "amount": "0.500",
+      "type": "EXPENSE",
+      "merchant": "Bank Fees",
+      "accountLast4": null,
+      "reference": null,
+      "balance": "174.750"
     },
     "Saraswat Co-operative Bank": {
       "sender": "BV-SARBNK-S",
@@ -1078,6 +1144,17 @@
       "reference": null,
       "balance": "7200.00"
     },
+    "Tamilnad Mercantile Bank": {
+      "sender": "VA-TMBANK-S",
+      "message": "Your A/c No.XXXX1111 is debited with Rs.487.21 on 09-10-2026 06:19 PM and UTIB A/c linked to testshop.offline@axl is credited (UPI Ref No.628200000001).Current AVBL bal is Rs.1234.73 - TMB",
+      "currency": "INR",
+      "amount": "487.21",
+      "type": "EXPENSE",
+      "merchant": "testshop.offline",
+      "accountLast4": "1111",
+      "reference": "628200000001",
+      "balance": "1234.73"
+    },
     "Tigo Pesa": {
       "sender": "TIGOPESA(smsfp)",
       "message": "Cash-In of TSh 100,000 from Agent - PERSON FIVE is successful. New balance is TSh 100,000. TxnId: 13411949026.",
@@ -1088,6 +1165,17 @@
       "accountLast4": null,
       "reference": "13411949026",
       "balance": "100000"
+    },
+    "Trading 212": {
+      "sender": "Trading212",
+      "message": "💸 You earned £0.24 interest on uninvested cash!",
+      "currency": "GBP",
+      "amount": "0.24",
+      "type": "INCOME",
+      "merchant": "Trading 212 Interest",
+      "accountLast4": null,
+      "reference": null,
+      "balance": null
     },
     "UOB Thailand": {
       "sender": "UOB",

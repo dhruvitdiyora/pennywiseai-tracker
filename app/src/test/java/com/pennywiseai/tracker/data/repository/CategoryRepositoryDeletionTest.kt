@@ -44,7 +44,7 @@ class CategoryRepositoryDeletionTest {
         database = Room.inMemoryDatabaseBuilder(context, PennyWiseDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = CategoryRepository(database.categoryDao(), database)
+        repository = CategoryRepository(database.categoryDao(), database, io.mockk.mockk(relaxed = true))
     }
 
     @After

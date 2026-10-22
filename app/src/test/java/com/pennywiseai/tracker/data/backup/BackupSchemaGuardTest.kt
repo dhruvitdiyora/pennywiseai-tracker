@@ -41,6 +41,7 @@ class BackupSchemaGuardTest {
         serializer<SmsPreferences>().descriptor,
         serializer<DeveloperPreferences>().descriptor,
         serializer<AppPreferences>().descriptor,
+        serializer<BackupReceipt>().descriptor,
     )
 
     /**
@@ -73,6 +74,9 @@ class BackupSchemaGuardTest {
         serializer<TagEntity>().descriptor,
         serializer<TransactionTagCrossRef>().descriptor,
         serializer<RecurringTransactionEntity>().descriptor,
+        serializer<GoalEntity>().descriptor,
+        serializer<GoalContributionEntity>().descriptor,
+        serializer<LoanShareEntity>().descriptor,
     )
 
     private fun SerialDescriptor.requiredFields(): List<String> =

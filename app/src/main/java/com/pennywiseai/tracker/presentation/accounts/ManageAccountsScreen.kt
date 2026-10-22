@@ -1,5 +1,16 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
+
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -97,6 +108,48 @@ fun ManageAccountsScreen(
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsState()
+    val dismissedDuplicates = remember { mutableStateListOf<String>() }
+    val accountDuplicate = BankAccountMergeStore
+        .duplicatePairs(uiState.accounts)
+        .firstOrNull { (source, target) ->
+            BankAccountMergeStore.mappingKey(source.bankName, source.currency, source.accountLast4) !in dismissedDuplicates &&
+                !viewModel.isAccountHidden(source.bankName, source.accountLast4) &&
+                !viewModel.isAccountHidden(target.bankName, target.accountLast4)
+        }
+
+    // Ignoring moves the account into the collapsed "Ignored Accounts" section, so
+    // expand it and offer an immediate Undo — otherwise it looks like it vanished (#865).
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val undoLabel = stringResource(R.string.manage_accounts_undo)
+    val ignoreAccount: (AccountBalanceEntity) -> Unit = { account ->
+        viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+        showHiddenAccounts = true
+        val label = AccountBalanceEntity.accountLabel(
+            account.alias?.takeIf { it.isNotBlank() } ?: account.bankName,
+            account.accountLast4
+        )
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.manage_accounts_ignored_snackbar, label),
+                actionLabel = undoLabel,
+                duration = SnackbarDuration.Short
+            )
+            // Skip if it was already un-ignored from the menu meanwhile.
+            if (result == SnackbarResult.ActionPerformed &&
+                viewModel.isAccountHidden(account.bankName, account.accountLast4)
+            ) {
+                viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+            }
+        }
+    }
+    // Visible rows ignore with Undo; ignored rows simply stop ignoring.
+    val toggleVisibility: (AccountBalanceEntity, Boolean) -> Unit = { account, isHidden ->
+        if (isHidden) viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+        else ignoreAccount(account)
+    }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -126,9 +179,16 @@ fun ManageAccountsScreen(
         showEditDialog = true
     }
 
+    // Editing can rename the account, which moves its ignored key: drop any pending
+    // Undo so it can't silently no-op against the old name.
+    LaunchedEffect(showEditDialog) {
+        if (showEditDialog) snackbarHostState.currentSnackbarData?.dismiss()
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -187,24 +247,28 @@ fun ManageAccountsScreen(
                 )
             }
         } else {
-            // Separate visible and hidden accounts. Cash accounts and mobile-money
-            // wallets sit in their own section, apart from the bank accounts.
-            val visibleBankAccounts = uiState.accounts.filter {
+            // Loan accounts (#792) get their own section. The rest: cash accounts and
+            // mobile-money wallets sit in their own section, apart from the bank accounts.
+            val (loanAccounts, nonLoanAccounts) = uiState.accounts.partition { it.isLoan }
+            val (hiddenLoanAccounts, visibleLoanAccounts) = loanAccounts.partition {
+                viewModel.isAccountHidden(it.bankName, it.accountLast4)
+            }
+            val visibleBankAccounts = nonLoanAccounts.filter {
                 !it.isCreditCard && !it.isCashOrWallet() && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
             }
-            val visibleCashAccounts = uiState.accounts.filter {
+            val visibleCashAccounts = nonLoanAccounts.filter {
                 !it.isCreditCard && it.isCashOrWallet() && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
             }
-            val visibleCreditCards = uiState.accounts.filter {
+            val visibleCreditCards = nonLoanAccounts.filter {
                 it.isCreditCard && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
             }
-            val hiddenRegularAccounts = uiState.accounts.filter {
+            val hiddenRegularAccounts = nonLoanAccounts.filter {
                 !it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
             }
-            val hiddenCreditCards = uiState.accounts.filter {
+            val hiddenCreditCards = nonLoanAccounts.filter {
                 it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
             }
-            val allRegularAccounts = uiState.accounts.filter { !it.isCreditCard }
+            val allRegularAccounts = nonLoanAccounts.filter { !it.isCreditCard }
 
             LazyColumn(
                 state = lazyListState,
@@ -275,6 +339,7 @@ fun ManageAccountsScreen(
                             isHidden = false,
                             linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
                             viewModel = viewModel,
+                            onToggleVisibility = { toggleVisibility(account, false) },
                             onUpdateBalance = { openUpdateBalance(account) },
                             onViewHistory = { openHistory(account) },
                             onOpenDetail = openDetail,
@@ -293,6 +358,7 @@ fun ManageAccountsScreen(
                             isHidden = false,
                             linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
                             viewModel = viewModel,
+                            onToggleVisibility = { toggleVisibility(account, false) },
                             onUpdateBalance = { openUpdateBalance(account) },
                             onViewHistory = { openHistory(account) },
                             onOpenDetail = openDetail,
@@ -331,6 +397,7 @@ fun ManageAccountsScreen(
                             card = card,
                             isHidden = false,
                             viewModel = viewModel,
+                            onToggleVisibility = { toggleVisibility(card, false) },
                             onUpdateBalance = { openUpdateBalance(card) },
                             onViewHistory = { openHistory(card) },
                             onOpenDetail = openDetail,
@@ -340,12 +407,31 @@ fun ManageAccountsScreen(
                     }
                 }
 
+                // Loan Accounts Section (#792). Bank loans, not the Lent/Borrowed Loans screen.
+                if (visibleLoanAccounts.isNotEmpty()) {
+                    manageSectionHeader("loan-header", R.string.manage_accounts_section_loan_accounts, sectionsShown++ == 0)
+                    items(visibleLoanAccounts, key = { "loan-${it.bankName}-${it.accountLast4}" }) { account ->
+                        ManageBankAccountRow(
+                            account = account,
+                            isHidden = false,
+                            linkedCards = emptyList(),
+                            viewModel = viewModel,
+                            onToggleVisibility = { toggleVisibility(account, false) },
+                            onUpdateBalance = { openUpdateBalance(account) },
+                            onViewHistory = { openHistory(account) },
+                            onOpenDetail = openDetail,
+                            onDelete = { askDelete(account) },
+                            onEdit = { openEdit(account) },
+                        )
+                    }
+                }
+
                 // Hidden Accounts Section (Collapsible)
-                if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty()) {
+                if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty() || hiddenLoanAccounts.isNotEmpty()) {
                     val hiddenToggleTopGap = if (sectionsShown == 0) Spacing.none else Spacing.sm
                     item(key = "hidden-toggle") {
                         HiddenAccountsToggle(
-                            count = hiddenRegularAccounts.size + hiddenCreditCards.size,
+                            count = hiddenRegularAccounts.size + hiddenCreditCards.size + hiddenLoanAccounts.size,
                             expanded = showHiddenAccounts,
                             onClick = { showHiddenAccounts = !showHiddenAccounts },
                             modifier = Modifier.padding(
@@ -363,6 +449,22 @@ fun ManageAccountsScreen(
                                 isHidden = true,
                                 linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
                                 viewModel = viewModel,
+                                onToggleVisibility = { toggleVisibility(account, true) },
+                                onUpdateBalance = { openUpdateBalance(account) },
+                                onViewHistory = { openHistory(account) },
+                                onOpenDetail = openDetail,
+                                onDelete = { askDelete(account) },
+                                onEdit = { openEdit(account) },
+                            )
+                        }
+
+                        items(hiddenLoanAccounts, key = { "hidden-loan-${it.bankName}-${it.accountLast4}" }) { account ->
+                            ManageBankAccountRow(
+                                account = account,
+                                isHidden = true,
+                                linkedCards = emptyList(),
+                                viewModel = viewModel,
+                                onToggleVisibility = { toggleVisibility(account, true) },
                                 onUpdateBalance = { openUpdateBalance(account) },
                                 onViewHistory = { openHistory(account) },
                                 onOpenDetail = openDetail,
@@ -377,6 +479,7 @@ fun ManageAccountsScreen(
                                 card = card,
                                 isHidden = true,
                                 viewModel = viewModel,
+                                onToggleVisibility = { toggleVisibility(card, true) },
                                 onUpdateBalance = { openUpdateBalance(card) },
                                 onViewHistory = { openHistory(card) },
                                 onOpenDetail = openDetail,
@@ -470,19 +573,35 @@ fun ManageAccountsScreen(
                 showEditDialog = false
                 accountToEdit = null
             },
-            onConfirm = { newBankName, newBalance, newCreditLimit, newCurrency ->
+            onConfirm = { newBankName, newBalance, newCreditLimit, newCurrency, newType ->
                 viewModel.editAccount(
                     oldBankName = editTarget.bankName,
                     accountLast4 = editTarget.accountLast4,
                     newBankName = newBankName,
                     newBalance = newBalance,
                     newCreditLimit = newCreditLimit,
-                    isCreditCard = editTarget.isCreditCard,
+                    newType = newType,
                     newCurrency = newCurrency
                 )
                 showEditDialog = false
                 accountToEdit = null
             }
+        )
+    }
+
+    // Two rows for one account (#873): offer to merge them, once per pair.
+    if (!showMergeSheet && !showDeleteConfirmDialog && !showEditDialog && !showUpdateDialog &&
+        !showUpgradeSheet && !showSupportDialog && pendingProfileReassign == null && accountDuplicate != null) {
+        val (source, target) = accountDuplicate
+        val duplicateKey = BankAccountMergeStore.mappingKey(source.bankName, source.currency, source.accountLast4)
+        DuplicateAccountDialog(
+            source = source,
+            target = target,
+            onMerge = {
+                dismissedDuplicates.add(duplicateKey)
+                viewModel.repairDuplicateAccounts(source, target)
+            },
+            onDismiss = { dismissedDuplicates.add(duplicateKey) }
         )
     }
 
@@ -561,6 +680,7 @@ private fun ManageBankAccountRow(
     isHidden: Boolean,
     linkedCards: List<CardEntity>,
     viewModel: ManageAccountsViewModel,
+    onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
     onDelete: () -> Unit,
@@ -571,9 +691,7 @@ private fun ManageBankAccountRow(
         account = account,
         linkedCards = linkedCards,
         isHidden = isHidden,
-        onToggleVisibility = {
-            viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
-        },
+        onToggleVisibility = onToggleVisibility,
         onUpdateBalance = onUpdateBalance,
         onViewHistory = onViewHistory,
         onUnlinkCard = { cardId ->
@@ -602,6 +720,7 @@ private fun ManageCreditCardRow(
     card: AccountBalanceEntity,
     isHidden: Boolean,
     viewModel: ManageAccountsViewModel,
+    onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
     onDelete: () -> Unit,
@@ -611,9 +730,7 @@ private fun ManageCreditCardRow(
     CreditCardItem(
         card = card,
         isHidden = isHidden,
-        onToggleVisibility = {
-            viewModel.toggleAccountVisibility(card.bankName, card.accountLast4)
-        },
+        onToggleVisibility = onToggleVisibility,
         onUpdateBalance = onUpdateBalance,
         onViewHistory = onViewHistory,
         onDeleteAccount = onDelete,

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -160,6 +162,9 @@ internal fun TxnDetailEditForm(
                 TxnEditAccountField(
                     accountNumber = transaction.fromAccount,
                     onAccountNumberChange = { viewModel.updateFromAccount(it) },
+                    onAccountSelected = { bank, suffix -> viewModel.updateFromAccount(suffix, bank) },
+                    bankName = transaction.fromBankName,
+                    excludeBankName = transaction.toBankName,
                     viewModel = viewModel,
                     position = ListItemPosition.Top,
                     label = stringResource(R.string.txn_detail_field_from_account),
@@ -169,6 +174,9 @@ internal fun TxnDetailEditForm(
                 TxnEditAccountField(
                     accountNumber = transaction.toAccount,
                     onAccountNumberChange = { viewModel.updateToAccount(it) },
+                    onAccountSelected = { bank, suffix -> viewModel.updateToAccount(suffix, bank) },
+                    bankName = transaction.toBankName,
+                    excludeBankName = transaction.fromBankName,
                     viewModel = viewModel,
                     position = if (showSplitEditor) ListItemPosition.Bottom else ListItemPosition.Middle,
                     label = stringResource(R.string.txn_detail_field_to_account),
@@ -179,7 +187,10 @@ internal fun TxnDetailEditForm(
                 TxnEditAccountField(
                     accountNumber = transaction.accountNumber,
                     onAccountNumberChange = { viewModel.updateAccountNumber(it) },
-                    onBankNameChange = { viewModel.updateBankName(it) },
+                    onAccountSelected = { bank, suffix -> viewModel.selectAccount(suffix, bank) },
+                    // Without the bank, two accounts sharing a number (HDFC ••1155
+                    // and a wallet ••1155) were indistinguishable (#876).
+                    bankName = transaction.bankName,
                     viewModel = viewModel,
                     position = if (showSplitEditor) ListItemPosition.Single else ListItemPosition.Top,
                     label = stringResource(R.string.txn_detail_field_account),
@@ -211,7 +222,7 @@ internal fun TxnDetailEditForm(
                 )
             ) {
                 Icon(
-                    imageVector = Icons.Default.CallSplit,
+                    imageVector = Icons.AutoMirrored.Filled.CallSplit,
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.small)
                 )
@@ -247,13 +258,16 @@ internal fun TxnDetailEditForm(
             onRemoveTag = { viewModel.removeTag(it) }
         )
         // #752: mirrors the category checkbox below — saved as a Smart Rule.
+        // The rule/mapping keys on the merchant as saved before this edit, so name that one.
+        val originalMerchant = viewModel.transaction.collectAsStateWithLifecycle().value?.merchantName
+            ?: transaction.merchantName
         if (editTags.isNotEmpty()) {
             val applyTagsToAll by viewModel.applyTagsToAllFromMerchant.collectAsStateWithLifecycle()
             GroupedList {
                 TxnEditCheckRow(
                     checked = applyTagsToAll,
                     onToggle = { viewModel.toggleApplyTagsToAllFromMerchant() },
-                    text = stringResource(R.string.txn_detail_apply_tags_to_merchant, transaction.merchantName),
+                    text = stringResource(R.string.txn_detail_apply_tags_to_merchant, originalMerchant),
                     position = ListItemPosition.Single
                 )
             }
@@ -266,7 +280,7 @@ internal fun TxnDetailEditForm(
                 TxnEditCheckRow(
                     checked = applyToAllFromMerchant,
                     onToggle = { viewModel.toggleApplyToAllFromMerchant() },
-                    text = stringResource(R.string.txn_detail_apply_category_to_merchant, transaction.merchantName),
+                    text = stringResource(R.string.txn_detail_apply_category_to_merchant, originalMerchant),
                     position = if (hasExisting) ListItemPosition.Top else ListItemPosition.Single
                 )
                 if (hasExisting) {
@@ -674,7 +688,12 @@ private fun TxnEditCheckRow(
         contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        // The whole row toggles, so tapping the label ticks the box (#911).
+        Checkbox(
+            checked = checked,
+            onCheckedChange = null,
+            modifier = Modifier.minimumInteractiveComponentSize()
+        )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
@@ -822,41 +841,18 @@ private fun TxnEditCategoryField(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            categories.forEach { category ->
-                DropdownMenuItem(
-                    text = {
-                        CategoryChip(
-                            category = category,
-                            modifier = Modifier.padding(
-                                start = if (category.parentId != null) Spacing.lg else Spacing.none
-                            )
-                        )
-                    },
-                    onClick = {
-                        onCategorySelected(category.name)
-                        expanded = false
-                    },
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                )
-            }
-
-            HorizontalDivider()
-
-            // Create a new category without leaving the edit flow (#584)
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.txn_detail_add_category)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
+            // Create a new category without leaving the edit flow (#584).
+            CategoryMenuItems(
+                categories = categories,
+                isIncome = isIncomeTransaction,
+                onSelected = {
+                    onCategorySelected(it.name)
+                    expanded = false
                 },
-                onClick = {
+                onAddCategory = {
                     expanded = false
                     showAddDialog = true
-                },
-                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                }
             )
         }
     }
@@ -865,12 +861,14 @@ private fun TxnEditCategoryField(
         CategoryEditDialog(
             defaultIsIncome = isIncomeTransaction,
             lockType = true,
+            // Same parent picker as Settings → Categories (#876).
+            parentOptions = categories,
             onDismiss = { showAddDialog = false },
-            onSave = { name, color, _, icon, _ ->
+            onSave = { name, color, _, icon, parentId ->
                 // Dismiss only once the category is actually created/selected, so a
                 // failure (e.g. same-name type conflict) keeps the dialog open with
                 // the user's input intact.
-                viewModel.createAndSelectCategory(name, color, icon) { success ->
+                viewModel.createAndSelectCategory(name, color, icon, parentId) { success ->
                     if (success) showAddDialog = false
                 }
             }
@@ -890,21 +888,19 @@ private fun TxnEditAccountField(
     label: String,
     placeholder: String,
     excludeAccount: String? = null,
-    // Fired alongside onAccountNumberChange when a real account is picked from
-    // the dropdown, so the transaction's bankName follows the selected account
-    // (accounts are keyed by bankName+last4). Only the single-account field
-    // wires this; transfer From/To fields leave it null. See #566 / #570.
-    onBankNameChange: ((String?) -> Unit)? = null,
+    // A real account picked from the dropdown, as (bankName, last4): accounts are
+    // keyed by both (#566 / #570), and last4 may be blank for a Cash account (#913).
+    onAccountSelected: (String, String) -> Unit,
+    bankName: String? = null,
+    excludeBankName: String? = null,
 ) {
     val availableAccounts by viewModel.availableAccounts.collectAsStateWithLifecycle()
-    val filteredAccounts = availableAccounts.filter { it.accountLast4 != excludeAccount }
+    val filteredAccounts = availableAccounts.filter {
+        it.accountLast4 != excludeAccount || (excludeBankName != null && it.bankName != excludeBankName)
+    }
     var expanded by remember { mutableStateOf(false) }
-    var selectedAccount by remember(accountNumber) {
-        mutableStateOf(
-            availableAccounts.find {
-                accountNumber?.endsWith(it.accountLast4) == true
-            }?.displayName ?: accountNumber ?: ""
-        )
+    var selectedAccount by remember(accountNumber, bankName, availableAccounts) {
+        mutableStateOf(availableAccounts.matchFor(accountNumber, bankName)?.displayName ?: accountNumber ?: "")
     }
 
     ExposedDropdownMenuBox(
@@ -984,8 +980,7 @@ private fun TxnEditAccountField(
                         },
                         onClick = {
                             selectedAccount = account.displayName
-                            onAccountNumberChange(account.accountLast4)
-                            onBankNameChange?.invoke(account.bankName)
+                            onAccountSelected(account.bankName, account.accountLast4)
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding

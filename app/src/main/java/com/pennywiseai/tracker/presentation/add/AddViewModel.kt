@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -15,6 +16,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -42,6 +44,7 @@ class AddViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -59,6 +62,10 @@ class AddViewModel @Inject constructor(
     // When launched via "Duplicate", this holds the id of the source transaction
     // whose values should pre-fill the form. Null for a fresh add.
     private val sourceTransactionId: Long? = savedStateHandle.get<Long>("sourceTransactionId")
+
+    // Text shared into the app ("Share to PennyWise"): pre-fills the amount when
+    // one is clear and keeps the full text as the note.
+    private val sharedText: String? = savedStateHandle.get<String>("sharedText")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -93,6 +100,19 @@ class AddViewModel @Inject constructor(
             // If launched via "Duplicate", prefill the transaction form from the
             // source. Done after the default currency so the source's currency wins.
             sourceTransactionId?.let { prefillFromTransaction(it) }
+            sharedText?.let { text ->
+                val guess = SharedTextAmount.extract(text)
+                _transactionUiState.update {
+                    // Only prefill an amount in the form's own currency: "$12" shared
+                    // by an INR user is left for them to enter, rather than becoming
+                    // 12 INR or a USD figure saved against an INR account.
+                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
+                    it.copy(
+                        amount = usable?.amount?.toPlainString() ?: it.amount,
+                        notes = text
+                    )
+                }
+            }
         }
     }
 
@@ -145,6 +165,22 @@ class AddViewModel @Inject constructor(
 
     // Categories for dropdowns
     val categories = getCategoriesUseCase.execute()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Transaction-tab picker: income or expense categories to match the chosen
+    // type (#851), hidden ones excluded (#736) — same as the edit screen.
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val transactionCategories = _transactionUiState
+        .map { it.transactionType == TransactionType.INCOME }
+        .distinctUntilChanged()
+        .flatMapLatest { isIncome ->
+            if (isIncome) categoryRepository.getVisibleIncomeCategories()
+            else categoryRepository.getVisibleExpenseCategories()
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -266,6 +302,55 @@ class AddViewModel @Inject constructor(
         }
     }
     
+    /**
+     * "Add category" from the picker (#835): creates a category of the current
+     * type and selects it. A same-name category of the other type is reported
+     * on the field rather than selected, since the picker would filter it out.
+     */
+    fun createAndSelectCategory(name: String, color: String, icon: String?, parentId: Long? = null, onDone: () -> Unit = {}) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) { onDone(); return }
+        val isIncome = _transactionUiState.value.transactionType == TransactionType.INCOME
+        viewModelScope.launch {
+            try {
+                val existing = categoryRepository.getCategoryByName(trimmed)
+                if (existing != null && existing.isIncome != isIncome) {
+                    _transactionUiState.update {
+                        it.copy(
+                            categoryError = UiText.Res(
+                                if (existing.isIncome) R.string.txn_detail_error_category_exists_income
+                                else R.string.txn_detail_error_category_exists_expense,
+                                listOf(trimmed)
+                            )
+                        )
+                    }
+                    return@launch
+                }
+                if (existing != null && parentId != null && existing.parentId != parentId) {
+                    // Reusing it would silently drop the parent the user picked.
+                    _transactionUiState.update {
+                        it.copy(categoryError = UiText.Res(R.string.txn_detail_error_category_exists_other_parent, listOf(trimmed)))
+                    }
+                    return@launch
+                }
+                when {
+                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon, parentId)
+                    // Re-adding a hidden category brings it back, so the selection
+                    // is one the picker actually offers. The cascading toggle also
+                    // restores its sub-categories / parent, like Settings does (#374).
+                    existing.isHidden -> categoryRepository.toggleCategoryHidden(existing.id)
+                }
+                updateTransactionCategory(trimmed)
+            } catch (e: Exception) {
+                _transactionUiState.update {
+                    it.copy(categoryError = UiText.Res(R.string.txn_detail_error_create_category, listOf(e.message.toString())))
+                }
+            } finally {
+                onDone()
+            }
+        }
+    }
+
     fun updateTransactionDate(dateMillis: Long) {
         val instant = Instant.ofEpochMilli(dateMillis)
         val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
@@ -490,7 +575,16 @@ class AddViewModel @Inject constructor(
         direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
     ) {
         _subscriptionUiState.update { currentState ->
-            currentState.copy(direction = direction)
+            if (currentState.direction == direction) return@update currentState
+            // That type's default, so an expense category can't ride along onto
+            // an income subscription (#876).
+            val isIncome = direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
+            currentState.copy(
+                direction = direction,
+                // Back on expense: the tab's own default, as when it opened.
+                category = if (isIncome) categories.value.pickerDefault("Income", isIncome = true) else SubscriptionUiState().category,
+                categoryError = null
+            )
         }
     }
 

@@ -8,12 +8,14 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -82,6 +84,7 @@ open class UserPreferencesRepository @Inject constructor(
         // dismissed. A month string rather than a day count: "30 days" drifts off the
         // month boundary this prompt is entirely about.
         val SHARE_PROMPT_HANDLED_MONTH = stringPreferencesKey("share_prompt_handled_month")
+        // Device-local on purpose: kept out of the backup's PreferencesSnapshot (#945).
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -113,6 +116,7 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Pro tier — statement-import monthly quota tracking.
         val LAST_STATEMENT_IMPORT_AT = longPreferencesKey("last_statement_import_at")
+        val STATEMENT_COLUMN_MAPPINGS = stringPreferencesKey("statement_column_mappings")
 
         // What's New feature
         val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
@@ -142,11 +146,15 @@ open class UserPreferencesRepository @Inject constructor(
         // Navigation Bar Style
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
 
+        // Routes of the bottom-bar tabs the user hid (#912)
+        val HIDDEN_NAV_TABS = stringSetPreferencesKey("hidden_nav_tabs")
+
         // Number Format Style (digit grouping: Auto / Indian / International)
         val NUMBER_FORMAT_STYLE = stringPreferencesKey("number_format_style")
 
         // Analytics Chart Type
         val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
+        val ANALYTICS_GROUP_BY = stringPreferencesKey("analytics_group_by")
 
         // Cover Style
         val COVER_STYLE = stringPreferencesKey("cover_style")
@@ -173,10 +181,18 @@ open class UserPreferencesRepository @Inject constructor(
         // UPI VPA → contact name lookup (opt-in; gated by READ_CONTACTS).
         val USE_CONTACTS_FOR_VPA = booleanPreferencesKey("use_contacts_for_vpa")
 
+        // The user's own UPI ID, for asking people to pay their share of a split bill (#346).
+        val UPI_ID = stringPreferencesKey("upi_id")
+
         // Scheduled folder backup (SAF tree URI; shared by standard and F-Droid).
         val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
         val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
         val SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_timestamp")
+
+        // Embed receipt photos in backups (#839). Manual export defaults ON;
+        // the daily folder backup defaults OFF (photos make every copy large).
+        val EXPORT_INCLUDE_RECEIPTS = booleanPreferencesKey("export_include_receipts")
+        val FOLDER_BACKUP_INCLUDE_RECEIPTS = booleanPreferencesKey("folder_backup_include_receipts")
     }
 
     private companion object {
@@ -212,6 +228,7 @@ open class UserPreferencesRepository @Inject constructor(
                 navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
                     try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
                 } ?: NavBarStyle.FLOATING,
+                hiddenNavTabs = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet(),
                 coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
                     try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
                 } ?: CoverStyle.AURORA,
@@ -730,6 +747,18 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /**
+     * Spreadsheet statement column mappings (#13), JSON keyed by header
+     * signature — see StatementTableParser.encodeMappings. Device-local, not
+     * backed up: a lost mapping costs one re-map.
+     */
+    suspend fun getStatementColumnMappings(): String? =
+        context.dataStore.data.first()[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS]
+
+    suspend fun setStatementColumnMappings(json: String) {
+        context.dataStore.edit { it[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS] = json }
+    }
+
     // What's New feature
     suspend fun getLastSeenAppVersion(): String? {
         return context.dataStore.data
@@ -801,6 +830,8 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
         }
+        // Every widget computes "this cycle" from this day.
+        WidgetRefresher.refreshTransactionWidgets(context)
     }
 
     /**
@@ -836,7 +867,7 @@ open class UserPreferencesRepository @Inject constructor(
     // Balance Visibility
     val isBalanceHidden: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false
+            preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true // hidden until the user reveals it
         }
 
     suspend fun setBalanceHidden(hidden: Boolean) {
@@ -858,6 +889,18 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** The user's own UPI ID (#346), or null until they enter one. */
+    val upiId: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.UPI_ID]?.takeIf { it.isNotBlank() } }
+
+    /** Blank or null clears it. */
+    suspend fun setUpiId(id: String?) {
+        context.dataStore.edit { preferences ->
+            val trimmed = id?.trim().orEmpty()
+            if (trimmed.isEmpty()) preferences.remove(PreferencesKeys.UPI_ID) else preferences[PreferencesKeys.UPI_ID] = trimmed
+        }
+    }
+
     // Selected Profile
     val selectedProfileId: Flow<Long?> = context.dataStore.data
         .map { preferences -> preferences[PreferencesKeys.SELECTED_PROFILE_ID] }
@@ -870,6 +913,8 @@ open class UserPreferencesRepository @Inject constructor(
                 preferences[PreferencesKeys.SELECTED_PROFILE_ID] = profileId
             }
         }
+        // The spend widgets are scoped to the selected profile.
+        WidgetRefresher.refreshTransactionWidgets(context)
     }
 
     // Blur Effects
@@ -891,6 +936,22 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    // Bottom-bar tabs (#912). Read-modify-write inside one edit so quick
+    // toggles of two tabs can't overwrite each other.
+    suspend fun setNavTabHidden(route: String, hidden: Boolean) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet()
+            preferences[PreferencesKeys.HIDDEN_NAV_TABS] =
+                if (hidden) current + route else current - route
+        }
+    }
+
+    suspend fun updateHiddenNavTabs(routes: Set<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDDEN_NAV_TABS] = routes
+        }
+    }
+
     // Analytics Chart Type
     suspend fun saveAnalyticsChartType(chartType: String) {
         context.dataStore.edit { preferences ->
@@ -900,6 +961,15 @@ open class UserPreferencesRepository @Inject constructor(
 
     fun getAnalyticsChartType(): Flow<String?> = context.dataStore.data
         .map { preferences -> preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] }
+
+    suspend fun saveAnalyticsGroupBy(groupBy: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANALYTICS_GROUP_BY] = groupBy
+        }
+    }
+
+    fun getAnalyticsGroupBy(): Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.ANALYTICS_GROUP_BY] }
 
     // Cover Style
     suspend fun updateCoverStyle(style: CoverStyle) {
@@ -1043,6 +1113,20 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
         }
     }
+
+    val exportIncludeReceipts: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] ?: true }
+
+    val folderBackupIncludeReceipts: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] ?: false }
+
+    suspend fun setExportIncludeReceipts(include: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] = include }
+    }
+
+    suspend fun setFolderBackupIncludeReceipts(include: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] = include }
+    }
 }
 
 data class UserPreferences(
@@ -1062,6 +1146,7 @@ data class UserPreferences(
     val displayCurrency: String = "INR",
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
+    val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,
     val userName: String = "User",
     val profileImageUri: String? = null,

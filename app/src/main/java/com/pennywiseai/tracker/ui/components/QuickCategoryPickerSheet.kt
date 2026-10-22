@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -72,7 +73,9 @@ fun QuickCategoryPickerSheet(
     initialTags: List<String> = emptyList(),
     onTagsChanged: ((List<String>) -> Unit)? = null,
     title: String? = null,
-    searchPlaceholder: String? = null
+    searchPlaceholder: String? = null,
+    // "Add category" on top of the list (#854); null hides it.
+    onAddCategory: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
@@ -142,6 +145,32 @@ fun QuickCategoryPickerSheet(
                 .fillMaxWidth()
                 .padding(bottom = Spacing.md)
         ) {
+            if (onAddCategory != null) {
+                item(key = "add-category") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onAddCategory() }
+                            .padding(
+                                horizontal = Dimensions.Padding.content,
+                                vertical = Spacing.sm
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = stringResource(R.string.txn_detail_add_category),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
             items(filteredCategories, key = { it.id }) { category ->
                 val selected = currentCategory == category.name
                 Row(

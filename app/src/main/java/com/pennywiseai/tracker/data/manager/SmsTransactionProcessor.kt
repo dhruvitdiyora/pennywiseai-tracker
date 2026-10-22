@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.manager
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+
 import android.content.Context
 import android.util.Log
 import androidx.room.withTransaction
@@ -26,6 +28,8 @@ import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import java.math.BigDecimal
 import java.time.Instant
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import kotlinx.coroutines.sync.withLock
 import java.time.LocalDateTime
 import java.time.ZoneId
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -50,6 +54,7 @@ class SmsTransactionProcessor @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val database: PennyWiseDatabase
 ) {
+    private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
         private const val TAG = "SmsTransactionProcessor"
     }
@@ -116,10 +121,14 @@ class SmsTransactionProcessor @Inject constructor(
      * - Balance updates
      */
     suspend fun saveParsedTransaction(
-        parsedTransaction: ParsedTransaction,
+        parsedInput: ParsedTransaction,
         smsBody: String
-    ): ProcessingResult {
-        return try {
+    ): ProcessingResult = BankAccountMergeStore.mutationMutex.withLock {
+        // One lock across the SMS receiver and the notification listener: a bank
+        // that texts and pushes at the same moment would otherwise let both pass
+        // the duplicate check before either insert lands.
+        try {
+            val parsedTransaction = bankAccountMerges.resolve(parsedInput)
             // Convert to entity
             val entity = parsedTransaction.toEntity()
 
@@ -156,6 +165,34 @@ class SmsTransactionProcessor @Inject constructor(
                 // Transaction already exists and not deleted - normal deduplication
                 Log.d(TAG, "Transaction already exists: ${entity.transactionHash}")
                 return ProcessingResult(false, reason = "Duplicate transaction")
+            }
+
+            // Same SMS already stored under an older hash (a parser fix changed the
+            // amount): never insert it twice, and repair a known-bad amount. (#886)
+            entity.smsBody?.let { body ->
+                transactionRepository.getAnyBySms(body, entity.smsSender)?.let { stored ->
+                    if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
+                        transactionRepository.correctParsedAmount(stored, entity)
+                    }
+                    return ProcessingResult(false, reason = "Duplicate transaction")
+                }
+            }
+
+            // Same charge already booked from the bank's other channel (SMS vs app
+            // notification). Runs under saveLock, together with the insert below.
+            if (entity.bankName in BankNotificationConfig.notificationBankNames) {
+                val nearby = transactionRepository.getTransactionByAmountAndDate(
+                    entity.amount,
+                    entity.dateTime.minusMinutes(2),
+                    entity.dateTime.plusMinutes(2)
+                )
+                if (TransactionDeduplication.isBookedByOtherChannel(
+                        entity, nearby, BankNotificationConfig.notificationAliases
+                    )
+                ) {
+                    Log.d(TAG, "Already booked from the other channel: ${entity.transactionHash}")
+                    return ProcessingResult(false, reason = "Duplicate transaction")
+                }
             }
 
             // Check for custom merchant mapping
@@ -329,13 +366,21 @@ class SmsTransactionProcessor @Inject constructor(
                 targetAccountLast4
             )
 
-            val resolvedIsCreditCard = isCreditCard || (existingAccount?.isCreditCard ?: false)
+            val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, existingAccount)
 
-            val newBalance = BalanceCalculator.calculateNewBalance(
+            // The account keeps its own currency; a foreign-currency spend isn't
+            // added to it (see BalanceCalculator.balanceAfter).
+            val accountCurrency = existingAccount?.currency
+                ?: parsedTransaction.accountCurrency
+                ?: parsedTransaction.currency
+            val newBalance = BalanceCalculator.balanceAfter(
                 explicitBalance = parsedTransaction.balance,
-                isCreditCard = resolvedIsCreditCard,
+                // A loan account's balance is owed too: a payment lowers it (#792).
+                isCreditCard = resolvedIsCreditCard || existingAccount?.isLoan == true,
                 transactionType = parsedTransaction.type.toEntityType(),
                 transactionAmount = parsedTransaction.amount,
+                transactionCurrency = parsedTransaction.currency,
+                accountCurrency = accountCurrency,
                 currentBalance = existingAccount?.balance
             )
 
@@ -360,7 +405,7 @@ class SmsTransactionProcessor @Inject constructor(
                 smsSource = parsedTransaction.smsBody.take(500),
                 sourceType = "TRANSACTION",
                 accountType = BalanceCalculator.preservedAccountType(existingAccount),
-                currency = parsedTransaction.currency,
+                currency = accountCurrency,
                 profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existingAccount?.alias,
                 lowBalanceThreshold = existingAccount?.lowBalanceThreshold
@@ -400,7 +445,8 @@ class SmsTransactionProcessor @Inject constructor(
             smsSource = parsedTransaction.smsBody.take(500),
             sourceType = "TRANSACTION",
             accountType = BalanceCalculator.preservedAccountType(existingAccount),
-            currency = parsedTransaction.currency,
+            // The balance is in the account's currency, which can differ from the spend's.
+            currency = parsedTransaction.accountCurrency ?: parsedTransaction.currency,
             profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existingAccount?.alias,
             lowBalanceThreshold = existingAccount?.lowBalanceThreshold

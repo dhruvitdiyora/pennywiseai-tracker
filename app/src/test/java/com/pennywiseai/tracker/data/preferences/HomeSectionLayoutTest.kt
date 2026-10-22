@@ -11,13 +11,14 @@ class HomeSectionLayoutTest {
             HomeSection.ACTIVITY to true,
             HomeSection.GROUPS to false,
             HomeSection.BUDGETS to true,
+            HomeSection.GOALS to false,
             HomeSection.LOANS to true,
             HomeSection.RECENT_TRANSACTIONS to false,
             HomeSection.ACCOUNTS to true,
             HomeSection.SUBSCRIPTIONS to true,
         )
         val encoded = HomeSectionLayout.encode(layout)
-        assertEquals("ACTIVITY,!GROUPS,BUDGETS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS", encoded)
+        assertEquals("ACTIVITY,!GROUPS,BUDGETS,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS", encoded)
         assertEquals(layout, HomeSectionLayout.decode(encoded))
     }
 
@@ -35,7 +36,7 @@ class HomeSectionLayoutTest {
         assertEquals(
             listOf(HomeSection.ACTIVITY to false, HomeSection.ACCOUNTS to true) +
                 listOf(
-                    HomeSection.BUDGETS, HomeSection.LOANS, HomeSection.GROUPS,
+                    HomeSection.BUDGETS, HomeSection.GOALS, HomeSection.LOANS, HomeSection.GROUPS,
                     HomeSection.RECENT_TRANSACTIONS, HomeSection.SUBSCRIPTIONS,
                 ).map { it to true },
             decoded,
@@ -48,7 +49,7 @@ class HomeSectionLayoutTest {
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode("  "))
         assertEquals(
             listOf(
-                HomeSection.RECENT_TRANSACTIONS, HomeSection.ACCOUNTS, HomeSection.SUBSCRIPTIONS,
+                HomeSection.RECENT_TRANSACTIONS, HomeSection.GOALS, HomeSection.ACCOUNTS, HomeSection.SUBSCRIPTIONS,
                 HomeSection.BUDGETS, HomeSection.LOANS, HomeSection.GROUPS, HomeSection.ACTIVITY,
             ).map { it to true },
             HomeSectionLayout.DEFAULT,
@@ -66,6 +67,8 @@ class HomeSectionLayoutTest {
                 HomeSection.BUDGETS, HomeSection.LOANS, HomeSection.GROUPS,
                 HomeSection.RECENT_TRANSACTIONS, HomeSection.ACCOUNTS,
                 HomeSection.SUBSCRIPTIONS, HomeSection.ACTIVITY,
+                // Added later (#914): appended visible to a stored layout.
+                HomeSection.GOALS,
             ).map { it to true },
             HomeSectionLayout.decode(stored),
         )

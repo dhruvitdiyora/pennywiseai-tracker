@@ -24,7 +24,7 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -107,10 +107,10 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 .first()
                 // Same exclusions as Home/Analytics/other widgets: loan-linked
                 // rows are the Loans feature's, excluded rows are the user's call.
+                .forTotals()
                 .filter {
-                    (it.transaction.transactionType == TransactionType.EXPENSE ||
-                        (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT)) &&
-                        it.transaction.countsInTotals()
+                    it.transaction.transactionType == TransactionType.EXPENSE ||
+                        (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT)
                 }
 
             // Scope to the selected profile and drop hidden accounts, mirroring
@@ -168,14 +168,17 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     }
             }
 
+            // The "Others" category folds into the aggregated "Other" slice so
+            // the pie never shows two grey catch-alls.
+            val othersCategory = byCategory.remove("Others") ?: BigDecimal.ZERO
             val ranked = byCategory.entries.sortedByDescending { it.value }
-            val total = ranked.fold(BigDecimal.ZERO) { acc, e -> acc + e.value }
+            val total = ranked.fold(othersCategory) { acc, e -> acc + e.value }
             val colorOverrides = categoryRepository.getAllCategories().first()
                 .associate { it.name to it.color }
 
             val top = ranked.take(MAX_SLICES)
             val otherTotal = ranked.drop(MAX_SLICES)
-                .fold(BigDecimal.ZERO) { acc, e -> acc + e.value }
+                .fold(othersCategory) { acc, e -> acc + e.value }
 
             fun percentOf(amount: BigDecimal): Float =
                 if (total.signum() == 0) 0f

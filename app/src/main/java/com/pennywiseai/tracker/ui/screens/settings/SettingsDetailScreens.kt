@@ -454,6 +454,8 @@ fun PrivacySecuritySettingsScreen(
 ) {
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
+    val upiId by settingsViewModel.upiId.collectAsStateWithLifecycle(initialValue = null)
+    var showUpiIdDialog by remember { mutableStateOf(false) }
     var showTimeoutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     // Launches the runtime permission request. If granted, we flip the
@@ -533,7 +535,17 @@ fun PrivacySecuritySettingsScreen(
                             settingsViewModel.setUseContactsForVpa(false)
                         }
                     },
-                    position = ListItemPosition.Single
+                    position = ListItemPosition.Top
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.QrCode2,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.settings_upi_title),
+                    subtitle = upiId ?: stringResource(R.string.settings_upi_subtitle),
+                    onClick = { showUpiIdDialog = true },
+                    position = ListItemPosition.Bottom,
+                    trailingText = if (upiId == null) stringResource(R.string.settings_upi_not_set) else null
                 )
             }
         }
@@ -551,6 +563,22 @@ fun PrivacySecuritySettingsScreen(
                 )
             }
         }
+    }
+
+    if (showUpiIdDialog) {
+        com.pennywiseai.tracker.presentation.split.UpiIdDialog(
+            initial = upiId.orEmpty(),
+            allowClear = true,
+            onDismiss = { showUpiIdDialog = false },
+            onSave = { id ->
+                val ok = id.isBlank() || com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(id)
+                if (ok) {
+                    settingsViewModel.setUpiId(id)
+                    showUpiIdDialog = false
+                }
+                ok
+            }
+        )
     }
 
     // Lock Timeout Dialog
@@ -633,6 +661,8 @@ fun BackupImportSettingsScreen(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val exportIncludeReceipts by settingsViewModel.exportIncludeReceipts.collectAsStateWithLifecycle(initialValue = true)
+    val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSmsScanDialog by remember { mutableStateOf(false) }
@@ -692,11 +722,15 @@ fun BackupImportSettingsScreen(
             scheduledFolderBackupEnabled = scheduledFolderBackupEnabled,
             scheduledFolderBackupLastTimestamp = scheduledFolderBackupLastTimestamp,
             isProEntitled = isProEntitled,
+            exportIncludeReceipts = exportIncludeReceipts,
+            folderBackupIncludeReceipts = folderBackupIncludeReceipts,
             smsScanAllTime = smsScanAllTime,
             smsScanUseCustomDate = smsScanUseCustomDate,
             smsScanCustomDate = smsScanCustomDate,
             smsScanMonths = smsScanMonths,
             onExportData = { settingsViewModel.exportBackup() },
+            onExportIncludeReceiptsChange = { settingsViewModel.setExportIncludeReceipts(it) },
+            onFolderBackupIncludeReceiptsChange = { settingsViewModel.setFolderBackupIncludeReceipts(it) },
             onScheduledFolderBackupChange = { enabled ->
                 if (enabled && !isProEntitled) {
                     showUpgradeSheet = true
@@ -1039,6 +1073,8 @@ fun BackupImportSettingsScreen(
 @Composable
 fun AdvancedSettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToWebhooks: () -> Unit = {},
+    onNavigateToAiAccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel(),
 ) {
@@ -1047,6 +1083,8 @@ fun AdvancedSettingsScreen(
     val downloadedMB by settingsViewModel.downloadedMB.collectAsStateWithLifecycle()
     val totalMB by settingsViewModel.totalMB.collectAsStateWithLifecycle()
     val isDeveloperModeEnabled by settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
     val hasNotificationAccess = permissionUiState.hasNotificationAccess
     val notificationAccessLauncher = rememberLauncherForActivityResult(
@@ -1090,10 +1128,30 @@ fun AdvancedSettingsScreen(
                     onDelete = { settingsViewModel.deleteModel() }
                 )
             }
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.AutoAwesome,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.ai_access_settings_title),
+                    subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
+                    onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
+                    position = ListItemPosition.Single
+                )
+            }
         }
 
         SettingsSection(title = stringResource(R.string.settings_developer_section)) {
             SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.CloudUpload,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = "Webhooks",
+                    subtitle = if (isProEntitled) "Send selected data to your endpoint" else "Pro · Send selected data to your endpoint",
+                    onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
+                    position = ListItemPosition.Top
+                )
                 SettingsSwitchRow(
                     icon = Icons.Default.Code,
                     iconBgColor = grey_light,
@@ -1102,9 +1160,15 @@ fun AdvancedSettingsScreen(
                     subtitle = stringResource(R.string.settings_developer_mode_subtitle),
                     checked = isDeveloperModeEnabled,
                     onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-                    position = ListItemPosition.Single
+                    position = ListItemPosition.Bottom
                 )
             }
         }
+    }
+
+    if (showUpgradeSheet) {
+        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
+            onDismiss = { showUpgradeSheet = false },
+        )
     }
 }

@@ -33,6 +33,10 @@ import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.data.database.dao.GoalDao
+import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.PersonEntity
@@ -52,6 +56,14 @@ import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookLogEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookDeliveredTransactionEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookCursorEntity
+import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
+import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
+import com.pennywiseai.tracker.data.database.dao.WebhookDeliveredTransactionDao
+import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -66,7 +78,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 63
+const val SCHEMA_VERSION = 68
 
 /**
  * The PennyWise Room database.
@@ -79,7 +91,7 @@ const val SCHEMA_VERSION = 63
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, PersonEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, PersonEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class, WebhookProfileEntity::class, WebhookLogEntity::class, WebhookCursorEntity::class, WebhookDeliveredTransactionEntity::class, GoalEntity::class, GoalContributionEntity::class, LoanShareEntity::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -131,8 +143,14 @@ const val SCHEMA_VERSION = 63
         AutoMigration(from = 55, to = 56),
         // 56→57 adds a nullable account_last4 column to subscriptions — a pure
         // additive change, so Room generates the ALTER TABLE automatically (#570).
-        AutoMigration(from = 56, to = 57)
-        // 62→63 is manual because it backfills people and links legacy loans.
+        AutoMigration(from = 56, to = 57),
+        // 57→65 are manual migrations (ALL_MIGRATIONS). 65→66 adds the goals and
+        // goal_contributions tables (#914) — purely additive.
+        AutoMigration(from = 65, to = 66),
+        // 66→67 adds the loan_shares table and transactions.lent_shares_total
+        // for split bills (#346) — purely additive.
+        AutoMigration(from = 66, to = 67)
+        // 67→68 is manual because it backfills people and links legacy loans.
     ]
 )
 @TypeConverters(Converters::class)
@@ -159,6 +177,11 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun tagDao(): TagDao
     abstract fun recurringTransactionDao(): RecurringTransactionDao
+    abstract fun webhookProfileDao(): WebhookProfileDao
+    abstract fun webhookLogDao(): WebhookLogDao
+    abstract fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao
+    abstract fun webhookCursorDao(): WebhookCursorDao
+    abstract fun goalDao(): GoalDao
 
     companion object {
         const val DATABASE_NAME = "pennywise_database"
@@ -644,9 +667,16 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Creates the people directory and links existing loans by a stable,
          * case-insensitive trimmed name. The loan's person_name is retained as
          * a historical snapshot and no transaction rows are rewritten.
+         *
+         * The Cashiro-port branch originally shipped this as its own 62→63,
+         * which collides with upstream's 62→63 (webhooks). Devices on that
+         * branch's v63 reach here without the webhook tables, so re-run the
+         * (fully idempotent, IF NOT EXISTS) webhook DDL first to heal them.
          */
-        val MIGRATION_62_63 = object : Migration(62, 63) {
+        val MIGRATION_67_68 = object : Migration(67, 68) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_62_63.migrate(db)
+
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `people` (" +
                         "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
@@ -761,6 +791,51 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_62_63 = object : Migration(62, 63) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_profiles` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `url` TEXT NOT NULL, `enabled` INTEGER NOT NULL DEFAULT 1, `range_preset` TEXT NOT NULL, `custom_start` TEXT, `custom_end` TEXT, `data_types` TEXT NOT NULL DEFAULT 'SUMMARY,TRANSACTIONS,BUDGETS,ACCOUNTS,SUBSCRIPTIONS', `headers_json` TEXT NOT NULL DEFAULT '[]', `currency` TEXT NOT NULL DEFAULT 'INR', `last_error` TEXT, `consecutive_failures` INTEGER NOT NULL DEFAULT 0, `last_synced_at` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, PRIMARY KEY(`id`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `profile_id` TEXT NOT NULL, `profile_name` TEXT NOT NULL, `sync_reason` TEXT NOT NULL, `status` TEXT NOT NULL, `message` TEXT NOT NULL, `http_status` INTEGER, `batch_count` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_logs_profile_id` ON `webhook_logs` (`profile_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_logs_created_at` ON `webhook_logs` (`created_at`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_cursors` (`profile_id` TEXT NOT NULL, `data_type` TEXT NOT NULL, `last_success_at` TEXT, `last_range_end` TEXT, `updated_at` TEXT NOT NULL, PRIMARY KEY(`profile_id`, `data_type`), FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_cursors_profile_id` ON `webhook_cursors` (`profile_id`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_delivered_transactions` (`profile_id` TEXT NOT NULL, `transaction_id` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `transaction_id`), FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_delivered_transactions_profile_id` ON `webhook_delivered_transactions` (`profile_id`)")
+            }
+        }
+
+        val MIGRATION_63_64 = object : Migration(63, 64) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN from_bank_name TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN to_bank_name TEXT DEFAULT NULL")
+                // The owning row identifies a leg directly. For the other leg, only
+                // backfill when one bank is evidenced by balances in the same currency.
+                // Shared suffixes at different banks must remain unknown.
+                // No HAVING without GROUP BY: SQLite only allows that from 3.39
+                // (Android 14), and older phones crashed on every launch (2.22.0).
+                for (leg in listOf("from", "to")) {
+                    db.execSQL("""
+                        UPDATE transactions SET ${leg}_bank_name = CASE
+                            WHEN account_number = ${leg}_account AND from_account IS NOT to_account THEN bank_name
+                            ELSE (SELECT CASE WHEN COUNT(DISTINCT bank_name) = 1 THEN MIN(bank_name) END
+                                  FROM account_balances b
+                                  WHERE b.account_last4 = transactions.${leg}_account
+                                    AND b.currency = transactions.currency)
+                        END
+                        WHERE transaction_type = 'TRANSFER' AND ${leg}_account IS NOT NULL
+                    """.trimIndent())
+                }
+            }
+        }
+
+        /** Built-in categories remember their original name so they can be renamed (#823). */
+        val MIGRATION_64_65 = object : Migration(64, 65) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE categories ADD COLUMN system_name TEXT DEFAULT NULL")
+                db.execSQL("UPDATE categories SET system_name = name WHERE is_system = 1")
+            }
+        }
+
         /**
          * Single source of truth for the migration list. Both the Hilt-built
          * database (DatabaseModule.providePennyWiseDatabase) and the
@@ -794,6 +869,9 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_60_61,
             MIGRATION_61_62,
             MIGRATION_62_63,
+            MIGRATION_63_64,
+            MIGRATION_64_65,
+            MIGRATION_67_68,
         )
     }
     

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker
 
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration as ResConfiguration
@@ -8,6 +9,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
+import com.pennywiseai.tracker.data.webhook.WebhookSyncScheduler
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.HiltAndroidApp
@@ -15,6 +17,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -39,6 +43,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
 
+    @Inject
+    lateinit var webhookSyncScheduler: WebhookSyncScheduler
+
+    @Inject
+    lateinit var goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -58,20 +68,13 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Create CategoryMapping's snapshot-state map before any composition exists.
+        // Left to its first use, it could be created after a composition's snapshot
+        // was taken, and reading it inside that snapshot crashed with "Reading a
+        // state that was created after the snapshot was taken" (Play vitals, 2.22.0).
+        CategoryMapping.userStyles
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
-
-        // Initial billing-entitlement sync. No-op on F-Droid (the stub
-        // gateway returns immediately). Failure here is non-fatal — the
-        // cached entitlement (DataStore) keeps the UI consistent until
-        // the next attempt.
-        applicationScope.launch {
-            try {
-                purchaseGateway.refresh()
-            } catch (e: Exception) {
-                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
-            }
-        }
 
         // Re-arm the daily folder backup on process start when the user has it enabled,
         // so scheduled work survives reboots / app updates that clear WorkManager state.
@@ -86,6 +89,16 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // off still creates anything that came due while it was down.
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
+        applicationScope.launch { webhookSyncScheduler.observeSchedule() }
+
+        // Goal widgets (#914): one hook for every goal write (screens, Add to goal,
+        // restore, a linked transaction edited or deleted) instead of one per call site.
+        // ponytail: re-queries goals on any transactions-table write; cheap at goal-list sizes.
+        applicationScope.launch {
+            goalRepository.observeGoals().distinctUntilChanged().drop(1).collect {
+                com.pennywiseai.tracker.widget.GoalWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
+            }
+        }
 
         // Keep CurrencyFormatter's number-format style in sync with the user's
         // preference. CurrencyFormatter is a stateless object used from non-Compose
@@ -101,9 +114,43 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // icon call sites outside ViewModels can render custom categories.
         applicationScope.launch {
             categoryRepository.getAllCategories().collectLatest { categories ->
-                val styles = categories.associate { it.name to CategoryMapping.UserStyle(it.color, it.icon) }
+                com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.update(categories)
+                val seedColors = com.pennywiseai.shared.data.bootstrap.DefaultCategoryData.ALL.associate { it.name to it.colorHex }
+                val styles = categories.associate {
+                    val key = it.builtinKey
+                    it.name to CategoryMapping.UserStyle(
+                        colorHex = it.color,
+                        emoji = it.icon,
+                        builtinKey = key?.takeIf { k -> k != it.name },
+                        // A built-in still on its seeded colour uses the palette; one the
+                        // user recoloured (now possible, #823) uses theirs.
+                        customColor = key == null || !it.color.equals(seedColors[key], ignoreCase = true)
+                    )
+                }
                 CategoryMapping.userStyles.keys.retainAll(styles.keys)
                 CategoryMapping.userStyles.putAll(styles)
+            }
+        }
+    }
+
+    private var billingRefreshed = false
+
+    /**
+     * Billing-entitlement sync, once per process, the first time a screen
+     * opens. Not in [onCreate]: the process also starts for an incoming SMS,
+     * a bank notification, a worker or a widget, and connecting to Play
+     * Billing there also queues the library's own usage logs for upload
+     * (#881). Those starts don't need a fresh check — the cached entitlement
+     * (DataStore) covers them. No-op on F-Droid. A failure keeps the cache.
+     */
+    private fun refreshBillingOnce() {
+        if (billingRefreshed) return
+        billingRefreshed = true
+        applicationScope.launch {
+            try {
+                purchaseGateway.refresh()
+            } catch (e: Exception) {
+                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
             }
         }
     }
@@ -134,6 +181,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // App came to foreground
                 isInForeground = true
                 isAppInForeground = true
+                refreshBillingOnce()
                 // Check if app should be locked when returning from background
                 checkAndLockApp()
             }

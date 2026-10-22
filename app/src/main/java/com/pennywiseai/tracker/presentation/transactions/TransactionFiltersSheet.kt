@@ -218,7 +218,7 @@ internal fun TransactionFiltersSheet(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
                     ) {
-                        items(TransactionTypeFilter.entries, key = { it.name }) { type ->
+                        items(TransactionTypeFilter.entries.filter { it.inTransactionsList }, key = { it.name }) { type ->
                             ChoiceChip(
                                 label = type.label,
                                 selected = draft.transactionType == type,

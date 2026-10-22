@@ -154,7 +154,7 @@ internal fun AnalyticsGlassRow(
 internal fun analyticsAmountColor(filter: TransactionTypeFilter): Color {
     val scheme = MaterialTheme.colorScheme
     return when (filter) {
-        TransactionTypeFilter.EXPENSE, TransactionTypeFilter.CREDIT -> scheme.expense
+        TransactionTypeFilter.EXPENSE, TransactionTypeFilter.CREDIT, TransactionTypeFilter.SPENDING -> scheme.expense
         TransactionTypeFilter.INCOME -> scheme.income
         TransactionTypeFilter.INVESTMENT -> scheme.investment
         TransactionTypeFilter.ALL, TransactionTypeFilter.TRANSFER -> scheme.onSurface

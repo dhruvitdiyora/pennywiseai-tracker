@@ -1,5 +1,14 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
+import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
+import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
+import com.pennywiseai.tracker.presentation.split.SplitBillSheet
+import com.pennywiseai.tracker.presentation.split.SplitBillViewModel
+import com.pennywiseai.tracker.presentation.split.SplitSection
+import com.pennywiseai.tracker.presentation.split.canSplit
+import androidx.compose.runtime.saveable.rememberSaveable
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -14,6 +23,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -94,7 +105,11 @@ fun TransactionDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToLoanDetail: (Long) -> Unit = {},
     onDuplicateTransaction: (Long) -> Unit = {},
-    viewModel: TransactionDetailViewModel = hiltViewModel()
+    onNavigateToGoal: (Long) -> Unit = {},
+    onCreateGoal: () -> Unit = {},
+    viewModel: TransactionDetailViewModel = hiltViewModel(),
+    goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
+    splitViewModel: SplitBillViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -133,6 +148,24 @@ fun TransactionDetailScreen(
     val currentGroup by viewModel.currentGroup.collectAsStateWithLifecycle()
     val availableGroups by viewModel.availableGroups.collectAsStateWithLifecycle()
     val showGroupSheet by viewModel.showGroupSheet.collectAsStateWithLifecycle()
+
+    // Goals (#914)
+    val linkedGoals by goalsViewModel.linked.collectAsStateWithLifecycle()
+    val goals by goalsViewModel.goals.collectAsStateWithLifecycle()
+    val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
+    var showAddToGoal by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
+    // Split a bill (#346): reload after a save so lent_shares_total is fresh.
+    LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
+    LaunchedEffect(Unit) { splitViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
+    fun closeAddToGoal() { showAddToGoal = false; goalsViewModel.closeSheet() }
+    LaunchedEffect(addToGoal.done) { if (addToGoal.done) closeAddToGoal() }
+    // Loads what's left of the transaction whenever the sheet is open without it:
+    // on open, and after process recreation restores an open sheet (its typed
+    // fields are rememberSaveable and survive; the ViewModel's state doesn't).
+    LaunchedEffect(showAddToGoal, transaction?.id) {
+        if (showAddToGoal && transaction != null && goalsViewModel.sheet.value.left == null) goalsViewModel.openSheet()
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -225,6 +258,12 @@ fun TransactionDetailScreen(
                         )
                         TransactionOverflowMenu(
                             onAddToGroup = { viewModel.showGroupSheet() },
+                            onAddToGoal = { showAddToGoal = true },
+                            // Split a bill (#346): only an expense that isn't a loan.
+                            splitLabel = transaction?.takeIf(::canSplit)?.let {
+                                if (it.lentSharesTotal != null) R.string.split_menu_edit else R.string.split_menu_split
+                            },
+                            onSplit = { splitViewModel.openSheet() },
                             onDuplicate = { transaction?.let { onDuplicateTransaction(it.id) } },
                             onReportIssue = {
                                 val reportUrl = viewModel.getReportUrl()
@@ -262,7 +301,13 @@ fun TransactionDetailScreen(
                     onUnmarkLoanClick = { showUnmarkLoanConfirm = true },
                     accountProfileId = accountProfileId,
                     hazeState = hazeState,
-                    paddingValues = paddingValues
+                    paddingValues = paddingValues,
+                    towardGoals = {
+                        TowardGoalsSection(linkedGoals, onOpenGoal = onNavigateToGoal, onRemove = goalsViewModel::remove)
+                    },
+                    splitWith = {
+                        transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
+                    }
                 )
             }
 
@@ -274,6 +319,22 @@ fun TransactionDetailScreen(
                     onClick = { viewModel.saveChanges() }
                 )
             }
+        }
+    }
+
+    transaction?.let { SplitBillSheet(splitViewModel, it) }
+
+    if (showAddToGoal) {
+        transaction?.let { txn ->
+            AddToGoalSheet(
+                transaction = txn,
+                goals = goals,
+                state = addToGoal,
+                onDismiss = ::closeAddToGoal,
+                onSave = goalsViewModel::add,
+                onCreateGoal = { closeAddToGoal(); onCreateGoal() },
+                onEdited = goalsViewModel::clearError,
+            )
         }
     }
 
@@ -408,6 +469,9 @@ fun TransactionDetailScreen(
 @Composable
 private fun TransactionOverflowMenu(
     onAddToGroup: () -> Unit,
+    onAddToGoal: () -> Unit,
+    @androidx.annotation.StringRes splitLabel: Int?,
+    onSplit: () -> Unit,
     onDuplicate: () -> Unit,
     onReportIssue: () -> Unit,
     onDelete: () -> Unit,
@@ -432,6 +496,24 @@ private fun TransactionOverflowMenu(
                     onAddToGroup()
                 }
             )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.goal_add_to_goal)) },
+                leadingIcon = { Icon(Icons.Outlined.Savings, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onAddToGoal()
+                }
+            )
+            if (splitLabel != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(splitLabel)) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.CallSplit, contentDescription = null) },
+                    onClick = {
+                        expanded = false
+                        onSplit()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
                 leadingIcon = { Icon(Iconax.Copy, contentDescription = null) },
@@ -491,6 +573,8 @@ private fun TransactionDetailContent(
     accountProfileId: Long?,
     hazeState: HazeState,
     paddingValues: PaddingValues,
+    towardGoals: @Composable () -> Unit = {},
+    splitWith: @Composable () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -536,7 +620,9 @@ private fun TransactionDetailContent(
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
                 onUnmarkLoanClick = onUnmarkLoanClick,
-                accountProfileId = accountProfileId
+                accountProfileId = accountProfileId,
+                towardGoals = towardGoals,
+                splitWith = splitWith
             )
         }
     }
@@ -549,4 +635,26 @@ internal fun transactionTypeLabel(type: TransactionType): Int = when (type) {
     TransactionType.CREDIT -> R.string.txn_type_credit
     TransactionType.TRANSFER -> R.string.txn_type_transfer
     TransactionType.INVESTMENT -> R.string.txn_type_investment
+}
+
+/**
+ * The account an edit field's [accountNumber] (and [bankName]) refers to (#876).
+ * Same bank and number first; failing that, the one account with that number.
+ * The number must match whole — a short or empty last-4 used to suffix-match
+ * every account, so picking HDFC ••1155 could show some other account.
+ */
+internal fun List<TransactionDetailViewModel.AccountInfo>.matchFor(
+    accountNumber: String?,
+    bankName: String?
+): TransactionDetailViewModel.AccountInfo? {
+    // A blank number names an account only together with its bank: a Cash
+    // account added without a number is ("Cash", "") (#913).
+    if (accountNumber.isNullOrBlank()) {
+        return if (accountNumber != null && bankName != null) find { it.accountLast4 == accountNumber && it.bankName == bankName } else null
+    }
+    val sameNumber = filter {
+        it.accountLast4 == accountNumber ||
+            (it.accountLast4.length >= 4 && accountNumber.endsWith(it.accountLast4))
+    }
+    return bankName?.let { bank -> sameNumber.find { it.bankName == bank } } ?: sameNumber.singleOrNull()
 }

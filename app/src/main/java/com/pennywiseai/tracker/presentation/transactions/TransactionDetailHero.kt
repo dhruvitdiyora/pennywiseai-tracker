@@ -240,7 +240,7 @@ internal fun TxnDetailReceipt(
                 color = scheme.onSurfaceVariant
             )
             Text(
-                text = "${txnDetailSign(transaction.transactionType)}${transaction.formatAmount()}",
+                text = CurrencyFormatter.signed(txnDetailSign(transaction.transactionType), transaction.formatAmount()),
                 style = PennyWiseText.heroAmount,
                 color = typeColor,
                 textAlign = TextAlign.Center,

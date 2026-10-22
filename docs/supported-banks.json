@@ -1,14 +1,14 @@
 {
-  "totalBanks": 157,
-  "totalCountries": 24,
+  "totalBanks": 167,
+  "totalCountries": 26,
   "countries": [
     {
       "country": "India",
       "flag": "🇮🇳",
       "currency": "INR",
       "symbol": "₹",
-      "bankCount": 54,
-      "banks": ["AU Small Finance Bank", "Airtel Payments Bank", "Amazon Pay", "American Express", "Axis Bank", "Bandhan Bank", "Bank of Baroda", "Bank of India", "CRED", "Canara Bank", "Cashfree", "Central Bank of India", "City Union Bank", "DBS Bank", "Department of Post", "Dhanlaxmi Bank", "Equitas Small Finance Bank", "Federal Bank", "Greater Bank", "HDFC Bank", "HDFC Mutual Fund", "HSBC Bank", "ICICI Bank", "IDBI Bank", "IDFC First Bank", "India Post Payments Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "JK Bank", "Jana Small Finance Bank", "Jio Payments Bank", "JioPay", "Jupiter", "Karnataka Bank", "Kerala Bank", "Kerala Gramin Bank", "Kotak Bank", "LazyPay", "NSDL Payments Bank", "Navi Mutual Fund", "OneCard", "Pluxee", "Punjab & Sind Bank", "Punjab National Bank", "Saraswat Co-operative Bank", "Slice", "South Indian Bank", "Standard Chartered Bank", "State Bank of India", "UCO Bank", "Union Bank of India", "Utkarsh Bank", "Yes Bank"]
+      "bankCount": 56,
+      "banks": ["AU Small Finance Bank", "Airtel Payments Bank", "Amazon Pay", "American Express", "Axis Bank", "Bandhan Bank", "Bank of Baroda", "Bank of India", "CRED", "Canara Bank", "Cashfree", "Central Bank of India", "City Union Bank", "DBS Bank", "Department of Post", "Dhanlaxmi Bank", "Equitas Small Finance Bank", "Federal Bank", "Greater Bank", "HDFC Bank", "HDFC Mutual Fund", "HSBC Bank", "ICICI Bank", "IDBI Bank", "IDFC First Bank", "India Post Payments Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "JK Bank", "Jana Small Finance Bank", "Jio Payments Bank", "JioPay", "Jupiter", "Karnataka Bank", "Kerala Bank", "Kerala Gramin Bank", "Kotak Bank", "LazyPay", "NSDL Payments Bank", "Navi Mutual Fund", "OneCard", "Pluxee", "Punjab & Sind Bank", "Punjab National Bank", "SVC Co-operative Bank", "Saraswat Co-operative Bank", "Slice", "South Indian Bank", "Standard Chartered Bank", "State Bank of India", "Tamilnad Mercantile Bank", "UCO Bank", "Union Bank of India", "Utkarsh Bank", "Yes Bank"]
     },
     {
       "country": "Nepal",
@@ -83,6 +83,14 @@
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
     },
     {
+      "country": "Jordan",
+      "flag": "🇯🇴",
+      "currency": "JOD",
+      "symbol": "JD",
+      "bankCount": 4,
+      "banks": ["Bank al Etihad", "Islamic International Arab Bank", "Jordan Islamic Bank", "Safwa Islamic Bank"]
+    },
+    {
       "country": "Mozambique",
       "flag": "🇲🇿",
       "currency": "MZN",
@@ -115,6 +123,14 @@
       "banks": ["Banco Agricola", "Banco Cuscatlan", "Banco Promerica"]
     },
     {
+      "country": "Bangladesh",
+      "flag": "🇧🇩",
+      "currency": "BDT",
+      "symbol": "৳",
+      "bankCount": 2,
+      "banks": ["BRAC Bank", "bKash"]
+    },
+    {
       "country": "Eurozone",
       "flag": "🇪🇺",
       "currency": "EUR",
@@ -123,12 +139,20 @@
       "banks": ["BPCE", "Sparkasse Rhein-Maas"]
     },
     {
-      "country": "Bangladesh",
-      "flag": "🇧🇩",
-      "currency": "BDT",
-      "symbol": "৳",
-      "bankCount": 1,
-      "banks": ["bKash"]
+      "country": "Kenya",
+      "flag": "🇰🇪",
+      "currency": "KES",
+      "symbol": "Ksh",
+      "bankCount": 2,
+      "banks": ["Equity Bank", "M-PESA"]
+    },
+    {
+      "country": "United Kingdom",
+      "flag": "🇬🇧",
+      "currency": "GBP",
+      "symbol": "£",
+      "bankCount": 2,
+      "banks": ["Chase UK", "Trading 212"]
     },
     {
       "country": "Belarus",
@@ -153,14 +177,6 @@
       "symbol": "Kč",
       "bankCount": 1,
       "banks": ["mBank CZ"]
-    },
-    {
-      "country": "Kenya",
-      "flag": "🇰🇪",
-      "currency": "KES",
-      "symbol": "Ksh",
-      "bankCount": 1,
-      "banks": ["M-PESA"]
     },
     {
       "country": "Oman",

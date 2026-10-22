@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import kotlinx.coroutines.sync.withLock
+
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -12,6 +15,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
+import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -52,7 +56,9 @@ enum class AccountType {
     SAVINGS,
     CURRENT,
     CREDIT,
-    CASH
+    CASH,
+    /** Bank loan account (#792): the balance is the amount still owed, like a credit card. */
+    LOAN
 }
 
 data class PendingProfileReassign(
@@ -73,6 +79,7 @@ class ManageAccountsViewModel @Inject constructor(
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
+    private val bankAccountMerges = BankAccountMergeStore(context)
 
     /**
      * Drives the Merge-accounts action — Pro-only gate. Free users still
@@ -239,8 +246,10 @@ class ManageAccountsViewModel @Inject constructor(
                 currency = state.currency,
                 sourceType = "MANUAL"
             )
-            if (isCredit) {
-                // Credit cards aren't recompute-managed — single snapshot as before.
+            if (template.isLiability) {
+                // Credit cards and loans aren't recompute-managed (their balance is
+                // owed, which the income-positive recompute would get backwards) —
+                // single snapshot as before.
                 accountBalanceRepository.insertBalance(template)
             } else {
                 // Cash/regular manual account: seed an OPENING anchor + current row so
@@ -255,42 +264,7 @@ class ManageAccountsViewModel @Inject constructor(
     
     fun updateAccountBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
         viewModelScope.launch {
-            // For a manual/cash account the balance is derived (opening + Σtxns). The
-            // user types their *current* balance, so back-solve the opening (option b)
-            // — future transactions still adjust from there.
-            if (accountBalanceRepository.isManualAccount(bankName, accountLast4)) {
-                accountBalanceRepository.setManualCurrentBalance(bankName, accountLast4, newBalance)
-                return@launch
-            }
-
-            // Get the latest balance to preserve existing account properties
-            val latestBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
-
-            accountBalanceRepository.insertBalance(
-                AccountBalanceEntity(
-                    bankName = bankName,
-                    accountLast4 = accountLast4,
-                    balance = newBalance,
-                    creditLimit = latestBalance?.creditLimit,
-                    isCreditCard = latestBalance?.isCreditCard ?: false,
-                    // Reinserted rows are stamped MANUAL (so a rescan won't purge a
-                    // user-edited balance), but that makes resolveAccountCurrency trust
-                    // the stored value. Resolve it first so an SMS-tracked non-INR
-                    // account keeps its parser currency instead of flipping to the
-                    // stored INR default. See [CurrencyFormatter.resolveAccountCurrency].
-                    currency = CurrencyFormatter.resolveAccountCurrency(
-                        sourceType = latestBalance?.sourceType,
-                        storedCurrency = latestBalance?.currency ?: "INR",
-                        bankName = bankName
-                    ),
-                    accountType = latestBalance?.accountType,
-                    profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
-                    alias = latestBalance?.alias,
-                    lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
-                    sourceType = "MANUAL",
-                    timestamp = LocalDateTime.now()
-                )
-            )
+            accountBalanceRepository.setCurrentBalance(bankName, accountLast4, newBalance)
         }
     }
 
@@ -536,7 +510,11 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Delete all balance records for this account
-                val deletedCount = accountBalanceRepository.deleteAccount(bankName, accountLast4)
+                val deletedCount = BankAccountMergeStore.mutationMutex.withLock {
+                    accountBalanceRepository.deleteAccount(bankName, accountLast4).also {
+                        bankAccountMerges.forgetAccount(bankName, accountLast4)
+                    }
+                }
 
                 // Remove from hidden accounts if present
                 val key = "${bankName}_${accountLast4}"
@@ -581,7 +559,24 @@ class ManageAccountsViewModel @Inject constructor(
      * One-way for v1 — no undo. Run inside a single coroutine so the
      * partial-merge window is short.
      */
-    fun mergeAccounts(
+    fun mergeAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
+        if (!isProEntitled.value) return
+        performAccountMerge(source, target)
+    }
+
+    /** Free repair is limited to an unambiguous duplicate proposed by the shared store. */
+    fun repairDuplicateAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
+        val candidate = BankAccountMergeStore.duplicatePairs(_uiState.value.accounts).firstOrNull { (short, full) ->
+            short.bankName == source.bankName && short.accountLast4 == source.accountLast4 &&
+                full.bankName == target.bankName && full.accountLast4 == target.accountLast4
+        } ?: return
+        if (isAccountHidden(candidate.first.bankName, candidate.first.accountLast4) ||
+            isAccountHidden(candidate.second.bankName, candidate.second.accountLast4)) return
+        performAccountMerge(candidate.first, candidate.second)
+    }
+
+    /** Executes both the Pro merge and the separately validated free duplicate repair. */
+    private fun performAccountMerge(
         source: AccountBalanceEntity,
         target: AccountBalanceEntity
     ) {
@@ -599,7 +594,7 @@ class ManageAccountsViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                if (source.isCreditCard != target.isCreditCard) {
+                if (source.isCreditCard != target.isCreditCard || source.isLoan != target.isLoan) {
                     _uiState.update {
                         it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_merge_card_mismatch))
                     }
@@ -611,36 +606,44 @@ class ManageAccountsViewModel @Inject constructor(
                 // transactions retargeted but source balances still around,
                 // or vice versa). The source account effectively ceases to
                 // exist after this block commits.
-                val moved = database.withTransaction {
-                    val rows = transactionRepository.mergeAccountTransactions(
-                        sourceBankName = source.bankName,
-                        sourceAccountLast4 = source.accountLast4,
-                        targetBankName = target.bankName,
-                        targetAccountLast4 = target.accountLast4
-                    )
-                    // Self-transfer rows (#385) reference accounts via
-                    // `fromAccount` / `toAccount`. Re-target any references
-                    // to the source so the detail screen's From → To stays
-                    // pointing at a live account.
-                    transactionRepository.retargetTransferLegRefs(
-                        sourceAccountLast4 = source.accountLast4,
-                        targetAccountLast4 = target.accountLast4
-                    )
-                    // Re-link any debit cards bound to the source so they
-                    // keep working against the merged-into target. (Unlinking
-                    // would silently strip the user's card→account binding.)
-                    (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
-                        .forEach { card ->
-                            cardRepository.linkCardToAccount(card.id, target.accountLast4)
-                        }
-                    // Drop the source's balance snapshots. Source's running
-                    // balance was for source's standalone account, so
-                    // retargeting these snapshots into the target would
-                    // invent fictional history. Dropping is the only correct
-                    // option; the merged transactions appear on the target
-                    // without a historical balance trace.
-                    accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
-                    rows
+                val moved = BankAccountMergeStore.mutationMutex.withLock {
+                    val movedRows = database.withTransaction {
+                        // Self-transfer rows (#385) reference accounts via
+                        // `fromAccount` / `toAccount`. Re-target any references
+                        // to the source so the detail screen's From → To stays
+                        // pointing at a live account.
+                        transactionRepository.retargetTransferLegRefs(
+                            sourceBankName = source.bankName,
+                            sourceAccountLast4 = source.accountLast4,
+                            targetAccountLast4 = target.accountLast4,
+                            targetBankName = target.bankName
+                        )
+                        val rows = transactionRepository.mergeAccountTransactions(
+                            sourceBankName = source.bankName,
+                            sourceAccountLast4 = source.accountLast4,
+                            targetBankName = target.bankName,
+                            targetAccountLast4 = target.accountLast4
+                        )
+                        // Re-link any debit cards bound to the source so they
+                        // keep working against the merged-into target. (Unlinking
+                        // would silently strip the user's card→account binding.)
+                        (_uiState.value.linkedCards[source.accountLast4] ?: emptyList())
+                            .filter { it.bankName == source.bankName && it.currency == source.currency }
+                            .forEach { card ->
+                                cardRepository.linkCardToAccount(card.id, target.accountLast4)
+                            }
+                        // Drop the source's balance snapshots. Source's running
+                        // balance was for source's standalone account, so
+                        // retargeting these snapshots into the target would
+                        // invent fictional history. Dropping is the only correct
+                        // option; the merged transactions appear on the target
+                        // without a historical balance trace.
+                        accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
+                        rows
+                    }
+
+                    bankAccountMerges.onMerge(source, target)
+                    movedRows
                 }
 
                 // Clear any "hidden" preference for the now-gone source.
@@ -755,14 +758,17 @@ class ManageAccountsViewModel @Inject constructor(
         newBankName: String,
         newBalance: BigDecimal,
         newCreditLimit: BigDecimal?,
-        isCreditCard: Boolean,
+        newType: AccountType,
         newCurrency: String? = null
     ) {
         viewModelScope.launch {
             try {
                 // Update bank name if changed
                 if (newBankName != oldBankName) {
-                    accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+                    BankAccountMergeStore.mutationMutex.withLock {
+                        accountBalanceRepository.updateAccountBankName(oldBankName, accountLast4, newBankName)
+                        bankAccountMerges.forgetAccount(oldBankName, accountLast4)
+                    }
 
                     // Update hidden accounts preference if bank name changed
                     val oldKey = "${oldBankName}_${accountLast4}"
@@ -776,6 +782,14 @@ class ManageAccountsViewModel @Inject constructor(
                     }
                 }
 
+                // Type change (#792): re-tags every row of the account. It takes effect
+                // for totals and future balance math at once; past transactions and
+                // past balance figures are left as they are.
+                val beforeTypeChange = accountBalanceRepository.getLatestBalance(newBankName, accountLast4)
+                if (beforeTypeChange != null && beforeTypeChange.getAccountType() != newType) {
+                    accountBalanceRepository.setAccountType(newBankName, accountLast4, newType)
+                }
+
                 // Get existing balance to preserve profileId and other properties
                 val latestBalance = accountBalanceRepository.getLatestBalance(newBankName, accountLast4)
                 val resolvedCurrency = newCurrency ?: CurrencyFormatter.resolveAccountCurrency(
@@ -784,7 +798,7 @@ class ManageAccountsViewModel @Inject constructor(
                     bankName = newBankName
                 )
 
-                if (!isCreditCard && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
+                if (latestBalance?.isLiability != true && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
                     // Manual/cash account: balance is derived. Atomically update the
                     // currency on its anchor rows and back-solve the opening from the
                     // typed balance (option b) instead of inserting a snapshot the next
@@ -795,8 +809,12 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = resolvedCurrency,
                         targetBalance = newBalance
                     )
-                } else {
-                    // Insert new balance record with updated values
+                } else if (latestBalance == null || !latestBalance.matches(newBalance, newCreditLimit, resolvedCurrency)) {
+                    // Insert new balance record with updated values. Skipped when only the
+                    // name or type changed: a MANUAL row would make an SMS account look
+                    // manual (losing "Update Balance") and, surviving a force resync,
+                    // become the starting balance for every rebuilt SMS. The type itself
+                    // survives a resync through OptimizedSmsReaderWorker's snapshot.
                     accountBalanceRepository.insertBalance(
                         AccountBalanceEntity(
                             bankName = newBankName,
@@ -804,7 +822,7 @@ class ManageAccountsViewModel @Inject constructor(
                             balance = newBalance,
                             creditLimit = newCreditLimit,
                             timestamp = LocalDateTime.now(),
-                            isCreditCard = isCreditCard,
+                            isCreditCard = newType == AccountType.CREDIT,
                             // Honor an explicit currency edit; otherwise resolve so stamping
                             // MANUAL doesn't flip an SMS-tracked non-INR account to stored INR.
                             currency = resolvedCurrency,
@@ -831,5 +849,11 @@ class ManageAccountsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** True when [this] row already holds these values, so an edit needs no new balance row. */
+    private fun AccountBalanceEntity.matches(balance: BigDecimal, creditLimit: BigDecimal?, currency: String): Boolean {
+        fun same(a: BigDecimal?, b: BigDecimal?) = if (a == null || b == null) a == b else a.compareTo(b) == 0
+        return same(this.balance, balance) && same(this.creditLimit, creditLimit) && this.currency == currency
     }
 }

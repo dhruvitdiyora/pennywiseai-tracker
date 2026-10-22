@@ -14,6 +14,7 @@ import java.math.BigDecimal
  */
 class SmsReportRegressionTest {
 
+
     @TestFactory
     fun `reported messages parse correctly`(): List<DynamicTest> {
         val cases = listOf(
@@ -164,6 +165,255 @@ class SmsReportRegressionTest {
             )
         )
 
-        return ParserTestUtils.runFactoryTestSuite(cases, "SMS report regressions")
+        return ParserTestUtils.runFactoryTestSuite(
+            cases + SimpleTestCase(
+                // #888: the card (balance / limit) stays in INR.
+                description = "A foreign spend on an INR card keeps the card's currency INR",
+                bankName = "Axis Bank",
+                sender = "AX-AXISBK-S",
+                currency = "INR",
+                message = "Spent USD 100 Axis Bank Card no. XX0000 14-12-25 23:32:40 IST TESTMERCHANT / " +
+                    "Avl Limit: INR 57888.3 Not you? SMS BLOCK 0000 to 1800000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100"),
+                    currency = "USD",
+                    type = TransactionType.CREDIT,
+                    accountCurrency = "INR"
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // No home-currency fallback: a GBP account stays GBP even though
+                // Emirates NBD's home currency is AED.
+                description = "A foreign-currency account keeps its own currency",
+                bankName = "Emirates NBD",
+                sender = "ENBD",
+                currency = "AED",
+                message = "GBP 200.00 debited from A/C xxxx5678 on 25-Dec-25. " +
+                    "Avl Bal is GBP 3,500.00",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("200.00"),
+                    currency = "GBP",
+                    type = TransactionType.EXPENSE,
+                    expectNullAccountCurrency = true
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // #888: the INR available limit was booked as the amount.
+                description = "Axis foreign card spend books the USD amount, not the INR limit",
+                bankName = "Axis Bank",
+                sender = "AX-AXISBK-S",
+                currency = "INR",
+                message = "Spent USD 100 Axis Bank Card no. XX0000 14-12-25 23:32:40 IST TESTMERCHANT / Avl Limit: INR 57888.3 Not you? SMS BLOCK 0000 to 1800000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("100"),
+                    currency = "USD",
+                    type = TransactionType.CREDIT,
+                    creditLimit = BigDecimal("57888.3")
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                description = "Axis older foreign layout: Spent Card no. XX USD 10",
+                bankName = "Axis Bank",
+                sender = "AX-AXISBK-S",
+                currency = "INR",
+                message = "Spent Card no. XX0000 USD 10 14-12-25 23:32:40 IST TESTMERCHANT Avl Lmt INR 35182.45 Not you? SMS BLOCK 0000 to 1800000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("10"),
+                    currency = "USD",
+                    type = TransactionType.CREDIT
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                description = "ICICI foreign card debit: GBP amount, not the INR Available Limit",
+                bankName = "ICICI Bank",
+                sender = "VM-ICICIT-S",
+                currency = "INR",
+                message = "Dear Customer, GBP 1,202.00 is debited on ICICI Bank Credit Card XX0000 on 09-Jan-23. Info: TESTCOLLEGE. Available Limit: INR 3,30,022.99. Call on 1800000000 for dispute or SMS BLOCK 0000 to 1800000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1202.00"),
+                    currency = "GBP",
+                    type = TransactionType.CREDIT,
+                    merchant = "TESTCOLLEGE"
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // #887: merchant sits in the "Info:" field.
+                description = "ICICI card debit takes the merchant from Info:",
+                bankName = "ICICI Bank",
+                sender = "VM-ICICIT-S",
+                currency = "INR",
+                message = "Dear Customer, INR 1,222.65 is debited on ICICI Bank Credit Card XX0000 on 17-Jan-22. Info: Amazon. Available Limit: INR 2,43,622.73. Call on 1800000000 for dispute or SMS BLOCK 0000 to 1800000000",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1222.65"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "Amazon"
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // #885: an offer to convert the bill to EMI, not a spend.
+                description = "SmartEMI offer is not a transaction",
+                bankName = "ICICI Bank",
+                sender = "VM-ICICIT-S",
+                currency = "INR",
+                message = "UPDATE : You can convert  your Credit Card xx0000 outstanding bill of Rs.27169.6 into SmartEMI of Rs.3282 + GST for 9 months. To use this service SMS \"SMARTEMI YES\" to 1800000000. Ignore if any amount is already paid from your statement.",
+                shouldParse = false
+            ) + SimpleTestCase(
+                // Guard: a completed payment towards an EMI still parses.
+                description = "A debit towards SmartEMI is still a transaction",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                // Split literal: BankSamplesDocTest would otherwise make this
+                // guard case HDFC's showcase sample on the web tester.
+                message = "Rs.3282.00 debited from HDFC Bank A/c XX1111 on 05-10-26 " +
+                    "towards SmartEMI. Avl bal Rs.5000.00",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3282.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // "paid" (expense) was matched before "deposited" (income).
+                description = "HDFC interest deposit is income, not an expense",
+                bankName = "HDFC Bank",
+                sender = "JM-HDFCBK-S",
+                currency = "INR",
+                message = "Update! INR 6,657.00 deposited in HDFC Bank A/c XX1111 on 30-SEP-26 for Interest paid till 30-SEP-2026.Avl bal INR 12,28,554.72. Cheque deposits in A/C are subject to clearing",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("6657.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1111",
+                    balance = BigDecimal("1228554.72")
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // "Postpaid" matched the "paid" keyword; the bill is only due.
+                description = "Axis bill-due reminder is not a transaction",
+                bankName = "Axis Bank",
+                sender = "AX-AXISBK-S",
+                currency = "INR",
+                message = "Airtel Postpaid Fetch and Pay bill of INR 293.82 due on 28-09-26. Pay on https://example.invalid/pay and get instant cashback - Axis Bank",
+                shouldParse = false
+            ) + SimpleTestCase(
+                // Guard: a completed debit that mentions a due date still parses.
+                description = "A debit that mentions a due date is still a debit",
+                bankName = "Axis Bank",
+                sender = "AX-AXISBK-S",
+                currency = "INR",
+                message = "INR 5,000.00 debited from A/c XX1111 for EMI due on 05-10-26. Avl Bal INR 10,000.00",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // Guard: "Sent … From HDFC Bank" isn't a debit verb but is a payment.
+                description = "A payment sent for an EMI due on a date still parses",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                message = "Sent Rs.5000.00 From HDFC Bank A/C *1111 To TEST MERCHANT for EMI due on 05-10-26 Ref 123456789012",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // Guard: money received against a due date is still income.
+                description = "A credit received for a due date still parses",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                message = "Update! INR 2,000.00 deposited in HDFC Bank A/c XX1111 on 01-OCT-26 for rent due on 01-OCT-26.Avl bal INR 9,000.00",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                description = "HDFC PIXEL credit card spend (#861)",
+                bankName = "HDFC Bank",
+                sender = "AD-HDFCBK-S",
+                currency = "INR",
+                message = "Rs 1368.00 used on HDFC Bank PIXEL Card at TEST MERCHANT on 05/10/26 09:03.Not You? SMS BLOCKPCC 2222 to 1800000000 or https://example.invalid/b",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1368.00"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "TEST MERCHANT",
+                    accountLast4 = "2222",
+                    isFromCard = true
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                description = "slice app notification names the payer, not the account",
+                bankName = "Slice",
+                sender = "slice",
+                currency = "INR",
+                message = "UPI payment received! — You’ve got ₹1,565 from Person Name in your slice bank a/c xx1234. Avl. Bal. ₹3,502.05.",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1565"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "Person Name",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("3502.05")
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // The US ChaseBankParser accepts any sender containing "CHASE"; the
+                // UK alias must reach the GBP parser instead.
+                description = "ChaseUK alias routes to Chase UK, not the US parser",
+                bankName = "Chase UK",
+                sender = "ChaseUK",
+                currency = "GBP",
+                message = "🎉 £0.01 just landed in Test's Account from Jane Doe",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("0.01"),
+                    currency = "GBP",
+                    type = TransactionType.INCOME
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // Numeric shortcode — the parser only knew "Huntington Bank" (a contact
+                // display name), so real texts from 446622 were discarded unparsed.
+                description = "Huntington shortcode 446622 routes to Huntington",
+                bankName = "Huntington Bank",
+                sender = "446622",
+                currency = "USD",
+                message = "Huntington Heads Up. We processed an ATM withdrawal: \$17.07 at TEST ATM. Acct CK1234 has a \$500.00 bal (10/01/26 7:13 AM ET).",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("17.07"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "TEST ATM",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("500.00")
+                ),
+                shouldHandle = true
+            ) + SimpleTestCase(
+                // Numeric shortcode: must not be claimed by a parser that grabs
+                // numeric senders (EverestBank) ahead of NFCU.
+                description = "NFCU shortcode 21398 routes to Navy Federal (#852)",
+                bankName = "Navy Federal Credit Union",
+                sender = "21398",
+                currency = "USD",
+                message = "NFCU: Transaction for \$231.72 was approved on credit card 1234 at TEST MERCHANT at 07:35 AM EDT on 09/25/26.Txt STOP to opt-out. Txt HELP for help.",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("231.72"),
+                    currency = "USD",
+                    type = TransactionType.EXPENSE,
+                    isFromCard = true
+                ),
+                shouldHandle = true
+            ),
+            "SMS report regressions"
+        )
     }
 }

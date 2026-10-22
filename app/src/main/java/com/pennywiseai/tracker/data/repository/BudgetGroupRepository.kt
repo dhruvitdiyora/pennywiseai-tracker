@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
@@ -15,7 +16,7 @@ import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -236,6 +237,11 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     suspend fun createSmartDefaults(baseCurrency: String) {
+        // Defaults name built-ins by their original names; resolve each by identity
+        // so a renamed built-in gets its own allocation (#823).
+        val categories = categoryDao.getAllCategoriesList()
+        fun builtin(name: String) = categories.nameForBuiltin(name)
+
         // Default amounts based on typical monthly spending
         // Users can customize these after creation
         val isINR = baseCurrency.uppercase() == "INR" || baseCurrency == "₹"
@@ -253,14 +259,14 @@ class BudgetGroupRepository @Inject constructor(
             color = "#1565C0",
             currency = baseCurrency,
             buckets = listOf(
-                BudgetBucketInput("Food & Dining", amount(5000)),
-                BudgetBucketInput("Groceries", amount(8000)),
-                BudgetBucketInput("Shopping", amount(3000)),
-                BudgetBucketInput("Entertainment", amount(2000)),
-                BudgetBucketInput("Personal Care", amount(1000)),
-                BudgetBucketInput("Transportation", amount(3000)),
-                BudgetBucketInput("Travel", amount(5000)),
-                BudgetBucketInput("Others", amount(3000))
+                BudgetBucketInput(builtin("Food & Dining"), amount(5000)),
+                BudgetBucketInput(builtin("Groceries"), amount(8000)),
+                BudgetBucketInput(builtin("Shopping"), amount(3000)),
+                BudgetBucketInput(builtin("Entertainment"), amount(2000)),
+                BudgetBucketInput(builtin("Personal Care"), amount(1000)),
+                BudgetBucketInput(builtin("Transportation"), amount(3000)),
+                BudgetBucketInput(builtin("Travel"), amount(5000)),
+                BudgetBucketInput(builtin("Others"), amount(3000))
             ),
             displayOrder = 0
         )
@@ -272,10 +278,10 @@ class BudgetGroupRepository @Inject constructor(
             color = "#4CAF50",
             currency = baseCurrency,
             buckets = listOf(
-                BudgetBucketInput("Bills & Utilities", amount(5000)),
-                BudgetBucketInput("Mobile", amount(500)),
-                BudgetBucketInput("Insurance", amount(2000)),
-                BudgetBucketInput("Education", amount(3000))
+                BudgetBucketInput(builtin("Bills & Utilities"), amount(5000)),
+                BudgetBucketInput(builtin("Mobile"), amount(500)),
+                BudgetBucketInput(builtin("Insurance"), amount(2000)),
+                BudgetBucketInput(builtin("Education"), amount(3000))
             ),
             displayOrder = 1
         )
@@ -416,7 +422,7 @@ class BudgetGroupRepository @Inject constructor(
                 queryEnd.atTime(23, 59, 59),
                 currency
             ).map { allTxs0 ->
-                val allTxs = allTxs0.filter { it.transaction.countsInTotals() }
+                val allTxs = allTxs0.forTotals()
                 val groupSpendings = perBudgetWindows.map { (group, windows) ->
                     val budget = group.budget
                     if (windows.isEmpty()) {
@@ -486,9 +492,14 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 }
 
-                val totalLimitBudget = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                // Page totals only count budgets that cover some of this month. A
+                // budget with no window here (e.g. a one-time budget that ended
+                // last month) keeps its card but must not add its limit to the
+                // page's remaining amount or daily allowance.
+                val counted = groupSpendings.filterIndexed { i, _ -> perBudgetWindows[i].second.isNotEmpty() }
+                val totalLimitBudget = counted.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalLimitSpent = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                val totalLimitSpent = counted.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
                 
                 // Compute totalIncome from allTxs that fall within pageWindow
@@ -509,13 +520,13 @@ class BudgetGroupRepository @Inject constructor(
                     limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
 
-                val totalTargetGoal = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+                val totalTargetGoal = counted.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalTargetActual = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+                val totalTargetActual = counted.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
-                val totalExpectedBudget = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+                val totalExpectedBudget = counted.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-                val totalExpectedActual = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+                val totalExpectedActual = counted.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
                     .fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
 
                 val netSavings = totalIncome - totalLimitSpent
@@ -579,17 +590,7 @@ class BudgetGroupRepository @Inject constructor(
             val queryEnd = if (maxEnd.isBefore(monthEnd)) monthEnd else maxEnd
             val queryStart = if (minStart.isAfter(monthStart)) monthStart else minStart
 
-            val daysElapsed: Int
-            val daysRemaining: Int
-            if (isCurrentMonth) {
-                daysElapsed = (java.time.temporal.ChronoUnit.DAYS.between(pageWindow.start, today).toInt() + 1)
-                    .coerceIn(1, pageWindow.days)
-                daysRemaining = (java.time.temporal.ChronoUnit.DAYS.between(today, pageWindow.end).toInt() + 1)
-                    .coerceIn(0, pageWindow.days)
-            } else {
-                daysElapsed = pageWindow.days
-                daysRemaining = 0
-            }
+            val (daysElapsed, daysRemaining) = pageWindow.dayCounts(today, isCurrentMonth)
 
             // We also need previous cycle transactions if it's the current month
             val prevCycleQueryStart: LocalDate?
@@ -614,7 +615,7 @@ class BudgetGroupRepository @Inject constructor(
                 unionMinStart.atStartOfDay(),
                 unionMaxEnd.atTime(23, 59, 59)
             ).map { unionTxs0 ->
-                val unionTxs = unionTxs0.filter { it.transaction.countsInTotals() }
+                val unionTxs = unionTxs0.forTotals()
                 val windowed = mutableListOf<WindowSpending>()
                 val currentWindows = mutableMapOf<Long, BudgetWindow>()
                 val allTransactions = mutableListOf<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>()
@@ -681,9 +682,8 @@ class BudgetGroupRepository @Inject constructor(
         transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
     ): BigDecimal {
         return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-            val tx = txWithSplits.transaction
+            val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
             if (tx.transactionType != TransactionType.EXPENSE && tx.transactionType != TransactionType.INVESTMENT) return@fold acc
-            if (!tx.countsInTotals()) return@fold acc
             acc + tx.amount
         }
     }
@@ -789,7 +789,7 @@ class BudgetGroupRepository @Inject constructor(
                 w.start.atStartOfDay(),
                 effectiveEnd.atTime(23, 59, 59),
                 currency
-            ).first().filter { it.transaction.countsInTotals() }
+            ).first().forTotals()
             // Use the per-category-filtered total so the per-row spend
             // matches the per-category breakdown shown in the
             // "View breakdown" bottom sheet (the previous shape used
@@ -822,7 +822,7 @@ class BudgetGroupRepository @Inject constructor(
             window.start.atStartOfDay(),
             window.end.atTime(23, 59, 59),
             currency
-        ).first().filter { it.transaction.countsInTotals() }
+        ).first().forTotals()
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
             parentOf = parentOf(),
             transactions = txs,
@@ -930,17 +930,7 @@ class BudgetGroupRepository @Inject constructor(
         // today to displayWindow.end. For a historical month, the
         // displayed window is fully past, so daysElapsed = window.days
         // and daysRemaining = 0.
-        val daysElapsed: Int
-        val daysRemaining: Int
-        if (isCurrentMonth) {
-            daysElapsed = (ChronoUnit.DAYS.between(displayWindow.start, today).toInt() + 1)
-                .coerceIn(1, displayWindow.days)
-            daysRemaining = (ChronoUnit.DAYS.between(today, displayWindow.end).toInt() + 1)
-                .coerceIn(0, displayWindow.days)
-        } else {
-            daysElapsed = displayWindow.days
-            daysRemaining = 0
-        }
+        val (daysElapsed, daysRemaining) = displayWindow.dayCounts(today, isCurrentMonth)
 
         fun buildGroupPace(
             categoryNames: Set<String>?,  // null = all categories
@@ -950,11 +940,11 @@ class BudgetGroupRepository @Inject constructor(
             if (daysElapsed < 1) return emptyList<Double>() to emptyList()
             val effectiveDays = daysElapsed
             val dailyAmounts = DoubleArray(displayWindow.days)
-            displayTxs.forEach { txWithSplits ->
+            displayTxs.forEach { rawWithSplits ->
+                val txWithSplits = rawWithSplits.forTotals() ?: return@forEach
                 val tx = txWithSplits.transaction
                 if (tx.transactionType == TransactionType.INCOME ||
-                    tx.transactionType == TransactionType.TRANSFER ||
-                    !tx.countsInTotals()
+                    tx.transactionType == TransactionType.TRANSFER
                 ) return@forEach
                 val dayIndex = (ChronoUnit.DAYS.between(displayWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayWindow.days - 1)
@@ -1179,9 +1169,10 @@ suspend fun matchingTransactionsForBudget(
  *    (Refund) amounts from `categoryAmounts` (floored at zero) and
  *    accumulates ADD_TO_LIMIT (Extra budget) amounts into
  *    `categoryLimitBoosts`.
- *  - skips loan-linked and analytics-excluded transactions (`countsInTotals()`),
- *    matching [BudgetGroupRepository.sumExpensesForWindow]'s exclusion — a loan
- *    disbursement/repayment isn't discretionary spend.
+ *  - counts only each transaction's `forTotals()` part: analytics-excluded rows
+ *    and the loan portion of loan-linked rows are left out, matching
+ *    [BudgetGroupRepository.sumExpensesForWindow] — a loan isn't discretionary
+ *    spend, but your own share of a split bill is.
  *
  * `convertSplit` and `convertIncome` let callers project amounts into a
  * display currency. Same-currency callers pass identity lambdas; the
@@ -1197,10 +1188,10 @@ suspend fun aggregateBudgetCategorySpending(
 ): CategoryAggregation {
     val categoryAmounts = mutableMapOf<String, BigDecimal>()
     val typeAmounts = mutableMapOf<String, BigDecimal>()
-    for (txWithSplits in transactions) {
+    for (rawWithSplits in transactions) {
+        val txWithSplits = rawWithSplits.forTotals() ?: continue
         val type = txWithSplits.transaction.transactionType
         if (type == TransactionType.INCOME || type == TransactionType.TRANSFER) continue
-        if (!txWithSplits.transaction.countsInTotals()) continue
         val fromCurrency = txWithSplits.transaction.currency
         if (type in BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
             // Route the whole amount to its type bucket, ignoring category —

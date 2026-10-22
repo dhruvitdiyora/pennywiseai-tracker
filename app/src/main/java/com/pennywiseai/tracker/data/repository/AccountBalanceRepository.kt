@@ -8,7 +8,10 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.toDatabaseString
+import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.utils.BalanceCalculator
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -141,6 +144,11 @@ open class AccountBalanceRepository @Inject constructor(
             transactionId = null,
             smsSource = smsSource?.take(500),  // Limit to 500 chars
             sourceType = sourceType,
+            // A balance notice says nothing about the account's kind, so it keeps the
+            // card flag and limit like the type; dropping them moved a card's debt
+            // into the bank total whenever its newest row was a balance notice.
+            isCreditCard = existing?.isCreditCard ?: false,
+            creditLimit = existing?.creditLimit,
             accountType = BalanceCalculator.preservedAccountType(existing),
             currency = currency,
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
@@ -204,7 +212,15 @@ open class AccountBalanceRepository @Inject constructor(
     }
 
     suspend fun updateAccountBankName(oldBankName: String, accountLast4: String, newBankName: String): Int {
-        return accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        return database.withTransaction {
+            val ids = transactionDao.getAccountTransferLegRefIds(oldBankName, accountLast4)
+            val now = LocalDateTime.now()
+            for (batch in ids.chunked(500)) {
+                transactionDao.retargetTransferLegRefs(batch, oldBankName, newBankName, accountLast4, accountLast4, now)
+            }
+            transactionDao.mergeAccountTransactions(oldBankName, accountLast4, newBankName, accountLast4, now)
+            accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        }
     }
 
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int {
@@ -226,6 +242,29 @@ open class AccountBalanceRepository @Inject constructor(
 
     suspend fun setAccountAlias(bankName: String, accountLast4: String, alias: String?): Int {
         return accountBalanceDao.setAccountAlias(bankName, accountLast4, alias)
+    }
+
+    /**
+     * Changes an account's type on all of its balance rows, like alias/profile (#792).
+     * `is_credit_card` follows the type so the card-only paths (credit limit,
+     * Credit Cards section) switch with it. Balance figures and transactions are
+     * not touched: only how the balance is counted from now on changes.
+     */
+    suspend fun setAccountType(bankName: String, accountLast4: String, type: AccountType): Int =
+        accountBalanceDao.updateAccountType(
+            bankName, accountLast4, type.toDatabaseString(), isCreditCard = type == AccountType.CREDIT
+        )
+
+    /**
+     * Puts [snapshot]'s type and card flag back on the account's rows that lost
+     * them, e.g. rows a force resync rebuilt from balance-only SMS (#792). Only
+     * untyped rows are touched, so a type the user set after the snapshot (an
+     * edit made while the resync ran re-tags every row) is never undone. No-op
+     * for an untyped snapshot.
+     */
+    suspend fun restoreAccountType(snapshot: AccountBalanceEntity): Int {
+        val type = snapshot.accountType ?: return 0
+        return accountBalanceDao.fillMissingAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
     }
 
     /**
@@ -280,9 +319,9 @@ open class AccountBalanceRepository @Inject constructor(
                     val latest = getLatestBalance(bank, acct)
                     if (latest != null) {
                         val net = BalanceCalculator.signedBalanceEffect(
-                            latest.isCreditCard, updated!!.transactionType, updated.amount
+                            latest.isLiability, updated!!.transactionType, updated.amount
                         ) - BalanceCalculator.signedBalanceEffect(
-                            latest.isCreditCard, original!!.transactionType, original.amount
+                            latest.isLiability, original!!.transactionType, original.amount
                         )
                         if (net.signum() != 0) {
                             insertBalanceDelta(bank, acct, net, LocalDateTime.now(), updated.id)
@@ -295,9 +334,9 @@ open class AccountBalanceRepository @Inject constructor(
             if (original != null) {
                 if (original.transactionType == TransactionType.TRANSFER) {
                     shiftTransferLeg(original.fromAccount, incoming = false, revert = true,
-                        original.amount, updated?.id)
+                        original.amount, updated?.id, original.fromBankName)
                     shiftTransferLeg(original.toAccount, incoming = true, revert = true,
-                        original.amount, updated?.id)
+                        original.amount, updated?.id, original.toBankName)
                 } else if (origKey != null) {
                     shiftSingleAccount(origKey, original.transactionType, original.amount,
                         revert = true, updated?.id)
@@ -306,9 +345,9 @@ open class AccountBalanceRepository @Inject constructor(
             if (updated != null) {
                 if (updated.transactionType == TransactionType.TRANSFER) {
                     shiftTransferLeg(updated.fromAccount, incoming = false, revert = false,
-                        updated.amount, updated.id)
+                        updated.amount, updated.id, updated.fromBankName)
                     shiftTransferLeg(updated.toAccount, incoming = true, revert = false,
-                        updated.amount, updated.id)
+                        updated.amount, updated.id, updated.toBankName)
                 } else if (updKey != null) {
                     shiftSingleAccount(updKey, updated.transactionType, updated.amount,
                         revert = false, updated.id)
@@ -346,7 +385,7 @@ open class AccountBalanceRepository @Inject constructor(
         val currentAccount = getLatestBalance(bankName, accountLast4) ?: return
         // Credit-card aware (#636): a purchase on a card must *raise* its
         // outstanding, which the old debit-only formula got backwards.
-        val effect = BalanceCalculator.signedBalanceEffect(currentAccount.isCreditCard, type, amount)
+        val effect = BalanceCalculator.signedBalanceEffect(currentAccount.isLiability, type, amount)
         if (effect.signum() == 0) return
         insertBalance(
             currentAccount.copy(
@@ -426,7 +465,9 @@ open class AccountBalanceRepository @Inject constructor(
         // Pin opening anchors from the PRE-insert snapshot for manual accounts (both legs).
         ensureManualOpening(fromBankName, fromLast4)
         ensureManualOpening(toBankName, toLast4)
-        val rowId = transactionDao.insertTransaction(transaction)
+        val rowId = transactionDao.insertTransaction(transaction.copy(
+            fromBankName = fromBankName, toBankName = toBankName
+        ))
         if (rowId != -1L) {
             // FROM leg: money out. Bank-aware so a shared last4 (Kotak ••9999 vs
             // HDFC ••9999) debits the account the user actually picked. Legs are
@@ -435,7 +476,7 @@ open class AccountBalanceRepository @Inject constructor(
                 recomputeManualBalance(fromBankName, fromLast4)
             } else {
                 getLatestBalance(fromBankName, fromLast4)?.let { latest ->
-                    val effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming = false, transaction.amount)
+                    val effect = BalanceCalculator.transferLegEffect(latest.isLiability, incoming = false, transaction.amount)
                     // now() not dateTime: a back-dated leg must still postdate
                     // the latest row to become the visible balance.
                     insertBalanceDelta(fromBankName, fromLast4, effect, LocalDateTime.now(), rowId)
@@ -446,7 +487,7 @@ open class AccountBalanceRepository @Inject constructor(
                 recomputeManualBalance(toBankName, toLast4)
             } else {
                 getLatestBalance(toBankName, toLast4)?.let { latest ->
-                    val effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming = true, transaction.amount)
+                    val effect = BalanceCalculator.transferLegEffect(latest.isLiability, incoming = true, transaction.amount)
                     insertBalanceDelta(toBankName, toLast4, effect, LocalDateTime.now(), rowId)
                 }
             }
@@ -518,7 +559,7 @@ open class AccountBalanceRepository @Inject constructor(
         val (bank, acct) = key
         if (isManualAccount(bank, acct)) return
         val latest = getLatestBalance(bank, acct) ?: return
-        var effect = BalanceCalculator.signedBalanceEffect(latest.isCreditCard, type, amount)
+        var effect = BalanceCalculator.signedBalanceEffect(latest.isLiability, type, amount)
         if (revert) effect = effect.negate()
         if (effect.signum() == 0) return
         insertBalanceDelta(bank, acct, effect, LocalDateTime.now(), transactionId)
@@ -526,7 +567,7 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * Applies (or, with [revert], undoes) one TRANSFER leg's effect. Resolved by
-     * last4 alone — `from_account`/`to_account` only persist the last4. Manual
+     * bank and suffix when recorded, with a legacy suffix fallback. Manual
      * leg accounts are re-derived instead of getting a delta row (their MANUAL
      * row would fight it); an account with no anchor yet stays untouched, in
      * line with the rest of this class. Credit-card legs flip sign — money
@@ -537,16 +578,18 @@ open class AccountBalanceRepository @Inject constructor(
         incoming: Boolean,
         revert: Boolean,
         amount: BigDecimal,
-        transactionId: Long?
+        transactionId: Long?,
+        bankName: String? = null
     ) {
         if (accountLast4 == null) return
-        val latest = accountBalanceDao.getLatestBalanceByLast4(accountLast4) ?: return
+        val latest = (if (bankName != null) accountBalanceDao.getLatestBalance(bankName, accountLast4)
+            else accountBalanceDao.getLatestBalanceByLast4(accountLast4)) ?: return
         if (isManualAccount(latest.bankName, latest.accountLast4)) {
             ensureManualOpening(latest.bankName, latest.accountLast4)
             recomputeManualBalance(latest.bankName, latest.accountLast4)
             return
         }
-        var effect = BalanceCalculator.transferLegEffect(latest.isCreditCard, incoming, amount)
+        var effect = BalanceCalculator.transferLegEffect(latest.isLiability, incoming, amount)
         if (revert) effect = effect.negate()
         if (effect.signum() == 0) return
         accountBalanceDao.insertBalance(
@@ -605,11 +648,11 @@ open class AccountBalanceRepository @Inject constructor(
      * SMS-tracked accounts never match.
      */
     suspend fun isManualAccount(bankName: String, accountLast4: String): Boolean {
-        // Credit cards are excluded — their balance is outstanding owed (spending
+        // Credit cards and loans are excluded — their balance is outstanding owed (spending
         // increases it), which the income-positive recompute would get backwards.
-        accountBalanceDao.getOpeningRow(bankName, accountLast4)?.let { return !it.isCreditCard }
+        accountBalanceDao.getOpeningRow(bankName, accountLast4)?.let { return !it.isLiability }
         val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return false
-        if (latest.sourceType != SOURCE_MANUAL || latest.isCreditCard) return false
+        if (latest.sourceType != SOURCE_MANUAL || latest.isLiability) return false
         // Legacy bridge for accounts created before the OPENING model: only treat them
         // as manual if they have no SMS-sourced history. Without this, an SMS-tracked
         // account that merely had a one-off "Update balance" override (latest row MANUAL)
@@ -624,17 +667,83 @@ open class AccountBalanceRepository @Inject constructor(
      * destination, out when it's the source) and excluded from the direct sum so they're
      * never double-counted — a transfer *into* a manual account would otherwise be dropped.
      */
-    private suspend fun signedTransactionSum(bankName: String, accountLast4: String): BigDecimal {
+    private suspend fun signedTransactionSum(
+        bankName: String,
+        accountLast4: String,
+        after: LocalDateTime? = null
+    ): BigDecimal {
+        fun inWindow(tx: TransactionEntity) = after == null || tx.dateTime > after
         var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER }
+            .filter { it.transactionType != TransactionType.TRANSFER && inWindow(it) }
             .fold(BigDecimal.ZERO) { acc, tx ->
                 if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
-            if (tx.toAccount == accountLast4) sum += tx.amount
-            if (tx.fromAccount == accountLast4) sum -= tx.amount
+        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
+            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
+            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
         }
         return sum
+    }
+
+    /**
+     * The account's balance at [end], as well as the ledger knows it (#13). A
+     * manual account's balance is derived, so it's today's figure minus every
+     * transaction after [end]; any other account's is its last recorded balance
+     * at or before [end] (null when it has none that early).
+     */
+    suspend fun balanceAsOf(bankName: String, accountLast4: String, end: LocalDateTime): BigDecimal? {
+        val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return null
+        if (isManualAccount(bankName, accountLast4)) {
+            return latest.balance - signedTransactionSum(bankName, accountLast4, after = end)
+        }
+        return accountBalanceDao.getBalanceHistoryForAccount(bankName, accountLast4) // newest first
+            .firstOrNull { it.timestamp <= end && it.sourceType != SOURCE_OPENING }
+            ?.balance
+    }
+
+    /**
+     * "Update balance" for a non-card account: the user's figure becomes the
+     * current balance. A manual account back-solves its opening so later
+     * transactions still adjust from there; an SMS-tracked one gets a MANUAL
+     * snapshot that a rescan won't purge.
+     */
+    suspend fun setCurrentBalance(
+        bankName: String,
+        accountLast4: String,
+        newBalance: BigDecimal,
+        // When the figure was true (a statement's end); a manual account's row is always "now".
+        at: LocalDateTime = LocalDateTime.now()
+    ) {
+        if (isManualAccount(bankName, accountLast4)) {
+            setManualCurrentBalance(bankName, accountLast4, newBalance)
+            return
+        }
+        val latestBalance = getLatestBalance(bankName, accountLast4)
+        insertBalance(
+            AccountBalanceEntity(
+                bankName = bankName,
+                accountLast4 = accountLast4,
+                balance = newBalance,
+                creditLimit = latestBalance?.creditLimit,
+                isCreditCard = latestBalance?.isCreditCard ?: false,
+                // Reinserted rows are stamped MANUAL (so a rescan won't purge a
+                // user-edited balance), but that makes resolveAccountCurrency trust
+                // the stored value. Resolve it first so an SMS-tracked non-INR
+                // account keeps its parser currency instead of flipping to the
+                // stored INR default. See [CurrencyFormatter.resolveAccountCurrency].
+                currency = CurrencyFormatter.resolveAccountCurrency(
+                    sourceType = latestBalance?.sourceType,
+                    storedCurrency = latestBalance?.currency ?: "INR",
+                    bankName = bankName
+                ),
+                accountType = latestBalance?.accountType,
+                profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                alias = latestBalance?.alias,
+                lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
+                sourceType = SOURCE_MANUAL,
+                timestamp = at
+            )
+        )
     }
 
     /** One-shot account list; see [AccountBalanceDao.getAllLatestBalancesOnce]. */

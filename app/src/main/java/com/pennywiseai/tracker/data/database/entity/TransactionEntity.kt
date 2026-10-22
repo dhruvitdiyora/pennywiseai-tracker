@@ -88,6 +88,12 @@ data class TransactionEntity(
     @ColumnInfo(name = "to_account")
     val toAccount: String? = null,
 
+    @ColumnInfo(name = "from_bank_name", defaultValue = "NULL")
+    val fromBankName: String? = null,
+
+    @ColumnInfo(name = "to_bank_name", defaultValue = "NULL")
+    val toBankName: String? = null,
+
     @ColumnInfo(name = "reference")
     val reference: String? = null,
 
@@ -101,6 +107,13 @@ data class TransactionEntity(
     @ColumnInfo(name = "loan_contribution", defaultValue = "NULL")
     @Contextual
     val loanContribution: BigDecimal? = null,
+
+    // Split bill (#346): the sum of this transaction's loan_shares rows, the
+    // part other people owe you. Null when it isn't split. LoanRepository keeps
+    // it in step with the rows so countedAmount() can subtract it without a join.
+    @ColumnInfo(name = "lent_shares_total", defaultValue = "NULL")
+    @Contextual
+    val lentSharesTotal: BigDecimal? = null,
 
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
     val receiptPath: String? = null,

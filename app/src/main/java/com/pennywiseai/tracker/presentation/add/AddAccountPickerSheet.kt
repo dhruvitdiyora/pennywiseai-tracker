@@ -47,6 +47,7 @@ import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.iconax.Card as CardIconax
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Wallet3
+import com.pennywiseai.tracker.ui.icons.iconax.WalletMinus
 import com.pennywiseai.tracker.ui.icons.iconax.WalletMoney
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -323,10 +324,12 @@ private fun AccountType.localizedName(): String = when (this) {
     AccountType.CURRENT -> stringResource(R.string.account_type_current)
     AccountType.CREDIT -> stringResource(R.string.account_type_credit)
     AccountType.CASH -> stringResource(R.string.account_type_cash)
+    AccountType.LOAN -> stringResource(R.string.account_type_loan)
 }
 
 private fun AccountType.glyph(): ImageVector = when (this) {
     AccountType.CASH -> Iconax.WalletMoney
     AccountType.CREDIT -> Iconax.CardIconax
     AccountType.SAVINGS, AccountType.CURRENT -> Iconax.Wallet3
+    AccountType.LOAN -> Iconax.WalletMinus
 }

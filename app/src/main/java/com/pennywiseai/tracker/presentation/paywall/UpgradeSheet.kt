@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.screens.settings.glassSheet
 import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.compose.animation.AnimatedContent
@@ -62,7 +63,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -78,6 +78,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
+import com.pennywiseai.tracker.ui.theme.yellow_on_light
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -340,7 +341,7 @@ private fun SupportNote() {
         Text(
             text = stringResource(R.string.upgrade_support_note),
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF3A2B00),
+            color = yellow_on_light,
         )
     }
 }
@@ -372,7 +373,7 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
 
 @Composable
 private fun ProAvailableLine() {
-    val domain = remember { Constants.Links.WEB_PARSER_URL.removePrefix("https://") }
+    val address = remember { Constants.Links.PRO_PAGE_URL.removePrefix("https://") }
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
 
@@ -393,7 +394,7 @@ private fun ProAvailableLine() {
     ) {
         SelectionContainer {
             Text(
-                text = stringResource(R.string.upgrade_available_at, domain),
+                text = stringResource(R.string.upgrade_available_at, address),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -402,7 +403,7 @@ private fun ProAvailableLine() {
         TextButton(
             onClick = {
                 // Exactly the text shown above — the user pastes it themselves.
-                clipboard.setText(AnnotatedString(domain))
+                clipboard.setText(AnnotatedString(address))
                 copied = true
             },
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
@@ -428,6 +429,7 @@ private val PRO_FEATURES = listOf(
     R.string.upgrade_feature_statements,
     R.string.upgrade_feature_csv,
     R.string.upgrade_feature_merge_accounts,
+    R.string.upgrade_feature_goals,
 )
 
 @Composable

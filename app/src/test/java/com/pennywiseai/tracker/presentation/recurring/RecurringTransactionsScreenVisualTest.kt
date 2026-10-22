@@ -310,7 +310,11 @@ class RecurringTransactionsScreenVisualTest {
             TestTheme(darkTheme, amoled, fontScale, layoutDirection) {
                 RecurringEditorDialog(
                     form = form,
-                    categoryNames = listOf("Food", "Household", "Salary"),
+                    categories = listOf("Food", "Household", "Salary").map {
+                        com.pennywiseai.tracker.data.database.entity.CategoryEntity(
+                            name = it, color = "#4CAF50", isIncome = it == "Salary"
+                        )
+                    },
                     onDismiss = {},
                     onSave = onSave,
                 )

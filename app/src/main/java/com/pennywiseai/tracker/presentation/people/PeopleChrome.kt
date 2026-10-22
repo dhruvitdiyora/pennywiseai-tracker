@@ -229,6 +229,7 @@ internal fun TonalTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     prefix: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
 ) {
     TextField(
         value = value,
@@ -240,6 +241,7 @@ internal fun TonalTextField(
         label = { Text(text = label, fontWeight = FontWeight.SemiBold) },
         placeholder = placeholder?.let { hint -> { Text(hint) } },
         prefix = prefix,
+        leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         supportingText = supportingText?.let { message -> { Text(message) } },
         isError = isError,

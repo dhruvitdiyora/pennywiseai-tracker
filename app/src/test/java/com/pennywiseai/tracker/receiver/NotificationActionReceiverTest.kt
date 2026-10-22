@@ -85,6 +85,11 @@ class NotificationActionReceiverTest {
         override fun personDao(): PersonDao = error("unused")
         override fun tagDao(): TagDao = error("unused")
         override fun recurringTransactionDao(): RecurringTransactionDao = error("unused")
+        override fun webhookProfileDao(): WebhookProfileDao = error("unused")
+        override fun webhookLogDao(): WebhookLogDao = error("unused")
+        override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
+        override fun webhookCursorDao(): WebhookCursorDao = error("unused")
+        override fun goalDao(): com.pennywiseai.tracker.data.database.dao.GoalDao = error("unused")
         override fun createOpenHelper(config: DatabaseConfiguration): SupportSQLiteOpenHelper = error("unused")
         override fun createInvalidationTracker(): InvalidationTracker = error("unused")
         override fun clearAllTables() {}
@@ -164,8 +169,7 @@ class NotificationActionReceiverTest {
         transactionRepository = object : TransactionRepository(
             transactionDao,
             splitDao,
-            object : com.pennywiseai.tracker.data.preferences.UserPreferencesRepository(mockContext) {}
-        ) {
+            object : com.pennywiseai.tracker.data.preferences.UserPreferencesRepository(mockContext) {}, io.mockk.mockk(relaxed = true), io.mockk.mockk(relaxed = true)) {
             override suspend fun getTransactionById(id: Long): TransactionEntity? = transactions[id]
             override suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean) {
                 val current = transactions[transaction.id]

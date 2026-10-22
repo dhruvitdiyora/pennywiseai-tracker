@@ -302,7 +302,7 @@ internal fun GroupTransactionRow(
         TransactionType.INCOME -> "+"
         else -> ""
     }
-    val amountText = "$sign${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)}"
+    val amountText = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency))
     val description = transaction.description?.takeIf { it.isNotBlank() }
     val dateText = remember(transaction.dateTime, showYear) {
         transaction.dateTime.format(DateTimeFormatter.ofPattern(if (showYear) "d MMM yyyy" else "d MMM"))

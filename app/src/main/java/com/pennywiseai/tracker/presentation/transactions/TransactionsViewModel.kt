@@ -42,7 +42,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -472,14 +472,21 @@ class TransactionsViewModel @Inject constructor(
 
             // Source of the money = the EXPENSE row's account.
             // Destination = the INCOME row's account.
+            // A split bill (#346) is money others owe you, not a transfer. Read fresh.
+            if (listOf(aId, bId).any { transactionRepository.getTransactionById(it)?.lentSharesTotal != null }) {
+                _bulkSnack.value = BulkSnack(UiText.Res(R.string.split_error_transfer))
+                return@launch
+            }
+
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
             val fromAcct = expense.accountNumber
             val toAcct = income.accountNumber
 
             // Snapshot for Undo: type + the two account fields per row.
-            data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?)
+            data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
+                val fromBankName: String?, val toBankName: String?)
             val originals = listOf(a, b).associate {
-                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount)
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName)
             }
 
             val now = java.time.LocalDateTime.now()
@@ -488,6 +495,8 @@ class TransactionsViewModel @Inject constructor(
                     transactionType = TransactionType.TRANSFER,
                     fromAccount = fromAcct,
                     toAccount = toAcct,
+                    fromBankName = expense.bankName,
+                    toBankName = income.bankName,
                     updatedAt = now
                 )
             )
@@ -496,6 +505,8 @@ class TransactionsViewModel @Inject constructor(
                     transactionType = TransactionType.TRANSFER,
                     fromAccount = fromAcct,
                     toAccount = toAcct,
+                    fromBankName = expense.bankName,
+                    toBankName = income.bankName,
                     updatedAt = now
                 )
             )
@@ -513,6 +524,8 @@ class TransactionsViewModel @Inject constructor(
                                         transactionType = snapshot.type,
                                         fromAccount = snapshot.fromAccount,
                                         toAccount = snapshot.toAccount,
+                                        fromBankName = snapshot.fromBankName,
+                                        toBankName = snapshot.toBankName,
                                         updatedAt = nowUndo
                                     )
                                 )
@@ -541,7 +554,9 @@ class TransactionsViewModel @Inject constructor(
                 message = UiText.Plural(R.plurals.txn_list_bulk_deleted, snapshot.size),
                 undo = {
                     viewModelScope.launch {
-                        restoreTransactionUseCase(snapshot)
+                        // The snapshot predates the delete, and restore skips rows it
+                        // sees as not deleted; it re-reads each row before restoring.
+                        restoreTransactionUseCase(snapshot.map { it.copy(isDeleted = true) })
                         refreshWidgets()
                     }
                 }
@@ -1263,6 +1278,11 @@ class TransactionsViewModel @Inject constructor(
         setSortOption(SortOption.DATE_NEWEST)
     }
     
+    /** A navigated type name, or All when absent, unknown or not listable (Spending). */
+    private fun navigatedType(type: String?): TransactionTypeFilter =
+        TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
+            ?: TransactionTypeFilter.ALL
+
     private fun decodeUrlParam(value: String): String {
         return if (value.contains("+") || value.contains("%")) {
             java.net.URLDecoder.decode(value, "UTF-8")
@@ -1275,11 +1295,17 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?,
         startDateEpochDay: Long? = null,
-        endDateEpochDay: Long? = null
+        endDateEpochDay: Long? = null,
+        account: String? = null,
+        tag: String? = null,
+        type: String? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
             resetScopedFiltersForNavigation()
+            setTransactionTypeFilter(navigatedType(type))
+            setAccountFilter(account)
+            setTagFilter(tag)
 
             category?.let {
                 val decoded = decodeUrlParam(it)
@@ -1332,11 +1358,14 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?,
         startDateEpochDay: Long? = null,
-        endDateEpochDay: Long? = null
+        endDateEpochDay: Long? = null,
+        account: String? = null,
+        tag: String? = null,
+        type: String? = null
     ) {
         // Create current params to compare
         val currentParams = NavigationParams(
-            category, merchant, period, currency, startDateEpochDay, endDateEpochDay
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type
         )
 
         // Only apply navigation filters if:
@@ -1352,6 +1381,9 @@ class TransactionsViewModel @Inject constructor(
 
         // Reset filters for new navigation
         resetScopedFiltersForNavigation()
+        setTransactionTypeFilter(navigatedType(type))
+        setAccountFilter(account)
+        setTagFilter(tag)
 
         category?.let {
             val decoded = decodeUrlParam(it)
@@ -1570,14 +1602,8 @@ class TransactionsViewModel @Inject constructor(
         
         // Apply transaction type filter
         val typeFilteredFlow = periodFilteredFlow.map { transactions ->
-            when (typeFilter) {
-                TransactionTypeFilter.ALL -> transactions
-                TransactionTypeFilter.INCOME -> transactions.filter { it.transactionType == TransactionType.INCOME }
-                TransactionTypeFilter.EXPENSE -> transactions.filter { it.transactionType == TransactionType.EXPENSE }
-                TransactionTypeFilter.CREDIT -> transactions.filter { it.transactionType == TransactionType.CREDIT }
-                TransactionTypeFilter.TRANSFER -> transactions.filter { it.transactionType == TransactionType.TRANSFER }
-                TransactionTypeFilter.INVESTMENT -> transactions.filter { it.transactionType == TransactionType.INVESTMENT }
-            }
+            val types = typeFilter.transactionTypes
+            if (types == null) transactions else transactions.filter { it.transactionType in types }
         }
         
         // Apply search filter
@@ -1661,7 +1687,7 @@ class TransactionsViewModel @Inject constructor(
         // period's Income/Expense/etc. totals — loans are tracked in the Loans
         // feature, and excluded txns are opted out of every spend figure by the
         // user. Matches the Home/Analytics convention (HomeViewModel#1142).
-        val nonLoanTransactions = transactions.filter { it.countsInTotals() }
+        val nonLoanTransactions = transactions.forTotals()
         val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
 
         val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
@@ -1787,7 +1813,10 @@ private data class NavigationParams(
     val period: String?,
     val currency: String?,
     val startDateEpochDay: Long? = null,
-    val endDateEpochDay: Long? = null
+    val endDateEpochDay: Long? = null,
+    val account: String? = null,
+    val tag: String? = null,
+    val type: String? = null
 )
 
 /**

@@ -56,12 +56,12 @@ class PennyWiseDatabaseMigrationTest {
     }
 
     @Test
-    fun migration62To63_handlesPreexistingPersonColumnWithoutDuplicates() {
+    fun migration67To68_handlesPreexistingPersonColumnWithoutDuplicates() {
         val db = openHelper.writableDatabase
         db.execSQL("INSERT INTO `loans` (`person_name`) VALUES ('Example')")
 
-        PennyWiseDatabase.MIGRATION_62_63.migrate(db)
-        PennyWiseDatabase.MIGRATION_62_63.migrate(db)
+        PennyWiseDatabase.MIGRATION_67_68.migrate(db)
+        PennyWiseDatabase.MIGRATION_67_68.migrate(db)
 
         db.query("PRAGMA table_info(`loans`)").use { cursor ->
             val nameIndex = cursor.getColumnIndexOrThrow("name")

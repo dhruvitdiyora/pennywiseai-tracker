@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -72,6 +73,7 @@ import com.pennywiseai.tracker.presentation.people.PeopleTonalActionButton
 import com.pennywiseai.tracker.presentation.people.LiftedHeaderAvatarSize
 import com.pennywiseai.tracker.presentation.people.PersonAvatar
 import com.pennywiseai.tracker.presentation.people.initialsOf
+import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SubtitleTag
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
@@ -204,10 +206,8 @@ fun LoanDetailScreen(
                 item(key = "history-empty") { LoanHistoryEmpty() }
             } else {
                 itemsIndexed(uiState.linkedTransactions, key = { _, txn -> txn.id }) { index, txn ->
-                    // Original transaction type matches loan direction (LENT→EXPENSE, BORROWED→INCOME)
-                    val isOriginal = if (loan.direction == LoanDirection.LENT)
-                        txn.transactionType == TransactionType.EXPENSE
-                    else txn.transactionType == TransactionType.INCOME
+                    // Principal flows the loan's way (LENT→money out, BORROWED→money in).
+                    val isOriginal = LoanMath.isPrincipal(loan.direction, txn.transactionType)
                     LoanTransactionItem(
                         transaction = txn,
                         isOriginal = isOriginal,
@@ -517,32 +517,23 @@ private fun LoanTransactionItem(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    // Color reflects the actual money flow: red = money out, green = money in
-    val color = when (transaction.transactionType) {
-        TransactionType.EXPENSE -> scheme.expense
-        TransactionType.INCOME -> scheme.income
-        else -> scheme.onSurface
-    }
-    val sign = when (transaction.transactionType) {
-        TransactionType.EXPENSE -> "-"
-        TransactionType.INCOME -> "+"
-        else -> ""
-    }
-    val icon = when (transaction.transactionType) {
-        TransactionType.EXPENSE -> Icons.Default.ArrowUpward
-        TransactionType.INCOME -> Icons.Default.ArrowDownward
-        else -> Icons.Default.SwapHoriz
-    }
+    // Color reflects the actual money flow: red = money out, green = money in.
+    // Every type but INCOME is money out, as in the loan's own math (#876).
+    val moneyIn = transaction.transactionType == TransactionType.INCOME
+    val color = if (moneyIn) scheme.income else scheme.expense
+    val sign = if (moneyIn) "+" else "-"
+    val icon = if (moneyIn) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward
     val date = transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy"))
     val originalLabel = stringResource(R.string.loan_detail_original_chip)
+    val note = transaction.description?.takeIf { it.isNotBlank() }
 
     ListItemCardV2(
         title = transaction.merchantName,
         // One sentence for accessibility; the tag below is its visual form.
-        subtitle = if (isOriginal) "$date, $originalLabel" else date,
+        subtitle = listOfNotNull(date, originalLabel.takeIf { isOriginal }, note).joinToString(", "),
         // Show the portion assigned to this loan, not the full transaction
         // amount — matches how the loan total is computed (#681).
-        amount = "$sign${CurrencyFormatter.formatCurrency(transaction.loanContribution ?: transaction.amount, transaction.currency)}",
+        amount = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.loanContribution ?: transaction.amount, transaction.currency)),
         amountColor = color,
         leadingContent = {
             IconTile(
@@ -556,17 +547,29 @@ private fun LoanTransactionItem(
         shape = position.toShape(),
         onClick = onClick,
         subtitleContent = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = date,
-                    style = PennyWiseText.metadata,
-                    color = scheme.onSurfaceVariant,
-                )
-                if (isOriginal) {
-                    SubtitleTag(text = originalLabel, color = scheme.primary)
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = date,
+                        style = PennyWiseText.metadata,
+                        color = scheme.onSurfaceVariant,
+                    )
+                    if (isOriginal) {
+                        SubtitleTag(text = originalLabel, color = scheme.primary)
+                    }
+                }
+                // This transaction's own note, not the loan's (#876).
+                note?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         },

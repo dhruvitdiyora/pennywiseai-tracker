@@ -97,6 +97,9 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    // Account key / tag carried by an analytics group drill-down (#422)
+    initialAccount: String? = null,
+    initialTag: String? = null,
     focusSearch: Boolean = false,
     // New parameters for budget navigation
     initialStartDateEpochDay: Long? = null,
@@ -247,7 +250,10 @@ fun TransactionsScreen(
             initialPeriod,
             initialCurrency,
             initialCustomStartEpochDay,
-            initialCustomEndEpochDay
+            initialCustomEndEpochDay,
+            initialAccount,
+            initialTag,
+            initialTransactionType
         )
     }
 
@@ -255,15 +261,18 @@ fun TransactionsScreen(
     var processedNavParams by rememberSaveable { mutableStateOf(false) }
 
     // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay) {
-        if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null)) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag, initialTransactionType) {
+        if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null || initialAccount != null || initialTag != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
                 initialMerchant,
                 initialPeriod,
                 initialCurrency,
                 initialCustomStartEpochDay,
-                initialCustomEndEpochDay
+                initialCustomEndEpochDay,
+                initialAccount,
+                initialTag,
+                initialTransactionType
             )
             processedNavParams = true
         }
@@ -593,14 +602,14 @@ fun TransactionsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             // In selection mode the sticky card shows the totals of
-                            // just the selected rows (#634), with the credit tile the
-                            // reporter asked for; otherwise the filtered-list totals.
+                            // just the selected rows (#634); otherwise the filtered-list
+                            // totals. The fourth tile is picked by [extraTotalFor].
                             val cardTotals = if (selectionMode) selectionTotals else filteredTotals
                             TransactionTotalsCard(
                                 income = cardTotals.income,
                                 expenses = cardTotals.expenses,
                                 netBalance = cardTotals.netBalance,
-                                credit = if (selectionMode) cardTotals.credit else null,
+                                extra = extraTotalFor(cardTotals, transactionTypeFilter, selectionMode),
                                 title = if (selectionMode) {
                                     stringResource(R.string.txn_list_selected_count, selectedIds.size)
                                 } else {

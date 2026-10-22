@@ -184,6 +184,21 @@ object Dimensions {
          */
         val progressBarHeight = 8.dp
 
+        /** Goal progress ring on a card, and its stroke (#914). */
+        val goalRing = 56.dp
+        val goalRingStroke = 6.dp
+
+        /** A goal ring in a list row (the Add to goal picker), and its stroke. */
+        val goalRingSmall = 40.dp
+        val goalRingSmallStroke = 4.dp
+
+        /** The big goal ring on the goal's own screen, and its stroke. */
+        val goalRingLarge = 168.dp
+        val goalRingLargeStroke = 12.dp
+
+        /** One column of a spreadsheet preview (statement import's column mapping, #13). */
+        val tableCellWidth = 112.dp
+
         /** The colour dot beside a chart legend entry. */
         val legendDot = 10.dp
 

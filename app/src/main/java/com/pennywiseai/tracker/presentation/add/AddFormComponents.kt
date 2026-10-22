@@ -51,6 +51,7 @@ import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.iconax.Calendar
 import com.pennywiseai.tracker.ui.icons.iconax.Card as CardIconax
 import com.pennywiseai.tracker.ui.icons.iconax.Danger
+import com.pennywiseai.tracker.ui.icons.iconax.WalletMinus
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Wallet3
 import com.pennywiseai.tracker.ui.icons.iconax.WalletMoney
@@ -638,6 +639,7 @@ private fun AccountLeadingIcon(account: AccountBalanceEntity?) {
         imageVector = when (account?.getAccountType()) {
             AccountType.CASH -> Iconax.WalletMoney
             AccountType.CREDIT -> Iconax.CardIconax
+            AccountType.LOAN -> Iconax.WalletMinus
             AccountType.SAVINGS, AccountType.CURRENT, null -> Iconax.Wallet3
         },
         contentDescription = null,

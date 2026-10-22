@@ -74,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -88,6 +89,11 @@ import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
+import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.legibleOn
@@ -249,7 +255,7 @@ fun RecurringTransactionsScreen(
     editing?.let { form ->
         RecurringEditorDialog(
             form = form,
-            categoryNames = categories.map { it.name },
+            categories = categories,
             onDismiss = { editing = null },
             onSave = { viewModel.save(it); editing = null }
         )
@@ -659,7 +665,7 @@ internal fun RecurringItem(
 @Composable
 internal fun RecurringEditorDialog(
     form: RecurringFormState,
-    categoryNames: List<String>,
+    categories: List<CategoryEntity>,
     onDismiss: () -> Unit,
     onSave: (RecurringFormState) -> Unit
 ) {
@@ -667,6 +673,12 @@ internal fun RecurringEditorDialog(
     var freqExpanded by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
     var dowExpanded by remember { mutableStateOf(false) }
+    // Switching type picks that type's default; switching back restores what the item opened with.
+    fun categoryFor(type: TransactionType): String = when {
+        type == form.transactionType -> form.category
+        type == TransactionType.INCOME -> categories.pickerDefault("Income", isIncome = true)
+        else -> categories.pickerDefault("Others", isIncome = false)
+    }
 
     val dayOfWeekNames = remember { recurringDayOfWeekNames() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -738,12 +750,21 @@ internal fun RecurringEditorDialog(
             ) {
                 AddChoiceChip(
                     selected = state.transactionType == TransactionType.EXPENSE,
-                    onClick = { state = state.copy(transactionType = TransactionType.EXPENSE) },
+                    onClick = {
+                        // Switching type picks that type's default category (#876).
+                        if (state.transactionType != TransactionType.EXPENSE) {
+                            state = state.copy(transactionType = TransactionType.EXPENSE, category = categoryFor(TransactionType.EXPENSE))
+                        }
+                    },
                     label = stringResource(R.string.recurring_expense)
                 )
                 AddChoiceChip(
                     selected = state.transactionType == TransactionType.INCOME,
-                    onClick = { state = state.copy(transactionType = TransactionType.INCOME) },
+                    onClick = {
+                        if (state.transactionType != TransactionType.INCOME) {
+                            state = state.copy(transactionType = TransactionType.INCOME, category = categoryFor(TransactionType.INCOME))
+                        }
+                    },
                     label = stringResource(R.string.recurring_income)
                 )
             }
@@ -761,6 +782,7 @@ internal fun RecurringEditorDialog(
                         label = stringResource(R.string.recurring_field_category),
                         position = ListItemPosition.Top,
                         readOnly = true,
+                        leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoryExpanded) },
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     )
@@ -768,15 +790,14 @@ internal fun RecurringEditorDialog(
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false }
                     ) {
-                        categoryNames.forEach { name ->
-                            DropdownMenuItem(
-                                text = { Text(name) },
-                                onClick = {
-                                    state = state.copy(category = name)
-                                    categoryExpanded = false
-                                }
-                            )
-                        }
+                        CategoryMenuItems(
+                            categories = categories,
+                            isIncome = state.transactionType == TransactionType.INCOME,
+                            onSelected = {
+                                state = state.copy(category = it.name)
+                                categoryExpanded = false
+                            }
+                        )
                     }
                 }
 

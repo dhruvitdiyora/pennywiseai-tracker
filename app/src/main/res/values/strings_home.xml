@@ -15,6 +15,7 @@
 
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budgets</string>
+    <string name="home_section_goals">Goals</string>
     <string name="home_section_loans">Loans</string>
     <string name="home_section_groups">Groups</string>
     <string name="home_section_recent_transactions">Recent Transactions</string>
@@ -31,9 +32,11 @@
     <string name="home_fab_add">Add Transaction or Subscription</string>
     <string name="home_fab_sync">Sync SMS (long press for full resync)</string>
     <string name="home_fab_sync_hint">Hold for full resync</string>
-    <string name="home_resync_title">Full Resync</string>
-    <string name="home_resync_message">This will reprocess all SMS messages from scratch. Use this to fix issues caused by updated bank parsers.\n\nYour loans, grouped transactions, and merchant mappings are preserved.\n\nThis may take a few seconds depending on your message history.</string>
-    <string name="home_resync_confirm">Resync All</string>
+    <string name="home_resync_title">Read messages again</string>
+    <string name="home_resync_scan_again">Scan all messages again</string>
+    <string name="home_resync_scan_again_desc">Adds anything that was missed. Your edits and all existing transactions stay as they are.</string>
+    <string name="home_resync_rebuild">Rebuild from scratch</string>
+    <string name="home_resync_rebuild_desc">Re-reads SMS transactions to pick up parser fixes. Edits to SMS transactions are reset. Manual, imported, loan and grouped transactions are kept.</string>
 
     <!-- More options sheet -->
     <string name="home_menu_title">More Options</string>
@@ -101,6 +104,8 @@
     <string name="color_swatch_selected">Selected</string>
     <string name="profile_filter_all_accounts">All Accounts</string>
     <string name="whats_new_got_it">Got it</string>
+    <string name="whats_new_title">What\'s new</string>
+    <string name="whats_new_version">Version %1$s</string>
 
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Tap here to scan your SMS messages for transactions</string>
@@ -111,6 +116,7 @@
     <string name="type_filter_income">Income</string>
     <string name="type_filter_expense">Expense</string>
     <string name="type_filter_credit">Credit</string>
+    <string name="type_filter_spending">Spending</string>
     <string name="type_filter_transfer">Transfer</string>
     <string name="type_filter_investment">Invest</string>
 
@@ -323,5 +329,11 @@
 
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>
+
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
+    <string name="pro_home_card_title">Enjoying PennyWise?</string>
+    <string name="pro_home_card_body">Pro adds unlimited rules, goals, exports and statement imports.</string>
+    <string name="pro_home_card_action">See Pro</string>
+    <string name="pro_home_card_dismiss">Dismiss</string>
 
 </resources>

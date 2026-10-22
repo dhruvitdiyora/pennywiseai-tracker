@@ -46,7 +46,7 @@ object Chat
 data class TransactionDetail(val transactionId: Long)
 
 @Serializable
-data class AddTransaction(val sourceTransactionId: Long? = null)
+data class AddTransaction(val sourceTransactionId: Long? = null, val sharedText: String? = null)
 
 @Serializable
 data class AccountDetail(val bankName: String, val accountLast4: String)
@@ -66,8 +66,9 @@ data class CreateRule(val ruleId: String? = null, val duplicateFromId: String? =
 @Serializable
 object ExchangeRates
 
+/** The Budgets screen; [createGoal] starts "New goal" on open (Pro gate included), as the goals widget's "+" does. */
 @Serializable
-object BudgetGroups
+data class BudgetGroups(val createGoal: Boolean = false)
 
 @Serializable
 data class BudgetGroupEdit(val groupId: Long = -1L)
@@ -83,6 +84,14 @@ data class BudgetHistory(
     val year: Int,
     val month: Int
 )
+
+/** A savings Goal's own screen (#914). */
+@Serializable
+data class GoalDetail(val goalId: Long)
+
+/** Create (goalId = -1) or edit a Goal. */
+@Serializable
+data class GoalEdit(val goalId: Long = -1L)
 
 @Serializable
 data class BudgetDetail(
@@ -117,6 +126,12 @@ data class TransactionGroupDetail(val groupId: Long)
 
 @Serializable
 object ImportStatement
+
+@Serializable
+object Webhooks
+
+@Serializable
+object AiAccess
 
 @Serializable
 data class TransactionsWithFilter(

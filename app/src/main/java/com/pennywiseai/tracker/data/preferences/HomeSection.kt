@@ -11,6 +11,7 @@ package com.pennywiseai.tracker.data.preferences
  */
 enum class HomeSection(val label: String) {
     BUDGETS("Budgets"),
+    GOALS("Goals"),
     LOANS("Loans"),
     GROUPS("Groups"),
     RECENT_TRANSACTIONS("Recent Transactions"),
@@ -32,6 +33,7 @@ object HomeSectionLayout {
      */
     val DEFAULT: List<Pair<HomeSection, Boolean>> = listOf(
         HomeSection.RECENT_TRANSACTIONS,
+        HomeSection.GOALS,
         HomeSection.ACCOUNTS,
         HomeSection.SUBSCRIPTIONS,
         HomeSection.BUDGETS,

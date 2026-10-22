@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -478,3 +479,8 @@ fun CadencePill(periodType: BudgetPeriodType) {
             .padding(horizontal = Spacing.sm, vertical = 2.dp)
     )
 }
+
+/** A whisper of the budget's color over the card surface (#763). */
+@Composable
+fun Color.tintedSurface(): Color =
+    copy(alpha = 0.10f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow)

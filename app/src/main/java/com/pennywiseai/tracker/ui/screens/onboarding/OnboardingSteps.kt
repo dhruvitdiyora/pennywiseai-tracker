@@ -1,5 +1,23 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
+import android.app.LocaleConfig
+import android.app.LocaleManager
+import android.os.Build
+import android.os.LocaleList
+import androidx.annotation.RequiresApi
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import java.text.Collator
+import java.util.Locale
 import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.screens.settings.glassRow
@@ -79,7 +97,7 @@ private const val WELCOME_RING_ALPHA = Dimensions.Alpha.decorativeWatermark * 2f
 // ── Welcome ───────────────────────────────────────────────────────────────
 
 @Composable
-internal fun OnboardingWelcomeStep() {
+internal fun OnboardingWelcomeStep(uiState: OnBoardingUiState, viewModel: OnBoardingViewModel) {
     FirstRunColumn {
         PhonePreviewFrame { WelcomeHeroArt() }
         Spacer(Modifier.height(Spacing.lg))
@@ -90,8 +108,117 @@ internal fun OnboardingWelcomeStep() {
         )
         Spacer(Modifier.height(Spacing.lg))
         SetupOverview()
+
+        // Language and currency (#957). Per-app language is framework-only on
+        // Android 13+ (same as Settings); older versions follow the device.
+        Spacer(Modifier.height(Spacing.lg))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+        ) {
+            val hasLanguage = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            if (hasLanguage) {
+                OnboardingLanguagePicker(position = ListItemPosition.Top)
+            }
+            OnboardingPicker(
+                fieldLabel = stringResource(R.string.onboarding_currency_title),
+                options = viewModel.currencies,
+                selected = uiState.selectedCurrency,
+                label = ::onboardingCurrencyLabel,
+                onSelect = viewModel::selectCurrency,
+                supportingText = stringResource(R.string.onboarding_currency_hint),
+                position = if (hasLanguage) ListItemPosition.Bottom else ListItemPosition.Single,
+            )
+        }
     }
 }
+
+/** Defaults to the device language; picking one sets the per-app locale and recreates the activity. */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Composable
+private fun OnboardingLanguagePicker(position: ListItemPosition) {
+    val context = LocalContext.current
+    val localeManager = remember { context.getSystemService(LocaleManager::class.java) }
+    val languages = remember {
+        val supported = LocaleConfig(context).supportedLocales ?: LocaleList.getEmptyLocaleList()
+        // Debug builds also list the en-XA / ar-XB pseudolocales.
+        val locales = (0 until supported.size()).map { supported[it] }.filter { it.country !in PSEUDO_REGIONS }
+        val multiRegion = locales.groupBy { it.language }.filterValues { it.size > 1 }.keys
+        // Region only where a language has several variants (pt-BR / pt-PT).
+        listOf<Pair<Locale?, String>>(null to "") + locales
+            .map { it to (if (it.language in multiRegion) it.getDisplayName(it) else it.getDisplayLanguage(it)).replaceFirstChar { c -> c.titlecase(it) } }
+            .sortedWith(compareBy(Collator.getInstance()) { it.second })
+    }
+    val deviceLanguage = stringResource(R.string.onboarding_language_device)
+    val current = localeManager.applicationLocales.takeUnless { it.isEmpty }?.get(0)
+    OnboardingPicker(
+        fieldLabel = stringResource(R.string.settings_language_title),
+        options = languages,
+        selected = languages.firstOrNull { it.first == current } ?: languages.first(),
+        label = { (locale, name) -> if (locale == null) deviceLanguage else name },
+        onSelect = { (locale, _) ->
+            localeManager.applicationLocales = locale?.let { LocaleList(it) } ?: LocaleList.getEmptyLocaleList()
+        },
+        position = position,
+    )
+}
+
+/** A read-only tonal field that opens a menu of [options], in the grouped field style. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> OnboardingPicker(
+    fieldLabel: String,
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+    position: ListItemPosition,
+    supportingText: String? = null,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        com.pennywiseai.tracker.presentation.people.TonalTextField(
+            value = label(selected),
+            onValueChange = {},
+            label = fieldLabel,
+            readOnly = true,
+            supportingText = supportingText,
+            position = position,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(label(option)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                    leadingIcon = if (option == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+/** "₹ INR · Indian Rupee" — the localized name helps pick among similar codes. */
+private fun onboardingCurrencyLabel(code: String): String {
+    val name = runCatching { java.util.Currency.getInstance(code).displayName }.getOrNull()
+    val symbol = CurrencyFormatter.getCurrencySymbol(code)
+    val base = if (symbol == code) code else "$symbol $code"
+    return if (name == null || name == code) base else "$base · $name"
+}
+
+private val PSEUDO_REGIONS = setOf("XA", "XB")
 
 /**
  * A neutral device outline that frames the welcome art: a tonal bezel around a
