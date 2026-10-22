@@ -54,6 +54,25 @@ class NetWorthCalculatorTest {
     }
 
     @Test
+    fun `loan account outstanding is subtracted as a liability`() = runTest {
+        // #792: a bank loan account's balance is owed, like a card's, never held.
+        val result = NetWorthCalculator.calculate(
+            latestBalances = listOf(
+                account("Bank A", "1111", "5000"),
+                account("Home Loan", "7777", "2000").copy(accountType = AccountBalanceEntity.LOAN_TYPE),
+                account("Card", "9999", "500", isCreditCard = true),
+            ),
+            selectedCurrency = "INR",
+            unifiedMode = false,
+            convert = noRates,
+        )
+
+        assertEquals(BigDecimal("5000"), result.assets)
+        assertEquals(BigDecimal("2500"), result.liabilities)
+        assertEquals(BigDecimal("2500"), result.netWorth)
+    }
+
+    @Test
     fun `net worth can be negative when cards owe more than accounts hold`() = runTest {
         val result = NetWorthCalculator.calculate(
             latestBalances = listOf(

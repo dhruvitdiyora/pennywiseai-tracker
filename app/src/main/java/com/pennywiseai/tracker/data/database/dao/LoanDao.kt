@@ -55,11 +55,6 @@ interface LoanDao {
     @Query("SELECT DISTINCT person_name FROM loans WHERE status = 'ACTIVE' ORDER BY updated_at DESC")
     fun getRecentPersonNames(): Flow<List<String>>
 
-    // Currency is part of the match: a loan's amounts are all in its own
-    // currency, so a USD payment must never merge into / repay an INR loan.
-    @Query("SELECT * FROM loans WHERE person_name = :personName AND direction = :direction AND currency = :currency AND status = 'ACTIVE' LIMIT 1")
-    suspend fun getActiveLoanByPersonAndDirection(personName: String, direction: String, currency: String): LoanEntity?
-
     @Query("SELECT * FROM loans WHERE person_id = :personId ORDER BY created_at DESC")
     fun getLoansByPerson(personId: Long): Flow<List<LoanEntity>>
 

@@ -124,6 +124,23 @@ class BalanceTrendTest {
     }
 
     @Test
+    fun `loan accounts are liabilities in both modes`() = runTest {
+        // #792: a bank loan account is owed money, not a cash account.
+        val rows = listOf(
+            row("Primary", "1111", "1000", start),
+            row("Primary", "1111", "1100", start.plusDays(1)),
+            row("Car Loan", "5555", "400", start).copy(accountType = AccountBalanceEntity.LOAN_TYPE),
+            row("Car Loan", "5555", "350", start.plusDays(2)).copy(accountType = AccountBalanceEntity.LOAN_TYPE),
+        )
+
+        val cash = trend(rows = rows)
+        assertEquals(listOf("1000", "1100", "1100"), cash.values.map(BigDecimal::toPlainString))
+
+        val netWorth = trend(rows = rows, creditCardsAsLiabilities = true)
+        assertEquals(listOf("600", "700", "750"), netWorth.values.map(BigDecimal::toPlainString))
+    }
+
+    @Test
     fun `net worth mode keeps a card and an account with the same digits apart`() = runTest {
         val result = trend(
             rows = listOf(

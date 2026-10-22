@@ -8,10 +8,11 @@ import java.math.RoundingMode
 
 /**
  * Net worth for one currency: what the visible accounts hold minus what the
- * visible credit cards owe.
+ * visible credit cards and loan accounts owe.
  *
- * Mirrors Cashiro's Home net worth (latest balance of every non-credit-card
- * account, minus the outstanding balance of every credit card; lend/borrow
+ * Mirrors Cashiro's Home net worth (latest balance of every asset account,
+ * minus the outstanding balance of every liability — a credit card or a bank
+ * loan account, see [AccountBalanceEntity.isLiability]; lend/borrow
  * records are not part of it), with one PennyWise rule on top: currencies are
  * never added together. Without unified mode only accounts already in the
  * requested currency count; in unified mode each currency's subtotal is
@@ -43,10 +44,10 @@ object NetWorthCalculator {
      */
     fun byCurrency(latestBalances: List<AccountBalanceEntity>): Pair<Map<String, Money>, Map<String, Money>> {
         val assets = latestBalances
-            .filterNot { it.isCreditCard }
+            .filterNot { it.isLiability }
             .sumByCurrency({ it.currency.uppercase() }, { it.balance })
         val liabilities = latestBalances
-            .filter { it.isCreditCard }
+            .filter { it.isLiability }
             .sumByCurrency({ it.currency.uppercase() }, { it.balance })
         return assets to liabilities
     }

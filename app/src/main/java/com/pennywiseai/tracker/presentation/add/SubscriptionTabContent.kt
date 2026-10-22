@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
@@ -269,10 +270,11 @@ fun SubscriptionTabContent(
     if (showCategoryPicker) {
         QuickCategoryPickerSheet(
             currentCategory = uiState.category,
-            // Income subscriptions pick income categories, like the transaction tab (#854).
-            categories = categories.filter {
-                it.isIncome == (uiState.direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
-            },
+            // Income subscriptions pick income categories, like the transaction tab (#854);
+            // hidden categories are left out (#736).
+            categories = categories.forPicker(
+                uiState.direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
+            ),
             title = stringResource(R.string.category_picker_select_title),
             searchPlaceholder = stringResource(R.string.category_picker_search_placeholder),
             onCategorySelected = { category ->

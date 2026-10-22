@@ -262,6 +262,7 @@
     <string name="loan_detail_settle">Settle</string>
     <string name="loan_detail_menu_reopen">Reopen</string>
     <string name="loan_detail_record_payment">Record Payment</string>
+    <string name="loan_detail_record_payment_failed">Could not record that payment</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">remaining of %1$s</string>
     <!-- %1$d = percentage repaid -->

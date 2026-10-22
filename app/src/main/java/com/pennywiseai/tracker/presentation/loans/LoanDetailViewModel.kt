@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,7 +24,9 @@ data class LoanDetailUiState(
     val showDeleteDialog: Boolean = false,
     val showEditAmountDialog: Boolean = false,
     val showRecordPaymentSheet: Boolean = false,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    /** A repayment the repository refused (currency mismatch, split bill, bad amount); shown once. */
+    val repaymentFailed: Boolean = false,
 )
 
 @HiltViewModel
@@ -73,9 +76,10 @@ class LoanDetailViewModel @Inject constructor(
 
     fun linkTransactionAsRepayment(transactionId: Long) {
         viewModelScope.launch {
-            // Refused for a split bill (#346); the picker already hides those.
-            runCatching { loanRepository.recordRepayment(loanId, transactionId) }
-            _uiState.value = _uiState.value.copy(showRecordPaymentSheet = false)
+            // Refused for a split bill (#346) or a currency mismatch; the picker
+            // already hides those, so a refusal here is surfaced, not swallowed.
+            val result = runCatching { loanRepository.recordRepayment(loanId, transactionId) }
+            onRepaymentResult(result)
             refreshLoan()
         }
     }
@@ -83,10 +87,27 @@ class LoanDetailViewModel @Inject constructor(
     fun recordManualRepayment(amount: BigDecimal) {
         val loan = _uiState.value.loan ?: return
         viewModelScope.launch {
-            loanRepository.recordManualRepayment(loanId, amount, loan.personName, loan.currency)
-            _uiState.value = _uiState.value.copy(showRecordPaymentSheet = false)
+            val result = runCatching {
+                loanRepository.recordManualRepayment(loanId, amount, loan.personName, loan.currency)
+            }
+            onRepaymentResult(result)
             refreshLoan()
         }
+    }
+
+    private fun onRepaymentResult(result: Result<*>) {
+        result.exceptionOrNull()?.let {
+            if (it is kotlinx.coroutines.CancellationException) throw it
+            Log.w(TAG, "Recording a repayment failed", it)
+        }
+        _uiState.value = _uiState.value.copy(
+            showRecordPaymentSheet = false,
+            repaymentFailed = result.isFailure,
+        )
+    }
+
+    fun repaymentFailureShown() {
+        _uiState.value = _uiState.value.copy(repaymentFailed = false)
     }
 
     fun showSettleDialog() { _uiState.value = _uiState.value.copy(showSettleDialog = true) }
@@ -129,5 +150,9 @@ class LoanDetailViewModel @Inject constructor(
     private suspend fun refreshLoan() {
         val loan = loanRepository.getLoanById(loanId)
         _uiState.value = _uiState.value.copy(loan = loan)
+    }
+
+    private companion object {
+        const val TAG = "LoanDetailViewModel"
     }
 }

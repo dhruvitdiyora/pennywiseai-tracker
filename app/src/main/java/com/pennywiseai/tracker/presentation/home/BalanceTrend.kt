@@ -15,8 +15,9 @@ internal data class BalanceTrendResult(
  * account receives another balance update.
  *
  * With [creditCardsAsLiabilities] the series is net worth (Cashiro's Home
- * definition): credit-card outstanding balances are subtracted. Otherwise credit
- * cards are left out and the series is the cash-account total.
+ * definition): liabilities (credit-card and loan-account outstanding balances,
+ * see [AccountBalanceEntity.isLiability]) are subtracted. Otherwise liabilities
+ * are left out and the series is the cash-account total.
  */
 internal suspend fun buildBalanceTrend(
     balances: List<AccountBalanceEntity>,
@@ -33,7 +34,7 @@ internal suspend fun buildBalanceTrend(
 
     val eligible = balances
         .asSequence()
-        .filter { creditCardsAsLiabilities || !it.isCreditCard }
+        .filter { creditCardsAsLiabilities || !it.isLiability }
         .filter { it.timestamp.toLocalDate() <= endDate }
         .filter { selectedProfileId == null || it.profileId == selectedProfileId }
         .filterNot { "${it.bankName}_${it.accountLast4}" in hiddenAccounts }
@@ -51,7 +52,7 @@ internal suspend fun buildBalanceTrend(
                 }
             }
             if (convertedBalance != null) {
-                add(row to if (row.isCreditCard) convertedBalance.negate() else convertedBalance)
+                add(row to if (row.isLiability) convertedBalance.negate() else convertedBalance)
             }
         }
     }
@@ -65,14 +66,14 @@ internal suspend fun buildBalanceTrend(
         return BalanceTrendResult(emptyList(), missingConversion)
     }
 
-    data class AccountKey(val bankName: String, val accountLast4: String, val isCreditCard: Boolean)
+    data class AccountKey(val bankName: String, val accountLast4: String, val isLiability: Boolean)
 
     val latestByAccount = mutableMapOf<AccountKey, BigDecimal>()
     val rowsByDay = convertedRows.groupBy { (row, _) -> row.timestamp.toLocalDate() }
     convertedRows
         .filter { (row, _) -> row.timestamp.toLocalDate() < startDate }
         .forEach { (row, value) ->
-            latestByAccount[AccountKey(row.bankName, row.accountLast4, row.isCreditCard)] = value
+            latestByAccount[AccountKey(row.bankName, row.accountLast4, row.isLiability)] = value
         }
 
     val firstObservedDay = observedDays.minOrNull() ?: return BalanceTrendResult(emptyList(), missingConversion)
@@ -83,7 +84,7 @@ internal suspend fun buildBalanceTrend(
             .orEmpty()
             .sortedBy { (row, _) -> row.timestamp }
             .forEach { (row, value) ->
-                latestByAccount[AccountKey(row.bankName, row.accountLast4, row.isCreditCard)] = value
+                latestByAccount[AccountKey(row.bankName, row.accountLast4, row.isLiability)] = value
             }
         if (latestByAccount.isNotEmpty()) {
             values += latestByAccount.values.fold(BigDecimal.ZERO, BigDecimal::add)
