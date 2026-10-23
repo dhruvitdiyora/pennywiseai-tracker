@@ -1,5 +1,20 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.pennywiseai.tracker.presentation.people.PeopleExtendedFab
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,18 +28,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -110,6 +119,12 @@ fun ProfileScreen(
     }
 }
 
+/**
+ * Profiles, in the Settings sub-screen chrome: a large title that collapses
+ * into the blurred bar, the tonal back button, and the tonal "+" FAB used by
+ * People and Loans.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ProfileScreenContent(
     profiles: List<ProfileEntity>,
@@ -118,41 +133,53 @@ internal fun ProfileScreenContent(
     onEditProfile: (ProfileEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hazeState = remember { HazeState() }
+    val listState = rememberLazyListState()
+    val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
+
     PennyWiseScaffold(
-        modifier = modifier,
-        title = stringResource(R.string.profile_settings_title),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.profile_navigate_back),
-                )
-            }
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddProfile,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
+        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        containerColor = Color.Transparent,
+        customTopBar = {
+            CustomTitleTopAppBar(
+                scrollBehaviorSmall = scrollBehaviorSmall,
+                scrollBehaviorLarge = scrollBehaviorLarge,
+                title = stringResource(R.string.profile_settings_title),
+                hasBackButton = true,
+                navigationContent = {
+                    SettingsBackButton(
+                        onClick = onNavigateBack,
+                        contentDescription = stringResource(R.string.profile_navigate_back),
                     )
                 },
-                text = { Text(stringResource(R.string.profile_add)) },
+                hazeState = hazeState,
+            )
+        },
+        floatingActionButton = {
+            PeopleExtendedFab(
+                label = stringResource(R.string.profile_add),
+                onClick = onAddProfile,
+                expanded = fabExpanded,
             )
         },
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background)
+                .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
-                top = Spacing.md,
-                bottom = Dimensions.Component.fabScrollClearance,
+                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance,
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.sectionGap),
+            flingBehavior = rememberOverscrollFlingBehavior { listState },
         ) {
             item {
                 GlassCard(
@@ -194,7 +221,7 @@ internal fun ProfileScreenContent(
 
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
-                    SectionHeaderV2(title = stringResource(R.string.profile_your_profiles))
+                    SectionHeaderV2(title = stringResource(R.string.profile_your_profiles), topSpacing = Spacing.none)
                     if (profiles.isEmpty()) {
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -277,7 +304,7 @@ internal fun ProfileEditorDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                OutlinedTextField(
+                TextField(
                     value = name,
                     onValueChange = {
                         name = it
@@ -285,17 +312,32 @@ internal fun ProfileEditorDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isSaving,
-                    label = { Text(stringResource(R.string.profile_name)) },
+                    label = { Text(stringResource(R.string.profile_name), fontWeight = FontWeight.SemiBold) },
                     singleLine = true,
+                    shape = MaterialTheme.shapes.large,
+                    // One step up from the dialog's surfaceContainerLow so the field reads.
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        errorContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        errorIndicatorColor = Color.Transparent,
+                    ),
                     isError = state.error != null,
                     supportingText = state.error?.let { error ->
                         { Text(stringResource(error.messageResource)) }
                     },
                 )
-                OutlinedButton(
+                FilledTonalButton(
                     onClick = { showColorPicker = true },
                     enabled = !state.isSaving,
-                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Dimensions.Component.minTouchTarget),
                 ) {
                     Surface(
                         modifier = Modifier.size(Dimensions.Icon.medium),

@@ -22,8 +22,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.TextField
+import com.pennywiseai.tracker.presentation.add.addFieldColors
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -129,7 +131,9 @@ fun AddToGoalSheet(
                 )
                 else -> null
             }
-            OutlinedTextField(
+            TextField(
+                shape = ListItemPosition.Single.toShape(),
+                colors = addFieldColors(),
                 value = amount,
                 onValueChange = { if (it.matches(amountInput)) { amount = it; onEdited() } },
                 label = { Text(stringResource(R.string.goal_money_amount)) },
@@ -146,7 +150,9 @@ fun AddToGoalSheet(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                TextField(
+                    shape = ListItemPosition.Single.toShape(),
+                    colors = addFieldColors(),
                     value = manual,
                     onValueChange = { if (it.matches(amountInput)) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
@@ -156,7 +162,9 @@ fun AddToGoalSheet(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            OutlinedTextField(
+            TextField(
+                shape = ListItemPosition.Single.toShape(),
+                colors = addFieldColors(),
                 value = transaction.dateTime.toLocalDate().format(goalDateFormat),
                 onValueChange = {},
                 readOnly = true,
@@ -165,7 +173,9 @@ fun AddToGoalSheet(
                 supportingText = { Text(stringResource(R.string.goal_add_to_goal_date_hint)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            TextField(
+                shape = ListItemPosition.Single.toShape(),
+                colors = addFieldColors(),
                 value = note,
                 onValueChange = { note = it },
                 label = { Text(stringResource(R.string.goal_money_note)) },
@@ -177,7 +187,7 @@ fun AddToGoalSheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f))
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.goal_action_cancel)) }
+                FilledTonalButton(onClick = onDismiss) { Text(stringResource(R.string.goal_action_cancel)) }
                 Button(
                     onClick = {
                         selected?.let {
