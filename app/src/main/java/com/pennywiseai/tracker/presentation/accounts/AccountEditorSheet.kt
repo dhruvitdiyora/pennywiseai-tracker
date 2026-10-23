@@ -369,6 +369,7 @@ internal fun AccountPreviewCard(
 ) {
     val isCredit = accountType == AccountType.CREDIT
     val isCash = accountType == AccountType.CASH
+    val isLoan = accountType == AccountType.LOAN
     val name = bankName.trim().ifEmpty { stringResource(R.string.account_editor_preview_name) }
     val subtitle = when {
         isCash -> stringResource(R.string.account_type_cash)
@@ -399,13 +400,14 @@ internal fun AccountPreviewCard(
 
     AccountCardShell(
         merchantName = bankName,
+        // A card's or a loan's balance is what's owed, as Manage Accounts labels it (#792).
         label = stringResource(
-            if (isCredit) R.string.manage_accounts_outstanding else R.string.manage_accounts_balance
+            if (isCredit || isLoan) R.string.manage_accounts_outstanding else R.string.manage_accounts_balance
         ),
         amount = CurrencyFormatter.formatCurrency(balance, currencyCode),
         title = name,
         subtitle = subtitle,
-        avatar = { AccountAvatar(bankName = bankName, isCash = isCash) },
+        avatar = { AccountAvatar(bankName = bankName, isCash = isCash, isLoan = isLoan) },
         modifier = modifier,
         footer = if (limitToShow != null) limitFooter else null,
     )

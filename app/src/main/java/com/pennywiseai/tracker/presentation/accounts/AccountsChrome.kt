@@ -57,7 +57,9 @@ import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
+import com.pennywiseai.tracker.ui.icons.iconax.WalletMinus
 import com.pennywiseai.tracker.ui.icons.iconax.WalletMoney
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -72,7 +74,8 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 /**
  * The avatar of an account: the bank's logo, or a wallet glyph for a manually
- * tracked cash account (which has no bank to show).
+ * tracked cash account (which has no bank to show). A loan account whose
+ * lender has no logo gets a loan glyph instead of the generic bank fallback.
  */
 @Composable
 internal fun AccountAvatar(
@@ -83,6 +86,7 @@ internal fun AccountAvatar(
     AccountAvatar(
         bankName = account.bankName,
         isCash = account.getAccountType() == AccountType.CASH,
+        isLoan = account.isLoan,
         modifier = modifier,
         size = size,
     )
@@ -95,8 +99,25 @@ internal fun AccountAvatar(
     isCash: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = Dimensions.Icon.avatarLarge,
+    isLoan: Boolean = false,
 ) {
-    if (isCash) {
+    if (isLoan && BrandIcons.getIconResource(bankName) == null) {
+        // The same glyph as the Loan type chip, on a tonal circle like cash.
+        Box(
+            modifier = modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.tertiaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Iconax.WalletMinus,
+                contentDescription = bankName.ifBlank { null },
+                modifier = Modifier.size(Dimensions.Icon.medium),
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+    } else if (isCash) {
         Box(
             modifier = modifier
                 .size(size)

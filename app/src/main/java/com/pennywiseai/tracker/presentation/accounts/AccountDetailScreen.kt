@@ -473,10 +473,12 @@ private fun AccountBalanceCard(
                             }
                         }
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        BrandIcon(
-                            merchantName = bankName,
+                        // Same avatar as the account's card in Manage Accounts.
+                        AccountAvatar(
+                            bankName = bankName,
+                            isCash = false,
+                            isLoan = isLoan,
                             size = Dimensions.Icon.avatarLarge,
-                            showBackground = true
                         )
                     }
                 }
