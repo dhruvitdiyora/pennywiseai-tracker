@@ -315,12 +315,13 @@ internal fun ProfileEditorDialog(
                     label = { Text(stringResource(R.string.profile_name), fontWeight = FontWeight.SemiBold) },
                     singleLine = true,
                     shape = MaterialTheme.shapes.large,
-                    // One step up from the dialog's surfaceContainerLow so the field reads.
+                    // The dialog is surfaceContainerHigh; the base surface sets the
+                    // field off from it in both light and dark.
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        errorContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                        errorContainerColor = MaterialTheme.colorScheme.surface,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
