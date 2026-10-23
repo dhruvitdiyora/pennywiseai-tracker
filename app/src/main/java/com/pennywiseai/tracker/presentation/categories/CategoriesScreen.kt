@@ -282,6 +282,7 @@ internal fun CategorySearchField(
     onQueryChange: (String) -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
+    placeholder: String = stringResource(R.string.category_search_placeholder),
 ) {
     val focusManager = LocalFocusManager.current
     val scheme = MaterialTheme.colorScheme
@@ -291,7 +292,7 @@ internal fun CategorySearchField(
         modifier = modifier.fillMaxWidth(),
         placeholder = {
             Text(
-                text = stringResource(R.string.category_search_placeholder),
+                text = placeholder,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyMedium,
@@ -767,7 +768,7 @@ private fun rememberLegibleCategoryTint(category: CategoryEntity): CategoryTint 
 
 /** The category's glyph in a rounded square of its own colour, as in Cashiro. */
 @Composable
-private fun CategoryAvatar(
+internal fun CategoryAvatar(
     category: CategoryEntity,
     size: Dp,
     modifier: Modifier = Modifier,

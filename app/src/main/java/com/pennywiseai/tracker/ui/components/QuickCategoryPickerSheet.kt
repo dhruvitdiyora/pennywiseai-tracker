@@ -1,30 +1,35 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import com.pennywiseai.tracker.presentation.categories.CategoryAvatar
+import com.pennywiseai.tracker.presentation.categories.CategorySearchField
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.IconTile
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
@@ -106,102 +111,81 @@ fun QuickCategoryPickerSheet(
                     onTagsChanged(tags)
                 },
                 modifier = Modifier.padding(
-                    start = Dimensions.Padding.content,
-                    end = Dimensions.Padding.content,
+                    start = Dimensions.Padding.dialog,
+                    end = Dimensions.Padding.dialog,
                     bottom = Spacing.sm
                 )
             )
             HorizontalDivider(
                 modifier = Modifier.padding(
-                    horizontal = Dimensions.Padding.content,
+                    horizontal = Dimensions.Padding.dialog,
                     vertical = Spacing.xs
                 )
             )
         }
+        // Cashiro's picker, in the account sheet's family: a headline, the
+        // pill search field from Categories, then grouped tonal rows with each
+        // category's tinted avatar.
         Text(
             text = resolvedTitle,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                bottom = Spacing.sm
+                start = Dimensions.Padding.dialog,
+                end = Dimensions.Padding.dialog,
+                bottom = Spacing.md
             )
         )
-        TextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text(resolvedSearchPlaceholder) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
+        CategorySearchField(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onClear = { searchQuery = "" },
+            placeholder = resolvedSearchPlaceholder,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.dialog)
         )
         // LazyColumn so long category lists stay reachable when the sheet is
-        // fully expanded — a plain Column would render items past the screen
+        // fully expanded; a plain Column would render items past the screen
         // bottom unscrollable.
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = Spacing.md)
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.dialog,
+                end = Dimensions.Padding.dialog,
+                top = Spacing.md,
+                bottom = Dimensions.Padding.dialog
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
             if (onAddCategory != null) {
                 item(key = "add-category") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onAddCategory() }
-                            .padding(
-                                horizontal = Dimensions.Padding.content,
-                                vertical = Spacing.sm
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    GroupedRow(
+                        position = ListItemPosition.Single,
+                        onClick = onAddCategory,
+                        modifier = Modifier.padding(bottom = Spacing.sm)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                        IconTile(
+                            icon = Icons.Default.Add,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            size = Dimensions.Icon.avatar
                         )
                         Text(
                             text = stringResource(R.string.txn_detail_add_category),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
-            items(filteredCategories, key = { it.id }) { category ->
-                val selected = currentCategory == category.name
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCategorySelected(category.name) }
-                        .padding(
-                            // Sub-categories indent under their parent (#374)
-                            start = Dimensions.Padding.content + (if (category.parentId != null) Spacing.lg else Spacing.none),
-                            end = Dimensions.Padding.content,
-                            top = Spacing.sm,
-                            bottom = Spacing.sm
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    CategoryChip(category = category, showText = false)
-                    Text(
-                        text = category.name,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                    if (selected) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+            itemsIndexed(filteredCategories, key = { _, category -> category.id }) { index, category ->
+                CategoryPickerRow(
+                    category = category,
+                    selected = currentCategory == category.name,
+                    position = ListItemPosition.from(index, filteredCategories.size),
+                    onClick = { onCategorySelected(category.name) }
+                )
             }
             if (filteredCategories.isEmpty()) {
                 item {
@@ -215,13 +199,60 @@ fun QuickCategoryPickerSheet(
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(
-                            horizontal = Dimensions.Padding.content,
-                            vertical = Spacing.md
-                        )
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = Spacing.lg)
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * One category in the picker: its tinted avatar and name on a grouped tonal
+ * row. The current category takes the selected (primary container) fill and
+ * a check, as in the account sheet. Sub-categories indent under their parent
+ * (#374).
+ */
+@Composable
+private fun CategoryPickerRow(
+    category: CategoryEntity,
+    selected: Boolean,
+    position: ListItemPosition,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val contentColor = if (selected) scheme.onPrimaryContainer else scheme.onSurface
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        containerColor = if (selected) scheme.primaryContainer else scheme.surfaceContainerLow,
+        contentPadding = PaddingValues(
+            start = Spacing.md + if (category.parentId != null) Spacing.lg else Spacing.none,
+            end = Spacing.md,
+            top = Spacing.sm,
+            bottom = Spacing.sm
+        ),
+        modifier = Modifier.semantics { this.selected = selected }
+    ) {
+        CategoryAvatar(category = category, size = Dimensions.Icon.avatar)
+        Text(
+            text = category.name,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = contentColor
+            )
         }
     }
 }
