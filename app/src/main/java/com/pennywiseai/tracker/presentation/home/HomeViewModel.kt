@@ -87,6 +87,13 @@ import javax.inject.Inject
 internal fun spendableAccounts(balances: List<AccountBalanceEntity>): List<AccountBalanceEntity> =
     balances.filter { !it.isLiability && it.balance != BigDecimal.ZERO }
 
+/**
+ * Bank loan accounts (#792) with something still owed. Net worth subtracts
+ * them, so the Home card lists them too; otherwise its breakdown wouldn't add up.
+ */
+internal fun owedLoanAccounts(balances: List<AccountBalanceEntity>): List<AccountBalanceEntity> =
+    balances.filter { it.isLoan && it.balance.signum() != 0 }
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -533,6 +540,7 @@ class HomeViewModel @Inject constructor(
                 // Pre-convert individual account entities when unified mode is on
                 val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
+                val loanAccounts = convertAccountEntities(owedLoanAccounts(balances), selectedCurrency, isUnified)
 
                 // regularAccounts/creditCards are already pre-converted by
                 // convertAccountEntities (currency == selectedCurrency for everything it
@@ -572,6 +580,7 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     accountBalances = regularAccounts,  // Pre-converted in unified mode
                     creditCards = creditCards,           // Pre-converted in unified mode
+                    loanAccounts = loanAccounts,
                     totalBalance = totalBalanceInSelectedCurrency,
                     totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                     availableCurrencies = updatedAvailableCurrencies,
@@ -1136,6 +1145,7 @@ class HomeViewModel @Inject constructor(
             // Pre-convert individual account entities when unified mode is on
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
+            val loanAccounts = convertAccountEntities(owedLoanAccounts(visibleBalances), selectedCurrency, isUnified)
 
             // Entities are pre-converted by convertAccountEntities, so just sum;
             // anything still foreign is one we couldn't get a rate for (raw fallback).
@@ -1156,6 +1166,7 @@ class HomeViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
+                loanAccounts = loanAccounts,
                 totalBalance = totalBalance,
                 totalAvailableCredit = totalAvailableCredit,
                 isBalanceReady = true,
@@ -1257,6 +1268,7 @@ class HomeViewModel @Inject constructor(
             // Pre-convert individual account entities when unified mode is on
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
+            val loanAccounts = convertAccountEntities(owedLoanAccounts(balances), selectedCurrency, isUnified)
 
             // Entities are pre-converted by convertAccountEntities, so just sum;
             // anything still foreign is one we couldn't get a rate for (raw fallback).
@@ -1278,6 +1290,7 @@ class HomeViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
+                loanAccounts = loanAccounts,
                 totalBalance = totalBalanceInSelectedCurrency,
                 totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                 isBalanceReady = true,
@@ -1869,6 +1882,8 @@ data class HomeUiState(
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
+    /** Bank loan accounts still owed (#792), listed under the net worth breakdown. */
+    val loanAccounts: List<AccountBalanceEntity> = emptyList(),
     val totalBalance: BigDecimal = BigDecimal.ZERO,
     val totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     val selectedCurrency: String = "INR",

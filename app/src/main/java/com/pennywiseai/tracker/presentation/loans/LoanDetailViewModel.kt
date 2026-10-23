@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,19 +59,30 @@ class LoanDetailViewModel @Inject constructor(
         }
     }
 
+    /** Feeds the open Record Payment sheet its picker list; cancelled when the sheet closes. */
+    private var unlinkedRepaymentsJob: Job? = null
+
     fun showRecordPayment() {
         val loan = _uiState.value.loan ?: return
-        viewModelScope.launch {
+        unlinkedRepaymentsJob?.cancel()
+        unlinkedRepaymentsJob = viewModelScope.launch {
+            var opened = false
             loanRepository.getRecentUnlinkedRepayments(loan.direction, loan.currency).collect {
+                // Only the first emission opens the sheet. Recording a repayment
+                // writes a transaction, which re-emits this list; letting that
+                // re-open the sheet left it stuck open after "Add".
                 _uiState.value = _uiState.value.copy(
                     recentUnlinkedTransactions = it,
-                    showRecordPaymentSheet = true
+                    showRecordPaymentSheet = if (opened) _uiState.value.showRecordPaymentSheet else true
                 )
+                opened = true
             }
         }
     }
 
     fun hideRecordPayment() {
+        unlinkedRepaymentsJob?.cancel()
+        unlinkedRepaymentsJob = null
         _uiState.value = _uiState.value.copy(showRecordPaymentSheet = false)
     }
 
@@ -100,6 +112,8 @@ class LoanDetailViewModel @Inject constructor(
             if (it is kotlinx.coroutines.CancellationException) throw it
             Log.w(TAG, "Recording a repayment failed", it)
         }
+        unlinkedRepaymentsJob?.cancel()
+        unlinkedRepaymentsJob = null
         _uiState.value = _uiState.value.copy(
             showRecordPaymentSheet = false,
             repaymentFailed = result.isFailure,

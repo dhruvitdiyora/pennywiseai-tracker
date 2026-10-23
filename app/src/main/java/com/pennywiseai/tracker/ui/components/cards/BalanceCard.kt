@@ -152,6 +152,7 @@ fun BalanceCard(
     onToggleBalanceVisibility: () -> Unit = {},
     accountBalances: List<AccountBalanceEntity> = emptyList(),
     creditCards: List<AccountBalanceEntity> = emptyList(),
+    loanAccounts: List<AccountBalanceEntity> = emptyList(),
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
     initiallyExpanded: Boolean = false,
@@ -380,7 +381,7 @@ fun BalanceCard(
                             isDark = isDark,
                         )
 
-                        if (accountBalances.isNotEmpty() || creditCards.isNotEmpty()) {
+                        if (accountBalances.isNotEmpty() || creditCards.isNotEmpty() || loanAccounts.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.sm))
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
@@ -389,6 +390,7 @@ fun BalanceCard(
                             AccountsSection(
                                 accountBalances = accountBalances,
                                 creditCards = creditCards,
+                                loanAccounts = loanAccounts,
                                 fallbackCurrency = currency,
                                 isBalanceHidden = isBalanceHidden,
                                 onAccountClick = onAccountClick,
@@ -689,6 +691,7 @@ private fun SpendingSection(
 private fun AccountsSection(
     accountBalances: List<AccountBalanceEntity>,
     creditCards: List<AccountBalanceEntity>,
+    loanAccounts: List<AccountBalanceEntity>,
     fallbackCurrency: String,
     isBalanceHidden: Boolean,
     onAccountClick: (String, String) -> Unit,
@@ -716,27 +719,8 @@ private fun AccountsSection(
         )
     }
 
-    if (creditCards.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(Spacing.sm))
-        Text(
-            text = stringResource(R.string.balance_card_credit_cards),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.height(Spacing.sm))
-        creditCards.forEach { card ->
-            AccountRow(
-                label = "${card.bankName} •• ${card.accountLast4}",
-                // Outstanding (what's owed), in the card's own currency (#684).
-                value = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(card.balance, card.currency),
-                onClick = { onAccountClick(card.bankName, card.accountLast4) }
-            )
-        }
-    }
-
     if (accountBalances.isNotEmpty()) {
-        // Total of the accounts, per currency: a mixed list reads "₹1,250 · $600"
+        // Total of the accounts (above), per currency: a mixed list reads "₹1,250 · $600"
         // instead of one meaningless cross-currency sum.
         Spacer(modifier = Modifier.height(Spacing.xs))
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
@@ -764,6 +748,45 @@ private fun AccountsSection(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+
+    if (creditCards.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        Text(
+            text = stringResource(R.string.balance_card_credit_cards),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        creditCards.forEach { card ->
+            AccountRow(
+                label = "${card.bankName} •• ${card.accountLast4}",
+                // Outstanding (what's owed), in the card's own currency (#684).
+                value = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(card.balance, card.currency),
+                onClick = { onAccountClick(card.bankName, card.accountLast4) }
+            )
+        }
+    }
+
+    if (loanAccounts.isNotEmpty()) {
+        // Owed on bank loan accounts (#792): net worth subtracts these, so list
+        // them here or the breakdown wouldn't add up to the figure above.
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        Text(
+            text = stringResource(R.string.manage_accounts_section_loan_accounts),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        loanAccounts.forEach { loan ->
+            AccountRow(
+                label = "${loan.bankName} •• ${loan.accountLast4}",
+                value = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(loan.balance, loan.currency),
+                onClick = { onAccountClick(loan.bankName, loan.accountLast4) }
             )
         }
     }

@@ -459,6 +459,7 @@ fun HomeScreen(
                             onShowBreakdown = { viewModel.showBreakdownDialog() },
                             accountBalances = uiState.accountBalances,
                             creditCards = uiState.creditCards,
+                            loanAccounts = uiState.loanAccounts,
                             totalAvailableCredit = uiState.totalAvailableCredit,
                             onAccountClick = { bankName, accountLast4 ->
                                 navController.navigate(

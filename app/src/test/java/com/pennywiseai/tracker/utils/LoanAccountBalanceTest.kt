@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.presentation.home.owedLoanAccounts
 import com.pennywiseai.tracker.presentation.home.spendableAccounts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -116,6 +117,12 @@ class LoanAccountBalanceTest {
     fun `loans and cards stay out of the spendable bank total`() {
         val spendable = spendableAccounts(listOf(loan, savings, smsAccount, card))
         assertEquals(listOf(savings, smsAccount), spendable)
+    }
+
+    @Test
+    fun `the Home breakdown lists owed loan accounts so it adds up to net worth`() {
+        val paidOff = account("5555", "0", accountType = "LOAN")
+        assertEquals(listOf(loan), owedLoanAccounts(listOf(loan, savings, smsAccount, card, paidOff)))
     }
 
     @Test
