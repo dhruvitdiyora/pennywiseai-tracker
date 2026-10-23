@@ -753,7 +753,8 @@ private fun AccountsSection(
     }
 
     if (creditCards.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(Spacing.sm))
+        // A new group: further from the block above than from its own rows.
+        Spacer(modifier = Modifier.height(BREAKDOWN_GROUP_GAP))
         Text(
             text = stringResource(R.string.balance_card_credit_cards),
             style = MaterialTheme.typography.labelMedium,
@@ -774,7 +775,7 @@ private fun AccountsSection(
     if (loanAccounts.isNotEmpty()) {
         // Owed on bank loan accounts (#792): net worth subtracts these, so list
         // them here or the breakdown wouldn't add up to the figure above.
-        Spacer(modifier = Modifier.height(Spacing.sm))
+        Spacer(modifier = Modifier.height(BREAKDOWN_GROUP_GAP))
         Text(
             text = stringResource(R.string.manage_accounts_section_loan_accounts),
             style = MaterialTheme.typography.labelMedium,
@@ -791,6 +792,13 @@ private fun AccountsSection(
         }
     }
 }
+
+/**
+ * Gap above the Credit Cards and Loan Accounts groups of the breakdown: twice
+ * the header-to-rows gap, so each heading sits with its own rows rather than
+ * reading as the tail of the group above.
+ */
+private val BREAKDOWN_GROUP_GAP = Spacing.md
 
 @Composable
 private fun AccountRow(label: String, value: String, onClick: () -> Unit) {

@@ -403,9 +403,10 @@ fun HomeScreen(
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                // Clears the nav bar plus the Add + Sync FAB stack above it.
-                bottom = Dimensions.Component.bottomBarHeight +
-                    Dimensions.Component.fabScrollClearance
+                // Lets the last card scroll fully clear of the floating Add + Sync
+                // stack (which sits above the nav bar), so nothing has to rest
+                // underneath the FABs.
+                bottom = HomeFabStackClearance
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -883,7 +884,7 @@ fun HomeScreen(
                     end = Dimensions.Padding.content,
                     bottom = Dimensions.Component.fabBottomInset
                 ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
+            verticalArrangement = Arrangement.spacedBy(HomeFabStackGap),
             horizontalAlignment = Alignment.End
         ) {
             // Sync FAB (top, small, secondary)
@@ -1917,3 +1918,18 @@ private fun ResyncOption(title: String, description: String, onClick: () -> Unit
         }
     }
 }
+
+/** Gap between the Sync and Add FABs in Home's floating stack. */
+private val HomeFabStackGap = Spacing.smd
+
+/**
+ * Bottom content padding for Home's list: the whole floating FAB stack (its
+ * inset above the nav bar, the Add FAB, the gap and the Sync FAB) plus a
+ * breathing gap, so the last card can scroll fully clear of both FABs.
+ * Derived from the same tokens the stack is laid out with, so the two can't
+ * drift apart again (the generic fabScrollClearance assumed a single FAB and
+ * left the Goals card's figure under the Sync button).
+ */
+private val HomeFabStackClearance = Dimensions.Component.fabBottomInset +
+    Dimensions.Component.fab + HomeFabStackGap + Dimensions.Component.iconButton +
+    Spacing.Layout.scrollBottomPadding
