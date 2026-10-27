@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Store
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 
 /**
@@ -83,13 +84,21 @@ object CategoryMapping {
      * then gray — so user-created categories no longer render gray in Analytics (#586).
      */
     fun colorFor(name: String, overrideHex: String? = null): Color {
-        if (!overrideHex.isNullOrBlank()) {
+        // A built-in still on its seeded colour is not a user choice: it takes the
+        // palette, so the seeded black "Transportation" doesn't vanish on dark cards.
+        val builtinKey = userStyles[name]?.builtinKey ?: name
+        val isSeed = overrideHex != null && overrideHex.equals(seedColors[builtinKey], ignoreCase = true)
+        if (!overrideHex.isNullOrBlank() && !isSeed) {
             runCatching { Color(android.graphics.Color.parseColor(overrideHex)) }
                 .getOrNull()?.let { return it }
         }
         val userColor = userStyles[name]?.colorHex?.let { hex -> runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull() }
         if (userColor != null && userStyles[name]?.customColor == true) return userColor
         return categories[name]?.color ?: userColor ?: Color.Gray
+    }
+
+    private val seedColors: Map<String, String> by lazy {
+        DefaultCategoryData.ALL.associate { it.name to it.colorHex }
     }
 
     /**
@@ -122,7 +131,8 @@ object CategoryMapping {
         "Transportation" to CategoryInfo(
             displayName = "Transportation",
             icon = Icons.Default.DirectionsCar,
-            color = Color(0xFF000000),
+            // Not the seeded black: the palette colour is drawn on dark cards too.
+            color = Color(0xFF5C6BC0),
             fallbackIcon = Icons.Default.Commute
         ),
         "Shopping" to CategoryInfo(

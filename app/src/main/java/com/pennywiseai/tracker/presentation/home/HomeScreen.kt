@@ -18,6 +18,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -888,7 +891,22 @@ fun HomeScreen(
             horizontalAlignment = Alignment.End
         ) {
             // Sync FAB (top, small, secondary)
-            // Single tap: incremental scan, Long press: full resync
+            // Single tap: incremental scan, Long press: full resync.
+            // Tucks away while scrolling down so it doesn't rest on a card's
+            // trailing figure (the Goals %), and returns on scroll up, at the
+            // top, or at the end where the list already clears the stack.
+            val showSyncFab by remember {
+                derivedStateOf {
+                    !lazyListState.canScrollBackward ||
+                        !lazyListState.canScrollForward ||
+                        !lazyListState.lastScrolledForward
+                }
+            }
+            AnimatedVisibility(
+                visible = showSyncFab,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -935,6 +953,7 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
             }
 
             // Add FAB (bottom, large, primary)
