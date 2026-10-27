@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -198,9 +197,13 @@ private fun TotalColumn(
             style = PennyWiseText.amountRow,
             color = color,
             textAlign = TextAlign.Center,
-            // Wrap rather than marquee-clip: a long figure must show in full.
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            // One line, shrinking to fit: a long figure must show in full, and
+            // wrapping split "+₹1,44,051.96" mid-number.
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = PennyWiseText.autoSizeFloor,
+                maxFontSize = PennyWiseText.amountRow.fontSize
+            ),
         )
         if (estimated) {
             // Under the figure, not beside the label: in a three-column row the
