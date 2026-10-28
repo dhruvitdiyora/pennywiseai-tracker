@@ -677,4 +677,33 @@
     <string name="duplicate_accounts_message">Differences in bank SMS formats or earlier parsing may have created duplicate accounts with three and four digits. If %1$s and %2$s are the same account, merge them? Transactions will move to the four-digit account, its balance history will be kept, and future SMS will use it automatically.</string>
     <string name="duplicate_accounts_merge">Merge and remember</string>
     <string name="duplicate_accounts_keep">Keep separate</string>
+    <!-- Batch edit (multi-field edit of selected transactions) -->
+    <string name="batch_edit_menu">Edit details</string>
+    <string name="batch_edit_title">Edit transactions</string>
+    <string name="batch_edit_subtitle">Changes apply to %1$d selected</string>
+    <string name="batch_edit_hint">Only switched-on fields change. Transfers keep their category and date, and split transactions keep their category.</string>
+    <string name="batch_edit_category">Category</string>
+    <string name="batch_edit_select_category">Select a category</string>
+    <string name="batch_edit_choose">Choose</string>
+    <string name="batch_edit_date">Date</string>
+    <string name="batch_edit_date_hint">Each transaction keeps its own time</string>
+    <string name="batch_edit_time">Time</string>
+    <string name="batch_edit_time_hint">Each transaction keeps its own date</string>
+    <string name="batch_edit_pick">Change</string>
+    <string name="batch_edit_note">Note</string>
+    <string name="batch_edit_note_set">Set</string>
+    <string name="batch_edit_note_clear">Clear</string>
+    <string name="batch_edit_note_placeholder">Note for every selected transaction</string>
+    <string name="batch_edit_note_clear_hint">Removes the note from every selected transaction</string>
+    <string name="batch_edit_tags">Tags</string>
+    <string name="batch_edit_tags_add">Add</string>
+    <string name="batch_edit_tags_remove">Remove</string>
+    <string name="batch_edit_tags_replace">Replace</string>
+    <string name="batch_edit_tags_replace_empty_hint">No tags: every selected transaction loses its tags</string>
+    <string name="batch_edit_apply">Apply</string>
+    <string name="batch_edit_cancel">Cancel</string>
+    <string name="batch_edit_result">Updated %1$d · skipped %2$d</string>
+    <string name="batch_edit_failed">Couldn’t apply the changes. Nothing was changed.</string>
+    <string name="batch_edit_undo_failed">Couldn’t undo the changes.</string>
+    <string name="batch_edit_undo_partial">Restored %1$d · %2$d changed since, left as is</string>
 </resources>

@@ -153,6 +153,8 @@ fun TransactionsScreen(
     val selectionMode = selectedIds.isNotEmpty()
     var showBulkCategorySheet by remember { mutableStateOf(false) }
     var showBulkGroupSheet by remember { mutableStateOf(false) }
+    var showBatchEditSheet by remember { mutableStateOf(false) }
+    val allTagNames by viewModel.allTagNames.collectAsState()
     val groups by viewModel.groups.collectAsState()
 
     // Self-transfer suggestions (#385): map of txn-id → partner-id.
@@ -440,6 +442,12 @@ fun TransactionsScreen(
                         expanded = editMenuOpen,
                         onDismissRequest = { editMenuOpen = false },
                     ) {
+                        // Multi-field batch edit: category, date, time, note, tags.
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.batch_edit_menu)) },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                            onClick = { editMenuOpen = false; showBatchEditSheet = true },
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.txn_list_change_category)) },
                             leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
@@ -848,6 +856,21 @@ fun TransactionsScreen(
                 showBulkCategorySheet = false
             },
             onDismiss = { showBulkCategorySheet = false }
+        )
+    }
+
+    // Multi-field batch edit. The draft lives in the sheet; only Apply writes,
+    // and the ViewModel runs it as one transaction with Undo.
+    if (showBatchEditSheet && selectedIds.isNotEmpty()) {
+        BatchEditTransactionsSheet(
+            selectedCount = selectedIds.size,
+            categories = categoriesMap.values.toList(),
+            allTags = allTagNames,
+            onApply = { request ->
+                viewModel.batchEdit(request)
+                showBatchEditSheet = false
+            },
+            onDismiss = { showBatchEditSheet = false },
         )
     }
 

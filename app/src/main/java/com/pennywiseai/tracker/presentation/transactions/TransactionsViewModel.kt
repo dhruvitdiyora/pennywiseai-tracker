@@ -73,6 +73,7 @@ class TransactionsViewModel @Inject constructor(
     private val transactionGroupRepository: TransactionGroupRepository,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
+    private val batchEditTransactionsUseCase: com.pennywiseai.tracker.domain.usecase.BatchEditTransactionsUseCase,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
@@ -379,35 +380,74 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    /** Every tag name in use, for the batch-edit sheet's tag suggestions. */
+    val allTagNames: StateFlow<List<String>> = tagRepository.observeAllTagNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     /**
-     * Apply [newCategory] to every currently-selected transaction. Captures the
-     * (id → previous-category) pairs first so the snackbar's Undo can restore
-     * them; if a row had its category changed elsewhere in between, the undo
-     * will overwrite that change too — acceptable for an explicit user action.
+     * Apply [newCategory] to every currently-selected transaction — the quick
+     * one-tap path, a category-only [batchEdit]: atomic, fresh-read, skips
+     * transfers and split rows, conflict-aware Undo.
      */
     fun bulkUpdateCategory(newCategory: String) {
+        batchEdit(
+            com.pennywiseai.tracker.domain.usecase.BatchEditRequest(category = newCategory),
+            categoryName = newCategory,
+        )
+    }
+
+    /**
+     * Apply a multi-field batch edit to the current selection. The use case
+     * re-reads the ids and runs the whole edit in one transaction; on failure
+     * nothing is written and the selection is kept so the user can retry.
+     */
+    fun batchEdit(
+        request: com.pennywiseai.tracker.domain.usecase.BatchEditRequest,
+        categoryName: String? = null,
+    ) {
         val ids = _selectedIds.value
-        if (ids.isEmpty()) return
+        if (ids.isEmpty() || request.isEmpty) return
         viewModelScope.launch {
-            val previous = _uiState.value.transactions
-                .filter { it.id in ids }
-                .associate { it.id to it.category }
-            previous.keys.forEach { id ->
-                transactionRepository.updateCategory(id, newCategory)
+            val result = try {
+                batchEditTransactionsUseCase.apply(ids, request)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _bulkSnack.value = BulkSnack(UiText.Res(R.string.batch_edit_failed))
+                return@launch
             }
             refreshWidgets()
             clearSelection()
+            val message = if (categoryName != null && result.skippedCount == 0) {
+                UiText.Plural(R.plurals.txn_list_bulk_category_updated, result.updated, listOf(result.updated, categoryName))
+            } else {
+                UiText.Res(R.string.batch_edit_result, listOf(result.updated, result.skippedCount))
+            }
+            val undoToken = result.undo
             _bulkSnack.value = BulkSnack(
-                message = UiText.Plural(R.plurals.txn_list_bulk_category_updated, previous.size, listOf(previous.size, newCategory)),
-                undo = {
-                    viewModelScope.launch {
-                        previous.forEach { (id, oldCategory) ->
-                            transactionRepository.updateCategory(id, oldCategory)
-                        }
-                        refreshWidgets()
-                    }
-                }
+                message = message,
+                undo = undoToken?.let { token -> { undoBatchEdit(token) } }
             )
+        }
+    }
+
+    private fun undoBatchEdit(token: com.pennywiseai.tracker.domain.usecase.BatchEditUndo) {
+        viewModelScope.launch {
+            val restored = try {
+                batchEditTransactionsUseCase.undo(token)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _bulkSnack.value = BulkSnack(UiText.Res(R.string.batch_edit_undo_failed))
+                return@launch
+            }
+            refreshWidgets()
+            val conflicts = token.changes.size - restored
+            if (conflicts > 0) {
+                _bulkSnack.value = BulkSnack(
+                    UiText.Res(R.string.batch_edit_undo_partial, listOf(restored, conflicts))
+                )
+            }
         }
     }
 
