@@ -131,6 +131,9 @@ object ImportStatement
 object Webhooks
 
 @Serializable
+object CloudBackup
+
+@Serializable
 object AiAccess
 
 @Serializable

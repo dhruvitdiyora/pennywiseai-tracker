@@ -10,7 +10,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 
 **Transaction processing and AI run locally on your device.** AI features use an on-device LLM (Qwen 2.5, via Google AI Edge LiteRT-LM). The only data that ever leaves your device goes through the explicit outbound requests listed under Internet Permission below:
 
-- ✅ **On-device AI** - Parsing and AI processing run locally; your transaction database never uploads anywhere
+- ✅ **On-device AI** - Parsing and AI processing run locally; your transaction database is never uploaded unless you turn on encrypted Cloud Backup (see below)
 - ✅ **No data collection** - No analytics, telemetry, or accounts; the one exception is the parse-report flow (see Internet Permission)
 - ✅ **No tracking** - No analytics, no telemetry, no user tracking
 - ✅ **No ads** - No advertising networks or tracking pixels
@@ -55,6 +55,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 - **Model Download**: One-time download of the ~1.5GB Qwen 2.5 model from a public Cloudflare R2 bucket, verified against a SHA-256 checksum before use
 - **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com; only the currency code is sent
 - **Parse Reports**: The "report a parsing problem" action opens pennywise.zynth.dev with the SMS text and sender ID pre-filled. The link also carries an encrypted device identifier — your Android device ID plus a timestamp, RSA-encrypted on-device before it leaves. Opening the page sends these details to the server right away to generate a parsed preview; submitting the report itself remains a separate user action
+- **Cloud Backup (optional, off by default)**: Only after you connect Google Drive (Play Store variant) or your own WebDAV server and set a passphrase, PennyWise uploads full backups that are encrypted on your phone first (AES-256-GCM, key derived from your passphrase with PBKDF2-HMAC-SHA256). The provider stores only the encrypted file and never sees the passphrase. See "Cloud Backup" below
 - **AI Access (optional, off by default)**: Only while you have started an AI session, answers to a connected AI app's questions travel from your phone through PennyWise's relay (see "Connected AI Apps" below)
 - **App Updates**: Google Play Store variant uses Play Services for app updates (F-Droid variant does not)
 - **After Model Download**: AI works completely offline, no internet required for core features
@@ -64,7 +65,7 @@ No location, camera, or microphone permission is requested.
 ## Third-Party Services
 
 PennyWise AI does **NOT** use:
-- ❌ Cloud storage, backup, or sync of your transaction data
+- ❌ A PennyWise cloud, sync service, or server that stores your transaction data
 - ❌ Analytics services (Google Analytics, Firebase, etc.)
 - ❌ Crash reporting services
 - ❌ Advertising networks
@@ -98,7 +99,15 @@ You can connect Claude, ChatGPT or another app that supports MCP so it can answe
 When you export your data:
 - CSV/PDF files are created locally on your device
 - You control where to share or save them
-- No automatic uploads or backups
+- No automatic uploads, unless you turn on Cloud Backup
+
+## Cloud Backup (optional)
+
+Off until you connect a provider. When on:
+- **Encrypted before upload, always.** Every backup is encrypted on your phone with your passphrase (AES-256-GCM; PBKDF2-HMAC-SHA256, 600,000 iterations, random salt and IV per file). There is no unencrypted cloud upload.
+- **Where it goes:** Google Drive's hidden app folder (`drive.appdata` scope: PennyWise can't see your other Drive files), or a WebDAV server you choose (https only). Google or your server operator can see that the file exists, its size and when it was uploaded, but not its contents.
+- **Your passphrase:** kept on your phone in Android Keystore-protected storage so automatic backups can run. It is never uploaded. If you lose it, the backups can't be restored; no one, including PennyWise, can recover it.
+- **Disconnecting** removes the saved sign-in details from your phone. Backups already uploaded stay with the provider until you delete them (from the app's snapshot list, or the provider).
 
 ## Open Source Transparency
 
@@ -126,7 +135,7 @@ For privacy concerns or questions:
 
 ## Summary
 
-**Your financial data lives on your phone.** Transactions, balances, budgets, and chat history all sit in a local database inside the app sandbox, and uninstalling removes everything. PennyWise has no analytics or cloud-sync backend; the outbound requests listed under Internet Permission are the complete list.
+**Your financial data lives on your phone.** Transactions, balances, budgets, and chat history all sit in a local database inside the app sandbox, and uninstalling removes everything. PennyWise has no analytics or cloud-sync backend, and the optional Cloud Backup only stores encrypted files with a provider you pick; the outbound requests listed under Internet Permission are the complete list.
 
 ---
 

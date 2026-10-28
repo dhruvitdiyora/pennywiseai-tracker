@@ -625,6 +625,11 @@ fun MainScreen(
                                     launchSingleTop = true
                                 }
                             },
+                            onNavigateToCloudBackup = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.CloudBackup
+                                ) { launchSingleTop = true }
+                            },
                         )
                     }
                 )

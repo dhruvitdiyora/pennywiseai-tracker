@@ -491,6 +491,9 @@ internal fun SettingsBackupSections(
     onChangeBackupFolder: () -> Unit,
     onImportBackup: () -> Unit,
     onImportCsv: () -> Unit,
+    // Null hides the row (screenshot tests and callers without cloud backup).
+    onCloudBackup: (() -> Unit)? = null,
+    cloudBackupDriveAvailable: Boolean = true,
     onNavigateToImportStatement: () -> Unit,
     onNavigateToUnrecognizedSms: () -> Unit,
     onSmsScanPeriod: () -> Unit,
@@ -577,6 +580,22 @@ internal fun SettingsBackupSections(
                 onClick = onImportBackup,
                 position = ListItemPosition.Bottom,
             )
+        }
+        if (onCloudBackup != null) {
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.CloudUpload,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.cloud_backup_title),
+                    subtitle = stringResource(
+                        if (cloudBackupDriveAvailable) R.string.cloud_backup_entry_subtitle
+                        else R.string.cloud_backup_entry_subtitle_webdav_only
+                    ),
+                    onClick = onCloudBackup,
+                    position = ListItemPosition.Single,
+                )
+            }
         }
     }
 

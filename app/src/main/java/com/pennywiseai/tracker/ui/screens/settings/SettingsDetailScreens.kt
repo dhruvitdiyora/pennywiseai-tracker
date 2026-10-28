@@ -647,6 +647,7 @@ fun BackupImportSettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToUnrecognizedSms: () -> Unit = {},
+    onNavigateToCloudBackup: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
@@ -741,6 +742,8 @@ fun BackupImportSettingsScreen(
             onBackupNow = { settingsViewModel.backupToFolderNow() },
             onChangeBackupFolder = { settingsViewModel.requestChangeBackupFolder() },
             onImportBackup = { importLauncher.launch("*/*") },
+            onCloudBackup = onNavigateToCloudBackup,
+            cloudBackupDriveAvailable = !com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD,
             onImportCsv = { csvImportLauncher.launch("*/*") },
             onNavigateToImportStatement = onNavigateToImportStatement,
             onNavigateToUnrecognizedSms = onNavigateToUnrecognizedSms,
