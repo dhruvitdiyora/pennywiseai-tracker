@@ -193,6 +193,9 @@ fun PennyWiseNavHost(
                 onNavigateToUnrecognizedSms = {
                     navController.navigate(UnrecognizedSms) { launchSingleTop = true }
                 },
+                onNavigateToCloudBackup = {
+                    navController.navigate(CloudBackup) { launchSingleTop = true }
+                },
             )
         }
 
@@ -338,6 +341,12 @@ fun PennyWiseNavHost(
 
         composable<AiAccess> {
             com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
+                onNavigateBack = { navController.safePopBackStack() }
+            )
+        }
+
+        composable<CloudBackup> {
+            com.pennywiseai.tracker.ui.screens.settings.cloud.CloudBackupScreen(
                 onNavigateBack = { navController.safePopBackStack() }
             )
         }

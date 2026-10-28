@@ -354,6 +354,10 @@ dependencies {
     // FdroidBillingGateway stub and does not need the dep.
     "standardImplementation"(libs.billing.ktx)
 
+    // Google Drive cloud backup (Authorization API, drive.appdata scope) — STANDARD
+    // FLAVOR ONLY. F-Droid gets WebDAV only and binds UnavailableGoogleDriveFeature.
+    "standardImplementation"(libs.play.services.auth)
+
     testImplementation(kotlin("test"))
 }
 

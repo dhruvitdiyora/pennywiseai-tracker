@@ -212,11 +212,12 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 
 ### Network access — every outbound call the app can make
 
-1. **Google Play services** *(Play Store build only)* — Google Play Billing (optional Pro subscription), In-App Updates, and In-App Review. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all three and is fully Google-free.**
+1. **Google Play services** *(Play Store build only)* — Google Play Billing (optional Pro subscription), In-App Updates, In-App Review, and the sign-in for optional Google Drive backup. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all of these (and Google Drive backup) and is fully Google-free.**
 2. **Exchange rates** — fetched from `open.er-api.com`. Automatic currency conversion runs **only when you hold more than one currency** (same-currency conversions make no call), but opening the currency picker also fetches the current rate list. Either way the request carries just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
 3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
 4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
-5. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
+5. **Cloud Backup** *(optional, off by default)* — only after you connect Google Drive (Play Store build, `drive.appdata` app folder via Play services) or your own WebDAV server (https only) and set a passphrase. Every upload is encrypted on the phone first (AES-256-GCM, PBKDF2-HMAC-SHA256); the provider only stores the encrypted file. The F-Droid build offers WebDAV only. ([docs/cloud-backup.md](docs/cloud-backup.md))
+6. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
 
 Everything else stays on your phone.
 

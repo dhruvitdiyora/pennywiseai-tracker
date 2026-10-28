@@ -47,6 +47,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     lateinit var webhookSyncScheduler: WebhookSyncScheduler
 
     @Inject
+    lateinit var cloudBackupSettings: com.pennywiseai.tracker.backup.cloud.CloudBackupSettings
+
+    @Inject
+    lateinit var cloudBackupScheduler: com.pennywiseai.tracker.backup.cloud.CloudBackupScheduler
+
+    @Inject
     lateinit var goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -81,6 +87,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         applicationScope.launch {
             if (userPreferencesRepository.isScheduledFolderBackupEnabled()) {
                 scheduledFolderBackupScheduler.schedule()
+            }
+        }
+        // Same for automatic cloud backup (opt-in). UPDATE keeps the existing period.
+        applicationScope.launch {
+            val cloud = cloudBackupSettings.current()
+            if (cloud.autoBackupEnabled &&
+                cloud.provider != com.pennywiseai.tracker.backup.cloud.CloudProviderType.NONE
+            ) {
+                cloudBackupScheduler.schedule(cloud.frequency)
             }
         }
 

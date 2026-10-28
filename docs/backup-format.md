@@ -11,6 +11,10 @@ versions, and the rules you must follow when you change anything it touches.
 > once against a pinned required-fields baseline for every Room entity — so an
 > entity that gains a new non-defaulted column fails CI too.
 
+> **Cloud backup** (Google Drive / WebDAV) encrypts this exact file in a
+> separate envelope and doesn't change the format. Its design, crypto and
+> Google Drive setup steps are in [cloud-backup.md](cloud-backup.md).
+
 ## Where it lives
 
 | File | Role |

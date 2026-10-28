@@ -42,34 +42,56 @@ class BackupImporter @Inject constructor(
         strategy: ImportStrategy = ImportStrategy.MERGE
     ): ImportResult = withContext(Dispatchers.IO) {
         try {
-            // Read and parse the backup file
-            val backup = readBackupFile(uri)
-            
-            // Validate backup version
-            if (!isCompatibleVersion(backup)) {
-                return@withContext ImportResult.Error("Incompatible backup version")
-            }
-            
-            // Import based on strategy
-            val result = when (strategy) {
-                ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
-                ImportStrategy.MERGE -> mergeData(backup)
-                ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
-            }
-            // Receipt photos (#839), after the DB commit: write only the files
-            // a transaction now in the DB points at, so a merge restores the
-            // photos of the rows it kept (row ids get remapped; paths don't).
-            if (result is ImportResult.Success && backup.receipts.isNotEmpty()) {
-                val referenced = database.transactionDao().getAllTransactions().first()
-                    .mapNotNullTo(HashSet()) { it.receiptPath }
-                val restored = BackupReceipts.restore(context.filesDir, backup.receipts, referenced)
-                Log.i("BackupImporter", "Restored $restored of ${backup.receipts.size} receipt photos")
-            }
-            result
+            importParsed(readBackupFile(uri), strategy)
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
             ImportResult.Error("Import failed: ${e.message}")
         }
+    }
+
+    /**
+     * Import a backup already in memory (the decrypted payload of a cloud
+     * snapshot). Same parsing, version gate and strategies as [importBackup].
+     */
+    suspend fun importBackupBytes(
+        bytes: ByteArray,
+        strategy: ImportStrategy = ImportStrategy.MERGE
+    ): ImportResult = withContext(Dispatchers.IO) {
+        try {
+            val backup = backupJson.decodeFromString<PennyWiseBackup>(String(bytes, Charsets.UTF_8))
+            importParsed(backup, strategy)
+        } catch (e: Exception) {
+            // No exception details: the message could quote backup content.
+            Log.e("BackupImporter", "Import of in-memory backup failed: ${e.javaClass.simpleName}")
+            ImportResult.Error("Import failed: the backup could not be read")
+        }
+    }
+
+    private suspend fun importParsed(
+        backup: PennyWiseBackup,
+        strategy: ImportStrategy
+    ): ImportResult {
+        // Validate backup version
+        if (!isCompatibleVersion(backup)) {
+            return ImportResult.Error("Incompatible backup version")
+        }
+        
+        // Import based on strategy
+        val result = when (strategy) {
+            ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
+            ImportStrategy.MERGE -> mergeData(backup)
+            ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
+        }
+        // Receipt photos (#839), after the DB commit: write only the files
+        // a transaction now in the DB points at, so a merge restores the
+        // photos of the rows it kept (row ids get remapped; paths don't).
+        if (result is ImportResult.Success && backup.receipts.isNotEmpty()) {
+            val referenced = database.transactionDao().getAllTransactions().first()
+                .mapNotNullTo(HashSet()) { it.receiptPath }
+            val restored = BackupReceipts.restore(context.filesDir, backup.receipts, referenced)
+            Log.i("BackupImporter", "Restored $restored of ${backup.receipts.size} receipt photos")
+        }
+        return result
     }
     
     /**

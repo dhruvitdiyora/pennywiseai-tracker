@@ -146,6 +146,13 @@ internal fun DataPrivacyScreenContent(
                     body = stringResource(R.string.data_privacy_exports_body),
                 ),
                 PrivacyRowModel(
+                    icon = Iconax.SecuritySafe,
+                    containerColor = teal_light,
+                    contentColor = teal_dark,
+                    title = stringResource(R.string.data_privacy_cloud_title),
+                    body = stringResource(R.string.data_privacy_cloud_body),
+                ),
+                PrivacyRowModel(
                     icon = Iconax.ImportArrow01,
                     containerColor = cyan_light,
                     contentColor = cyan_dark,
