@@ -913,6 +913,17 @@ formatting, and localized notification/background-worker text.
 **Review status:** Do not implement until the prerequisite transaction-integrity
 work below is explicitly approved and completed.
 
+**Approved slice (implemented):** the product owner approved a reduced scope —
+category, date, time, note (set/clear) and tags (Add/Remove/Replace) only; no
+amount, account, currency or type. `BatchEditTransactionsUseCase` re-reads the
+ids and applies the whole edit in one Room transaction, edits a row whole or
+not at all, skips missing rows, transfers (for category/date/time) and
+category-split rows (for category), routes date moves through the
+balance-shift owner, and offers an in-memory conflict-aware Undo. The quick
+"Change category" bulk action now runs through the same use case. Everything
+else in this section (amount, account, transfer pairing, loan-linked delete)
+remains unimplemented.
+
 Cashiro commit `61afaea6` adds a large batch-edit sheet for date, time,
 category/subcategory, amount, and note. Its ViewModel loops through selected
 rows and writes each separately, with no atomic rollback or Undo. Its ad-hoc
