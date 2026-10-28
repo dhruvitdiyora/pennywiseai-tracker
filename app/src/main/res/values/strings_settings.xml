@@ -22,6 +22,9 @@
     <string name="settings_appearance_subtitle">Theme, colors, fonts &amp; navigation</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_subtitle">Choose the app language</string>
+    <string name="settings_language_system_default">System default</string>
+    <string name="settings_language_system_default_hint">Use your phone\'s language</string>
+    <string name="settings_language_sheet_title">Choose language</string>
 
     <!-- Currency -->
     <string name="settings_currency_section">Currency</string>

@@ -56,6 +56,11 @@ class QuickCategoryPickerActivity : ComponentActivity() {
     // a second notification tap re-targets the picker at the new transaction.
     private val currentArgs = mutableStateOf<PickerArgs?>(null)
 
+    // Pre-Android 13 in-app language; a no-op on 13+ (the system applies it).
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.pennywiseai.tracker.locale.AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

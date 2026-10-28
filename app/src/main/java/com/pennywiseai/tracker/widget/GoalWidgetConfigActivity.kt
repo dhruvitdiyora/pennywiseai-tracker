@@ -65,6 +65,11 @@ class GoalWidgetConfigActivity : FragmentActivity() {
     /** Null while the app lock is checked; goals are read and shown only once true. */
     private var unlocked by mutableStateOf<Boolean?>(null)
 
+    // Pre-Android 13 in-app language; a no-op on 13+ (the system applies it).
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.pennywiseai.tracker.locale.AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val appWidgetId = intent?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
