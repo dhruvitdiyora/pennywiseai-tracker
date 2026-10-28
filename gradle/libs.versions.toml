@@ -50,6 +50,7 @@ material3 = "1.5.0-alpha12"
 haze = "1.7.1"
 composeCharts = "0.2.5"
 billingKtx = "9.0.0"
+playServicesAuth = "21.5.1"
 roborazzi = "1.72.0"
 robolectric = "4.16.1"
 
@@ -117,6 +118,7 @@ vision-internal-vkp = { group = "com.google.mlkit", name = "vision-internal-vkp"
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
