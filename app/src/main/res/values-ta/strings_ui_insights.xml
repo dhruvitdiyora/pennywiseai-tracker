@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budgets_card_daily_left">மீதமுள்ள தினசரி பட்ஜெட்</string>
+    <string name="budgets_card_remaining_label">மீதம்</string>
+    <string name="budgets_card_over_label">பட்ஜெட்டைத் தாண்டியது</string>
+    <string name="budgets_card_spent_label">செலவு</string>
+    <string name="budgets_card_spent_limit">செலவு / வரம்பு</string>
+    <string name="budgets_card_spent_expected">செலவு / எதிர்பார்ப்பு</string>
+    <string name="budgets_card_actual_target">உண்மை / இலக்கு</string>
+    <string name="subscriptions_back">பின்செல்</string>
+    <string name="subscriptions_total_title">மொத்தச் சந்தாக்கள்</string>
+    <string name="subscriptions_monthly_label">மாதாந்திர</string>
+    <string name="subscriptions_yearly_label">ஆண்டுதோறும்</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_edit_amount_label">பட்ஜெட் தொகை</string>
+    <string name="groups_summary_title">அனைத்துக் குழுக்களும்</string>
+    <plurals name="groups_group_count">
+        <item quantity="one">%1$d குழு</item>
+        <item quantity="other">%1$d குழுக்கள்</item>
+    </plurals>
+    <string name="recurring_summary_title">கண்ணோட்டம்</string>
+    <string name="recurring_fab_label">தொடரைச் சேர்</string>
+    <string name="recurring_summary_active">%1$d செயலில்</string>
+    <string name="recurring_summary_active_paused">%1$d செயலில் · %2$d இடைநிறுத்தம்</string>
+    <string name="recurring_tile_scheduled">%1$d அட்டவணையிடப்பட்டவை</string>
+</resources>

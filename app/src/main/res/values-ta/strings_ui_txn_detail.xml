@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="txn_detail_ui_loan_view">கடன் விவரங்களைக் காண்</string>
+    <string name="txn_detail_ui_loan_mark_hint">இதைக் கொடுத்த அல்லது வாங்கிய கடனாகக் கண்காணி</string>
+    <string name="txn_detail_ui_label_sms_sender">SMS அனுப்புநர்</string>
+    <string name="txn_detail_ui_recurring_subtitle">இதைத் தொடர் கட்டணமாகக் குறிக்கும்</string>
+    <string name="txn_detail_receipt_date">தேதி</string>
+    <string name="txn_detail_receipt_type">இனம்</string>
+    <string name="txn_detail_receipt_amount">தொகை</string>
+    <string name="txn_detail_receipt_original_sms">அசல் SMS</string>
+    <string name="txn_detail_share">பகிர்</string>
+    <string name="txn_detail_share_chooser">பரிவர்த்தனையைப் பகிர்</string>
+    <string name="txn_detail_share_text">%1$s\nதொகை: %2$s\nதேதி: %3$s\nவகை: %4$s</string>
+</resources>

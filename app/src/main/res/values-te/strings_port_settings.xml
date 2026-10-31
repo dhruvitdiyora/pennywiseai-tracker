@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_data_manage_section">డేటాను నిర్వహించండి</string>
+    <string name="settings_data_backup_section">బ్యాకప్ &amp; పునరుద్ధరణ</string>
+    <string name="settings_data_imports_section">దిగుమతులు &amp; SMS</string>
+    <string name="settings_currency_formats_title">కరెన్సీ &amp; ఫార్మాట్‌లు</string>
+    <string name="settings_currency_formats_subtitle">కరెన్సీ, సంఖ్యలు మరియు బడ్జెట్ చక్రం</string>
+    <string name="settings_backup_import_title">బ్యాకప్ &amp; దిగుమతి</string>
+    <string name="settings_backup_import_subtitle">బ్యాకప్‌లు, దిగుమతులు మరియు SMS స్కానింగ్</string>
+    <string name="settings_privacy_security_title">గోప్యత &amp; భద్రత</string>
+    <string name="settings_privacy_security_subtitle">యాప్ లాక్, పరిచయాలు మరియు గోప్యత</string>
+    <string name="settings_advanced_title">అధునాతనం</string>
+    <string name="settings_advanced_subtitle">నోటిఫికేషన్‌లు, AI మరియు డెవలపర్ మోడ్</string>
+    <string name="faq_data_secure_answer_v2">ప్రధాన ఆర్థిక రికార్డులు మీ పరికరంలోనే నిల్వ చేయబడి ప్రాసెస్ చేయబడతాయి, AI మోడల్ స్థానికంగా నడుస్తుంది. గుర్తించని SMS ను నివేదించడం, ఎగుమతి, బ్యాకప్ లేదా షేర్ వంటి చర్యను మీరు ఎంచుకున్నప్పుడు మాత్రమే రికార్డులు యాప్ నుండి బయటకు వెళ్తాయి.</string>
+    <string name="faq_backup_answer_v2">అవును. సెట్టింగ్‌లు &gt; డేటా నిర్వహణలో మీరు బ్యాకప్‌ను సృష్టించవచ్చు లేదా దిగుమతి చేయవచ్చు. ఎగుమతి చేసిన బ్యాకప్‌ను సేవ్ చేయవచ్చు లేదా షేర్ చేయవచ్చు, PennyWise Pro మీరు ఎంచుకున్న ఫోల్డర్‌కు రోజువారీ బ్యాకప్‌లను షెడ్యూల్ చేయగలదు.</string>
+    <string name="faq_data_access_answer_v2">అనుమతితో, లావాదేవీ సందేశాలను గుర్తించడానికి SMS స్కానింగ్ మీ పరికరంలోనే జరుగుతుంది. పరిచయాల యాక్సెస్ ఐచ్ఛికం, సరిపోలే UPI చిరునామాలను పరిచయ పేర్లతో మార్చడానికి ఉపయోగించబడుతుంది. గుర్తించని SMS ను నివేదిస్తే ఆ సందేశం, పంపినవారు మరియు ఎన్‌క్రిప్ట్ చేసిన పరికర గుర్తింపు మీరు నివేదించు ఎంచుకున్నప్పుడు మాత్రమే వెబ్ పార్సర్‌కు పంపబడతాయి.</string>
+</resources>

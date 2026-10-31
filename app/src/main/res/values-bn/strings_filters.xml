@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="filter_period_this_month">এই মাস</string>
+    <string name="filter_period_last_month">গত মাস</string>
+    <string name="filter_period_current_fy">চলতি অর্থবছর</string>
+    <string name="filter_period_all_time">সব সময়</string>
+    <string name="filter_period_custom_range">কাস্টম পরিসর</string>
+    <string name="filter_type_all">সব</string>
+    <string name="filter_type_income">আয়</string>
+    <string name="filter_type_expense">খরচ</string>
+    <string name="filter_type_credit">ক্রেডিট</string>
+    <string name="filter_type_spending">খরচ (খরচ + কার্ড)</string>
+    <string name="filter_type_transfer">ট্রান্সফার</string>
+    <string name="filter_type_investment">বিনিয়োগ</string>
+    <string name="account_type_savings">সঞ্চয়</string>
+    <string name="account_type_current">বর্তমান</string>
+    <string name="account_type_credit_card">ক্রেডিট কার্ড</string>
+    <string name="account_type_cash">নগদ</string>
+    <string name="account_type_loan">ঋণ</string>
+</resources>

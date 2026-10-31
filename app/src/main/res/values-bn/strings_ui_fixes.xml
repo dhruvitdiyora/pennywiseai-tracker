@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_group_custom">কাস্টম</string>
+    <string name="categories_msg_same_target">অন্য একটি বিকল্প বিভাগ বেছে নিন</string>
+    <string name="categories_msg_unreadable_rules">কিছু নিয়ম পড়া যাচ্ছে না, তাই এই বিভাগটি নিরাপদে বদলানো যাবে না</string>
+    <string name="categories_msg_target_not_found">বিকল্প বিভাগটি আর নেই</string>
+    <string name="categories_msg_type_mismatch">বিকল্পটি একই ধরনের (আয় বা খরচ) হতে হবে</string>
+    <string name="categories_msg_changed_concurrently">মোছার আগে বিভাগটি বদলে গেছে। আবার চেষ্টা করুন।</string>
+    <plurals name="personal_dashboard_contacts_count">
+        <item quantity="one">%1$dটি সক্রিয় পরিচিতি</item>
+        <item quantity="other">%1$dটি সক্রিয় পরিচিতি</item>
+    </plurals>
+    <plurals name="personal_dashboard_records_count">
+        <item quantity="one">%1$dটি খোলা রেকর্ড</item>
+        <item quantity="other">%1$dটি খোলা রেকর্ড</item>
+    </plurals>
+    <string name="analytics_summary_per_txn">" /লেনদেন"</string>
+</resources>

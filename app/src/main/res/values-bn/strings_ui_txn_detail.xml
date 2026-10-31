@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="txn_detail_ui_loan_view">ঋণের বিবরণ দেখুন</string>
+    <string name="txn_detail_ui_loan_mark_hint">এটিকে ধার দেওয়া বা নেওয়া টাকা হিসেবে ট্র্যাক করুন</string>
+    <string name="txn_detail_ui_label_sms_sender">SMS প্রেরক</string>
+    <string name="txn_detail_ui_recurring_subtitle">এটিকে পুনরাবৃত্ত পেমেন্ট হিসেবে চিহ্নিত করে</string>
+    <string name="txn_detail_receipt_date">তারিখ</string>
+    <string name="txn_detail_receipt_type">ধরন</string>
+    <string name="txn_detail_receipt_amount">পরিমাণ</string>
+    <string name="txn_detail_receipt_original_sms">মূল SMS</string>
+    <string name="txn_detail_share">শেয়ার করুন</string>
+    <string name="txn_detail_share_chooser">লেনদেন শেয়ার করুন</string>
+    <string name="txn_detail_share_text">%1$s\nপরিমাণ: %2$s\nতারিখ: %3$s\nবিভাগ: %4$s</string>
+</resources>

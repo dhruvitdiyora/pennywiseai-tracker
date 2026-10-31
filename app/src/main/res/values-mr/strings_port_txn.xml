@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="categories_msg_not_found">श्रेणी आता अस्तित्वात नाही</string>
+    <string name="categories_msg_check_usage_error">श्रेणी वापर तपासताना त्रुटी: %1$s</string>
+    <string name="categories_msg_reassigned_deleted">श्रेणी पुन्हा नियुक्त करून हटवली</string>
+    <string name="categories_msg_budget_conflict">दुसरी श्रेणी निवडा किंवा आधी %1$s संपादित करा; दोन्ही श्रेणी तेथे आधीच आहेत</string>
+    <string name="categories_msg_budget_conflict_generic">दुसरी श्रेणी निवडा किंवा आधी सक्रिय बजेट संपादित करा; दोन्ही श्रेणी तेथे आधीच आहेत</string>
+    <string name="budget_history_per_window_hint">श्रेणी तपशील पाहण्यासाठी कालावधीवर टॅप करा</string>
+</resources>

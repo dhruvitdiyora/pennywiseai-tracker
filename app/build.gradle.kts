@@ -142,10 +142,12 @@ android {
             }
         }
     }
-    // Lists every values-<lang>/ folder as a supported locale, so Android 13+
-    // shows PennyWise under System settings → App languages.
+    // System settings → App languages (Android 13+) reads the hand-written
+    // res/xml/locales_config.xml, not every values-<lang>/ folder: some
+    // upstream folders are nearly empty. It matches AppLanguage.supportedTags
+    // (the in-app picker); AppLanguageConfigTest checks both.
     androidResources {
-        generateLocaleConfig = true
+        generateLocaleConfig = false
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

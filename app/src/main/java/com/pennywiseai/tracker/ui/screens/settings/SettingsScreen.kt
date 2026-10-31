@@ -134,9 +134,7 @@ fun SettingsScreen(
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
     val context = LocalContext.current
-    // Per-app language is a system screen on Android 13+; older versions
-    // follow the device language.
-    val hasLanguageRow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    var showLanguageSheet by rememberSaveable { mutableStateOf(false) }
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -235,22 +233,17 @@ fun SettingsScreen(
                     onClick = onNavigateToAppearance,
                     position = ListItemPosition.Top
                 )
-                if (hasLanguageRow) {
-                    SettingsNavItem(
-                        icon = Icons.Default.Language,
-                        iconBgColor = blue_light,
-                        iconTint = blue_dark,
-                        title = stringResource(R.string.settings_language_title),
-                        subtitle = stringResource(R.string.settings_language_subtitle),
-                        onClick = {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APP_LOCALE_SETTINGS)
-                                    .setData(Uri.fromParts("package", context.packageName, null))
-                            )
-                        },
-                        position = ListItemPosition.Middle
-                    )
-                }
+                // In-app picker on every Android version (Cashiro's sheet);
+                // 13+ also lists the same languages in System settings.
+                SettingsNavItem(
+                    icon = Icons.Default.Language,
+                    iconBgColor = blue_light,
+                    iconTint = blue_dark,
+                    title = stringResource(R.string.settings_language_title),
+                    subtitle = currentAppLanguageLabel(),
+                    onClick = { showLanguageSheet = true },
+                    position = ListItemPosition.Middle
+                )
                 SettingsNavItem(
                     icon = Icons.Default.AttachMoney,
                     iconBgColor = cyan_light,
@@ -390,6 +383,10 @@ fun SettingsScreen(
 
     if (showEditProfile) {
         EditProfileSheet(onDismiss = { showEditProfile = false })
+    }
+
+    if (showLanguageSheet) {
+        LanguagePickerSheet(onDismiss = { showLanguageSheet = false })
     }
 }
 

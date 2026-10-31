@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="utility_rules_empty_title">এখনও কোনো নিয়ম নেই</string>
+    <string name="utility_rules_empty_body">লেনদেন স্বয়ংক্রিয়ভাবে শ্রেণিবদ্ধ বা ব্লক করতে একটি নিয়ম তৈরি করুন।</string>
+</resources>

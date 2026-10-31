@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_recent_title">हाल के</string>
+    <string name="home_subscriptions_per_month">/ माह</string>
+    <string name="home_summary_saved">बचत</string>
+</resources>

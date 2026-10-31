@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_sheet_dismiss">நிராகரி</string>
+    <string name="glass_sheet_expand">விரி</string>
+    <string name="glass_sheet_collapse">சுருக்கு</string>
+</resources>

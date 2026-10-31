@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_edit_amount_label">બજેટ રકમ</string>
+    <string name="groups_summary_title">બધાં જૂથો</string>
+    <plurals name="groups_group_count">
+        <item quantity="one">%1$d જૂથ</item>
+        <item quantity="other">%1$d જૂથો</item>
+    </plurals>
+    <string name="recurring_summary_title">ઝાંખી</string>
+    <string name="recurring_fab_label">રિકરિંગ ઉમેરો</string>
+    <string name="recurring_summary_active">%1$d સક્રિય</string>
+    <string name="recurring_summary_active_paused">%1$d સક્રિય · %2$d થોભાવેલ</string>
+    <string name="recurring_tile_scheduled">%1$d શેડ્યૂલ કરેલ</string>
+</resources>

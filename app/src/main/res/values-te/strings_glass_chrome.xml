@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_sheet_dismiss">తీసివేయండి</string>
+    <string name="glass_sheet_expand">విస్తరించండి</string>
+    <string name="glass_sheet_collapse">కుదించండి</string>
+</resources>

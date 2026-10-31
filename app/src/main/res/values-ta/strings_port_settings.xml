@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_data_manage_section">தரவை நிர்வகி</string>
+    <string name="settings_data_backup_section">காப்புப்பிரதி &amp; மீட்டமைப்பு</string>
+    <string name="settings_data_imports_section">இறக்குமதிகள் &amp; SMS</string>
+    <string name="settings_currency_formats_title">நாணயம் &amp; வடிவங்கள்</string>
+    <string name="settings_currency_formats_subtitle">நாணயம், எண்கள் மற்றும் பட்ஜெட் சுழற்சி</string>
+    <string name="settings_backup_import_title">காப்புப்பிரதி &amp; இறக்குமதி</string>
+    <string name="settings_backup_import_subtitle">காப்புப்பிரதிகள், இறக்குமதிகள் மற்றும் SMS ஸ்கேனிங்</string>
+    <string name="settings_privacy_security_title">தனியுரிமை &amp; பாதுகாப்பு</string>
+    <string name="settings_privacy_security_subtitle">ஆப்ஸ் பூட்டு, தொடர்புகள் மற்றும் தனியுரிமை</string>
+    <string name="settings_advanced_title">மேம்பட்டவை</string>
+    <string name="settings_advanced_subtitle">அறிவிப்புகள், AI மற்றும் டெவலப்பர் பயன்முறை</string>
+    <string name="faq_data_secure_answer_v2">முக்கிய நிதிப் பதிவுகள் உங்கள் சாதனத்திலேயே சேமிக்கப்பட்டுச் செயலாக்கப்படுகின்றன, AI மாடல் உள்ளூரிலேயே இயங்குகிறது. அடையாளம் காணப்படாத SMS ஐப் புகாரளித்தல், ஏற்றுமதி, காப்புப்பிரதி அல்லது பகிர்தல் போன்ற செயலை நீங்கள் தேர்ந்தெடுக்கும்போது மட்டுமே பதிவுகள் ஆப்ஸை விட்டு வெளியேறும்.</string>
+    <string name="faq_backup_answer_v2">ஆம். அமைப்புகள் &gt; தரவு நிர்வாகம் இல் காப்புப்பிரதியை உருவாக்கலாம் அல்லது இறக்குமதி செய்யலாம். ஏற்றுமதி செய்த காப்புப்பிரதியைச் சேமிக்கலாம் அல்லது பகிரலாம், PennyWise Pro நீங்கள் தேர்ந்தெடுக்கும் கோப்புறைக்குத் தினசரி காப்புப்பிரதிகளை அட்டவணையிடலாம்.</string>
+    <string name="faq_data_access_answer_v2">அனுமதியுடன், பரிவர்த்தனைச் செய்திகளைக் கண்டறிய SMS ஸ்கேனிங் உங்கள் சாதனத்திலேயே நடக்கும். தொடர்பு அணுகல் விருப்பமானது, பொருந்தும் UPI முகவரிகளைத் தொடர்புப் பெயர்களால் மாற்றப் பயன்படுகிறது. அடையாளம் காணப்படாத SMS ஐப் புகாரளித்தால், அந்தச் செய்தி, அனுப்புநர் மற்றும் மறையாக்கப்பட்ட சாதன அடையாளங்காட்டி நீங்கள் புகாரளி என்பதைத் தேர்ந்தெடுக்கும்போது மட்டுமே வெப் பார்சருக்கு அனுப்பப்படும்.</string>
+</resources>

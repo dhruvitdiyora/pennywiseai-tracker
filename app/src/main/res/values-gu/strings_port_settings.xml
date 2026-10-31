@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_data_manage_section">ડેટા મેનેજ કરો</string>
+    <string name="settings_data_backup_section">બૅકઅપ અને રિસ્ટોર</string>
+    <string name="settings_data_imports_section">ઇમ્પોર્ટ અને SMS</string>
+    <string name="settings_currency_formats_title">ચલણ અને ફૉર્મેટ</string>
+    <string name="settings_currency_formats_subtitle">ચલણ, સંખ્યાઓ અને બજેટ ચક્ર</string>
+    <string name="settings_backup_import_title">બૅકઅપ અને ઇમ્પોર્ટ</string>
+    <string name="settings_backup_import_subtitle">બૅકઅપ, ઇમ્પોર્ટ અને SMS સ્કૅનિંગ</string>
+    <string name="settings_privacy_security_title">ગોપનીયતા અને સુરક્ષા</string>
+    <string name="settings_privacy_security_subtitle">ઍપ લૉક, સંપર્કો અને ગોપનીયતા</string>
+    <string name="settings_advanced_title">ઉન્નત</string>
+    <string name="settings_advanced_subtitle">સૂચનાઓ, AI અને ડેવલપર મોડ</string>
+    <string name="faq_data_secure_answer_v2">મુખ્ય નાણાકીય રેકોર્ડ તમારા ડિવાઇસ પર સંગ્રહિત અને પ્રોસેસ થાય છે, અને AI મોડેલ સ્થાનિક રીતે ચાલે છે. અજાણ્યા SMS ની જાણ, એક્સપોર્ટ, બૅકઅપ કે શેર જેવી ક્રિયા તમે પસંદ કરો ત્યારે જ રેકોર્ડ ઍપમાંથી બહાર જાય છે.</string>
+    <string name="faq_backup_answer_v2">હા. સેટિંગ્સ &gt; ડેટા મેનેજમેન્ટમાં તમે બૅકઅપ બનાવી કે ઇમ્પોર્ટ કરી શકો છો. તમે એક્સપોર્ટ કરેલો બૅકઅપ સાચવી કે શેર કરી શકો છો, અને PennyWise Pro તમે પસંદ કરેલા ફોલ્ડરમાં દૈનિક બૅકઅપ શેડ્યૂલ કરી શકે છે.</string>
+    <string name="faq_data_access_answer_v2">પરવાનગી સાથે, વ્યવહાર સંદેશા ઓળખવા SMS સ્કૅનિંગ તમારા ડિવાઇસ પર થાય છે. સંપર્ક ઍક્સેસ વૈકલ્પિક છે અને મેળ ખાતાં UPI સરનામાંને સંપર્ક નામોથી બદલવા વપરાય છે. અજાણ્યા SMS ની જાણ કરવાથી તે સંદેશ, તેનો મોકલનાર અને એન્ક્રિપ્ટેડ ડિવાઇસ ઓળખકર્તા ફક્ત તમે રિપોર્ટ પસંદ કરો ત્યારે જ વેબ પાર્સરને મોકલાય છે.</string>
+</resources>

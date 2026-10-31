@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="utility_rules_empty_title">अद्याप नियम नाहीत</string>
+    <string name="utility_rules_empty_body">व्यवहार आपोआप वर्गीकृत किंवा ब्लॉक करण्यासाठी नियम तयार करा.</string>
+</resources>

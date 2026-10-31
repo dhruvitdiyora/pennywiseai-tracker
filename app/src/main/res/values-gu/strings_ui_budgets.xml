@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_detail_legend_amount">%1$s (%2$d%%)</string>
+    <string name="budget_history_title_format">%1$s ઇતિહાસ</string>
+    <string name="budget_history_trend_title">ખર્ચનું વલણ</string>
+    <string name="budget_history_row_of">%1$s માંથી</string>
+    <string name="budget_history_percent_capped">%1$d%%+</string>
+    <plurals name="categories_subcategory_count">
+        <item quantity="one">%d પેટા-શ્રેણી</item>
+        <item quantity="other">%d પેટા-શ્રેણીઓ</item>
+    </plurals>
+</resources>

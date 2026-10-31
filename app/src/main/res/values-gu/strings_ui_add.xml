@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_amount_label">રકમ</string>
+    <string name="add_calculator_chip">કૅલ્ક્યુલેટર</string>
+    <string name="add_currency_picker_desc">ચલણ, %1$s</string>
+    <string name="add_txn_type_label">વ્યવહારનો પ્રકાર</string>
+    <string name="add_sub_direction_label">સબ્સ્ક્રિપ્શનનો પ્રકાર</string>
+    <string name="add_pick_date">તારીખ પસંદ કરો</string>
+</resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="utility_rules_empty_title">अभी तक कोई नियम नहीं</string>
+    <string name="utility_rules_empty_body">लेन-देन अपने आप श्रेणीबद्ध या ब्लॉक करने के लिए एक नियम बनाएँ।</string>
+</resources>

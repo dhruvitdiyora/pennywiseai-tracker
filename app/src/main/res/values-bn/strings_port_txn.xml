@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="categories_msg_not_found">বিভাগটি আর নেই</string>
+    <string name="categories_msg_check_usage_error">বিভাগের ব্যবহার যাচাইয়ে ত্রুটি: %1$s</string>
+    <string name="categories_msg_reassigned_deleted">বিভাগ পুনরায় বরাদ্দ করে মোছা হয়েছে</string>
+    <string name="categories_msg_budget_conflict">অন্য বিভাগ বেছে নিন বা আগে %1$s সম্পাদনা করুন; দুটি বিভাগই সেখানে আগে থেকে আছে</string>
+    <string name="categories_msg_budget_conflict_generic">অন্য বিভাগ বেছে নিন বা আগে সক্রিয় বাজেট সম্পাদনা করুন; দুটি বিভাগই সেখানে আগে থেকে আছে</string>
+    <string name="budget_history_per_window_hint">বিভাগের বিভাজন দেখতে একটি সময়কালে ট্যাপ করুন</string>
+</resources>

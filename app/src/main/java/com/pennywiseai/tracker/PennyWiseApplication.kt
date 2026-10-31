@@ -80,6 +80,8 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // state that was created after the snapshot was taken" (Play vitals, 2.22.0).
         CategoryMapping.userStyles
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+        // The in-app language (Settings → Language); see AppLanguage.
+        com.pennywiseai.tracker.locale.AppLanguage.applyToApplication(this)
         lastLocales = resources.configuration.locales
 
         // Re-arm the daily folder backup on process start when the user has it enabled,
@@ -176,7 +178,11 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     // when the device or per-app language changes.
     override fun onConfigurationChanged(newConfig: ResConfiguration) {
         super.onConfigurationChanged(newConfig)
-        val locales = newConfig.locales
+        // Before Android 13 a device change resets the app's resources to the
+        // device language; re-apply the in-app choice, then compare what the
+        // resources actually use.
+        com.pennywiseai.tracker.locale.AppLanguage.applyToApplication(this)
+        val locales = resources.configuration.locales
         if (lastLocales != null && locales != lastLocales) {
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(this)
         }

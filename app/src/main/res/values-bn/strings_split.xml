@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_menu_split">যার সঙ্গে ভাগ করবেন…</string>
+    <string name="split_menu_edit">ভাগ সম্পাদনা করুন</string>
+    <string name="split_sheet_title">%1$s ভাগ করুন</string>
+    <string name="split_sheet_hint">প্রতিটি অংশ ঋণে আপনার ধার দেওয়া টাকা হিসেবে যোগ হয়। শুধু আপনার অংশ খরচ হিসেবে গোনা হয়।</string>
+    <string name="split_people_count">%2$d জনের মধ্যে %1$d জন</string>
+    <string name="split_person_name">ব্যক্তির নাম</string>
+    <string name="split_add_person">যোগ করুন</string>
+    <string name="split_pick_contact">পরিচিতি থেকে বাছুন</string>
+    <string name="split_remove_person">%1$s সরান</string>
+    <string name="split_mode_equal">সমান ভাগ করুন</string>
+    <string name="split_mode_custom">কাস্টম পরিমাণ</string>
+    <string name="split_you">আপনি</string>
+    <string name="split_your_part">আপনার অংশ</string>
+    <string name="split_left_to_assign">%1$s বরাদ্দ বাকি</string>
+    <string name="split_over_total">মোটের চেয়ে %1$s বেশি</string>
+    <string name="split_adds_up">মোট %1$s</string>
+    <string name="split_save">ভাগ সংরক্ষণ করুন</string>
+    <string name="split_error_share_positive">প্রতিটি অংশ শূন্যের বেশি হতে হবে</string>
+    <string name="split_error_over">অংশগুলো মোটের চেয়ে বেশি</string>
+    <string name="split_error_your_part_negative">আপনার অংশ শূন্যের কম হতে পারে না</string>
+    <string name="split_error_failed">ভাগ সংরক্ষণ করা যায়নি: %1$s</string>
+    <string name="split_error_settled">%1$s এর ঋণ নিষ্পত্তি হয়েছে। তাদের অংশ বদলাতে ঋণে এটি আবার খুলুন।</string>
+    <string name="split_error_transfer">ভাগ করা বিল ট্রান্সফার হতে পারে না। আগে ভাগ সরান।</string>
+    <string name="split_error_type_locked">এই বিলটি ভাগ করা। ধরন বদলানোর আগে ভাগ সরান।</string>
+    <string name="split_error_amount_below_shares">এই বিলটি ভাগ করা। এর পরিমাণ আপনার ধার দেওয়া অংশের চেয়ে কম হতে পারে না।</string>
+    <string name="split_section_title">যার সঙ্গে ভাগ করা</string>
+    <string name="split_settled">নিষ্পত্তি হয়েছে</string>
+    <string name="split_request">%1$s চান</string>
+    <string name="split_remove">ভাগ সরান</string>
+    <string name="split_remove_title">ভাগ সরাবেন?</string>
+    <string name="split_remove_message">প্রত্যেকের অংশ তাদের ঋণ থেকে বাদ যায়। যে ঋণে আর কিছু নেই তা মুছে যায়।</string>
+    <string name="split_remove_confirm">সরান</string>
+    <string name="split_upi_title">আপনার UPI ID</string>
+    <string name="split_upi_message">লোকজন তাদের অংশ এই UPI ID তে পাঠায়। সেটিংসে বদলাতে পারেন।</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank এর মতো একটি UPI ID লিখুন</string>
+    <string name="split_upi_save">সংরক্ষণ করুন</string>
+    <string name="split_request_text">%3$s এর জন্য %2$s কে %1$s দিন</string>
+    <string name="split_request_failed">QR কোড তৈরি করা যায়নি</string>
+    <string name="settings_upi_title">আপনার UPI ID</string>
+    <string name="settings_upi_subtitle">ভাগ করা বিলে লোকজনের কাছে তাদের অংশ চাইতে ব্যবহৃত হয়</string>
+    <string name="settings_upi_not_set">সেট করা নেই</string>
+</resources>

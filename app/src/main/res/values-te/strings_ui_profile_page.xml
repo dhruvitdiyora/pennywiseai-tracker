@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_page_glance_title">ఒక్క చూపులో</string>
+    <string name="profile_page_stat_lent">అప్పు ఇచ్చారు</string>
+    <string name="profile_page_stat_borrowed">అప్పు తీసుకున్నారు</string>
+    <string name="profile_page_stat_settled">పరిష్కరించబడింది</string>
+    <string name="profile_page_stat_currencies">కరెన్సీలు</string>
+    <plurals name="profile_page_hero_contacts">
+        <item quantity="one">%1$d పరిచయం</item>
+        <item quantity="other">%1$d పరిచయాలు</item>
+    </plurals>
+</resources>

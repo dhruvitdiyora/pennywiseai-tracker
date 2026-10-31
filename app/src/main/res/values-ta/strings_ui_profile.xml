@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="edit_profile_title">சுயவிவரத்தைத் திருத்து</string>
+    <string name="edit_profile_name_label">பெயர்</string>
+    <string name="edit_profile_clear_photo">அழி</string>
+    <string name="edit_profile_change_banner">பேனரை மாற்று</string>
+    <string name="edit_profile_remove_banner">பேனரை அகற்று</string>
+    <string name="edit_profile_colors">நிறங்கள்</string>
+    <string name="edit_profile_banner_description">சுயவிவரப் பேனர்</string>
+    <string name="edit_profile_photo_description">சுயவிவரப் படம்</string>
+    <string name="edit_profile_image_error">அந்தப் படத்தை ஏற்ற முடியவில்லை. வேறொன்றை முயற்சிக்கவும்.</string>
+    <string name="edit_profile_section_avatar">அவதார்</string>
+    <string name="edit_profile_section_banner">பேனர்</string>
+    <string name="edit_profile_name_required">ஒரு பெயரை உள்ளிடவும்</string>
+</resources>

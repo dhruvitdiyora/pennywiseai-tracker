@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Settings → Advanced → Webhooks ══ -->
+    <string name="webhooks_title">Webhooks</string>
+    <string name="webhooks_settings_subtitle">Send selected data to your endpoint</string>
+    <string name="webhooks_settings_subtitle_pro">Pro · Send selected data to your endpoint</string>
+    <string name="webhooks_add_title">Add webhook</string>
+    <string name="webhooks_edit_title">Edit webhook</string>
+    <string name="webhooks_history_title">Delivery history</string>
+    <string name="webhooks_pro_body">Webhook sync is a Pro feature. Send selected financial data to your own endpoint automatically.</string>
+    <string name="webhooks_unlock_pro">Unlock with Pro</string>
+    <string name="webhooks_save">Save webhook</string>
+    <string name="webhooks_history_empty">No deliveries yet. Queued work waits for a network connection.</string>
+    <string name="webhooks_log_delivered">Delivered</string>
+    <string name="webhooks_log_failed">Failed</string>
+    <!-- Delivery history row: %1$s is why it ran (manual, test…), %2$s the date, %3$s the time. -->
+    <string name="webhooks_log_meta">%1$s · %2$s %3$s</string>
+    <plurals name="webhooks_log_batches">
+        <item quantity="one">Delivery has %d batch</item>
+        <item quantity="other">Delivery has %d batches</item>
+    </plurals>
+    <string name="webhooks_intro">Webhooks send your selected financial data outside this device to an endpoint you choose. Only enable endpoints you trust. Use HTTPS to protect data and credentials.</string>
+    <string name="webhooks_interval_label">Sync interval in hours</string>
+    <string name="webhooks_interval_hint">1–24 hours. Android may delay background delivery.</string>
+    <string name="webhooks_apply">Apply</string>
+    <string name="webhooks_sync_all_now">Sync enabled webhooks now</string>
+    <string name="webhooks_empty">No webhooks saved</string>
+    <string name="webhooks_delete_title">Delete webhook?</string>
+    <string name="webhooks_delete_body">Delete %1$s and its delivery history?</string>
+    <string name="webhooks_delete">Delete</string>
+    <string name="webhooks_cancel">Cancel</string>
+    <string name="webhooks_back">Back</string>
+    <string name="webhooks_auto_sync_on">Automatic sync enabled</string>
+    <string name="webhooks_auto_sync_off">Automatic sync disabled</string>
+    <!-- %1$s is the date, %2$s the time of the last successful sync. -->
+    <string name="webhooks_last_sync">Last sync: %1$s %2$s</string>
+    <string name="webhooks_edit">Edit</string>
+    <string name="webhooks_test">Test</string>
+    <string name="webhooks_sync">Sync</string>
+    <string name="webhooks_history">History</string>
+    <string name="webhooks_delete_named">Delete %1$s</string>
+    <string name="webhooks_field_name">Name</string>
+    <string name="webhooks_field_url">HTTPS endpoint URL</string>
+    <plurals name="webhooks_editor_auto_notice">
+        <item quantity="one">PennyWise will send the selected financial data outside this phone to this URL every %d hour. Android may delay background delivery. Only use a URL you trust.</item>
+        <item quantity="other">PennyWise will send the selected financial data outside this phone to this URL every %d hours. Android may delay background delivery. Only use a URL you trust.</item>
+    </plurals>
+    <string name="webhooks_editor_manual_notice">Automatic delivery is off. Manual sync sends the selected financial data outside this phone to this URL. Only use a URL you trust.</string>
+    <string name="webhooks_http_warning">HTTP sends data and header credentials without encryption.</string>
+    <string name="webhooks_field_currency">Currency code</string>
+    <string name="webhooks_enable_auto">Enable automatic delivery</string>
+    <string name="webhooks_data_to_send">Data to send</string>
+    <string name="webhooks_range">Range: %1$s</string>
+    <string name="webhooks_range_note">Since last success sends transaction edits and deletion records. Budgets, accounts, and subscriptions are current snapshots.</string>
+    <string name="webhooks_field_start">Start date (YYYY-MM-DD)</string>
+    <string name="webhooks_field_end">End date (YYYY-MM-DD)</string>
+    <string name="webhooks_headers_title">Custom headers</string>
+    <string name="webhooks_headers_note">Header values are hidden and sent only to this endpoint. Tests use synthetic financial data and your configured headers.</string>
+    <string name="webhooks_header_name">Header name</string>
+    <string name="webhooks_header_value">Header value</string>
+    <string name="webhooks_remove_header">Remove header</string>
+    <string name="webhooks_add_header">Add header</string>
+    <string name="webhooks_range_since_last_success">Since last success</string>
+    <string name="webhooks_range_today">Today</string>
+    <string name="webhooks_range_current_week">Current week</string>
+    <string name="webhooks_range_current_month">Current month</string>
+    <string name="webhooks_range_previous_month">Previous month</string>
+    <string name="webhooks_range_last_30_days">Last 30 days</string>
+    <string name="webhooks_range_custom">Custom dates</string>
+    <string name="webhooks_type_summary">Summary</string>
+    <string name="webhooks_type_transactions">Transactions</string>
+    <string name="webhooks_type_budgets">Budgets</string>
+    <string name="webhooks_type_accounts">Accounts</string>
+    <string name="webhooks_type_subscriptions">Subscriptions</string>
+    <string name="webhooks_reason_manual">Manual</string>
+    <string name="webhooks_reason_interval">Interval</string>
+    <string name="webhooks_reason_scheduled">Scheduled</string>
+    <string name="webhooks_reason_test">Test</string>
+    <string name="webhooks_msg_saved">Webhook saved</string>
+    <string name="webhooks_msg_interval_saved">Sync interval saved</string>
+    <string name="webhooks_msg_test_queued">Synthetic test queued. Delivery results appear in history.</string>
+    <string name="webhooks_msg_sync_queued">Sync queued. Delivery runs when online.</string>
+    <string name="webhooks_msg_deleted">Webhook deleted</string>
+    <string name="webhooks_msg_failed">Could not complete the webhook action. Try again.</string>
+</resources>

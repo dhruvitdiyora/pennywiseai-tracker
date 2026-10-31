@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_edit_amount_label">বাজেটের পরিমাণ</string>
+    <string name="groups_summary_title">সব গ্রুপ</string>
+    <plurals name="groups_group_count">
+        <item quantity="one">%1$dটি গ্রুপ</item>
+        <item quantity="other">%1$dটি গ্রুপ</item>
+    </plurals>
+    <string name="recurring_summary_title">সংক্ষিপ্তসার</string>
+    <string name="recurring_fab_label">পুনরাবৃত্ত যোগ করুন</string>
+    <string name="recurring_summary_active">%1$dটি সক্রিয়</string>
+    <string name="recurring_summary_active_paused">%1$dটি সক্রিয় · %2$dটি বিরতিতে</string>
+    <string name="recurring_tile_scheduled">%1$dটি নির্ধারিত</string>
+</resources>

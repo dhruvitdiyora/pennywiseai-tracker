@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="txn_detail_ui_loan_view">कर्ज तपशील पाहा</string>
+    <string name="txn_detail_ui_loan_mark_hint">हे उसने दिलेले किंवा घेतलेले पैसे म्हणून ट्रॅक करा</string>
+    <string name="txn_detail_ui_label_sms_sender">SMS पाठवणारा</string>
+    <string name="txn_detail_ui_recurring_subtitle">हे पुनरावृत्त पेमेंट म्हणून चिन्हांकित करते</string>
+    <string name="txn_detail_receipt_date">तारीख</string>
+    <string name="txn_detail_receipt_type">प्रकार</string>
+    <string name="txn_detail_receipt_amount">रक्कम</string>
+    <string name="txn_detail_receipt_original_sms">मूळ SMS</string>
+    <string name="txn_detail_share">शेअर करा</string>
+    <string name="txn_detail_share_chooser">व्यवहार शेअर करा</string>
+    <string name="txn_detail_share_text">%1$s\nरक्कम: %2$s\nतारीख: %3$s\nश्रेणी: %4$s</string>
+</resources>

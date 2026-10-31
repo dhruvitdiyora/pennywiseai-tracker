@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_menu_split">यांच्यासोबत विभागा…</string>
+    <string name="split_menu_edit">विभाजन संपादित करा</string>
+    <string name="split_sheet_title">%1$s विभागा</string>
+    <string name="split_sheet_hint">प्रत्येक वाटा कर्जांमध्ये तुम्ही उसने दिलेले पैसे म्हणून जोडला जातो. फक्त तुमचा भाग खर्च म्हणून मोजला जातो.</string>
+    <string name="split_people_count">%2$d पैकी %1$d लोक</string>
+    <string name="split_person_name">व्यक्तीचे नाव</string>
+    <string name="split_add_person">जोडा</string>
+    <string name="split_pick_contact">संपर्कांमधून निवडा</string>
+    <string name="split_remove_person">%1$s काढा</string>
+    <string name="split_mode_equal">समान विभागा</string>
+    <string name="split_mode_custom">सानुकूल रकमा</string>
+    <string name="split_you">तुम्ही</string>
+    <string name="split_your_part">तुमचा भाग</string>
+    <string name="split_left_to_assign">%1$s वाटप करणे बाकी</string>
+    <string name="split_over_total">एकूणपेक्षा %1$s जास्त</string>
+    <string name="split_adds_up">एकूण %1$s</string>
+    <string name="split_save">विभाजन जतन करा</string>
+    <string name="split_error_share_positive">प्रत्येक वाटा शून्यापेक्षा जास्त असावा</string>
+    <string name="split_error_over">वाटे एकूणपेक्षा जास्त आहेत</string>
+    <string name="split_error_your_part_negative">तुमचा भाग शून्यापेक्षा कमी असू शकत नाही</string>
+    <string name="split_error_failed">विभाजन जतन करता आले नाही: %1$s</string>
+    <string name="split_error_settled">%1$s चे कर्ज फेडले आहे. त्यांचा वाटा बदलण्यासाठी कर्जांमध्ये ते पुन्हा उघडा.</string>
+    <string name="split_error_transfer">विभाजित बिल हस्तांतरण असू शकत नाही. आधी विभाजन काढा.</string>
+    <string name="split_error_type_locked">हे बिल विभाजित आहे. त्याचा प्रकार बदलण्यापूर्वी विभाजन काढा.</string>
+    <string name="split_error_amount_below_shares">हे बिल विभाजित आहे. त्याची रक्कम तुम्ही उसने दिलेल्या वाट्यांपेक्षा कमी असू शकत नाही.</string>
+    <string name="split_section_title">यांच्यासोबत विभागले</string>
+    <string name="split_settled">फेडलेले</string>
+    <string name="split_request">%1$s ची विनंती करा</string>
+    <string name="split_remove">विभाजन काढा</string>
+    <string name="split_remove_title">विभाजन काढायचे?</string>
+    <string name="split_remove_message">प्रत्येक व्यक्तीचा वाटा त्यांच्या कर्जातून कमी होतो. ज्या कर्जात दुसरे काहीही नाही ते हटवले जाते.</string>
+    <string name="split_remove_confirm">काढा</string>
+    <string name="split_upi_title">तुमचा UPI ID</string>
+    <string name="split_upi_message">लोक त्यांचा वाटा या UPI ID वर भरतात. तुम्ही तो सेटिंग्जमध्ये बदलू शकता.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank सारखा UPI ID टाका</string>
+    <string name="split_upi_save">जतन करा</string>
+    <string name="split_request_text">%3$s साठी %2$s ला %1$s भरा</string>
+    <string name="split_request_failed">QR कोड तयार करता आला नाही</string>
+    <string name="settings_upi_title">तुमचा UPI ID</string>
+    <string name="settings_upi_subtitle">विभाजित बिलातील लोकांना त्यांचा वाटा भरण्यास सांगण्यासाठी वापरले जाते</string>
+    <string name="settings_upi_not_set">सेट केलेले नाही</string>
+</resources>

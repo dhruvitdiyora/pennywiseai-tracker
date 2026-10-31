@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_hero_net_title">நிகர இருப்பு</string>
+    <string name="loans_hero_status_get">உங்களுக்கு வருவது</string>
+    <string name="loans_hero_status_owe">நீங்கள் தர வேண்டியது</string>
+    <string name="loans_hero_by_currency">நாணய வாரியாக</string>
+    <string name="loans_settle_up_sheet_balance">நிலுவை இருப்பு</string>
+    <string name="lend_borrow_entry_hint_lent">அவர்கள் இந்தத் தொகையை உங்களுக்குத் தர வேண்டும்.</string>
+    <string name="lend_borrow_entry_hint_borrowed">நீங்கள் இந்தத் தொகையை அவர்களுக்குத் தர வேண்டும்.</string>
+    <string name="people_more_balances">+மேலும் %1$d</string>
+</resources>

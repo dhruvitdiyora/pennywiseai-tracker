@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="categories_msg_not_found">వర్గం ఇక లేదు</string>
+    <string name="categories_msg_check_usage_error">వర్గ వినియోగాన్ని తనిఖీ చేయడంలో లోపం: %1$s</string>
+    <string name="categories_msg_reassigned_deleted">వర్గం మళ్ళీ కేటాయించి తొలగించబడింది</string>
+    <string name="categories_msg_budget_conflict">మరో వర్గాన్ని ఎంచుకోండి లేదా ముందుగా %1$s ను సవరించండి; రెండు వర్గాలూ ఇప్పటికే అక్కడ ఉన్నాయి</string>
+    <string name="categories_msg_budget_conflict_generic">మరో వర్గాన్ని ఎంచుకోండి లేదా ముందుగా సక్రియ బడ్జెట్‌ను సవరించండి; రెండు వర్గాలూ ఇప్పటికే అక్కడ ఉన్నాయి</string>
+    <string name="budget_history_per_window_hint">వర్గ వివరణను చూడటానికి వ్యవధిని నొక్కండి</string>
+</resources>

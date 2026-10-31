@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_recent_title">সাম্প্রতিক</string>
+    <string name="home_subscriptions_per_month">/ মাস</string>
+    <string name="home_summary_saved">সঞ্চিত</string>
+</resources>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_ui_setup_profile_title">మీ ప్రొఫైల్</string>
+    <string name="onboarding_ui_setup_profile_body">పేరు, అవతార్ మరియు రంగును ఎంచుకోండి.</string>
+    <string name="onboarding_ui_setup_sms_title">SMS అనుమతులు</string>
+    <string name="onboarding_ui_setup_sms_body">ఐచ్ఛికం, లావాదేవీలు ఆటోమేటిక్‌గా గుర్తించబడేందుకు.</string>
+    <string name="onboarding_ui_setup_scan_title">సందేశ స్కాన్</string>
+    <string name="onboarding_ui_setup_scan_body">మీ ఫోన్‌లో ఇప్పటికే ఉన్న బ్యాంక్ లావాదేవీలను దిగుమతి చేయండి.</string>
+    <string name="onboarding_ui_setup_account_title">ప్రధాన ఖాతా</string>
+    <string name="onboarding_ui_setup_account_body">మీరు ఎక్కువగా ఉపయోగించే ఖాతాను ఎంచుకోండి.</string>
+    <string name="first_run_permission_read_title">SMS చదవండి</string>
+    <string name="first_run_permission_read_body">మీ ఫోన్‌లో ఇప్పటికే ఉన్న బ్యాంక్ లావాదేవీ సందేశాలను కనుగొంటుంది.</string>
+    <string name="first_run_permission_receive_title">SMS స్వీకరించండి</string>
+    <string name="first_run_permission_receive_body">కొత్త బ్యాంక్ సందేశాలు వచ్చిన వెంటనే గమనిస్తుంది.</string>
+    <string name="first_run_permission_notifications_title">నోటిఫికేషన్‌లు</string>
+    <string name="first_run_permission_notifications_body">లావాదేవీ నమోదైనప్పుడు PennyWise మీకు తెలియజేస్తుంది.</string>
+</resources>

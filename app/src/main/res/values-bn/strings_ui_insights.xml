@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budgets_card_daily_left">বাকি দৈনিক বাজেট</string>
+    <string name="budgets_card_remaining_label">বাকি</string>
+    <string name="budgets_card_over_label">বাজেট ছাড়িয়েছে</string>
+    <string name="budgets_card_spent_label">খরচ</string>
+    <string name="budgets_card_spent_limit">খরচ / সীমা</string>
+    <string name="budgets_card_spent_expected">খরচ / প্রত্যাশিত</string>
+    <string name="budgets_card_actual_target">প্রকৃত / লক্ষ্য</string>
+    <string name="subscriptions_back">ফিরে যান</string>
+    <string name="subscriptions_total_title">মোট সাবস্ক্রিপশন</string>
+    <string name="subscriptions_monthly_label">মাসিক</string>
+    <string name="subscriptions_yearly_label">বার্ষিক</string>
+</resources>

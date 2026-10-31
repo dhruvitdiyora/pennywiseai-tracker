@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_hero_net_title">নিট ব্যালেন্স</string>
+    <string name="loans_hero_status_get">আপনি পাবেন</string>
+    <string name="loans_hero_status_owe">আপনার দেনা</string>
+    <string name="loans_hero_by_currency">মুদ্রা অনুযায়ী</string>
+    <string name="loans_settle_up_sheet_balance">খোলা ব্যালেন্স</string>
+    <string name="lend_borrow_entry_hint_lent">তারা আপনাকে এই পরিমাণ দেবেন।</string>
+    <string name="lend_borrow_entry_hint_borrowed">আপনি তাদের এই পরিমাণ দেবেন।</string>
+    <string name="people_more_balances">+আরও %1$dটি</string>
+</resources>

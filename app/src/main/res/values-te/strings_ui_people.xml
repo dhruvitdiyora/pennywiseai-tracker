@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_hero_net_title">నికర బ్యాలెన్స్</string>
+    <string name="loans_hero_status_get">మీకు వచ్చేది</string>
+    <string name="loans_hero_status_owe">మీరు ఇవ్వవలసినది</string>
+    <string name="loans_hero_by_currency">కరెన్సీ వారీగా</string>
+    <string name="loans_settle_up_sheet_balance">మిగిలిన బ్యాలెన్స్</string>
+    <string name="lend_borrow_entry_hint_lent">వారు ఈ మొత్తాన్ని మీకు ఇవ్వాలి.</string>
+    <string name="lend_borrow_entry_hint_borrowed">మీరు ఈ మొత్తాన్ని వారికి ఇవ్వాలి.</string>
+    <string name="people_more_balances">+మరో %1$d</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="txn_detail_ui_loan_view">రుణ వివరాలను చూడండి</string>
+    <string name="txn_detail_ui_loan_mark_hint">దీన్ని అప్పుగా ఇచ్చిన లేదా తీసుకున్న డబ్బుగా ట్రాక్ చేయండి</string>
+    <string name="txn_detail_ui_label_sms_sender">SMS పంపినవారు</string>
+    <string name="txn_detail_ui_recurring_subtitle">దీన్ని పునరావృత చెల్లింపుగా గుర్తిస్తుంది</string>
+    <string name="txn_detail_receipt_date">తేదీ</string>
+    <string name="txn_detail_receipt_type">రకం</string>
+    <string name="txn_detail_receipt_amount">మొత్తం</string>
+    <string name="txn_detail_receipt_original_sms">అసలు SMS</string>
+    <string name="txn_detail_share">షేర్ చేయండి</string>
+    <string name="txn_detail_share_chooser">లావాదేవీని షేర్ చేయండి</string>
+    <string name="txn_detail_share_text">%1$s\nమొత్తం: %2$s\nతేదీ: %3$s\nవర్గం: %4$s</string>
+</resources>

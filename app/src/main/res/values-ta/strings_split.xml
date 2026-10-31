@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_menu_split">இவருடன் பிரி…</string>
+    <string name="split_menu_edit">பிரிவைத் திருத்து</string>
+    <string name="split_sheet_title">%1$s ஐப் பிரி</string>
+    <string name="split_sheet_hint">ஒவ்வொரு பங்கும் கடன்களில் நீங்கள் கொடுத்த பணமாகச் சேர்க்கப்படும். உங்கள் பங்கு மட்டுமே செலவாகக் கணக்கிடப்படும்.</string>
+    <string name="split_people_count">%2$d இல் %1$d நபர்கள்</string>
+    <string name="split_person_name">நபரின் பெயர்</string>
+    <string name="split_add_person">சேர்</string>
+    <string name="split_pick_contact">தொடர்புகளிலிருந்து தேர்ந்தெடு</string>
+    <string name="split_remove_person">%1$s ஐ அகற்று</string>
+    <string name="split_mode_equal">சமமாகப் பிரி</string>
+    <string name="split_mode_custom">தனிப்பயன் தொகைகள்</string>
+    <string name="split_you">நீங்கள்</string>
+    <string name="split_your_part">உங்கள் பங்கு</string>
+    <string name="split_left_to_assign">%1$s ஒதுக்க வேண்டியுள்ளது</string>
+    <string name="split_over_total">மொத்தத்தை விட %1$s அதிகம்</string>
+    <string name="split_adds_up">மொத்தம் %1$s</string>
+    <string name="split_save">பிரிவைச் சேமி</string>
+    <string name="split_error_share_positive">ஒவ்வொரு பங்கும் பூஜ்ஜியத்தை விட அதிகமாக இருக்க வேண்டும்</string>
+    <string name="split_error_over">பங்குகள் மொத்தத்தை விட அதிகம்</string>
+    <string name="split_error_your_part_negative">உங்கள் பங்கு பூஜ்ஜியத்தை விடக் குறைவாக இருக்க முடியாது</string>
+    <string name="split_error_failed">பிரிவைச் சேமிக்க முடியவில்லை: %1$s</string>
+    <string name="split_error_settled">%1$s இன் கடன் தீர்க்கப்பட்டது. அவர்களின் பங்கை மாற்ற கடன்களில் அதை மீண்டும் திறக்கவும்.</string>
+    <string name="split_error_transfer">பிரிக்கப்பட்ட பில் பரிமாற்றமாக இருக்க முடியாது. முதலில் பிரிவை அகற்றவும்.</string>
+    <string name="split_error_type_locked">இந்த பில் பிரிக்கப்பட்டுள்ளது. வகையை மாற்றும் முன் பிரிவை அகற்றவும்.</string>
+    <string name="split_error_amount_below_shares">இந்த பில் பிரிக்கப்பட்டுள்ளது. அதன் தொகை நீங்கள் கொடுத்த பங்குகளை விடக் குறைவாக இருக்க முடியாது.</string>
+    <string name="split_section_title">இவருடன் பிரிக்கப்பட்டது</string>
+    <string name="split_settled">தீர்க்கப்பட்டது</string>
+    <string name="split_request">%1$s ஐக் கோரு</string>
+    <string name="split_remove">பிரிவை அகற்று</string>
+    <string name="split_remove_title">பிரிவை அகற்றவா?</string>
+    <string name="split_remove_message">ஒவ்வொருவரின் பங்கும் அவர்களின் கடனிலிருந்து கழிக்கப்படும். வேறு எதுவும் இல்லாத கடன் நீக்கப்படும்.</string>
+    <string name="split_remove_confirm">அகற்று</string>
+    <string name="split_upi_title">உங்கள் UPI ID</string>
+    <string name="split_upi_message">மக்கள் தங்கள் பங்கை இந்த UPI ID க்குச் செலுத்துவார்கள். அமைப்புகளில் மாற்றலாம்.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank போன்ற UPI ID ஐ உள்ளிடவும்</string>
+    <string name="split_upi_save">சேமி</string>
+    <string name="split_request_text">%3$s க்காக %2$s க்கு %1$s செலுத்து</string>
+    <string name="split_request_failed">QR குறியீட்டை உருவாக்க முடியவில்லை</string>
+    <string name="settings_upi_title">உங்கள் UPI ID</string>
+    <string name="settings_upi_subtitle">பிரிக்கப்பட்ட பில்லில் மக்களிடம் அவர்களின் பங்கைக் கேட்கப் பயன்படும்</string>
+    <string name="settings_upi_not_set">அமைக்கப்படவில்லை</string>
+</resources>

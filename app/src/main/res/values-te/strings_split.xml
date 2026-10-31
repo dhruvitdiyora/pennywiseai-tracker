@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_menu_split">వీరితో విభజించండి…</string>
+    <string name="split_menu_edit">విభజనను సవరించండి</string>
+    <string name="split_sheet_title">%1$s ను విభజించండి</string>
+    <string name="split_sheet_hint">ప్రతి వాటా రుణాలలో మీరు అప్పుగా ఇచ్చిన డబ్బుగా జోడించబడుతుంది. మీ భాగం మాత్రమే ఖర్చుగా లెక్కించబడుతుంది.</string>
+    <string name="split_people_count">%2$d లో %1$d మంది</string>
+    <string name="split_person_name">వ్యక్తి పేరు</string>
+    <string name="split_add_person">జోడించండి</string>
+    <string name="split_pick_contact">పరిచయాల నుండి ఎంచుకోండి</string>
+    <string name="split_remove_person">%1$s ను తీసివేయండి</string>
+    <string name="split_mode_equal">సమానంగా విభజించండి</string>
+    <string name="split_mode_custom">అనుకూల మొత్తాలు</string>
+    <string name="split_you">మీరు</string>
+    <string name="split_your_part">మీ భాగం</string>
+    <string name="split_left_to_assign">%1$s కేటాయించాలి</string>
+    <string name="split_over_total">మొత్తం కంటే %1$s ఎక్కువ</string>
+    <string name="split_adds_up">మొత్తం %1$s</string>
+    <string name="split_save">విభజనను సేవ్ చేయండి</string>
+    <string name="split_error_share_positive">ప్రతి వాటా సున్నా కంటే ఎక్కువగా ఉండాలి</string>
+    <string name="split_error_over">వాటాలు మొత్తం కంటే ఎక్కువగా ఉన్నాయి</string>
+    <string name="split_error_your_part_negative">మీ భాగం సున్నా కంటే తక్కువగా ఉండకూడదు</string>
+    <string name="split_error_failed">విభజనను సేవ్ చేయలేకపోయాము: %1$s</string>
+    <string name="split_error_settled">%1$s రుణం పరిష్కరించబడింది. వారి వాటాను మార్చడానికి రుణాలలో దాన్ని మళ్ళీ తెరవండి.</string>
+    <string name="split_error_transfer">విభజించిన బిల్లు బదిలీ కాకూడదు. ముందుగా విభజనను తీసివేయండి.</string>
+    <string name="split_error_type_locked">ఈ బిల్లు విభజించబడింది. దాని రకాన్ని మార్చే ముందు విభజనను తీసివేయండి.</string>
+    <string name="split_error_amount_below_shares">ఈ బిల్లు విభజించబడింది. దాని మొత్తం మీరు అప్పుగా ఇచ్చిన వాటాల కంటే తక్కువగా ఉండకూడదు.</string>
+    <string name="split_section_title">వీరితో విభజించబడింది</string>
+    <string name="split_settled">పరిష్కరించబడింది</string>
+    <string name="split_request">%1$s ను అభ్యర్థించండి</string>
+    <string name="split_remove">విభజనను తీసివేయండి</string>
+    <string name="split_remove_title">విభజనను తీసివేయాలా?</string>
+    <string name="split_remove_message">ప్రతి వ్యక్తి వాటా వారి రుణం నుండి తగ్గుతుంది. ఇంకేమీ లేని రుణం తొలగించబడుతుంది.</string>
+    <string name="split_remove_confirm">తీసివేయండి</string>
+    <string name="split_upi_title">మీ UPI ID</string>
+    <string name="split_upi_message">ప్రజలు తమ వాటాను ఈ UPI ID కి చెల్లిస్తారు. సెట్టింగ్‌లలో మార్చవచ్చు.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank లాంటి UPI ID ని నమోదు చేయండి</string>
+    <string name="split_upi_save">సేవ్ చేయండి</string>
+    <string name="split_request_text">%3$s కోసం %2$s కి %1$s చెల్లించండి</string>
+    <string name="split_request_failed">QR కోడ్‌ను సృష్టించలేకపోయాము</string>
+    <string name="settings_upi_title">మీ UPI ID</string>
+    <string name="settings_upi_subtitle">విభజించిన బిల్లులో ప్రజలను వారి వాటా చెల్లించమని అడగడానికి ఉపయోగించబడుతుంది</string>
+    <string name="settings_upi_not_set">సెట్ చేయలేదు</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_edit_amount_label">బడ్జెట్ మొత్తం</string>
+    <string name="groups_summary_title">అన్ని గ్రూప్‌లు</string>
+    <plurals name="groups_group_count">
+        <item quantity="one">%1$d గ్రూప్</item>
+        <item quantity="other">%1$d గ్రూప్‌లు</item>
+    </plurals>
+    <string name="recurring_summary_title">అవలోకనం</string>
+    <string name="recurring_fab_label">పునరావృతాన్ని జోడించండి</string>
+    <string name="recurring_summary_active">%1$d సక్రియం</string>
+    <string name="recurring_summary_active_paused">%1$d సక్రియం · %2$d పాజ్</string>
+    <string name="recurring_tile_scheduled">%1$d షెడ్యూల్ చేయబడినవి</string>
+</resources>

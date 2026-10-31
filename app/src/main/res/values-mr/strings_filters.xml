@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="filter_period_this_month">हा महिना</string>
+    <string name="filter_period_last_month">मागील महिना</string>
+    <string name="filter_period_current_fy">चालू आर्थिक वर्ष</string>
+    <string name="filter_period_all_time">सर्व काळ</string>
+    <string name="filter_period_custom_range">सानुकूल श्रेणी</string>
+    <string name="filter_type_all">सर्व</string>
+    <string name="filter_type_income">उत्पन्न</string>
+    <string name="filter_type_expense">खर्च</string>
+    <string name="filter_type_credit">क्रेडिट</string>
+    <string name="filter_type_spending">खर्च (खर्च + कार्ड)</string>
+    <string name="filter_type_transfer">हस्तांतरण</string>
+    <string name="filter_type_investment">गुंतवणूक</string>
+    <string name="account_type_savings">बचत</string>
+    <string name="account_type_current">सध्याचे</string>
+    <string name="account_type_credit_card">क्रेडिट कार्ड</string>
+    <string name="account_type_cash">रोख</string>
+    <string name="account_type_loan">कर्ज</string>
+</resources>

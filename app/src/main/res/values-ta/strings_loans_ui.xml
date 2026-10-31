@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_avatar_more">+%1$d</string>
+    <string name="loans_person_expanded">விரிக்கப்பட்டது</string>
+    <string name="loans_person_collapsed">சுருக்கப்பட்டது</string>
+    <plurals name="loans_person_open_count">
+        <item quantity="one">%1$d திறந்தவை</item>
+        <item quantity="other">%1$d திறந்தவை</item>
+    </plurals>
+    <string name="loans_filter_all">அனைத்தும்</string>
+    <string name="loans_filter_you_get">உங்களுக்கு வருவது</string>
+    <string name="loans_filter_you_owe">நீங்கள் தர வேண்டியது</string>
+    <string name="loans_filter_settled">தீர்க்கப்பட்டது</string>
+    <string name="loans_search_placeholder">நபர்களைத் தேடு</string>
+    <string name="loans_search_clear">தேடலை அழி</string>
+    <string name="loans_no_matches_title">இங்கு யாரும் இல்லை</string>
+    <string name="loans_no_matches_description">வேறு வடிகட்டி அல்லது தேடலை முயற்சிக்கவும்.</string>
+    <string name="loan_detail_history_empty_title">இதுவரை பரிவர்த்தனைகள் இல்லை</string>
+    <string name="loan_detail_history_empty_description">நீங்கள் பதிவுசெய்யும் அல்லது இணைக்கும் திருப்பிச் செலுத்தல்கள் இங்கே தோன்றும்.</string>
+</resources>

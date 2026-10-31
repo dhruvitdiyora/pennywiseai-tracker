@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_page_glance_title">एक नज़र में</string>
+    <string name="profile_page_stat_lent">उधार दिया</string>
+    <string name="profile_page_stat_borrowed">उधार लिया</string>
+    <string name="profile_page_stat_settled">चुकता</string>
+    <string name="profile_page_stat_currencies">मुद्राएँ</string>
+    <plurals name="profile_page_hero_contacts">
+        <item quantity="one">%1$d संपर्क</item>
+        <item quantity="other">%1$d संपर्क</item>
+    </plurals>
+</resources>

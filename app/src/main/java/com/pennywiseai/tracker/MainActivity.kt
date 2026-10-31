@@ -58,6 +58,11 @@ class MainActivity : FragmentActivity() {
     var sharedText by mutableStateOf<String?>(null)
         private set
 
+    // Pre-Android 13 in-app language; a no-op on 13+ (the system applies it).
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.pennywiseai.tracker.locale.AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen before super.onCreate()
         installSplashScreen()

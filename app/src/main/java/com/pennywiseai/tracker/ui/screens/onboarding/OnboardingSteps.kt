@@ -1,10 +1,5 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
-import android.app.LocaleConfig
-import android.app.LocaleManager
-import android.os.Build
-import android.os.LocaleList
-import androidx.annotation.RequiresApi
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -16,8 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import java.text.Collator
-import java.util.Locale
+import com.pennywiseai.tracker.locale.AppLanguage
+import com.pennywiseai.tracker.ui.screens.settings.findActivity
 import com.pennywiseai.tracker.ui.screens.settings.glassPanel
 import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.screens.settings.glassRow
@@ -109,17 +104,14 @@ internal fun OnboardingWelcomeStep(uiState: OnBoardingUiState, viewModel: OnBoar
         Spacer(Modifier.height(Spacing.lg))
         SetupOverview()
 
-        // Language and currency (#957). Per-app language is framework-only on
-        // Android 13+ (same as Settings); older versions follow the device.
+        // Language and currency (#957). The language list and the switch are
+        // shared with Settings → Language (AppLanguage).
         Spacer(Modifier.height(Spacing.lg))
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
-            val hasLanguage = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-            if (hasLanguage) {
-                OnboardingLanguagePicker(position = ListItemPosition.Top)
-            }
+            OnboardingLanguagePicker(position = ListItemPosition.Top)
             OnboardingPicker(
                 fieldLabel = stringResource(R.string.onboarding_currency_title),
                 options = viewModel.currencies,
@@ -127,37 +119,28 @@ internal fun OnboardingWelcomeStep(uiState: OnBoardingUiState, viewModel: OnBoar
                 label = ::onboardingCurrencyLabel,
                 onSelect = viewModel::selectCurrency,
                 supportingText = stringResource(R.string.onboarding_currency_hint),
-                position = if (hasLanguage) ListItemPosition.Bottom else ListItemPosition.Single,
+                position = ListItemPosition.Bottom,
             )
         }
     }
 }
 
-/** Defaults to the device language; picking one sets the per-app locale and recreates the activity. */
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+/** Defaults to the device language; picking one switches the app language (see AppLanguage). */
 @Composable
 private fun OnboardingLanguagePicker(position: ListItemPosition) {
     val context = LocalContext.current
-    val localeManager = remember { context.getSystemService(LocaleManager::class.java) }
-    val languages = remember {
-        val supported = LocaleConfig(context).supportedLocales ?: LocaleList.getEmptyLocaleList()
-        // Debug builds also list the en-XA / ar-XB pseudolocales.
-        val locales = (0 until supported.size()).map { supported[it] }.filter { it.country !in PSEUDO_REGIONS }
-        val multiRegion = locales.groupBy { it.language }.filterValues { it.size > 1 }.keys
-        // Region only where a language has several variants (pt-BR / pt-PT).
-        listOf<Pair<Locale?, String>>(null to "") + locales
-            .map { it to (if (it.language in multiRegion) it.getDisplayName(it) else it.getDisplayLanguage(it)).replaceFirstChar { c -> c.titlecase(it) } }
-            .sortedWith(compareBy(Collator.getInstance()) { it.second })
-    }
-    val deviceLanguage = stringResource(R.string.onboarding_language_device)
-    val current = localeManager.applicationLocales.takeUnless { it.isEmpty }?.get(0)
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val current = remember(configuration) { AppLanguage.current(context) }
+    val languages = remember(current) { AppLanguage.options(current) }
+    val selectedTag = AppLanguage.selectedTag(current)
+    val systemDefault = stringResource(R.string.settings_language_system_default)
     OnboardingPicker(
         fieldLabel = stringResource(R.string.settings_language_title),
         options = languages,
-        selected = languages.firstOrNull { it.first == current } ?: languages.first(),
-        label = { (locale, name) -> if (locale == null) deviceLanguage else name },
-        onSelect = { (locale, _) ->
-            localeManager.applicationLocales = locale?.let { LocaleList(it) } ?: LocaleList.getEmptyLocaleList()
+        selected = languages.firstOrNull { it.tag == selectedTag } ?: languages.first(),
+        label = { option -> if (option.tag == null) systemDefault else option.nativeName },
+        onSelect = { option ->
+            context.findActivity()?.let { AppLanguage.set(it, option.tag) }
         },
         position = position,
     )
@@ -217,8 +200,6 @@ private fun onboardingCurrencyLabel(code: String): String {
     val base = if (symbol == code) code else "$symbol $code"
     return if (name == null || name == code) base else "$base · $name"
 }
-
-private val PSEUDO_REGIONS = setOf("XA", "XB")
 
 /**
  * A neutral device outline that frames the welcome art: a tonal bezel around a
