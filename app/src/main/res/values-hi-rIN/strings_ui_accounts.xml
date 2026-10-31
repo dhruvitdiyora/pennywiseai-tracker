@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="manage_accounts_section_cash">नकद और वॉलेट</string>
+    <string name="account_editor_preview_caption">पूर्वावलोकन</string>
+    <string name="account_editor_preview_name">खाते का नाम</string>
+    <string name="account_editor_currency_sheet_title">मुद्रा चुनें</string>
+    <string name="manage_accounts_open_detail">खाता खोलें</string>
+</resources>

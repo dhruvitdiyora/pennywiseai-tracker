@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budgets_card_daily_left">बचा दैनिक बजट</string>
+    <string name="budgets_card_remaining_label">शेष</string>
+    <string name="budgets_card_over_label">बजट से ऊपर</string>
+    <string name="budgets_card_spent_label">खर्च</string>
+    <string name="budgets_card_spent_limit">खर्च / सीमा</string>
+    <string name="budgets_card_spent_expected">खर्च / अपेक्षित</string>
+    <string name="budgets_card_actual_target">वास्तविक / लक्ष्य</string>
+    <string name="subscriptions_back">वापस</string>
+    <string name="subscriptions_total_title">कुल सदस्यताएँ</string>
+    <string name="subscriptions_monthly_label">मासिक</string>
+    <string name="subscriptions_yearly_label">वार्षिक</string>
+</resources>

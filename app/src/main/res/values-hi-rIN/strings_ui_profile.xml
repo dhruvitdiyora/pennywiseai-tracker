@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="edit_profile_title">प्रोफ़ाइल संपादित करें</string>
+    <string name="edit_profile_name_label">नाम</string>
+    <string name="edit_profile_clear_photo">साफ़ करें</string>
+    <string name="edit_profile_change_banner">बैनर बदलें</string>
+    <string name="edit_profile_remove_banner">बैनर हटाएँ</string>
+    <string name="edit_profile_colors">रंग</string>
+    <string name="edit_profile_banner_description">प्रोफ़ाइल बैनर</string>
+    <string name="edit_profile_photo_description">प्रोफ़ाइल फ़ोटो</string>
+    <string name="edit_profile_image_error">वह इमेज लोड नहीं हो सकी। कोई दूसरी आज़माएँ।</string>
+    <string name="edit_profile_section_avatar">अवतार</string>
+    <string name="edit_profile_section_banner">बैनर</string>
+    <string name="edit_profile_name_required">एक नाम दर्ज करें</string>
+</resources>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_avatar_more">+%1$d</string>
+    <string name="loans_person_expanded">बड़ा किया गया</string>
+    <string name="loans_person_collapsed">छोटा किया गया</string>
+    <plurals name="loans_person_open_count">
+        <item quantity="one">%1$d खुले</item>
+        <item quantity="other">%1$d खुले</item>
+    </plurals>
+    <string name="loans_filter_all">सभी</string>
+    <string name="loans_filter_you_get">आपको मिलेंगे</string>
+    <string name="loans_filter_you_owe">आपको देना है</string>
+    <string name="loans_filter_settled">चुकता</string>
+    <string name="loans_search_placeholder">लोगों को खोजें</string>
+    <string name="loans_search_clear">खोज साफ़ करें</string>
+    <string name="loans_no_matches_title">यहाँ कोई नहीं</string>
+    <string name="loans_no_matches_description">कोई दूसरा फ़िल्टर या खोज आज़माएँ।</string>
+    <string name="loan_detail_history_empty_title">अभी तक कोई लेन-देन नहीं</string>
+    <string name="loan_detail_history_empty_description">आप जो भुगतान दर्ज या लिंक करेंगे वे यहाँ दिखेंगे।</string>
+</resources>

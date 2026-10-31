@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_ui_setup_profile_title">आपकी प्रोफ़ाइल</string>
+    <string name="onboarding_ui_setup_profile_body">एक नाम, अवतार और रंग चुनें।</string>
+    <string name="onboarding_ui_setup_sms_title">SMS अनुमतियाँ</string>
+    <string name="onboarding_ui_setup_sms_body">वैकल्पिक, ताकि लेन-देन अपने आप पहचाने जा सकें।</string>
+    <string name="onboarding_ui_setup_scan_title">संदेश स्कैन</string>
+    <string name="onboarding_ui_setup_scan_body">आपके फ़ोन पर पहले से मौजूद बैंक लेन-देन इम्पोर्ट करें।</string>
+    <string name="onboarding_ui_setup_account_title">मुख्य खाता</string>
+    <string name="onboarding_ui_setup_account_body">वह खाता चुनें जिसका आप सबसे ज़्यादा उपयोग करते हैं।</string>
+    <string name="first_run_permission_read_title">SMS पढ़ें</string>
+    <string name="first_run_permission_read_body">आपके फ़ोन पर पहले से मौजूद बैंक लेन-देन संदेश ढूँढता है।</string>
+    <string name="first_run_permission_receive_title">SMS प्राप्त करें</string>
+    <string name="first_run_permission_receive_body">नए बैंक संदेश आते ही पहचान लेता है।</string>
+    <string name="first_run_permission_notifications_title">सूचनाएँ</string>
+    <string name="first_run_permission_notifications_body">लेन-देन दर्ज होने पर PennyWise आपको बता सकता है।</string>
+</resources>

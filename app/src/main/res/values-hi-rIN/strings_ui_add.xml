@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_amount_label">राशि</string>
+    <string name="add_calculator_chip">कैलकुलेटर</string>
+    <string name="add_currency_picker_desc">मुद्रा, %1$s</string>
+    <string name="add_txn_type_label">लेन-देन का प्रकार</string>
+    <string name="add_sub_direction_label">सदस्यता का प्रकार</string>
+    <string name="add_pick_date">तारीख चुनें</string>
+</resources>
