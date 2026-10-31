@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_hero_net_title">निव्वळ शिल्लक</string>
+    <string name="loans_hero_status_get">तुम्हाला मिळतील</string>
+    <string name="loans_hero_status_owe">तुम्ही देणे</string>
+    <string name="loans_hero_by_currency">चलनानुसार</string>
+    <string name="loans_settle_up_sheet_balance">उघडी शिल्लक</string>
+    <string name="lend_borrow_entry_hint_lent">त्यांनी तुम्हाला ही रक्कम द्यायची आहे.</string>
+    <string name="lend_borrow_entry_hint_borrowed">तुम्ही त्यांना ही रक्कम द्यायची आहे.</string>
+    <string name="people_more_balances">+आणखी %1$d</string>
+</resources>

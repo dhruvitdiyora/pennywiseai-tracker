@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_group_custom">सानुकूल</string>
+    <string name="categories_msg_same_target">वेगळी बदली श्रेणी निवडा</string>
+    <string name="categories_msg_unreadable_rules">काही नियम वाचता येत नाहीत, म्हणून ही श्रेणी सुरक्षितपणे बदलता येत नाही</string>
+    <string name="categories_msg_target_not_found">बदली श्रेणी आता अस्तित्वात नाही</string>
+    <string name="categories_msg_type_mismatch">बदली त्याच प्रकारची (उत्पन्न किंवा खर्च) असावी</string>
+    <string name="categories_msg_changed_concurrently">हटवण्यापूर्वी श्रेणी बदलली. पुन्हा प्रयत्न करा.</string>
+    <plurals name="personal_dashboard_contacts_count">
+        <item quantity="one">%1$d सक्रिय संपर्क</item>
+        <item quantity="other">%1$d सक्रिय संपर्क</item>
+    </plurals>
+    <plurals name="personal_dashboard_records_count">
+        <item quantity="one">%1$d उघडी नोंद</item>
+        <item quantity="other">%1$d उघड्या नोंदी</item>
+    </plurals>
+    <string name="analytics_summary_per_txn">" /व्यवहार"</string>
+</resources>

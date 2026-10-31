@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_edit_amount_label">बजेट रक्कम</string>
+    <string name="groups_summary_title">सर्व गट</string>
+    <plurals name="groups_group_count">
+        <item quantity="one">%1$d गट</item>
+        <item quantity="other">%1$d गट</item>
+    </plurals>
+    <string name="recurring_summary_title">आढावा</string>
+    <string name="recurring_fab_label">आवर्ती जोडा</string>
+    <string name="recurring_summary_active">%1$d सक्रिय</string>
+    <string name="recurring_summary_active_paused">%1$d सक्रिय · %2$d थांबवलेले</string>
+    <string name="recurring_tile_scheduled">%1$d नियोजित</string>
+</resources>

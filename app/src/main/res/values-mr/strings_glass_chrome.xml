@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_sheet_dismiss">डिसमिस करा</string>
+    <string name="glass_sheet_expand">विस्तृत करा</string>
+    <string name="glass_sheet_collapse">संकुचित करा</string>
+</resources>
