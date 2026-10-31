@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="edit_profile_title">ప్రొఫైల్‌ను సవరించండి</string>
+    <string name="edit_profile_name_label">పేరు</string>
+    <string name="edit_profile_clear_photo">క్లియర్ చేయండి</string>
+    <string name="edit_profile_change_banner">బ్యానర్‌ను మార్చండి</string>
+    <string name="edit_profile_remove_banner">బ్యానర్‌ను తీసివేయండి</string>
+    <string name="edit_profile_colors">రంగులు</string>
+    <string name="edit_profile_banner_description">ప్రొఫైల్ బ్యానర్</string>
+    <string name="edit_profile_photo_description">ప్రొఫైల్ ఫోటో</string>
+    <string name="edit_profile_image_error">ఆ చిత్రాన్ని లోడ్ చేయలేకపోయాము. మరొకటి ప్రయత్నించండి.</string>
+    <string name="edit_profile_section_avatar">అవతార్</string>
+    <string name="edit_profile_section_banner">బ్యానర్</string>
+    <string name="edit_profile_name_required">పేరును నమోదు చేయండి</string>
+</resources>

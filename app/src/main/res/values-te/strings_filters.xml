@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="filter_period_this_month">ఈ నెల</string>
+    <string name="filter_period_last_month">గత నెల</string>
+    <string name="filter_period_current_fy">ప్రస్తుత ఆర్థిక సంవత్సరం</string>
+    <string name="filter_period_all_time">మొత్తం కాలం</string>
+    <string name="filter_period_custom_range">అనుకూల పరిధి</string>
+    <string name="filter_type_all">అన్నీ</string>
+    <string name="filter_type_income">ఆదాయం</string>
+    <string name="filter_type_expense">ఖర్చు</string>
+    <string name="filter_type_credit">క్రెడిట్</string>
+    <string name="filter_type_spending">ఖర్చు (ఖర్చు + కార్డ్)</string>
+    <string name="filter_type_transfer">బదిలీ</string>
+    <string name="filter_type_investment">పెట్టుబడి</string>
+    <string name="account_type_savings">పొదుపు</string>
+    <string name="account_type_current">ప్రస్తుతం</string>
+    <string name="account_type_credit_card">క్రెడిట్ కార్డ్</string>
+    <string name="account_type_cash">నగదు</string>
+    <string name="account_type_loan">రుణం</string>
+</resources>

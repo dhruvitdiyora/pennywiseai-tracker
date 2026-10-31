@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_amount_label">మొత్తం</string>
+    <string name="add_calculator_chip">కాలిక్యులేటర్</string>
+    <string name="add_currency_picker_desc">కరెన్సీ, %1$s</string>
+    <string name="add_txn_type_label">లావాదేవీ రకం</string>
+    <string name="add_sub_direction_label">సబ్‌స్క్రిప్షన్ రకం</string>
+    <string name="add_pick_date">తేదీని ఎంచుకోండి</string>
+</resources>

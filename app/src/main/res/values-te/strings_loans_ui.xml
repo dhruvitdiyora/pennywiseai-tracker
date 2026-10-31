@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loans_avatar_more">+%1$d</string>
+    <string name="loans_person_expanded">విస్తరించబడింది</string>
+    <string name="loans_person_collapsed">కుదించబడింది</string>
+    <plurals name="loans_person_open_count">
+        <item quantity="one">%1$d ఓపెన్</item>
+        <item quantity="other">%1$d ఓపెన్</item>
+    </plurals>
+    <string name="loans_filter_all">అన్నీ</string>
+    <string name="loans_filter_you_get">మీకు వచ్చేది</string>
+    <string name="loans_filter_you_owe">మీరు ఇవ్వవలసినది</string>
+    <string name="loans_filter_settled">పరిష్కరించబడింది</string>
+    <string name="loans_search_placeholder">వ్యక్తులను శోధించండి</string>
+    <string name="loans_search_clear">శోధనను క్లియర్ చేయండి</string>
+    <string name="loans_no_matches_title">ఇక్కడ ఎవరూ లేరు</string>
+    <string name="loans_no_matches_description">మరో ఫిల్టర్ లేదా శోధనను ప్రయత్నించండి.</string>
+    <string name="loan_detail_history_empty_title">ఇంకా లావాదేవీలు లేవు</string>
+    <string name="loan_detail_history_empty_description">మీరు నమోదు చేసే లేదా లింక్ చేసే తిరిగి చెల్లింపులు ఇక్కడ కనిపిస్తాయి.</string>
+</resources>

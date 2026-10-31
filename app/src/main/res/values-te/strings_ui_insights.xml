@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budgets_card_daily_left">మిగిలిన రోజువారీ బడ్జెట్</string>
+    <string name="budgets_card_remaining_label">మిగిలినది</string>
+    <string name="budgets_card_over_label">బడ్జెట్ దాటింది</string>
+    <string name="budgets_card_spent_label">ఖర్చు</string>
+    <string name="budgets_card_spent_limit">ఖర్చు / పరిమితి</string>
+    <string name="budgets_card_spent_expected">ఖర్చు / అంచనా</string>
+    <string name="budgets_card_actual_target">వాస్తవం / లక్ష్యం</string>
+    <string name="subscriptions_back">వెనుకకు</string>
+    <string name="subscriptions_total_title">మొత్తం సబ్‌స్క్రిప్షన్‌లు</string>
+    <string name="subscriptions_monthly_label">నెలవారీ</string>
+    <string name="subscriptions_yearly_label">వార్షిక</string>
+</resources>

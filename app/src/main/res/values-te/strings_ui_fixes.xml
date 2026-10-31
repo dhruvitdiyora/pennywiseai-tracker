@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_group_custom">అనుకూలం</string>
+    <string name="categories_msg_same_target">వేరే ప్రత్యామ్నాయ వర్గాన్ని ఎంచుకోండి</string>
+    <string name="categories_msg_unreadable_rules">కొన్ని నియమాలను చదవలేము, కాబట్టి ఈ వర్గాన్ని సురక్షితంగా మార్చలేము</string>
+    <string name="categories_msg_target_not_found">ప్రత్యామ్నాయ వర్గం ఇక లేదు</string>
+    <string name="categories_msg_type_mismatch">ప్రత్యామ్నాయం అదే రకం (ఆదాయం లేదా ఖర్చు) అయి ఉండాలి</string>
+    <string name="categories_msg_changed_concurrently">తొలగించే ముందు వర్గం మారింది. మళ్ళీ ప్రయత్నించండి.</string>
+    <plurals name="personal_dashboard_contacts_count">
+        <item quantity="one">%1$d సక్రియ పరిచయం</item>
+        <item quantity="other">%1$d సక్రియ పరిచయాలు</item>
+    </plurals>
+    <plurals name="personal_dashboard_records_count">
+        <item quantity="one">%1$d ఓపెన్ రికార్డు</item>
+        <item quantity="other">%1$d ఓపెన్ రికార్డులు</item>
+    </plurals>
+    <string name="analytics_summary_per_txn">" /లావా."</string>
+</resources>
