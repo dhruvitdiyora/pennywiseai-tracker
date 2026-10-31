@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="filter_period_this_month">இந்த மாதம்</string>
+    <string name="filter_period_last_month">கடந்த மாதம்</string>
+    <string name="filter_period_current_fy">நடப்பு நிதியாண்டு</string>
+    <string name="filter_period_all_time">எல்லா நேரமும்</string>
+    <string name="filter_period_custom_range">தனிப்பயன் வரம்பு</string>
+    <string name="filter_type_all">அனைத்தும்</string>
+    <string name="filter_type_income">வருமானம்</string>
+    <string name="filter_type_expense">செலவு</string>
+    <string name="filter_type_credit">கிரெடிட்</string>
+    <string name="filter_type_spending">செலவு (செலவு + கார்டு)</string>
+    <string name="filter_type_transfer">பரிமாற்றம்</string>
+    <string name="filter_type_investment">முதலீடு</string>
+    <string name="account_type_savings">சேமிப்பு</string>
+    <string name="account_type_current">தற்போதையது</string>
+    <string name="account_type_credit_card">கிரெடிட் கார்டு</string>
+    <string name="account_type_cash">ரொக்கம்</string>
+    <string name="account_type_loan">கடன்</string>
+</resources>

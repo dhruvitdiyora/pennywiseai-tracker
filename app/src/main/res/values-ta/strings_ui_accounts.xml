@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="manage_accounts_section_cash">ரொக்கம் &amp; வாலட்கள்</string>
+    <string name="account_editor_preview_caption">முன்னோட்டம்</string>
+    <string name="account_editor_preview_name">கணக்குப் பெயர்</string>
+    <string name="account_editor_currency_sheet_title">நாணயத்தைத் தேர்ந்தெடு</string>
+    <string name="manage_accounts_open_detail">கணக்கைத் திற</string>
+</resources>

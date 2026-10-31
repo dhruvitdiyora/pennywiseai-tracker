@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="utility_rules_empty_title">இதுவரை விதிகள் இல்லை</string>
+    <string name="utility_rules_empty_body">பரிவர்த்தனைகளைத் தானாக வகைப்படுத்த அல்லது தடுக்க ஒரு விதியை உருவாக்கவும்.</string>
+</resources>

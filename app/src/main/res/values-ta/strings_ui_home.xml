@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_recent_title">சமீபத்தியவை</string>
+    <string name="home_subscriptions_per_month">/ மாதம்</string>
+    <string name="home_summary_saved">சேமித்தது</string>
+</resources>

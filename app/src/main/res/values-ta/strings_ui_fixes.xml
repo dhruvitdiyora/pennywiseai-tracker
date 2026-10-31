@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_group_custom">தனிப்பயன்</string>
+    <string name="categories_msg_same_target">வேறு மாற்று வகையைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="categories_msg_unreadable_rules">சில விதிகளைப் படிக்க முடியவில்லை, எனவே இந்த வகையைப் பாதுகாப்பாக மாற்ற முடியாது</string>
+    <string name="categories_msg_target_not_found">மாற்று வகை இனி இல்லை</string>
+    <string name="categories_msg_type_mismatch">மாற்று அதே இனத்தில் (வருமானம் அல்லது செலவு) இருக்க வேண்டும்</string>
+    <string name="categories_msg_changed_concurrently">நீக்கும் முன் வகை மாற்றப்பட்டது. மீண்டும் முயலவும்.</string>
+    <plurals name="personal_dashboard_contacts_count">
+        <item quantity="one">%1$d செயலில் உள்ள தொடர்பு</item>
+        <item quantity="other">%1$d செயலில் உள்ள தொடர்புகள்</item>
+    </plurals>
+    <plurals name="personal_dashboard_records_count">
+        <item quantity="one">%1$d திறந்த பதிவு</item>
+        <item quantity="other">%1$d திறந்த பதிவுகள்</item>
+    </plurals>
+    <string name="analytics_summary_per_txn">" /பரி."</string>
+</resources>

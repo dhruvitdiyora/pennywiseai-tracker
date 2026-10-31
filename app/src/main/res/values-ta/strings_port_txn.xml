@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="categories_msg_not_found">வகை இனி இல்லை</string>
+    <string name="categories_msg_check_usage_error">வகைப் பயன்பாட்டைச் சரிபார்ப்பதில் பிழை: %1$s</string>
+    <string name="categories_msg_reassigned_deleted">வகை மறு ஒதுக்கீடு செய்யப்பட்டு நீக்கப்பட்டது</string>
+    <string name="categories_msg_budget_conflict">வேறு வகையைத் தேர்ந்தெடுக்கவும் அல்லது முதலில் %1$s ஐத் திருத்தவும்; இரு வகைகளும் ஏற்கனவே அங்கு உள்ளன</string>
+    <string name="categories_msg_budget_conflict_generic">வேறு வகையைத் தேர்ந்தெடுக்கவும் அல்லது முதலில் செயலில் உள்ள பட்ஜெட்டைத் திருத்தவும்; இரு வகைகளும் ஏற்கனவே அங்கு உள்ளன</string>
+    <string name="budget_history_per_window_hint">வகை விவரத்தைக் காண ஒரு காலத்தைத் தட்டவும்</string>
+</resources>
