@@ -108,6 +108,9 @@ class AppLanguageConfigTest {
     }
 
     private companion object {
-        const val MIN_COVERAGE = 0.55
+        // Keeps near-empty folders (ne, th ~20%) out of the picker. Left well below the
+        // partial upstream locales (~55-67%) so each new English feature string doesn't
+        // drop one of them out and fail the build.
+        const val MIN_COVERAGE = 0.50
     }
 }
