@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_page_glance_title">এক নজরে</string>
+    <string name="profile_page_stat_lent">ধার দিয়েছি</string>
+    <string name="profile_page_stat_borrowed">ধার নিয়েছি</string>
+    <string name="profile_page_stat_settled">নিষ্পত্তি হয়েছে</string>
+    <string name="profile_page_stat_currencies">মুদ্রা</string>
+    <plurals name="profile_page_hero_contacts">
+        <item quantity="one">%1$dটি পরিচিতি</item>
+        <item quantity="other">%1$dটি পরিচিতি</item>
+    </plurals>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="manage_accounts_section_cash">নগদ ও ওয়ালেট</string>
+    <string name="account_editor_preview_caption">প্রিভিউ</string>
+    <string name="account_editor_preview_name">অ্যাকাউন্টের নাম</string>
+    <string name="account_editor_currency_sheet_title">মুদ্রা বেছে নিন</string>
+    <string name="manage_accounts_open_detail">অ্যাকাউন্ট খুলুন</string>
+</resources>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_ui_setup_profile_title">আপনার প্রোফাইল</string>
+    <string name="onboarding_ui_setup_profile_body">একটি নাম, অবতার ও রং বেছে নিন।</string>
+    <string name="onboarding_ui_setup_sms_title">SMS অনুমতি</string>
+    <string name="onboarding_ui_setup_sms_body">ঐচ্ছিক, যাতে লেনদেন স্বয়ংক্রিয়ভাবে শনাক্ত হয়।</string>
+    <string name="onboarding_ui_setup_scan_title">বার্তা স্ক্যান</string>
+    <string name="onboarding_ui_setup_scan_body">আপনার ফোনে আগে থেকে থাকা ব্যাংক লেনদেন ইমপোর্ট করুন।</string>
+    <string name="onboarding_ui_setup_account_title">প্রধান অ্যাকাউন্ট</string>
+    <string name="onboarding_ui_setup_account_body">যে অ্যাকাউন্টটি সবচেয়ে বেশি ব্যবহার করেন সেটি বেছে নিন।</string>
+    <string name="first_run_permission_read_title">SMS পড়ুন</string>
+    <string name="first_run_permission_read_body">আপনার ফোনে আগে থেকে থাকা ব্যাংক লেনদেনের বার্তা খুঁজে বের করে।</string>
+    <string name="first_run_permission_receive_title">SMS গ্রহণ করুন</string>
+    <string name="first_run_permission_receive_body">নতুন ব্যাংক বার্তা আসার সঙ্গে সঙ্গে খেয়াল করে।</string>
+    <string name="first_run_permission_notifications_title">বিজ্ঞপ্তি</string>
+    <string name="first_run_permission_notifications_body">লেনদেন রেকর্ড হলে PennyWise আপনাকে জানাতে পারে।</string>
+</resources>

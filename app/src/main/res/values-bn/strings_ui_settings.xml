@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="settings_profile_header_subtitle">
+        <item quantity="one">%1$dটি লেনদেন</item>
+        <item quantity="other">%1$dটি লেনদেন</item>
+    </plurals>
+</resources>
