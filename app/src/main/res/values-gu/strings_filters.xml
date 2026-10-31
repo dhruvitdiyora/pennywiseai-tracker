@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="filter_period_this_month">આ મહિને</string>
+    <string name="filter_period_last_month">ગયા મહિને</string>
+    <string name="filter_period_current_fy">ચાલુ નાણાકીય વર્ષ</string>
+    <string name="filter_period_all_time">બધો સમય</string>
+    <string name="filter_period_custom_range">કસ્ટમ શ્રેણી</string>
+    <string name="filter_type_all">બધું</string>
+    <string name="filter_type_income">આવક</string>
+    <string name="filter_type_expense">ખર્ચ</string>
+    <string name="filter_type_credit">ક્રેડિટ</string>
+    <string name="filter_type_spending">ખર્ચ (ખર્ચ + કાર્ડ)</string>
+    <string name="filter_type_transfer">ટ્રાન્સફર</string>
+    <string name="filter_type_investment">રોકાણ</string>
+    <string name="account_type_savings">બચત</string>
+    <string name="account_type_current">હાલનું</string>
+    <string name="account_type_credit_card">ક્રેડિટ કાર્ડ</string>
+    <string name="account_type_cash">રોકડ</string>
+    <string name="account_type_loan">લોન</string>
+</resources>

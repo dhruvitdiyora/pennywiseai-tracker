@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_group_custom">કસ્ટમ</string>
+    <string name="categories_msg_same_target">બીજી બદલી શ્રેણી પસંદ કરો</string>
+    <string name="categories_msg_unreadable_rules">કેટલાક નિયમો વાંચી શકાતા નથી, તેથી આ શ્રેણી સુરક્ષિત રીતે બદલી શકાતી નથી</string>
+    <string name="categories_msg_target_not_found">બદલી શ્રેણી હવે અસ્તિત્વમાં નથી</string>
+    <string name="categories_msg_type_mismatch">બદલી એ જ પ્રકારની (આવક કે ખર્ચ) હોવી જોઈએ</string>
+    <string name="categories_msg_changed_concurrently">કાઢી નાખતા પહેલાં શ્રેણી બદલાઈ ગઈ. ફરી પ્રયાસ કરો.</string>
+    <plurals name="personal_dashboard_contacts_count">
+        <item quantity="one">%1$d સક્રિય સંપર્ક</item>
+        <item quantity="other">%1$d સક્રિય સંપર્કો</item>
+    </plurals>
+    <plurals name="personal_dashboard_records_count">
+        <item quantity="one">%1$d ખુલ્લો રેકોર્ડ</item>
+        <item quantity="other">%1$d ખુલ્લા રેકોર્ડ</item>
+    </plurals>
+    <string name="analytics_summary_per_txn">" /વ્યવહાર"</string>
+</resources>

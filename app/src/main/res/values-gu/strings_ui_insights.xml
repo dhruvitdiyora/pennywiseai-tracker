@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budgets_card_daily_left">બાકી દૈનિક બજેટ</string>
+    <string name="budgets_card_remaining_label">બાકી</string>
+    <string name="budgets_card_over_label">બજેટ કરતાં વધુ</string>
+    <string name="budgets_card_spent_label">ખર્ચ્યા</string>
+    <string name="budgets_card_spent_limit">ખર્ચ / મર્યાદા</string>
+    <string name="budgets_card_spent_expected">ખર્ચ / અપેક્ષિત</string>
+    <string name="budgets_card_actual_target">વાસ્તવિક / લક્ષ્ય</string>
+    <string name="subscriptions_back">પાછળ</string>
+    <string name="subscriptions_total_title">કુલ સબ્સ્ક્રિપ્શન</string>
+    <string name="subscriptions_monthly_label">માસિક</string>
+    <string name="subscriptions_yearly_label">વાર્ષિક</string>
+</resources>

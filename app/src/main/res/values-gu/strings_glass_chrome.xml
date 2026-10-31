@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_sheet_dismiss">બરખાસ્ત કરો</string>
+    <string name="glass_sheet_expand">વિસ્તારો</string>
+    <string name="glass_sheet_collapse">સંકોચો</string>
+</resources>

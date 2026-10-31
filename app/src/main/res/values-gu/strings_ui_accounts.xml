@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="manage_accounts_section_cash">રોકડ અને વૉલેટ</string>
+    <string name="account_editor_preview_caption">પૂર્વાવલોકન</string>
+    <string name="account_editor_preview_name">ખાતાનું નામ</string>
+    <string name="account_editor_currency_sheet_title">ચલણ પસંદ કરો</string>
+    <string name="manage_accounts_open_detail">ખાતું ખોલો</string>
+</resources>

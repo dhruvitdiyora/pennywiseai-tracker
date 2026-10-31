@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_menu_split">આમની સાથે વહેંચો…</string>
+    <string name="split_menu_edit">વિભાજન સંપાદિત કરો</string>
+    <string name="split_sheet_title">%1$s વહેંચો</string>
+    <string name="split_sheet_hint">દરેક હિસ્સો લોનમાં તમે ઉધાર આપેલા પૈસા તરીકે ઉમેરાય છે. ફક્ત તમારો ભાગ ખર્ચ તરીકે ગણાય છે.</string>
+    <string name="split_people_count">%2$d માંથી %1$d લોકો</string>
+    <string name="split_person_name">વ્યક્તિનું નામ</string>
+    <string name="split_add_person">ઉમેરો</string>
+    <string name="split_pick_contact">સંપર્કોમાંથી પસંદ કરો</string>
+    <string name="split_remove_person">%1$s દૂર કરો</string>
+    <string name="split_mode_equal">સરખું વહેંચો</string>
+    <string name="split_mode_custom">કસ્ટમ રકમો</string>
+    <string name="split_you">તમે</string>
+    <string name="split_your_part">તમારો ભાગ</string>
+    <string name="split_left_to_assign">%1$s સોંપવાના બાકી</string>
+    <string name="split_over_total">કુલ કરતાં %1$s વધુ</string>
+    <string name="split_adds_up">કુલ %1$s</string>
+    <string name="split_save">વિભાજન સાચવો</string>
+    <string name="split_error_share_positive">દરેક હિસ્સો શૂન્યથી વધુ હોવો જોઈએ</string>
+    <string name="split_error_over">હિસ્સા કુલ કરતાં વધુ છે</string>
+    <string name="split_error_your_part_negative">તમારો ભાગ શૂન્યથી ઓછો ન હોઈ શકે</string>
+    <string name="split_error_failed">વિભાજન સાચવી શકાયું નહીં: %1$s</string>
+    <string name="split_error_settled">%1$s ની લોન ચૂકતે છે. તેમનો હિસ્સો બદલવા લોનમાં તેને ફરી ખોલો.</string>
+    <string name="split_error_transfer">વહેંચાયેલું બિલ ટ્રાન્સફર ન હોઈ શકે. પહેલાં વિભાજન દૂર કરો.</string>
+    <string name="split_error_type_locked">આ બિલ વહેંચાયેલું છે. તેનો પ્રકાર બદલતા પહેલાં વિભાજન દૂર કરો.</string>
+    <string name="split_error_amount_below_shares">આ બિલ વહેંચાયેલું છે. તેની રકમ તમે ઉધાર આપેલા હિસ્સા કરતાં ઓછી ન હોઈ શકે.</string>
+    <string name="split_section_title">આમની સાથે વહેંચ્યું</string>
+    <string name="split_settled">ચૂકતે</string>
+    <string name="split_request">%1$s ની વિનંતી કરો</string>
+    <string name="split_remove">વિભાજન દૂર કરો</string>
+    <string name="split_remove_title">વિભાજન દૂર કરવું છે?</string>
+    <string name="split_remove_message">દરેક વ્યક્તિનો હિસ્સો તેમની લોનમાંથી ઘટે છે. જે લોનમાં બીજું કંઈ ન હોય તે કાઢી નખાય છે.</string>
+    <string name="split_remove_confirm">દૂર કરો</string>
+    <string name="split_upi_title">તમારું UPI ID</string>
+    <string name="split_upi_message">લોકો તેમનો હિસ્સો આ UPI ID પર ચૂકવે છે. તમે તેને સેટિંગ્સમાં બદલી શકો છો.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank જેવું UPI ID દાખલ કરો</string>
+    <string name="split_upi_save">સાચવો</string>
+    <string name="split_request_text">%3$s માટે %2$s ને %1$s ચૂકવો</string>
+    <string name="split_request_failed">QR કોડ બનાવી શકાયો નહીં</string>
+    <string name="settings_upi_title">તમારું UPI ID</string>
+    <string name="settings_upi_subtitle">વહેંચાયેલા બિલમાં લોકોને તેમનો હિસ્સો ચૂકવવા કહેવા વપરાય છે</string>
+    <string name="settings_upi_not_set">સેટ નથી</string>
+</resources>

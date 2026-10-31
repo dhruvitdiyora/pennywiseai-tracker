@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="edit_profile_title">પ્રોફાઇલ સંપાદિત કરો</string>
+    <string name="edit_profile_name_label">નામ</string>
+    <string name="edit_profile_clear_photo">સાફ કરો</string>
+    <string name="edit_profile_change_banner">બેનર બદલો</string>
+    <string name="edit_profile_remove_banner">બેનર દૂર કરો</string>
+    <string name="edit_profile_colors">રંગો</string>
+    <string name="edit_profile_banner_description">પ્રોફાઇલ બેનર</string>
+    <string name="edit_profile_photo_description">પ્રોફાઇલ ફોટો</string>
+    <string name="edit_profile_image_error">તે છબી લોડ થઈ શકી નહીં. બીજી અજમાવો.</string>
+    <string name="edit_profile_section_avatar">અવતાર</string>
+    <string name="edit_profile_section_banner">બેનર</string>
+    <string name="edit_profile_name_required">નામ દાખલ કરો</string>
+</resources>

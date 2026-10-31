@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_ui_setup_profile_title">તમારી પ્રોફાઇલ</string>
+    <string name="onboarding_ui_setup_profile_body">નામ, અવતાર અને રંગ પસંદ કરો.</string>
+    <string name="onboarding_ui_setup_sms_title">SMS પરવાનગીઓ</string>
+    <string name="onboarding_ui_setup_sms_body">વૈકલ્પિક, જેથી વ્યવહારો આપમેળે ઓળખી શકાય.</string>
+    <string name="onboarding_ui_setup_scan_title">સંદેશ સ્કૅન</string>
+    <string name="onboarding_ui_setup_scan_body">તમારા ફોન પર પહેલેથી રહેલા બેંક વ્યવહારો ઇમ્પોર્ટ કરો.</string>
+    <string name="onboarding_ui_setup_account_title">મુખ્ય ખાતું</string>
+    <string name="onboarding_ui_setup_account_body">તમે સૌથી વધુ વાપરો છો તે ખાતું પસંદ કરો.</string>
+    <string name="first_run_permission_read_title">SMS વાંચો</string>
+    <string name="first_run_permission_read_body">તમારા ફોન પર પહેલેથી રહેલા બેંક વ્યવહાર સંદેશા શોધે છે.</string>
+    <string name="first_run_permission_receive_title">SMS મેળવો</string>
+    <string name="first_run_permission_receive_body">નવા બેંક સંદેશા આવતાં જ ઓળખે છે.</string>
+    <string name="first_run_permission_notifications_title">સૂચનાઓ</string>
+    <string name="first_run_permission_notifications_body">વ્યવહાર નોંધાય ત્યારે PennyWise તમને જણાવી શકે.</string>
+</resources>
