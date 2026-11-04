@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,10 +28,12 @@ import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
 import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Displays a brand icon with intelligent fallback
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BrandIcon(
     merchantName: String,
@@ -60,7 +64,7 @@ fun BrandIcon(
             .then(
                 if (showBackground) {
                     Modifier
-                        .clip(CircleShape)
+                        .clip(MaterialShapes.Cookie9Sided.toShape())
                         .background(backgroundColor)
                         .padding(8.dp)
                 } else {
@@ -109,6 +113,7 @@ fun accountBrandTint(merchantName: String, base: Color): Color {
 /**
  * Letter avatar for merchants without icons
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LetterAvatar(
     merchantName: String,
@@ -123,7 +128,7 @@ fun LetterAvatar(
     Box(
         modifier = modifier
             .size(size)
-            .clip(CircleShape)
+            .clip(MaterialShapes.Cookie9Sided.toShape())
             .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
@@ -157,7 +162,7 @@ fun CategoryIcon(
 
     Icon(
         imageVector = categoryInfo.icon,
-        contentDescription = category,
+        contentDescription = categoryLabel(category),
         tint = tint ?: CategoryMapping.colorFor(category),
         modifier = modifier.size(size)
     )

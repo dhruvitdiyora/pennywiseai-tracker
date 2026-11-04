@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,7 +82,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.iconax.History as IconaxHistory
 
@@ -463,7 +463,7 @@ private fun BudgetDetailSummaryCard(
 /** The window's dates centred between two dashed rules, as in Cashiro. */
 @Composable
 private fun BudgetWindowDivider(groupSpending: BudgetGroupSpending) {
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
+    val dateFormatter = AppDates.dateFormatter()
     val window = stringResource(
         R.string.budget_detail_window,
         groupSpending.windowStart.format(dateFormatter),

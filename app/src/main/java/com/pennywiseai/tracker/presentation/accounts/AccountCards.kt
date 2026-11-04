@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.compose.material.icons.Icons
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.ui.icons.iconax.Information
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LinkOff
@@ -71,7 +73,6 @@ import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
 /**
  * The account identity card shared by bank accounts, credit cards and the live
@@ -266,6 +267,7 @@ internal fun AccountItem(
     account: AccountBalanceEntity,
     linkedCards: List<CardEntity> = emptyList(),
     isHidden: Boolean,
+    isUnanchored: Boolean = false,
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
@@ -415,6 +417,36 @@ internal fun AccountItem(
             if (isHidden) IgnoredMarker()
         },
         footer = {
+            // No SMS for this account ever stated a balance, so the figure is
+            // 0 ± its transactions. Point at Update Balance; it goes once set (#982).
+            if (isUnanchored && !account.isLiability) {
+                Surface(
+                    onClick = onUpdateBalance,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Iconax.Information,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = stringResource(R.string.manage_accounts_estimated_balance_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
             if (linkedCards.isNotEmpty()) {
                 LinkedCardsSection(linkedCards = linkedCards, onUnlinkCard = onUnlinkCard)
             }
@@ -517,7 +549,7 @@ private fun LinkedCardsSection(
                             Text(
                                 text = stringResource(
                                     R.string.manage_accounts_card_updated,
-                                    updatedAt.format(DateTimeFormatter.ofPattern("MMM dd")),
+                                    updatedAt.format(AppDates.dayMonthFormatter()),
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = scheme.onSurfaceVariant,

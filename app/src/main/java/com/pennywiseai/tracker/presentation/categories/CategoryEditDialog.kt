@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -124,6 +125,8 @@ fun CategoryEditDialog(
                             FilterChip(
                                 enabled = !hasChildren,
                                 selected = !isIncome,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { isIncome = false; parentId = null },
                                 label = { Text(stringResource(R.string.category_edit_type_expense)) },
                                 modifier = Modifier.weight(1f)
@@ -131,6 +134,8 @@ fun CategoryEditDialog(
                             FilterChip(
                                 enabled = !hasChildren,
                                 selected = isIncome,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { isIncome = true; parentId = null },
                                 label = { Text(stringResource(R.string.category_edit_type_income)) },
                                 modifier = Modifier.weight(1f)
@@ -144,14 +149,14 @@ fun CategoryEditDialog(
                     var parentMenu by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = parentMenu, onExpandedChange = { parentMenu = it }) {
                         TextField(
-                            value = parentCandidates.firstOrNull { it.id == parentId }?.name ?: stringResource(R.string.category_edit_parent_none),
+                            value = parentCandidates.firstOrNull { it.id == parentId }?.name?.let { categoryLabel(it) } ?: stringResource(R.string.category_edit_parent_none),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.category_edit_parent_label), fontWeight = FontWeight.SemiBold) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             shape = MaterialTheme.shapes.large,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -181,7 +186,7 @@ fun CategoryEditDialog(
                     singleLine = true,
                     trailingIcon = if (emoji.isNotEmpty()) {
                         {
-                            IconButton(onClick = { emoji = "" }) {
+                            IconButton(onClick = { emoji = "" }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.category_edit_clear_icon))
                             }
                         }
@@ -253,7 +258,8 @@ fun CategoryEditDialog(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.categories_action_cancel))
                     }
@@ -266,7 +272,8 @@ fun CategoryEditDialog(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank()
+                        enabled = name.isNotBlank(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(if (category == null) R.string.category_edit_add else R.string.category_edit_save))
                     }
@@ -280,7 +287,8 @@ fun CategoryEditDialog(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
-                        )
+                        ),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Icon(
                             Icons.Default.Delete,

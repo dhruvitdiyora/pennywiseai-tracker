@@ -1,7 +1,8 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,9 +62,9 @@ fun SpendingBarChart(
         sortedData.map { point ->
             val label = when {
                 isYearly -> point.timestamp.format(DateTimeFormatter.ofPattern("yyyy"))
-                isMonthly && spansMultipleYears -> point.timestamp.format(DateTimeFormatter.ofPattern("MMM yy"))
-                isMonthly -> point.timestamp.format(DateTimeFormatter.ofPattern("MMM"))
-                else -> point.timestamp.format(DateTimeFormatter.ofPattern("dd MMM"))
+                isMonthly && spansMultipleYears -> point.timestamp.format(AppDates.pattern("MMM yy"))
+                isMonthly -> point.timestamp.format(AppDates.pattern("MMM"))
+                else -> point.timestamp.format(AppDates.pattern("dd MMM"))
             }
             BarData(label = label, value = point.balance.toDouble())
         }
@@ -74,9 +75,11 @@ fun SpendingBarChart(
     }
 
     val animationProgress = remember { Animatable(0f) }
+    // Bar heights are data: an effects spec settles without overshooting the value.
+    val motion = MaterialTheme.motionScheme
     LaunchedEffect(chartData) {
         animationProgress.snapTo(0f)
-        animationProgress.animateTo(1f, animationSpec = tween(600))
+        animationProgress.animateTo(1f, animationSpec = motion.slowEffectsSpec())
     }
     val progress = animationProgress.value
 
@@ -200,6 +203,7 @@ private data class BarData(
 )
 
 private fun formatCompactValue(value: Double, currencyCode: String): String {
+    if (com.pennywiseai.tracker.utils.AmountPrivacy.hidden) return com.pennywiseai.tracker.utils.AmountPrivacy.MASK
     val absValue = abs(value)
     val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
     return when {

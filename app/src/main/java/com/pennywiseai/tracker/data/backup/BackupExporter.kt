@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.backup
 
+import kotlinx.serialization.encodeToString
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import android.content.Context
@@ -14,7 +15,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.encodeToStream
 import java.io.File
 import java.time.LocalDate
@@ -36,25 +36,9 @@ class BackupExporter @Inject constructor(
 ) {
     
     /**
-     * Export complete app data to a backup file
+     * Export complete app data as JSON bytes, for callers that encrypt or
+     * upload it themselves (cloud backup).
      */
-    suspend fun exportBackup(
-        privacy: ExportPrivacy = ExportPrivacy.FULL,
-        includeReceipts: Boolean = false
-    ): ExportResult {
-        return try {
-            val backup = createBackup(privacy, includeReceipts)
-            val file = createBackupFile()
-            // Streamed so the photos aren't held twice more as one big JSON string.
-            withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
-            ExportResult.Success(file)
-        } catch (e: Exception) {
-            ExportResult.Error("Export failed: ${e.message}")
-        } catch (e: OutOfMemoryError) {
-            ExportResult.Error(TOO_LARGE)
-        }
-    }
-
     suspend fun exportBackupBytes(
         privacy: ExportPrivacy = ExportPrivacy.FULL,
         includeReceipts: Boolean = false
@@ -68,6 +52,31 @@ class BackupExporter @Inject constructor(
             ExportBytesResult.Error("Export failed: ${e.message}")
         } catch (e: OutOfMemoryError) {
             ExportBytesResult.Error(TOO_LARGE)
+        }
+    }
+
+    /**
+     * Export complete app data to a backup file
+     */
+    suspend fun exportBackup(
+        privacy: ExportPrivacy = ExportPrivacy.FULL,
+        includeReceipts: Boolean = false
+    ): ExportResult {
+        return try {
+            val backup = createBackup(privacy, includeReceipts)
+            val file = createBackupFile()
+            try {
+                // Streamed so the photos aren't held twice more as one big JSON string.
+                withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
+            } catch (e: Throwable) {
+                file.delete() // don't leave a partial backup in cache
+                throw e
+            }
+            ExportResult.Success(file)
+        } catch (e: Exception) {
+            ExportResult.Error("Export failed: ${e.message}")
+        } catch (e: OutOfMemoryError) {
+            ExportResult.Error(TOO_LARGE)
         }
     }
 
@@ -297,7 +306,10 @@ class BackupExporter @Inject constructor(
                     bankAccountMerges = if (privacy == ExportPrivacy.FULL) {
                         BankAccountMergeStore(context).mappings()
                     } else emptyMap(),
-                    upiId = if (privacy == ExportPrivacy.FULL) userPreferencesRepository.upiId.first() else null
+                    upiId = if (privacy == ExportPrivacy.FULL) userPreferencesRepository.upiId.first() else null,
+                    dismissedRecurringSuggestions = if (privacy == ExportPrivacy.FULL) {
+                        userPreferencesRepository.dismissedRecurringSuggestions.first().sorted()
+                    } else emptyList()
                 )
             ),
             receipts = exportedReceipts
@@ -316,8 +328,8 @@ class BackupExporter @Inject constructor(
         val timestamp = LocalDateTime.now().format(
             DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
         )
-        val fileName = "PennyWise_Backup_$timestamp.pennywisebackup"
-        
-        return File(exportDir, fileName)
+        // Unique per call: a folder backup and a manual export in the same second must
+        // not share (and then delete) one file.
+        return File.createTempFile("PennyWise_Backup_${timestamp}_", ".pennywisebackup", exportDir)
     }
 }

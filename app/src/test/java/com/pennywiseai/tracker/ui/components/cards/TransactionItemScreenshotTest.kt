@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -111,7 +112,7 @@ class TransactionItemScreenshotTest {
         )
         setSingleContent(transaction = transaction)
 
-        val date = transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM · h:mm a"))
+        val date = transaction.dateTime.format(AppDates.dayMonthTimeFormatter())
         val expected = listOf(
             date,
             "Food",

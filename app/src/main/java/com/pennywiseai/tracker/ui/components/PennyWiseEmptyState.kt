@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,7 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +40,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  * because centred text set to the full width of a phone wraps into a shape
  * that's hard to read; a measure closer to a paragraph reads better.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PennyWiseEmptyState(
     icon: ImageVector,
@@ -95,7 +100,8 @@ fun PennyWiseEmptyState(
         if (actionLabel != null && onAction != null) {
             FilledTonalButton(
                 onClick = onAction,
-                modifier = Modifier.padding(top = Spacing.md)
+                modifier = Modifier.padding(top = Spacing.md),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(actionLabel)
             }

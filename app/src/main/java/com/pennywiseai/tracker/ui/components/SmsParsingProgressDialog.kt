@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -72,12 +71,9 @@ fun SmsParsingProgressDialog(
                         val progress = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0).toFloat() /
                                 workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 1).toFloat()
 
-                        LinearProgressIndicator(
+                        LinearWavyProgressIndicator(
                             progress = { progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp),
-                            strokeCap = StrokeCap.Round
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
@@ -85,7 +81,8 @@ fun SmsParsingProgressDialog(
                     if (onCancel != null && workInfo.state == WorkInfo.State.RUNNING) {
                         OutlinedButton(
                             onClick = onCancel,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.Cancel,
@@ -98,7 +95,8 @@ fun SmsParsingProgressDialog(
                     } else if (workInfo.state == WorkInfo.State.SUCCEEDED) {
                         TextButton(
                             onClick = onDismiss,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.sms_scan_done))
                         }
@@ -108,7 +106,8 @@ fun SmsParsingProgressDialog(
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
-                            )
+                            ),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.sms_scan_close))
                         }
@@ -332,12 +331,9 @@ fun SmsParsingProgressIndicator(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { processedMessages.toFloat() / totalMessages.toFloat() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-                    strokeCap = StrokeCap.Round
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(

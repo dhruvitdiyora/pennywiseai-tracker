@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.res.Resources
 import android.text.format.DateFormat
 import androidx.compose.ui.platform.LocalContext
@@ -65,11 +67,13 @@ import com.pennywiseai.tracker.ui.icons.iconax.DocumentText2
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.RefreshCircle
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.MerchantDisplayName
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import java.util.Locale
 
 /**
@@ -130,7 +134,7 @@ fun TransactionItem(
 
     // Accessibility sentence: the full date (and time) in the app's long-standing format.
     val dateTimeFormatter = remember(showDate) {
-        DateTimeFormatter.ofPattern(if (showDate) "d MMM · h:mm a" else "h:mm a")
+        if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     }
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
         transaction.dateTime.format(dateTimeFormatter)
@@ -138,7 +142,7 @@ fun TransactionItem(
     // Date chip: a short, locale-ordered date ("Oct 1"); only the time when the
     // surrounding list already shows the day (showDate = false).
     val chipDateFormatter = remember(showDate) {
-        if (showDate) shortDateFormatter() else DateTimeFormatter.ofPattern("h:mm a")
+        if (showDate) AppDates.dayMonthFormatter() else AppDates.pattern("h:mm a")
     }
     val dateChipText = remember(transaction.dateTime, chipDateFormatter) {
         transaction.dateTime.format(chipDateFormatter)
@@ -163,7 +167,8 @@ fun TransactionItem(
         effectiveProfileId == ProfileEntity.BUSINESS_ID
     }
 
-    val description = transaction.description?.takeIf { it.isNotBlank() }
+    val description = transaction.description?.takeIf { it.isNotBlank() }?.let(CurrencyFormatter::maskAmountsIn)
+    val categoryText = categoryLabel(transaction.category)
     val resources = LocalContext.current.resources
     val transferTitle = transferTitleOverride(transaction, resources)
     val hasCategory = transaction.category.isNotBlank() &&
@@ -197,7 +202,7 @@ fun TransactionItem(
     // It mirrors, in order, the chips drawn below.
     val subtitle = buildList {
         add(dateTimeText)
-        if (hasCategory) add(transaction.category)
+        if (hasCategory) add(categoryText)
         typeLabel?.let(::add)
         if (transaction.isRecurring) add(recurringLabel)
         if (isEffectivelyBusiness) add(businessLabel)
@@ -310,7 +315,7 @@ fun TransactionItem(
                             color = colors.onSurfaceVariant,
                         )
                         SubtitleTag(
-                            text = transaction.category,
+                            text = categoryText,
                             color = categoryColor,
                             textColor = categoryTextColor,
                         )
@@ -543,20 +548,6 @@ private fun CategoryAvatar(
     ) {
         content(glyphColor)
     }
-}
-
-/**
- * Short day-and-month formatter in the user's locale order and month names
- * ("Oct 1" in en-US, "1 Oct" in en-IN). Falls back to "MMM d" if the platform
- * has no pattern for the locale.
- */
-private fun shortDateFormatter(locale: Locale = Locale.getDefault()): DateTimeFormatter {
-    val pattern = runCatching { DateFormat.getBestDateTimePattern(locale, "MMMd") }
-        .getOrNull()
-        ?.takeIf { it.isNotBlank() }
-        ?: "MMM d"
-    return runCatching { DateTimeFormatter.ofPattern(pattern, locale) }
-        .getOrElse { DateTimeFormatter.ofPattern("MMM d", locale) }
 }
 
 /** The glyph shown beside a row's amount, by transaction type. */

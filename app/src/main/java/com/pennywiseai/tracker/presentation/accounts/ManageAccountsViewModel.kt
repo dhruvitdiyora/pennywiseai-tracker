@@ -8,7 +8,7 @@ import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
@@ -32,6 +32,8 @@ data class ManageAccountsUiState(
     val hiddenAccounts: Set<String> = emptySet(),
     val balanceHistory: List<AccountBalanceEntity> = emptyList(),
     val linkedCards: Map<String, List<CardEntity>> = emptyMap(), // accountLast4 -> List of cards
+    // (bankName, last4) of accounts whose balance was never set from a real figure (#982).
+    val unanchoredAccounts: Set<Pair<String, String>> = emptySet(),
     val orphanedCards: List<CardEntity> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: UiText? = null,
@@ -104,6 +106,11 @@ class ManageAccountsViewModel @Inject constructor(
     private var baseCurrency: String = "INR"
 
     init {
+        // Once, not in loadAccounts(): that runs again after edits and would stack collectors.
+        viewModelScope.launch {
+            accountBalanceRepository.getUnanchoredAccounts()
+                .collect { keys -> _uiState.update { it.copy(unanchoredAccounts = keys) } }
+        }
         loadAccounts()
         loadHiddenAccounts()
         loadCards()

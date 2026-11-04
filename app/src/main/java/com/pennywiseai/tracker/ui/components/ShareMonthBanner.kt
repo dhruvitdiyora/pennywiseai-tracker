@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
@@ -12,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,7 +48,7 @@ fun ShareMonthBanner(
 ) {
     val month = remember {
         YearMonth.from(LocalDate.now()).minusMonths(1)
-            .format(DateTimeFormatter.ofPattern("MMMM", Locale.getDefault()))
+            .format(AppDates.pattern("MMMM"))
     }
 
     Card(
@@ -83,7 +86,7 @@ fun ShareMonthBanner(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconButton(onClick = onDismiss) {
+            IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.share_banner_dismiss),

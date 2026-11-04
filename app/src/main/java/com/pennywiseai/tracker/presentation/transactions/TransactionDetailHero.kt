@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -79,7 +80,6 @@ import com.pennywiseai.tracker.ui.theme.transfer
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
 /*
  * The read-only receipt of the Transaction Detail screen, Cashiro-style: one
@@ -341,7 +341,7 @@ private fun TxnReceiptDateTime(transaction: TransactionEntity) {
                 color = scheme.onSurfaceVariant
             )
             Text(
-                text = dateTime.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy")),
+                text = dateTime.format(AppDates.pattern("EEE")) + ", " + dateTime.format(AppDates.dateFormatter()),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = scheme.onSurface
@@ -352,18 +352,18 @@ private fun TxnReceiptDateTime(transaction: TransactionEntity) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             TxnTimeChip(
-                text = dateTime.format(DateTimeFormatter.ofPattern("hh")),
+                text = dateTime.format(AppDates.pattern("hh")),
                 container = scheme.primary.copy(alpha = Dimensions.Alpha.tonalIconContainer),
                 content = scheme.primary
             )
             Text(text = ":", fontWeight = FontWeight.Bold, color = scheme.onSurface)
             TxnTimeChip(
-                text = dateTime.format(DateTimeFormatter.ofPattern("mm")),
+                text = dateTime.format(AppDates.pattern("mm")),
                 container = scheme.surfaceContainerHighest,
                 content = scheme.onSurface
             )
             Text(
-                text = dateTime.format(DateTimeFormatter.ofPattern("a")),
+                text = dateTime.format(AppDates.pattern("a")),
                 style = MaterialTheme.typography.labelLarge,
                 color = scheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = Spacing.xs)

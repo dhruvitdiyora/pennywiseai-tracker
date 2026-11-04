@@ -27,8 +27,7 @@ object PennyWiseText {
     /** The one big number on a screen — Home balance, account balance. */
     val heroAmount: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.displaySmall.copy(
-            fontWeight = FontWeight.Bold,
+        get() = MaterialTheme.typography.displaySmallEmphasized.copy(
             fontFeatureSettings = TABULAR
         )
 
@@ -83,6 +82,11 @@ object PennyWiseText {
     val metadata: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.bodySmall
+
+    /** Upper-case, widely tracked label above a summary figure ("TOTAL", "AVERAGE"). */
+    val overline: TextStyle
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
 
     /** All-caps-ish label above a value in a detail sheet. */
     val fieldLabel: TextStyle

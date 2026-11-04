@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.compose.material.icons.filled.Tag
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.utils.AppDates
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -91,7 +95,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /*
@@ -519,8 +522,8 @@ private fun TxnEditDateTime(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         AddDateCard(
-            dayLabel = dateTime.format(DateTimeFormatter.ofPattern("dd MMMM", Locale.getDefault())),
-            yearLabel = dateTime.format(DateTimeFormatter.ofPattern("yyyy", Locale.getDefault())),
+            dayLabel = dateTime.format(AppDates.pattern("dd MMMM")),
+            yearLabel = dateTime.format(AppDates.pattern("yyyy")),
             onClickLabel = stringResource(R.string.add_pick_date),
             onClick = { showDatePicker = true },
             modifier = Modifier.weight(1f)
@@ -668,6 +671,27 @@ private fun TxnEditMerchantFields(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
+            shape = ListItemPosition.Middle.toShape(),
+            colors = tonalTextFieldColors()
+        )
+
+        // Only the stored value is editable: the merchant-named display
+        // fallback must never be saved as a reference.
+        TextField(
+            value = transaction.reference ?: "",
+            onValueChange = { viewModel.updateReference(it) },
+            label = {
+                Text(stringResource(R.string.txn_detail_field_reference), fontWeight = FontWeight.SemiBold)
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Tag,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
             shape = ListItemPosition.Bottom.toShape(),
             colors = tonalTextFieldColors()
         )
@@ -709,6 +733,7 @@ private fun TxnEditCheckRow(
 @Composable
 private fun TxnEditBudgetImpact(viewModel: TransactionDetailViewModel) {
     val budgetImpactType by viewModel.budgetImpactType.collectAsStateWithLifecycle()
+    val refundCategories by viewModel.refundCategories.collectAsStateWithLifecycle()
     val budgetCategory by viewModel.budgetCategory.collectAsStateWithLifecycle()
     val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsStateWithLifecycle()
 
@@ -741,20 +766,21 @@ private fun TxnEditBudgetImpact(viewModel: TransactionDetailViewModel) {
         }
 
         if (budgetImpactType != null) {
+            val pickable = if (budgetImpactType == BudgetImpactType.DEDUCT_SPENT) refundCategories else activeBudgetCategories
             var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = it }
             ) {
                 TextField(
-                    value = budgetCategory ?: stringResource(R.string.txn_detail_budget_select_category),
+                    value = budgetCategory?.let { categoryLabel(it) } ?: stringResource(R.string.txn_detail_budget_select_category),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.txn_detail_budget_category)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     shape = ListItemPosition.Single.toShape(),
                     colors = tonalTextFieldColors()
                 )
@@ -762,16 +788,16 @@ private fun TxnEditBudgetImpact(viewModel: TransactionDetailViewModel) {
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    if (activeBudgetCategories.isEmpty()) {
+                    if (pickable.isEmpty()) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.txn_detail_budget_no_categories)) },
                             onClick = { expanded = false },
                             enabled = false
                         )
                     } else {
-                        activeBudgetCategories.forEach { category ->
+                        pickable.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category) },
+                                text = { Text(categoryLabel(category)) },
                                 onClick = {
                                     viewModel.updateBudgetCategory(category)
                                     expanded = false
@@ -808,7 +834,7 @@ private fun TxnEditCategoryField(
         onExpandedChange = { expanded = it }
     ) {
         TextField(
-            value = selectedCategory,
+            value = categoryLabel(selectedCategory),
             onValueChange = { },
             label = {
                 Text(stringResource(R.string.txn_detail_label_category), fontWeight = FontWeight.SemiBold)
@@ -831,7 +857,7 @@ private fun TxnEditCategoryField(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             readOnly = true,
             shape = position.toShape(),
             colors = tonalTextFieldColors()
@@ -952,7 +978,7 @@ private fun TxnEditAccountField(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
             singleLine = true,
             placeholder = { Text(placeholder) }
         )

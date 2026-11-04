@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -35,7 +36,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +66,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Bottom sheet for confirming a subscription payment / receipt (#412).
@@ -91,7 +94,7 @@ fun MarkAsPaidSheet(
     onConfirm: (LocalDate) -> Unit,
     onLinkExisting: (TransactionEntity) -> Unit = {},
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     val scope = rememberCoroutineScope()
 
     val today = remember { LocalDate.now() }
@@ -166,7 +169,7 @@ fun MarkAsPaidSheet(
                     )
                     subscription.category?.let { cat ->
                         Text(
-                            text = cat,
+                            text = categoryLabel(cat),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -217,7 +220,7 @@ fun MarkAsPaidSheet(
                         Text(
                             text = stringResource(
                                 R.string.mark_paid_already_marked,
-                                "${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("d MMM"))}"
+                                "${subscription.lastPaidAt?.format(AppDates.dayMonthFormatter())}"
                             ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -320,10 +323,10 @@ fun MarkAsPaidSheet(
                             .atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -413,7 +416,7 @@ private fun relativeDate(date: LocalDate): String {
         days == 0L -> stringResource(R.string.mark_paid_today)
         days == 1L -> stringResource(R.string.mark_paid_yesterday)
         days in 2..6 -> pluralStringResource(R.plurals.mark_paid_days_ago, days.toInt(), days.toInt())
-        else -> date.format(DateTimeFormatter.ofPattern("d MMM"))
+        else -> date.format(AppDates.dayMonthFormatter())
     }
 }
 
@@ -465,6 +468,7 @@ private fun DateChips(
     ) {
         FilterChip(
             selected = isToday,
+            shapes = FilterChipDefaults.shapes(),
             onClick = { onSelect(today) },
             label = { Text(stringResource(R.string.mark_paid_today)) },
             colors = FilterChipDefaults.filterChipColors(
@@ -474,6 +478,7 @@ private fun DateChips(
         )
         FilterChip(
             selected = isYesterday,
+            shapes = FilterChipDefaults.shapes(),
             onClick = { onSelect(yesterday) },
             label = { Text(stringResource(R.string.mark_paid_yesterday)) },
             colors = FilterChipDefaults.filterChipColors(
@@ -483,11 +488,12 @@ private fun DateChips(
         )
         FilterChip(
             selected = isCustom,
+            shapes = FilterChipDefaults.shapes(),
             onClick = onPickDate,
             label = {
                 Text(
                     text = if (isCustom) {
-                        selected.format(DateTimeFormatter.ofPattern("MMM d"))
+                        selected.format(AppDates.dayMonthFormatter())
                     } else {
                         stringResource(R.string.mark_paid_pick_date)
                     },

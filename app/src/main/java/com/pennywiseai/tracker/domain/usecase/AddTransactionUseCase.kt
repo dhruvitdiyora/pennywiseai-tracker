@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
@@ -29,6 +29,7 @@ class AddTransactionUseCase @Inject constructor(
         type: TransactionType,
         date: LocalDateTime,
         notes: String? = null,
+        reference: String? = null,
         tags: List<String> = emptyList(),
         isRecurring: Boolean = false,
         bankName: String? = null,
@@ -53,6 +54,7 @@ class AddTransactionUseCase @Inject constructor(
             transactionType = type,
             dateTime = date,
             description = notes,
+            reference = reference,
             smsBody = null, // null indicates manual entry
             bankName = bankName ?: "Manual Entry",
             smsSender = null, // null indicates manual entry
@@ -126,6 +128,7 @@ class AddTransactionUseCase @Inject constructor(
         amount: BigDecimal,
         date: LocalDateTime,
         notes: String? = null,
+        reference: String? = null,
         tags: List<String> = emptyList(),
         currency: String = "INR",
         fromBankName: String,
@@ -153,6 +156,7 @@ class AddTransactionUseCase @Inject constructor(
             transactionType = TransactionType.TRANSFER,
             dateTime = date,
             description = notes,
+            reference = reference,
             smsBody = null, // null indicates manual entry
             bankName = fromBankName,
             smsSender = null,

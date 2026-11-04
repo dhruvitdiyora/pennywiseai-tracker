@@ -1,22 +1,26 @@
 package com.pennywiseai.tracker.presentation.home
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.rotate
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.ui.components.cards.SafeToSpendCard
+import com.pennywiseai.tracker.ui.components.cards.SafeToSpendSheet
 import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -74,22 +78,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.compositeOver
-import com.pennywiseai.tracker.ui.components.legibleOn
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.pennywiseai.tracker.ui.components.legibleOn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -97,11 +101,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
+import com.pennywiseai.tracker.ui.components.DockNavAction
+import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
-import androidx.navigation.NavController
+import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
+import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.people.initialsOf
 import com.pennywiseai.tracker.core.Constants
@@ -138,20 +146,22 @@ import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Search
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /** Distance each card travels on the first-composition entrance animation. */
 private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    navController: NavController,
+    onAccountClick: (bankName: String, accountLast4: String) -> Unit,
     coverStyle: CoverStyle = CoverStyle.AURORA,
     blurEffects: Boolean = false,
     onNavigateToSettings: () -> Unit = {},
@@ -181,6 +191,10 @@ fun HomeScreen(
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
+    val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
+    val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
+    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
+    var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -198,7 +212,7 @@ fun HomeScreen(
     // Period the sheet should open on. The monthly banner points it at the finished
     // month; opening from the overflow menu uses whatever the user saved.
     var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
     val context = LocalContext.current
     val deletedMessage = stringResource(R.string.home_transaction_deleted)
@@ -206,6 +220,10 @@ fun HomeScreen(
 
     // Haptic feedback
     val view = LocalView.current
+
+    // Set while the floating nav bar is up: Sync docks beside it, and Add
+    // moves to the header so no FAB stack floats over the content.
+    val navDock = LocalNavDock.current
 
     // Haptic on successful SMS scan completion
     LaunchedEffect(smsScanWorkInfo?.state) {
@@ -227,10 +245,13 @@ fun HomeScreen(
     // LazyColumn scroll state for overscroll physics
     val lazyListState = rememberLazyListState()
 
-    // Staggered entrance animation state — only animates on first composition
+    // Staggered entrance animation state — only animates on first composition.
+    // Each item's effect checks its own `visible`, not hasAnimated: an item composed
+    // just before hasAnimated flips would otherwise skip its reveal and stay hidden.
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val density = LocalDensity.current
     val slideOffsetPx = with(density) { ENTRANCE_SLIDE_DISTANCE.roundToPx() }
+    val motion = MaterialTheme.motionScheme
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
@@ -260,6 +281,12 @@ fun HomeScreen(
         }
     }
     
+    // A new day moves the forecast and Safe to spend on, even with no data change.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
+
     // Refresh hidden accounts whenever this screen becomes visible
     // This ensures changes from ManageAccountsScreen are reflected immediately
     DisposableEffect(Unit) {
@@ -365,6 +392,7 @@ fun HomeScreen(
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         onAvatarClick = onNavigateToPersonalDashboard,
                         onMenuClick = { showMenuSheet = true },
+                        onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
@@ -417,13 +445,13 @@ fun HomeScreen(
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(0); visible.value = true }
+                    if (!visible.value) { delay(0); visible.value = true }
                 }
                 AnimatedVisibility(
                     visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
+                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                         initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
+                        animationSpec = motion.defaultSpatialSpec()
                     )
                 ) {
                     if (!uiState.isBalanceReady) {
@@ -465,22 +493,17 @@ fun HomeScreen(
                             creditCards = uiState.creditCards,
                             loanAccounts = uiState.loanAccounts,
                             totalAvailableCredit = uiState.totalAvailableCredit,
-                            onAccountClick = { bankName, accountLast4 ->
-                                navController.navigate(
-                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                        bankName = bankName,
-                                        accountLast4 = accountLast4
-                                    )
-                                ) { launchSingleTop = true }
-                            }
+                            forecast = uiState.spendForecast,
+                            onAccountClick = onAccountClick
                         )
                     }
                 }
             }
 
-            // 1.2. Monthly share prompt. Offers the user something ("your month, summed
-            // up") rather than asking a favour, and only appears when the finished month
-            // actually has enough in it to be worth sending.
+            // 1.2. One prompt at a time: share the finished month, else the one-time
+            // payday suggestion, else untracked recurring bills.
+            val payday = paydaySuggestion
+            val recurring = recurringSuggestions
             if (showSharePrompt) {
                 item {
                     ShareMonthBanner(
@@ -491,6 +514,28 @@ fun HomeScreen(
                         },
                         onDismiss = { viewModel.markSharePromptHandled() },
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    )
+                }
+            } else if (payday != null) {
+                item {
+                    PaydaySuggestionCard(
+                        day = payday,
+                        onAccept = { viewModel.acceptPaydaySuggestion(payday) },
+                        onDismiss = { viewModel.dismissPaydaySuggestion() },
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        blurEffects = blurEffects,
+                        hazeState = hazeStateBanner,
+                    )
+                }
+            } else if (recurring != null) {
+                item {
+                    RecurringSuggestionsCard(
+                        merchantNames = recurring.map { it.merchantName },
+                        onReview = onNavigateToSubscriptions,
+                        onDismiss = { viewModel.dismissRecurringSuggestions(recurring) },
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        blurEffects = blurEffects,
+                        hazeState = hazeStateBanner,
                     )
                 }
             }
@@ -533,19 +578,47 @@ fun HomeScreen(
             for ((index, section) in visibleSections.withIndex()) {
                 val delayMs = 50L * (index + 1)
                 when (section) {
+                    HomeSection.SAFE_TO_SPEND -> {
+                        // Only once there's a spendable account with a balance.
+                        safeToSpend?.let { state ->
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = motion.defaultSpatialSpec()
+                                    )
+                                ) {
+                                    SafeToSpendCard(
+                                        state = state,
+                                        isBalanceHidden = uiState.isBalanceHidden,
+                                        onReveal = { viewModel.toggleBalanceVisibility() },
+                                        onOpenBreakdown = { showSafeToSpendSheet = true },
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                        blurEffects = blurEffects,
+                                        hazeState = hazeStateBanner
+                                    )
+                                }
+                            }
+                        }
+                    }
                     HomeSection.BUDGETS -> {
                         // 2. Budget Carousel
                         uiState.budgetSummary?.let { summary ->
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     // Header-less, as in Cashiro: the carousel's cards name
@@ -567,13 +640,13 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     // Cashiro glass, header-less like Subscriptions and
@@ -596,13 +669,13 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     // Cashiro's Lent / Borrowed card: header-less, the whole card
@@ -629,13 +702,13 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -645,7 +718,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_groups),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToTransactionGroups) {
+                                                TextButton(onClick = onNavigateToTransactionGroups, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -678,13 +751,13 @@ fun HomeScreen(
                         item(key = section.name) {
                             val visible = remember { mutableStateOf(hasAnimated) }
                             LaunchedEffect(Unit) {
-                                if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                if (!visible.value) { delay(delayMs); visible.value = true }
                             }
                             AnimatedVisibility(
                                 visible = visible.value,
-                                enter = fadeIn(tween(300)) + slideInVertically(
+                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                     initialOffsetY = { slideOffsetPx },
-                                    animationSpec = tween(300)
+                                    animationSpec = motion.defaultSpatialSpec()
                                 )
                             ) {
                                 Column(
@@ -765,13 +838,13 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     // No section header: like Cashiro, the account card sits
@@ -782,18 +855,13 @@ fun HomeScreen(
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                         bankAccounts = uiState.accountBalances,
                                         creditCards = uiState.creditCards,
-                                        onAccountClick = { bankName, accountLast4 ->
-                                            navController.navigate(
-                                                com.pennywiseai.tracker.navigation.AccountDetail(
-                                                    bankName = bankName,
-                                                    accountLast4 = accountLast4
-                                                )
-                                            ) { launchSingleTop = true }
-                                        },
+                                        onAccountClick = onAccountClick,
                                         isUnifiedMode = uiState.isUnifiedMode,
                                         selectedCurrency = uiState.selectedCurrency,
                                         blurEffects = blurEffects,
-                                        hazeState = hazeStateBanner
+                                        hazeState = hazeStateBanner,
+                                        isAmountHidden = uiState.isBalanceHidden,
+                                        onToggleAmountsHidden = { viewModel.toggleBalanceVisibility() }
                                     )
                                 }
                             }
@@ -805,13 +873,13 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     // Header-less, as in Cashiro: the card states its own count
@@ -819,6 +887,7 @@ fun HomeScreen(
                                     Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                                         UpcomingSubscriptionsCard(
                                             subscriptions = uiState.upcomingSubscriptions,
+                                            nextDue = uiState.nextDueSubscription,
                                             totalAmount = uiState.upcomingSubscriptionsTotal,
                                             totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
                                             isUnified = uiState.isUnifiedMode,
@@ -832,18 +901,49 @@ fun HomeScreen(
                             }
                         }
                     }
+                    HomeSection.MONEY_IN_MOTION -> {
+                        // Credit / invested / transferred: money outside net cash flow.
+                        // Reference detail, so a late, hideable section rather than a fixed
+                        // card above the decision cards. Hides itself on dormant months.
+                    item(key = section.name) {
+                        val visible = remember { mutableStateOf(hasAnimated) }
+                        LaunchedEffect(Unit) {
+                            if (!visible.value) { delay(delayMs); visible.value = true }
+                        }
+                        AnimatedVisibility(
+                            visible = visible.value,
+                            enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
+                                initialOffsetY = { slideOffsetPx },
+                                animationSpec = motion.defaultSpatialSpec()
+                            )
+                        ) {
+                            CashFlowCard(
+                                currency = uiState.selectedCurrency,
+                                // When card spend counts as expense (#705) it's already in
+                                // "Spent this month", so drop it from this "outside cash flow"
+                                // card (a zero channel is filtered out) to avoid double-showing.
+                                creditCardSpend = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard,
+                                investments = uiState.currentMonthInvestment,
+                                transfers = uiState.currentMonthTransfer,
+                                isBalanceHidden = uiState.isBalanceHidden,
+                                onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                            )
+                        }
+                    }
+                    }
                     HomeSection.ACTIVITY -> {
                         // 6. Heatmap Widget
                         item(key = section.name) {
                             val visible = remember { mutableStateOf(hasAnimated) }
                             LaunchedEffect(Unit) {
-                                if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                if (!visible.value) { delay(delayMs); visible.value = true }
                             }
                             AnimatedVisibility(
                                 visible = visible.value,
-                                enter = fadeIn(tween(300)) + slideInVertically(
+                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                     initialOffsetY = { slideOffsetPx },
-                                    animationSpec = tween(300)
+                                    animationSpec = motion.defaultSpatialSpec()
                                 )
                             ) {
                                 // Header-less, as in Cashiro: the month labels say what it is.
@@ -860,14 +960,9 @@ fun HomeScreen(
             }
         }
         
-        // Scan FAB rotation animation
-        val infiniteTransition = rememberInfiniteTransition(label = "scan_rotation")
-        val rotationAngle by animateFloatAsState(
-            targetValue = if (uiState.isScanning) 1f else 0f,
-            animationSpec = tween(300),
-            label = "scan_trigger"
-        )
-        val continuousRotation by infiniteTransition.animateFloat(
+
+        val scanTransition = rememberInfiniteTransition(label = "scan")
+        val continuousRotation by scanTransition.animateFloat(
             initialValue = 0f,
             targetValue = 360f,
             animationSpec = infiniteRepeatable(
@@ -939,9 +1034,23 @@ fun HomeScreen(
                     shadowElevation = Dimensions.Elevation.fab,
                     tonalElevation = Dimensions.Elevation.fab,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Surface(
+                        modifier = Modifier
+                            .spotlightTarget(onFabPositioned)
+                            .size(Dimensions.Component.fab)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { viewModel.scanSmsMessages() },
+                                    onLongPress = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                        showFullResyncDialog = true
+                                    }
+                                )
+                            },
+                        shape = FloatingActionButtonDefaults.shape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shadowElevation = Dimensions.Elevation.fab,
+                        tonalElevation = Dimensions.Elevation.fab,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Sync,
@@ -968,7 +1077,7 @@ fun HomeScreen(
                 )
             }
         }
-        
+
         // Full Resync Confirmation Dialog
         if (showFullResyncDialog) {
             AlertDialog(
@@ -1007,7 +1116,8 @@ fun HomeScreen(
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { showFullResyncDialog = false }
+                        onClick = { showFullResyncDialog = false },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.home_cancel))
                     }
@@ -1065,6 +1175,7 @@ fun HomeScreen(
             onSettings = { showMenuSheet = false; onNavigateToSettings() },
             onManageAccounts = { showMenuSheet = false; onNavigateToManageAccounts() },
             onEditHome = { showMenuSheet = false; showEditWidgetsSheet = true },
+            onReadMessagesAgain = { showMenuSheet = false; showFullResyncDialog = true },
             onDiscord = {
                 showMenuSheet = false
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL)))
@@ -1093,11 +1204,19 @@ fun HomeScreen(
         )
     }
 
+    safeToSpend?.takeIf { showSafeToSpendSheet }?.let { state ->
+        SafeToSpendSheet(
+            state = state,
+            onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
+            onDismiss = { showSafeToSpendSheet = false }
+        )
+    }
+
     // Edit home screen sheet (#770). Every change persists immediately — no Save.
     if (showEditWidgetsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showEditWidgetsSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
             containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
@@ -1139,11 +1258,13 @@ fun HomeScreen(
                         )
                         IconButton(
                             enabled = i > 0,
-                            onClick = { viewModel.moveHomeSection(section, -1) }
+                            onClick = { viewModel.moveHomeSection(section, -1) },
+                            shapes = IconButtonDefaults.shapes()
                         ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.home_edit_move_up, sectionLabel)) }
                         IconButton(
                             enabled = i < homeSectionLayout.lastIndex,
-                            onClick = { viewModel.moveHomeSection(section, +1) }
+                            onClick = { viewModel.moveHomeSection(section, +1) },
+                            shapes = IconButtonDefaults.shapes()
                         ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.home_edit_move_down, sectionLabel)) }
                         Switch(
                             checked = isVisible,
@@ -1173,11 +1294,11 @@ private fun BreakdownDialog(
     lastMonthIncome: BigDecimal,
     lastMonthExpenses: BigDecimal,
     lastMonthTotal: BigDecimal,
-    currency: String = "INR",
+    currency: String,
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
-    val monthName = { m: java.time.Month -> m.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) }
+    val monthName = { m: java.time.Month -> m.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale()) }
     val currentPeriod = stringResource(R.string.home_breakdown_period, monthName(now.month), now.dayOfMonth)
     val lastMonth = now.minusMonths(1)
     val lastPeriod = stringResource(R.string.home_breakdown_period, monthName(lastMonth.month), now.dayOfMonth)
@@ -1238,7 +1359,8 @@ private fun BreakdownDialog(
 
                 TextButton(
                     onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier.align(Alignment.End),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.home_close))
                 }
@@ -1281,7 +1403,7 @@ private fun BreakdownRow(
     amount: BigDecimal,
     isIncome: Boolean,
     isBold: Boolean = false,
-    currency: String = "INR"
+    currency: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1319,8 +1441,9 @@ private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
     totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
+    nextDue: SubscriptionEntity? = null,
     isUnified: Boolean = false,
-    currency: String = "INR",
+    currency: String,
     onClick: () -> Unit = {},
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
@@ -1388,6 +1511,24 @@ private fun UpcomingSubscriptionsCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle),
                         modifier = Modifier.padding(bottom = Spacing.xxs)
                     )
+                    val nextDate = nextDue?.nextPaymentDate
+                    if (nextDue != null && nextDate != null) {
+                        val days = ChronoUnit.DAYS.between(LocalDate.now(), nextDate).toInt()
+                        val due = when {
+                            days < 0 -> stringResource(R.string.home_subscriptions_due_overdue)
+                            days == 0 -> stringResource(R.string.home_subscriptions_due_today)
+                            days == 1 -> stringResource(R.string.home_subscriptions_due_tomorrow)
+                            else -> pluralStringResource(R.plurals.home_subscriptions_due_in_days, days, days)
+                        }
+                        Text(
+                            text = stringResource(R.string.home_subscriptions_next_due, nextDue.merchantName, due),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (days < 0) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
@@ -1735,6 +1876,7 @@ private fun HomeOptionsMenu(
     onSettings: () -> Unit,
     onManageAccounts: () -> Unit,
     onEditHome: () -> Unit,
+    onReadMessagesAgain: () -> Unit,
     onDiscord: () -> Unit,
     onRate: () -> Unit,
 ) {
@@ -1773,6 +1915,9 @@ private fun HomeOptionsMenu(
             }
             HomeMenuItem(stringResource(R.string.home_menu_edit_home), onEditHome, shape = shapes.small) {
                 Icon(Icons.Default.Tune, contentDescription = null)
+            }
+            HomeMenuItem(stringResource(R.string.home_resync_title), onReadMessagesAgain, shape = shapes.small) {
+                Icon(Icons.Default.Sync, contentDescription = null)
             }
             HomeMenuItem(stringResource(R.string.home_menu_discord), onDiscord, shape = shapes.small) {
                 Icon(
@@ -1903,6 +2048,7 @@ private fun HomeMenuItem(
 
 @StringRes
 private fun HomeSection.titleRes(): Int = when (this) {
+    HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
     HomeSection.BUDGETS -> R.string.home_section_budgets
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
@@ -1910,6 +2056,7 @@ private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
     HomeSection.ACCOUNTS -> R.string.home_section_accounts
     HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
+    HomeSection.MONEY_IN_MOTION -> R.string.home_section_money_in_motion
     HomeSection.ACTIVITY -> R.string.home_section_activity
 }
 

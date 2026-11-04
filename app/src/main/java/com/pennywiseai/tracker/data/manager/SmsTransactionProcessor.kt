@@ -4,7 +4,7 @@ import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import android.content.Context
 import android.util.Log
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -71,8 +72,13 @@ class SmsTransactionProcessor @Inject constructor(
          * opposed to a parse or storage failure. Callers that queue a message
          * for retry should treat this as settled, not as something to try again.
          */
-        val intentionallySkipped: Boolean = false
+        val intentionallySkipped: Boolean = false,
+        /** Set when this charge may be a subscription at a new price; nothing changes until the user confirms. */
+        val priceChange: PriceChange? = null
     )
+
+    /** [subscriptionName] bills [previousAmount]; the saved charge carries the new amount and currency. */
+    data class PriceChange(val subscriptionName: String, val previousAmount: BigDecimal)
 
     /**
      * Parses and saves a transaction from an SMS message.
@@ -197,6 +203,7 @@ class SmsTransactionProcessor @Inject constructor(
 
             // Check for custom merchant mapping
             val customCategory = merchantMappingRepository.getCategoryForMerchant(entity.merchantName)
+                ?.takeIf { mappingFits(database.categoryDao().getCategoryByName(it)?.isIncome, entity.transactionType) }
             val entityWithMapping = if (customCategory != null) {
                 Log.d(TAG, "Found custom category mapping: ${entity.merchantName} -> $customCategory")
                 entity.copy(category = customCategory)
@@ -229,11 +236,12 @@ class SmsTransactionProcessor @Inject constructor(
                 Log.d(TAG, "Applied ${ruleApplications.size} rules to transaction")
             }
 
-            // Check if this transaction matches an active subscription
-            val matchedSubscription = subscriptionRepository.matchTransactionToSubscription(
-                entityWithRules.merchantName,
-                entityWithRules.amount
-            )
+            // Check if this transaction matches an active subscription. One due
+            // now at a different price is only offered on the alert, never applied.
+            val matchedSubscription = subscriptionRepository.matchTransactionToSubscription(entityWithRules)
+            val repricedSubscription = if (matchedSubscription == null) {
+                subscriptionRepository.priceChangedSubscriptionFor(entityWithRules)
+            } else null
             val finalEntity = if (matchedSubscription != null) {
                 Log.d(TAG, "Matched subscription ${matchedSubscription.id}")
                 entityWithRules.copy(isRecurring = true)
@@ -249,10 +257,7 @@ class SmsTransactionProcessor @Inject constructor(
                 database.withTransaction {
                     val id = transactionRepository.insertTransaction(finalEntity)
                     if (id != -1L) {
-                        subscriptionRepository.updateNextPaymentDateAfterCharge(
-                            matchedSubscription.id,
-                            finalEntity.dateTime.toLocalDate()
-                        )
+                        subscriptionRepository.recordCharge(matchedSubscription, finalEntity.dateTime.toLocalDate())
                     }
                     id
                 }
@@ -282,7 +287,11 @@ class SmsTransactionProcessor @Inject constructor(
                 // Trigger widget refresh for the transaction-derived widgets
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 
-                return ProcessingResult(true, transactionId = rowId)
+                return ProcessingResult(
+                    true,
+                    transactionId = rowId,
+                    priceChange = repricedSubscription?.let { PriceChange(it.merchantName, it.amount) }
+                )
             } else {
                 Log.d(TAG, "Transaction already exists (duplicate): ${entity.transactionHash}")
                 return ProcessingResult(false, reason = "Duplicate transaction")
@@ -373,45 +382,49 @@ class SmsTransactionProcessor @Inject constructor(
             val accountCurrency = existingAccount?.currency
                 ?: parsedTransaction.accountCurrency
                 ?: parsedTransaction.currency
-            val newBalance = BalanceCalculator.balanceAfter(
-                explicitBalance = parsedTransaction.balance,
-                // A loan account's balance is owed too: a payment lowers it (#792).
-                isCreditCard = resolvedIsCreditCard || existingAccount?.isLoan == true,
-                transactionType = parsedTransaction.type.toEntityType(),
-                transactionAmount = parsedTransaction.amount,
-                transactionCurrency = parsedTransaction.currency,
-                accountCurrency = accountCurrency,
-                currentBalance = existingAccount?.balance
-            )
+            // Moves from the balance just before this SMS in time, not the newest
+            // row, the same rule as the inbox scan (#982).
+            accountBalanceRepository.insertSmsTransactionBalance(
+                parsedTransaction.bankName, targetAccountLast4, entity.dateTime
+            ) { before ->
+                val newBalance = BalanceCalculator.balanceAfter(
+                    explicitBalance = parsedTransaction.balance,
+                    // A loan account's balance is owed too: a payment lowers it (#792).
+                    isCreditCard = resolvedIsCreditCard || existingAccount?.isLoan == true,
+                    transactionType = parsedTransaction.type.toEntityType(),
+                    transactionAmount = parsedTransaction.amount,
+                    transactionCurrency = parsedTransaction.currency,
+                    accountCurrency = accountCurrency,
+                    currentBalance = before
+                )
 
-            // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
-            // available = creditLimit − balance, so store total = available + outstanding
-            // (the post-transaction balance) to keep that math correct. Falls back to the
-            // existing stored limit when the SMS carries no limit. (#486)
-            val resolvedCreditLimit = if (resolvedIsCreditCard && parsedTransaction.creditLimit != null) {
-                parsedTransaction.creditLimit!! + newBalance
-            } else {
-                existingAccount?.creditLimit
+                // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
+                // available = creditLimit − balance, so store total = available + outstanding
+                // (the post-transaction balance) to keep that math correct. Falls back to the
+                // existing stored limit when the SMS carries no limit. (#486)
+                val resolvedCreditLimit = if (resolvedIsCreditCard && parsedTransaction.creditLimit != null) {
+                    parsedTransaction.creditLimit!! + newBalance
+                } else {
+                    existingAccount?.creditLimit
+                }
+
+                AccountBalanceEntity(
+                    bankName = parsedTransaction.bankName,
+                    accountLast4 = targetAccountLast4,
+                    balance = newBalance,
+                    timestamp = entity.dateTime,
+                    transactionId = if (rowId != -1L) rowId else null,
+                    creditLimit = resolvedCreditLimit,
+                    isCreditCard = resolvedIsCreditCard,
+                    smsSource = parsedTransaction.smsBody.take(500),
+                    sourceType = "TRANSACTION",
+                    accountType = BalanceCalculator.preservedAccountType(existingAccount),
+                    currency = accountCurrency,
+                    profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = existingAccount?.alias,
+                    lowBalanceThreshold = existingAccount?.lowBalanceThreshold
+                )
             }
-
-            val balanceEntity = AccountBalanceEntity(
-                bankName = parsedTransaction.bankName,
-                accountLast4 = targetAccountLast4,
-                balance = newBalance,
-                timestamp = entity.dateTime,
-                transactionId = if (rowId != -1L) rowId else null,
-                creditLimit = resolvedCreditLimit,
-                isCreditCard = resolvedIsCreditCard,
-                smsSource = parsedTransaction.smsBody.take(500),
-                sourceType = "TRANSACTION",
-                accountType = BalanceCalculator.preservedAccountType(existingAccount),
-                currency = accountCurrency,
-                profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
-                alias = existingAccount?.alias,
-                lowBalanceThreshold = existingAccount?.lowBalanceThreshold
-            )
-
-            accountBalanceRepository.insertBalance(balanceEntity)
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
         }
     }

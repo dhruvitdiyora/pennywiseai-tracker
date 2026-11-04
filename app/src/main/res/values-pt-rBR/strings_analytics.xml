@@ -5,7 +5,7 @@
     <string name="analytics_trends">Tendências</string>
     <string name="analytics_chart_line">Linha</string>
     <string name="analytics_chart_bar">Barras</string>
-    <string name="analytics_chart_heatmap">Heatmap</string>
+    <string name="analytics_chart_heatmap">Mapa de calor</string>
     <string name="analytics_chart_line_full">Gráfico de Linhas</string>
     <string name="analytics_chart_bar_full">Gráfico de barras</string>
     <string name="analytics_top_categories">Categorias Principais</string>
@@ -15,7 +15,15 @@
     <string name="analytics_top_tags">Principais tags</string>
     <string name="analytics_top_merchants">Comerciantes Mais Populares</string>
     <string name="analytics_by_account">Por Conta</string>
+    <string name="analytics_by_day_of_week">Por dia da semana</string>
+    <string name="analytics_no_tag">Sem tag</string>
+    <string name="analytics_tag_overlap_note">Uma transação com várias tags conta em cada uma delas, então a soma das tags pode passar do total.</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">Por categoria</string>
+    <string name="analytics_group_by_merchant">Por comerciante</string>
+    <string name="analytics_group_by_account">Por conta</string>
+    <string name="analytics_group_by_tag">Por tag</string>
+    <string name="analytics_group_by_day_of_week">Por dia da semana</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Limpar</string>
@@ -43,8 +51,8 @@
     <!-- Summary card -->
     <string name="analytics_summary_total">TOTAL</string>
     <plurals name="analytics_summary_txns">
-        <item quantity="one">%1$d TXN</item>
-        <item quantity="other">%1$d TXNS</item>
+        <item quantity="one">%1$d TRANSAÇÃO</item>
+        <item quantity="other">%1$d TRANSAÇÕES</item>
     </plurals>
     <string name="analytics_summary_average">MÉDIA</string>
     <string name="analytics_summary_per_day">" /dia"</string>
@@ -80,6 +88,7 @@
     <string name="budgets_move_down">Mover para baixo</string>
     <!-- %1$s = formatted amount -->
     <string name="budgets_over_budget">%1$s acima do orçamento</string>
+    <string name="budgets_remaining">Restam %1$s</string>
     <string name="budgets_over_by">Terminado por %1$s</string>
     <string name="budgets_finished">Finalizado.</string>
     <!-- %1$s = weekday name -->
@@ -92,6 +101,10 @@
     <!-- %1$d = day of month the budget starts on -->
     <string name="budgets_resets_today_monthly">Reinicia hoje · dia %1$d</string>
     <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="one">Reinicia em %1$d dia · dia %2$d</item>
+        <item quantity="other">Reinicia em %1$d dias · dia %2$d</item>
+    </plurals>
     <!-- Date range, %1$s = start date, %2$s = end date -->
     <string name="budgets_date_range">%1$s – %2$s</string>
     <!-- %1$s = date range, %2$d = days -->
@@ -100,6 +113,10 @@
         <item quantity="other">Executa %1$s · %2$d dias restantes</item>
     </plurals>
     <string name="budgets_runs_finished">Executa %1$s · Terminado</string>
+    <plurals name="budgets_days_remaining">
+        <item quantity="one">Falta %1$d dia</item>
+        <item quantity="other">Faltam %1$d dias</item>
+    </plurals>
     <!-- %1$s = spent amount, %2$s = budget amount -->
     <string name="budgets_spent_of">Gasto %1$s de %2$s</string>
     <string name="budgets_spent">Gasto %1$s</string>
@@ -148,7 +165,7 @@
     <string name="budget_history_window">Janela: %1$s - %2$s</string>
     <string name="budget_history_per_week">Divisão semanal</string>
     <string name="budget_history_cycle">Ciclo</string>
-    <string name="budget_history_range">Range</string>
+    <string name="budget_history_range">Período</string>
     <string name="budget_history_current">Atual</string>
     <string name="budget_history_live">Ao Vivo · ainda acumulando</string>
     <string name="budget_history_frozen">Congelado a partir de %1$s</string>
@@ -180,7 +197,7 @@
     <string name="categories_msg_deleted">Categoria excluída com sucesso</string>
     <string name="categories_msg_cannot_delete">Não é possível excluir esta categoria</string>
     <string name="categories_msg_delete_error">Erro ao excluir categoria: %1$s</string>
-    <string name="categories_msg_hidden">%1$s hidden</string>
+    <string name="categories_msg_hidden">%1$s oculta</string>
     <string name="categories_msg_shown">%1$s mostrado</string>
     <string name="categories_msg_update_error">Erro ao atualizar categoria: %1$s</string>
     <!-- Category edit dialog -->
@@ -208,7 +225,7 @@
     <string name="subscriptions_add">Adicionar inscrição</string>
     <string name="subscriptions_undo">Desfazer</string>
     <!-- %1$s = merchant name -->
-    <string name="subscriptions_snackbar_hidden">%1$s hidden</string>
+    <string name="subscriptions_snackbar_hidden">%1$s oculta</string>
     <string name="subscriptions_snackbar_ended">%1$s finalizado</string>
     <string name="subscriptions_active_section">Assinaturas Ativas</string>
     <string name="subscriptions_empty_headline">Nenhuma assinatura detectada ainda</string>
@@ -265,7 +282,6 @@
     <string name="subscriptions_edit_no_account">Nenhuma conta</string>
     <string name="subscriptions_edit_paid_from">Pago por</string>
     <string name="subscriptions_edit_pick_account">Escolher conta</string>
-    <string name="subscriptions_edit_selected">Selecionado</string>
     <string name="subscriptions_edit_save">Guardar</string>
     <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">%1$s marcado pago · próximo ciclo em %2$s</string>
@@ -280,6 +296,10 @@
     <string name="mark_paid_eyebrow_received">MARQUE COMO RECEBIDO</string>
     <!-- %1$s = date -->
     <string name="mark_paid_already_marked">Já marcado como pago em %1$s</string>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="one">%1$d pagamento correspondente encontrado</item>
+        <item quantity="other">%1$d pagamentos correspondentes encontrados</item>
+    </plurals>
     <string name="mark_paid_when">Quando?</string>
     <!-- %1$s = formatted amount -->
     <string name="mark_paid_cta_paid">Marcar paga · %1$s</string>
@@ -293,5 +313,13 @@
     <string name="mark_paid_or_mark_today">ou marque hoje</string>
     <string name="mark_paid_today">hoje</string>
     <string name="mark_paid_yesterday">ontem</string>
+    <plurals name="mark_paid_days_ago">
+        <item quantity="one">Há %1$d dia</item>
+        <item quantity="other">Há %1$d dias</item>
+    </plurals>
     <string name="mark_paid_pick_date">Escolher data</string>
+    <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_forecast_for">Previsão para %1$s</string>
+    <string name="analytics_forecast_above_usual">Cerca de %1$s acima do normal</string>
+    <string name="analytics_forecast_stay_under">Gaste menos de %1$s por dia para ficar em %2$s.</string>
 </resources>

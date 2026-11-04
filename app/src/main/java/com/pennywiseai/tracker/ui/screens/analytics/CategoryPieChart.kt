@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.screens.analytics
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import java.math.BigDecimal
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -33,6 +32,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
 import ir.ehsannarmani.compose_charts.models.Pie
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Ring width for the Analytics donuts (category and tag): a fine Cashiro-style
@@ -55,6 +55,8 @@ fun CategoryPieChart(
 
     // One ordering (largest first) feeds both the ring and the legend, so a
     // segment's colour always matches its legend row and none is hidden.
+    // Slice scale is the tap-to-select pop (1 → selectedScale), not the data sweep.
+    val motion = MaterialTheme.motionScheme
     val pieData = remember(categories) {
         categories.sortedByDescending { it.amount }.map { category ->
             val sliceColor = CategoryMapping.colorFor(category.name, category.color)
@@ -64,8 +66,8 @@ fun CategoryPieChart(
                 color = sliceColor,
                 selectedColor = sliceColor.copy(alpha = 0.8f),
                 selected = false,
-                scaleAnimEnterSpec = tween(400),
-                colorAnimEnterSpec = tween(500)
+                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec()
             )
         }
     }
@@ -98,8 +100,8 @@ fun CategoryPieChart(
                     categories.find { it.name == categoryName }?.let(onCategoryClick)
                 },
                 selectedScale = 1.1f,
-                scaleAnimEnterSpec = tween(400),
-                colorAnimEnterSpec = tween(500),
+                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec(),
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),
@@ -203,7 +205,7 @@ private fun PieLegendItem(
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
+                text = categoryLabel(label),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,

@@ -75,6 +75,9 @@ object Dimensions {
 
         /** Strong semantic colour washed into a compact tonal icon container. */
         const val tonalIconContainer = 0.14f
+
+        /** A primary tint marking the selected tab in the floating nav bar. */
+        const val selectedIndicator = 0.18f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────
@@ -133,6 +136,22 @@ object Dimensions {
     // ── Component metrics ─────────────────────────────────────────────────
     object Component {
         val bottomBarHeight = 80.dp
+
+        /** Height of the floating nav pill, and the side of the action docked beside it. */
+        val floatingNavHeight = 64.dp
+
+        /** The selected-tab indicator inside the floating nav pill. */
+        val floatingNavIndicatorHeight = 48.dp
+        val floatingNavIndicatorWidth = 64.dp
+
+        /** Gap between the floating nav pill and the system navigation bar. */
+        val floatingNavBottomGap = 12.dp
+
+        /** Corner of the squircle action docked beside the floating nav pill. */
+        val dockedActionCornerRadius = 20.dp
+        /** Corner while the docked action is held — the M3 Expressive press morph. */
+        val dockedActionPressedCornerRadius = 12.dp
+
         val buttonHeight = 48.dp
 
         /** Accessibility floor for anything tappable. */
@@ -170,6 +189,9 @@ object Dimensions {
         /** Short rounded accent bar before a list group header (Cashiro-style). */
         val headerAccentBarWidth = 4.dp
         val headerAccentBarHeight = 16.dp
+
+        /** Divider between the stat blocks of a summary card (Analytics). */
+        val dividerThicknessEmphasis = 1.5.dp
 
         /** Hairline used to outline cards in dark mode. */
         val hairline = 0.5.dp
@@ -231,6 +253,9 @@ object Dimensions {
         val onboardingSelectionStroke = 3.dp
         val onboardingStepActive = Spacing.sm
         val onboardingStepInactive = 6.dp
+
+        /** Tallest a scrolling list inside a dialog grows (Track Other Apps, #994). */
+        val dialogListMaxHeight = 360.dp
 
         /** Standard FAB diameter. */
         val fab = 56.dp

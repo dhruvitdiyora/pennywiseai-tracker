@@ -1,9 +1,11 @@
 package com.pennywiseai.tracker.ui.screens.unrecognized
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.ui.platform.LocalContext
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,10 +54,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.navigation.AddTransaction
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SubtitleTag
@@ -89,9 +95,11 @@ import java.time.format.DateTimeFormatter
 fun UnrecognizedSmsScreen(
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
+    onAddSuggestion: (AddTransaction) -> Unit,
     viewModel: UnrecognizedSmsViewModel = hiltViewModel()
 ) {
     val unrecognizedMessages by viewModel.unrecognizedMessages.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showReported by viewModel.showReported.collectAsStateWithLifecycle()
     var selectedMessage by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
@@ -157,9 +165,9 @@ fun UnrecognizedSmsScreen(
                 }
                 AnimatedVisibility(
                     visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                         initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                     )
                 ) {
                     UtilityHeroCard(
@@ -240,13 +248,17 @@ fun UnrecognizedSmsScreen(
                     }
                     AnimatedVisibility(
                         visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
+                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                             initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                         )
                     ) {
                         UnrecognizedSmsItem(
                             message = message,
+                            suggestion = suggestions[message.id]?.transaction,
+                            onAddSuggestion = {
+                                suggestions[message.id]?.let { onAddSuggestion(it.draft()) }
+                            },
                             onReport = {
                                 viewModel.reportMessage(message)
                             },
@@ -289,7 +301,8 @@ fun UnrecognizedSmsScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.unrecognized_delete))
                 }
@@ -299,7 +312,8 @@ fun UnrecognizedSmsScreen(
                     onClick = {
                         showDeleteConfirmation = false
                         selectedMessage = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.unrecognized_cancel))
                 }
@@ -370,6 +384,8 @@ private fun CountPill(
 @Composable
 private fun UnrecognizedSmsItem(
     message: UnrecognizedSmsEntity,
+    suggestion: ParsedTransaction?,
+    onAddSuggestion: (ParsedTransaction) -> Unit,
     onReport: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -378,6 +394,8 @@ private fun UnrecognizedSmsItem(
     GlassCard(
         modifier = modifier.fillMaxWidth()
     ) {
+        val context = LocalContext.current
+        val displayName = remember(message.sender) { BankNotificationConfig.displayName(context, message.sender) }
         Column(
             verticalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
@@ -396,7 +414,7 @@ private fun UnrecognizedSmsItem(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = message.sender,
+                        text = displayName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = scheme.primary,
@@ -405,7 +423,7 @@ private fun UnrecognizedSmsItem(
                     )
                     Text(
                         text = message.receivedAt.format(
-                            DateTimeFormatter.ofPattern("MMM dd, yyyy • HH:mm")
+                            AppDates.dateTimeFormatter()
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant
@@ -427,13 +445,17 @@ private fun UnrecognizedSmsItem(
                 color = scheme.surface
             ) {
                 Text(
-                    text = message.smsBody,
+                    text = CurrencyFormatter.maskAmountsIn(message.smsBody),
                     modifier = Modifier.padding(Spacing.smd),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     color = scheme.onSurface
                 )
+            }
+
+            suggestion?.let { tx ->
+                SuggestionLine(tx, onAdd = { onAddSuggestion(tx) })
             }
 
             // Action buttons
@@ -477,6 +499,34 @@ private fun UnrecognizedSmsItem(
                     }
                 }
             }
+        }
+    }
+}
+
+/** "Looks like: ₹500.00 debit · Test Store · ••1234" with an Add action (#994). */
+@Composable
+private fun SuggestionLine(tx: ParsedTransaction, onAdd: () -> Unit) {
+    val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
+    val parts = listOfNotNull(
+        if (tx.type == TransactionType.INCOME) stringResource(R.string.unrecognized_suggestion_credit, amount)
+        else stringResource(R.string.unrecognized_suggestion_debit, amount),
+        tx.merchant,
+        tx.accountLast4?.let { "••$it" }
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.unrecognized_suggestion, parts.joinToString(" · ")),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        TextButton(onClick = onAdd, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.unrecognized_suggestion_add))
         }
     }
 }

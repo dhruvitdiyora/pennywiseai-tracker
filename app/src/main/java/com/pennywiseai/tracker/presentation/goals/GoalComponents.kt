@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.Context
+import android.content.res.Resources
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,13 +27,15 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -74,10 +78,11 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import java.util.Locale
 
-internal val goalDateFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+internal val goalDateFormat: DateTimeFormatter get() = AppDates.dateFormatter()
 
 @Composable
 internal fun GoalProgress.color(): Color = goal.color.toColorOr(MaterialTheme.colorScheme.primary)
@@ -91,7 +96,7 @@ fun GoalRing(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val animated by animateFloatAsState(progress.fraction(), tween(Dimensions.Animation.long), label = "goalRing")
+    val animated by animateFloatAsState(progress.fraction(), MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalRing")
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val color = progress.color()
     val description = stringResource(R.string.goals_ring_description, progress.percent())
@@ -151,35 +156,46 @@ fun goalTimeLabel(progress: GoalProgress): String =
         stringResource(R.string.goals_due_on, progress.goal.dueDate.format(goalDateFormat))
     }
 
+/** How a status line writes money: the app's usual; the widgets pass their own. */
+private val appMoney: (BigDecimal, String) -> String = { amount, currency -> CurrencyFormatter.formatCurrency(amount, currency) }
+
+/**
+ * A month count. [latinDigits] keeps "12" Latin where Arabic resources would
+ * write "١٢": the widgets do, beside their Latin amounts.
+ */
+private fun Resources.months(id: Int, count: Int, latinDigits: Boolean): String =
+    if (latinDigits) String.format(Locale.US, getQuantityString(id, count), count)
+    else getQuantityString(id, count, count)
+
 /**
  * One-line status for compact rows (Home card, goals widget):
  * "₹1,920/mo · 5 months left", "Behind ₹2,000", "Reached" or "Missed by ₹X".
  * Takes a [Context] so the widget worker builds the same text the Home card shows.
  */
-fun GoalProgress.statusLine(context: Context): String {
+fun GoalProgress.statusLine(context: Context, money: (BigDecimal, String) -> String = appMoney, latinDigits: Boolean = false): String {
     val res = context.resources
     val currency = goal.currency
     return when (val pill = pill()) {
         GoalPill.Reached -> res.getString(R.string.goals_reached)
-        is GoalPill.MissedBy -> res.getString(R.string.goals_missed_by, CurrencyFormatter.formatCurrency(pill.amount, currency))
-        is GoalPill.Behind -> res.getString(R.string.goals_behind, CurrencyFormatter.formatCurrency(pill.amount, currency))
+        is GoalPill.MissedBy -> res.getString(R.string.goals_missed_by, money(pill.amount, currency))
+        is GoalPill.Behind -> res.getString(R.string.goals_behind, money(pill.amount, currency))
         is GoalPill.PerMonth -> res.getString(
             R.string.goals_line_join,
-            res.getString(R.string.goals_per_month, CurrencyFormatter.formatCurrency(pill.amount, currency)),
-            res.getQuantityString(R.plurals.goals_months_left, monthsLeft, monthsLeft),
+            res.getString(R.string.goals_per_month, money(pill.amount, currency)),
+            res.months(R.plurals.goals_months_left, monthsLeft, latinDigits),
         )
         GoalPill.Archived -> res.getString(R.string.goals_archived)
     }
 }
 
 /** The 2×2 widget's line: "₹9,600 left · 5 mo" while in progress, else the same as [statusLine]. */
-fun GoalProgress.shortLine(context: Context): String {
-    if (status != GoalStatus.IN_PROGRESS) return statusLine(context)
+fun GoalProgress.shortLine(context: Context, money: (BigDecimal, String) -> String = appMoney, latinDigits: Boolean = false): String {
+    if (status != GoalStatus.IN_PROGRESS) return statusLine(context, money, latinDigits)
     val res = context.resources
     return res.getString(
         R.string.goals_line_join,
-        res.getString(R.string.goals_left, CurrencyFormatter.formatCurrency(left, goal.currency)),
-        res.getQuantityString(R.plurals.goals_months_short, monthsLeft, monthsLeft),
+        res.getString(R.string.goals_left, money(left, goal.currency)),
+        res.months(R.plurals.goals_months_short, monthsLeft, latinDigits),
     )
 }
 
@@ -351,7 +367,7 @@ fun GoalsSection(
             topSpacing = Spacing.none,
             action = if (active.isNotEmpty()) {
                 {
-                    TextButton(onClick = create) {
+                    TextButton(onClick = create, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                         Spacer(Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.goals_new))
@@ -385,7 +401,7 @@ fun GoalsSection(
     if (showArchived && archived.isNotEmpty()) {
         com.pennywiseai.tracker.ui.components.PennyWiseBottomSheet(
             onDismissRequest = { showArchived = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
         ) {
             // Scrolls, so a long archive stays reachable.
             Column(
@@ -411,7 +427,7 @@ fun GoalsSection(
                                     CurrencyFormatter.formatCurrency(goal.goal.targetAmount, goal.goal.currency),
                                 ),
                             )
-                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }) {
+                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.goals_unarchive))
                             }
                         }
@@ -446,7 +462,7 @@ private fun GoalsEmptyCard(onCreate: () -> Unit) {
             }
         }
         Spacer(Modifier.size(Spacing.md))
-        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
             Text(stringResource(R.string.goals_empty_action))
         }
     }

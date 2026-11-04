@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +18,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.FilledTonalButton
@@ -28,7 +31,8 @@ import com.pennywiseai.tracker.presentation.add.addFieldColors
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -110,7 +114,7 @@ fun AddToGoalSheet(
 
             if (goals.isEmpty()) {
                 Text(stringResource(R.string.goal_add_to_goal_no_goals), style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.goals_empty_action)) }
+                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goals_empty_action)) }
                 return@Column
             }
 
@@ -195,6 +199,7 @@ fun AddToGoalSheet(
                         }
                     },
                     enabled = !state.saving && left != null && left.signum() > 0 && selected != null,
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_add_to_goal)) }
             }
         }
@@ -258,7 +263,7 @@ fun TowardGoalsSection(linked: List<LinkedGoal>, onOpenGoal: (Long) -> Unit, onR
                         style = PennyWiseText.amountRow,
                         color = MaterialTheme.colorScheme.success,
                     )
-                    IconButton(onClick = { onRemove(c.id) }) {
+                    IconButton(onClick = { onRemove(c.id) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = stringResource(R.string.goal_toward_remove, goal.name),

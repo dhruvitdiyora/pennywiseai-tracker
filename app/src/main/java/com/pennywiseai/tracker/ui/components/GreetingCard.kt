@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,10 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,7 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -69,6 +72,9 @@ fun GreetingCard(
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    // Shows an Add button when set (the floating nav bar docks Sync instead
+    // of Home keeping an Add FAB).
+    onAddClick: (() -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -87,7 +93,7 @@ fun GreetingCard(
         val lastDay = cycleEnd ?: today.withDayOfMonth(today.lengthOfMonth())
         ChronoUnit.DAYS.between(today, lastDay).toInt() to LocalTime.now().hour
     }
-    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale())
     val subtitle = when {
         daysLeft == 0 -> stringResource(R.string.greeting_last_day_of_month, monthName)
         daysLeft <= 7 -> pluralStringResource(R.plurals.greeting_days_left_in_month, daysLeft, daysLeft, monthName)
@@ -180,6 +186,20 @@ fun GreetingCard(
                     selectedProfileId = selectedProfileId,
                     onProfileSelected = onProfileSelected,
                     onDismiss = { showProfileMenu = false }
+                )
+            }
+        }
+
+        if (onAddClick != null) {
+            IconButton(
+                onClick = onAddClick,
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.home_fab_add),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

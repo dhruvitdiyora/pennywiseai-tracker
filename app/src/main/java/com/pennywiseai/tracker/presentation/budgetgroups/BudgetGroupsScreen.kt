@@ -1,12 +1,11 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import androidx.compose.animation.core.tween
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,8 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -57,7 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
@@ -90,10 +87,10 @@ import kotlinx.coroutines.delay
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BudgetGroupsScreen(
     viewModel: BudgetGroupsViewModel = hiltViewModel(),
@@ -166,7 +163,7 @@ fun BudgetGroupsScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -385,9 +382,9 @@ private fun BudgetGroupsContent(
             }
             AnimatedVisibility(
                 visible = visible.value,
-                enter = fadeIn(tween(300)) + slideInVertically(
+                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                     initialOffsetY = { slideOffsetPx },
-                    animationSpec = tween(300)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
             ) {
                 MonthSelector(
@@ -411,9 +408,9 @@ private fun BudgetGroupsContent(
             }
             AnimatedVisibility(
                 visible = visible.value,
-                enter = fadeIn(tween(300)) + slideInVertically(
+                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                     initialOffsetY = { slideOffsetPx },
-                    animationSpec = tween(300)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
             ) {
                 BudgetOverviewCard(
@@ -451,13 +448,14 @@ private fun BudgetGroupsContent(
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.budgets_action_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteGroupId = null }) {
+                TextButton(onClick = { deleteGroupId = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.budgets_action_cancel))
                 }
             }
@@ -474,7 +472,7 @@ private fun MonthSelector(
     onNext: () -> Unit
 ) {
     val yearMonth = YearMonth.of(year, month)
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
+    val formatter = AppDates.pattern("MMMM yyyy")
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -551,7 +549,7 @@ internal fun BudgetOverviewCard(
     var animatedProgress by remember { mutableFloatStateOf(0f) }
     val animatedProgressState by animateFloatAsState(
         targetValue = animatedProgress,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
 
@@ -581,10 +579,7 @@ internal fun BudgetOverviewCard(
                 .fillMaxWidth()
                 .budgetColorWash(budgetColor)
                 .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
                 .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.smd)
         ) {
@@ -706,10 +701,7 @@ internal fun BudgetOverviewCard(
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 ),
                 exit = fadeOut() + shrinkVertically()
             ) {
@@ -773,7 +765,7 @@ internal fun BudgetOverviewCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = catSpending.categoryName,
+                                        text = categoryLabel(catSpending.categoryName),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         // Explicit: the card's tinted container doesn't supply a
@@ -862,7 +854,7 @@ private fun SpendingPaceChart(
                         color = SolidColor(spendingColor),
                         firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
                         secondGradientFillColor = Color.Transparent,
-                        strokeAnimationSpec = tween(1200),
+                        strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                         gradientAnimationDelay = 600,
                         drawStyle = DrawStyle.Stroke(width = Dimensions.Component.chartStroke),
                         curvedEdges = true,

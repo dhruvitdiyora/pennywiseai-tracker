@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,14 +21,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,7 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.budgetColorWash
@@ -82,8 +87,8 @@ import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Per-budget history drill-down. Opened from the Budgets page via the
@@ -261,7 +266,7 @@ private fun HistorySummaryCard(
     budget: BudgetEntity,
 ) {
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val longFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
+    val longFormatter = AppDates.dateFormatter()
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -329,7 +334,7 @@ internal fun HistoryRow(
     listItemPosition: ListItemPosition = ListItemPosition.Single,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val shortFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+    val shortFormatter = AppDates.dayMonthFormatter()
     val hasBudget = budgetAmount > BigDecimal.ZERO
     val percentageUsed = if (hasBudget) {
         window.spent
@@ -486,7 +491,7 @@ internal fun SpendingTrendChart(
 
     val colors = MaterialTheme.colorScheme
     val chartLabel = PennyWiseText.chartLabel
-    val formatter = remember { DateTimeFormatter.ofPattern("dd MMM") }
+    val formatter = AppDates.dayMonthFormatter()
     val chronologicalWindows = remember(windows) { windows.sortedBy { it.window.start } }
     val values = remember(chronologicalWindows) { chronologicalWindows.map { it.spent.toDouble() } }
     val labels = remember(chronologicalWindows) {
@@ -617,7 +622,7 @@ private fun LiveBadge() {
 
 @Composable
 private fun FrozenBadge(capDate: LocalDate) {
-    val formatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
+    val formatter = AppDates.dateFormatter()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -637,11 +642,11 @@ private fun FrozenBadge(capDate: LocalDate) {
 }
 
 private fun monthLabel(yearMonth: YearMonth): String {
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
+    val formatter = AppDates.pattern("MMMM yyyy")
     return yearMonth.format(formatter)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BreakdownSheet(
     breakdown: com.pennywiseai.tracker.data.repository.WindowBreakdown?,
@@ -649,8 +654,8 @@ private fun BreakdownSheet(
     currency: String,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val longFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
+    val longFormatter = AppDates.dateFormatter()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -674,7 +679,7 @@ private fun BreakdownSheet(
                         .padding(vertical = Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
                 return@Column
             }

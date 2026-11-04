@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,7 +86,7 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                     IconButton(onClick = {
                         clipboard.setText(AnnotatedString(vpa))
                         Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
-                    }) {
+                    }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.ContentCopy,
                             contentDescription = stringResource(R.string.support_copy_upi_id)

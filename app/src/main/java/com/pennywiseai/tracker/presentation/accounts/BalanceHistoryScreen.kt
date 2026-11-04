@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.compose.material3.ButtonDefaults
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,7 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -84,7 +86,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import java.time.format.DateTimeFormatter
 
 /** How much of an SMS a collapsed history record previews. */
 private const val SMS_PREVIEW_CHARS = 80
@@ -277,13 +278,14 @@ fun BalanceHistoryScreen(
                     onClick = {
                         viewModel.deleteBalance(balanceId)
                         showDeleteConfirmation = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = null }) {
+                TextButton(onClick = { showDeleteConfirmation = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -383,7 +385,7 @@ private fun BalanceHistoryItem(
                 )
                 Text(
                     text = balance.timestamp.format(
-                        DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
+                        AppDates.dateTimeFormatter()
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = scheme.onSurfaceVariant

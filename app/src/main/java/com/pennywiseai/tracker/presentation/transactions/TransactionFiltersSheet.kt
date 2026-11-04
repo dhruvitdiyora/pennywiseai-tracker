@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -289,7 +290,7 @@ internal fun TransactionFiltersSheet(
                         // the row doesn't read as a wall of badges.
                         items(availableCategories, key = { it }) { category ->
                             CategoryTile(
-                                name = category,
+                                name = categoryLabel(category),
                                 tint = CategoryMapping.colorFor(category).copy(alpha = CATEGORY_TILE_ALPHA),
                                 selected = category in selectedCategories,
                                 showMark = !allSelected,

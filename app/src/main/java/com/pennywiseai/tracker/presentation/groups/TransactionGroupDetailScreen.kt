@@ -1,6 +1,12 @@
 package com.pennywiseai.tracker.presentation.groups
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.ButtonDefaults
 import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -73,7 +79,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TransactionGroupDetailScreen(
     onNavigateBack: () -> Unit = {},
@@ -177,7 +183,7 @@ fun TransactionGroupDetailScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -292,12 +298,12 @@ fun TransactionGroupDetailScreen(
             title = { Text(stringResource(R.string.group_detail_delete_title)) },
             text = { Text(stringResource(R.string.group_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteGroup() }) {
+                TextButton(onClick = { viewModel.deleteGroup() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.group_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.group_cancel))
                 }
             }
@@ -319,7 +325,7 @@ private fun AddTransactionToGroupSheet(
     onAdd: (Long) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

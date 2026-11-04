@@ -6,12 +6,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import com.pennywiseai.tracker.domain.spending.SubscriptionCost
+import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
+import com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +35,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val markSubscriptionPaidUseCase: MarkSubscriptionPaidUseCase,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
+    private val recurringSuggestionsUseCase: RecurringSuggestionsUseCase,
     accountBalanceRepository: AccountBalanceRepository,
 ) : ViewModel() {
 
@@ -43,6 +49,45 @@ class SubscriptionsViewModel @Inject constructor(
 
     init {
         loadSubscriptions()
+        viewModelScope.launch {
+            recurringSuggestionsUseCase.suggestions.collect { suggestions ->
+                _uiState.value = _uiState.value.copy(suggestions = suggestions)
+            }
+        }
+    }
+
+    /** "Track" on a reviewed suggestion, at the amount the user confirmed. */
+    fun acceptSuggestion(suggestion: RecurringSuggestion, amount: BigDecimal) {
+        viewModelScope.launch {
+            val tracked = recurringSuggestionsUseCase.accept(suggestion, amount)
+            _uiState.value = _uiState.value.copy(
+                markPaidMessage = if (tracked != null) {
+                    UiText.Res(R.string.subscriptions_suggestion_tracked, listOf(suggestion.merchantName))
+                } else {
+                    UiText.Res(R.string.subscriptions_suggestion_already_tracked, listOf(suggestion.merchantName))
+                }
+            )
+        }
+    }
+
+    /** "Not recurring": never suggested again (undoable from the snackbar). */
+    fun dismissSuggestion(suggestion: RecurringSuggestion) {
+        viewModelScope.launch {
+            recurringSuggestionsUseCase.dismiss(suggestion)
+            _uiState.value = _uiState.value.copy(lastDismissedSuggestion = suggestion)
+        }
+    }
+
+    fun undoDismissSuggestion() {
+        val suggestion = _uiState.value.lastDismissedSuggestion ?: return
+        viewModelScope.launch {
+            recurringSuggestionsUseCase.undoDismiss(suggestion)
+            _uiState.value = _uiState.value.copy(lastDismissedSuggestion = null)
+        }
+    }
+
+    fun clearDismissedSuggestion() {
+        _uiState.value = _uiState.value.copy(lastDismissedSuggestion = null)
     }
 
     private fun loadSubscriptions() {
@@ -90,13 +135,14 @@ class SubscriptionsViewModel @Inject constructor(
                 // Today-anchored cycle check (NOT schedule-anchored — the
                 // schedule slides forward every time we advance, which used
                 // to break this guard once any sub had been marked once).
-                // Semantic: a sub is "paid this cycle" if today is still
-                // within one billing cycle of lastPaidAt.
+                // Same rule as the mark-paid button (RecurringCharge.isRetap),
+                // so a bill the button would accept never reads as paid.
                 val today = java.time.LocalDate.now()
                 val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
                     sub.lastPaidAt?.let { lastPaid ->
                         val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
-                        today.isBefore(nextLegitMark)
+                        sub.nextPaymentDate?.let { RecurringCharge.isRetap(lastPaid, nextLegitMark, it, today) }
+                            ?: today.isBefore(nextLegitMark)
                     } ?: false
                 }
                 val (paid, unpaid) = subscriptions.partition(isPaidThisCycle)
@@ -291,4 +337,7 @@ data class SubscriptionsUiState(
     val lastEndedSubscription: SubscriptionEntity? = null,
     /** Snackbar text after a mark-as-paid action; cleared by [SubscriptionsViewModel.clearMarkPaidMessage]. */
     val markPaidMessage: UiText? = null,
+    /** Repeating payments found in history that aren't tracked yet. Never counted in the totals. */
+    val suggestions: List<RecurringSuggestion> = emptyList(),
+    val lastDismissedSuggestion: RecurringSuggestion? = null,
 )

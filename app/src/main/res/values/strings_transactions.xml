@@ -111,6 +111,11 @@
     <string name="txn_detail_balance_mismatch_value">Off by %1$s · expected %2$s</string>
     <string name="txn_detail_add_untracked_expense">Add %1$s untracked expense</string>
     <string name="txn_detail_add_untracked_income">Add %1$s untracked income</string>
+    <string name="txn_detail_adjustment_title_expense">Untracked expense</string>
+    <string name="txn_detail_adjustment_title_income">Untracked income</string>
+    <string name="txn_detail_adjustment_what">What was it?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Balance adjustment</string>
+    <string name="txn_detail_adjustment_add">Add</string>
     <string name="txn_detail_label_reference">Reference</string>
     <string name="txn_detail_receipt">Receipt</string>
     <string name="txn_detail_receipt_tap_to_view">Tap to view</string>
@@ -122,6 +127,7 @@
     <string name="txn_detail_field_alias">Display alias (Optional)</string>
     <string name="txn_detail_field_alias_placeholder">Show a friendlier name instead</string>
     <string name="txn_detail_field_description">Description (Optional)</string>
+    <string name="txn_detail_field_reference">Reference number (Optional)</string>
     <string name="txn_detail_apply_tags_to_merchant">Apply tags to all future from %1$s</string>
     <string name="txn_detail_field_from_account">From Account</string>
     <string name="txn_detail_field_from_account_placeholder">Select or enter source account</string>
@@ -257,9 +263,9 @@
     <string name="add_field_amount">Amount *</string>
     <string name="add_field_merchant">Merchant</string>
     <string name="add_field_notes">Notes (Optional)</string>
+    <string name="add_field_reference">Reference number (Optional)</string>
     <string name="add_field_category">Category</string>
     <string name="add_clear">Clear</string>
-    <string name="add_selected">Selected</string>
     <string name="add_save">Save</string>
     <string name="add_ok">OK</string>
     <string name="add_cancel">Cancel</string>
@@ -405,6 +411,19 @@
 
     <!-- Shared transaction components -->
     <string name="quick_category_title">Change category</string>
+    <string name="quick_category_not_expense">Not an expense</string>
+    <string name="quick_category_not_income">Not income</string>
+    <!-- Walking the recap's unsorted rows: "2 of 3" -->
+    <string name="quick_category_progress">%1$d of %2$d</string>
+    <string name="quick_category_save_failed">Couldn\'t save. Try again.</string>
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <string name="quick_add_title">Cash spend</string>
+    <string name="quick_add_more_details">More details</string>
+    <string name="quick_add_where_hint">Where? (optional)</string>
+    <!-- %1$s the cash account the spend comes out of -->
+    <string name="quick_add_from">From: %1$s</string>
+    <!-- %1$s amount with currency, %2$s category -->
+    <string name="quick_add_saved">Saved %1$s · %2$s</string>
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>

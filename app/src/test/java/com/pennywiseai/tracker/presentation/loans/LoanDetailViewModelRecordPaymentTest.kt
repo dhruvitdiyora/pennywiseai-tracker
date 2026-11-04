@@ -1,9 +1,10 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import androidx.sqlite.driver.AndroidSQLiteDriver
 import android.content.Context
 import android.os.Looper
 import androidx.lifecycle.SavedStateHandle
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
@@ -37,7 +38,7 @@ class LoanDetailViewModelRecordPaymentTest {
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, PennyWiseDatabase::class.java)
-            .allowMainThreadQueries()
+            .setDriver(AndroidSQLiteDriver())
             .build()
         repository = LoanRepository(
             loanDao = database.loanDao(),
@@ -75,7 +76,7 @@ class LoanDetailViewModelRecordPaymentTest {
                 dateTime = LocalDateTime.of(2026, 9, 2, 10, 30),
             )
         }
-        val viewModel = LoanDetailViewModel(repository, SavedStateHandle(mapOf("loanId" to loanId)))
+        val viewModel = LoanDetailViewModel(repository, ApplicationProvider.getApplicationContext(), SavedStateHandle(mapOf("loanId" to loanId)))
         settle(3_000) { viewModel.uiState.value.loan != null }
 
         viewModel.showRecordPayment()

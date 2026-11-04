@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.contentColorFor
 import androidx.compose.ui.graphics.takeOrElse
@@ -87,16 +88,10 @@ fun GroupedRow(
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(Spacing.md),
     content: @Composable RowScope.() -> Unit
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = containerColor,
-        contentColor = contentColorFor(containerColor).takeOrElse { MaterialTheme.colorScheme.onSurface },
-        shape = position.toShape()
-    ) {
+    val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
                 .defaultMinSize(minHeight = minHeight)
                 .padding(contentPadding),
             horizontalArrangement = horizontalArrangement,
@@ -104,6 +99,38 @@ fun GroupedRow(
             content = content
         )
     }
+    if (onClick == null) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            color = containerColor,
+            contentColor = contentColorFor(containerColor).takeOrElse { MaterialTheme.colorScheme.onSurface },
+            shape = position.toShape(),
+            content = row
+        )
+        return
+    }
+    // M3 Expressive segmented list item: same resting corners as the static
+    // row, plus the native press/focus shape morph (to shapes.large) and
+    // list-item semantics. Its tokens match ours (extraSmall interior,
+    // large outer, 2dp gap), so the block looks identical at rest.
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.shapes(shape = position.toShape()),
+        // Our own min height (not the list item's 56dp default) and padding
+        // inside the row, so row heights don't change.
+        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = minHeight),
+        enabled = enabled,
+        // Same colours enabled or not: `enabled` only gates the click, as before
+        // (disabled rows explain themselves, e.g. an error-coloured subtitle).
+        colors = ListItemDefaults.segmentedColors(
+            containerColor = containerColor,
+            contentColor = contentColorFor(containerColor),
+            disabledContainerColor = containerColor,
+            disabledContentColor = contentColorFor(containerColor)
+        ),
+        contentPadding = PaddingValues(),
+        content = row
+    )
 }
 
 /**

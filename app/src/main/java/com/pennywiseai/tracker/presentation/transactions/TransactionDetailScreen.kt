@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.compose.material3.ButtonDefaults
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
 import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import coil3.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.outlined.Savings
@@ -66,8 +69,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -352,7 +355,8 @@ fun TransactionDetailScreen(
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.deleteTransaction() },
-                    enabled = !isDeleting
+                    enabled = !isDeleting,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
@@ -369,7 +373,7 @@ fun TransactionDetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -418,7 +422,7 @@ fun TransactionDetailScreen(
                 TextButton(onClick = {
                     showUnmarkLoanConfirm = false
                     viewModel.unlinkLoan()
-                }) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { showUnmarkLoanConfirm = false }) {
@@ -456,7 +460,8 @@ fun TransactionDetailScreen(
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f),
                         contentColor = Color.White
-                    )
+                    ),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_detail_close))
                 }

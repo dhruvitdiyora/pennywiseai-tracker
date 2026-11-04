@@ -12,8 +12,9 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import coil.Coil
-import coil.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.annotation.DelicateCoilApi
+import coil3.ImageLoader
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
@@ -32,6 +33,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel5)
+@OptIn(DelicateCoilApi::class)
 class ReceiptAttachmentCardVisualTest {
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -41,16 +43,16 @@ class ReceiptAttachmentCardVisualTest {
     // main thread makes the screenshot deterministic.
     @Before
     fun useMainThreadImageLoader() {
-        Coil.setImageLoader(
+        SingletonImageLoader.setUnsafe(
             ImageLoader.Builder(ApplicationProvider.getApplicationContext())
-                .dispatcher(Dispatchers.Main.immediate)
+                .coroutineContext(Dispatchers.Main.immediate)
                 .build()
         )
     }
 
     @After
     fun resetImageLoader() {
-        Coil.reset()
+        SingletonImageLoader.reset()
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.CircularProgressIndicator
 import com.pennywiseai.tracker.ui.screens.settings.glassDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
@@ -49,19 +51,22 @@ import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,7 +79,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
@@ -103,7 +108,7 @@ private sealed interface MoneySheetMode {
     data class Edit(val contribution: GoalContributionEntity) : MoneySheetMode
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GoalDetailScreen(
     onNavigateBack: () -> Unit,
@@ -213,9 +218,10 @@ fun GoalDetailScreen(
                 Button(
                     onClick = { showDelete = false; viewModel.delete() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_menu_delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDelete = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         )
     }
 
@@ -561,7 +567,7 @@ private fun MoneySheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) {
+                    TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.goal_contribution_delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -583,9 +589,9 @@ private fun MoneySheet(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { date = it.toUtcDate() }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.goal_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         ) { DatePicker(state = pickerState) }
     }
 }

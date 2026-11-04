@@ -21,6 +21,7 @@
     <string name="home_section_recent_transactions">Recent Transactions</string>
     <string name="home_section_accounts">Bank Accounts</string>
     <string name="home_section_subscriptions">Upcoming Subscriptions</string>
+    <string name="home_section_money_in_motion">Money in motion</string>
     <string name="home_section_activity">Activity</string>
 
     <!-- Empty state -->
@@ -163,8 +164,8 @@
     <string name="account_card_balance">Balance</string>
 
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% more vs last month</string>
-    <string name="balance_card_change_less">%1$d%% less vs last month</string>
+    <string name="balance_card_change_more_same_point">%1$d%% more than this time last month</string>
+    <string name="balance_card_change_less_same_point">%1$d%% less than this time last month</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Balance: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -177,9 +178,13 @@
     <string name="balance_card_accounts">Accounts</string>
     <string name="balance_card_credit_cards">Credit Cards</string>
     <string name="balance_card_total">Total</string>
-    <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
+    <string name="balance_card_other_currency_note">* Accounts in other currencies aren\'t included in this total.</string>
     <string name="balance_card_spent_this_month">Spent this month</string>
     <string name="balance_card_change_currency">Change currency</string>
+    <string name="balance_card_summary_income">Income</string>
+    <string name="balance_card_summary_expenses">Expenses</string>
+    <string name="balance_card_summary_lent">Lent</string>
+    <string name="balance_card_summary_saved">Saved</string>
 
     <!-- Net worth hero (Cashiro-style). Net worth = accounts minus credit-card outstanding. -->
     <string name="net_worth_label">Net worth</string>
@@ -276,16 +281,11 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Add transaction</string>
-    <string name="widget_add_title">Add</string>
-    <string name="widget_add_subtitle">Transaction</string>
 
     <!-- Budget widget -->
-    <string name="widget_budget_title">Monthly Budget</string>
-    <string name="widget_budget_tap_to_set_up">Tap to set up</string>
+    <string name="widget_budget_title">Monthly budget</string>
     <string name="widget_budget_percent_used">%1$d%% used</string>
     <string name="widget_budget_of_limit">of %1$s</string>
-    <string name="widget_budget_left">%1$s left</string>
-    <string name="widget_budget_over">%1$s over</string>
     <string name="widget_budget_per_day">%1$s/day</string>
     <string name="widget_budget_saved">Saved %1$s</string>
     <string name="widget_budget_overspent">Over %1$s</string>
@@ -299,12 +299,12 @@
     <string name="widget_pie_other">Other</string>
 
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Recent Transactions</string>
-    <string name="widget_recent_add">Add Transaction</string>
-    <string name="widget_recent_total_spend">Total spend this month</string>
     <string name="widget_recent_empty">No transactions yet</string>
-    <string name="widget_recent_empty_hint">Tap + to add manually</string>
     <string name="widget_recent_fallback_title">Transaction</string>
+
+    <!-- Spending summary widget -->
+    <string name="widget_summary_today">Today</string>
+    <string name="widget_summary_month">This month</string>
 
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
@@ -318,14 +318,63 @@
     <string name="notif_txn_channel_description">Notifications for new transactions</string>
     <string name="notif_txn_unknown_merchant">Unknown</string>
     <string name="notif_txn_unknown_bank">Bank</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ Balance off by %1$s — expected %2$s, bank says %3$s</string>
     <string name="notif_txn_action_more">More…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s New transaction</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • balance needs a look</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <string name="notif_txn_title_spent">Spent %1$s at %2$s</string>
+    <string name="notif_txn_title_received">Received %1$s from %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <string name="notif_suggestion_title_spent">Spent %1$s at %2$s?</string>
+    <string name="notif_suggestion_title_received">Received %1$s from %2$s?</string>
+    <string name="notif_suggestion_text">From %1$s. Tap to add it.</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <string name="notif_txn_ask_category">What was this for? · %1$s</string>
+    <string name="notif_txn_action_change">Change</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Not an expense</string>
+    <string name="notif_txn_action_not_income">Not income</string>
+    <string name="notif_txn_excluded_spending">Won\'t count as spending</string>
+    <string name="notif_txn_excluded_income">Won\'t count as income</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Your balance is %1$s higher than recorded</string>
+    <string name="notif_balance_lower">Your balance is %1$s lower than recorded</string>
+    <string name="notif_balance_text">A transaction may be missing. Tap to review.</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <string name="notif_txn_learned_title">Saved as %1$s</string>
+    <string name="notif_txn_learned_text">Payments here will be sorted automatically from now on.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">%d earlier one moved too.</item>
+        <item quantity="other">%d earlier ones moved too.</item>
+    </plurals>
+
+    <!-- Evening recap notification -->
+    <string name="notif_daily_channel_name">Daily summary</string>
+    <string name="notif_daily_channel_description">A short recap of the day\'s spending each evening</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <string name="notif_daily_title">Today you spent %1$s</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d transaction</item>
+        <item quantity="other">%d transactions</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d needs a category</item>
+        <item quantity="other">%d need a category</item>
+    </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">sort it so only real spending counts</item>
+        <item quantity="other">sort them so only real spending counts</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Sort it</string>
+    <string name="notif_daily_action_sort_all">Sort them</string>
+    <string name="notif_daily_action_cash">+ Cash</string>
+    <!-- Header over a stack of transaction alerts -->
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d new transaction</item>
+        <item quantity="other">%d new transactions</item>
+    </plurals>
 
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>
@@ -335,5 +384,33 @@
     <string name="pro_home_card_body">Pro adds unlimited rules, goals, exports and statement imports.</string>
     <string name="pro_home_card_action">See Pro</string>
     <string name="pro_home_card_dismiss">Dismiss</string>
+    <string name="home_payday_card_title">Start budgets on payday?</string>
+    <string name="home_payday_card_body">Your salary seems to arrive on day %1$d of the month. Start each budget month on that day? You can change it in Settings.</string>
+    <string name="home_payday_card_action">Start on day %1$d</string>
+    <string name="home_payday_card_dismiss">Dismiss</string>
+
+    <!-- Month-end forecast on the "Spent this month" card -->
+    <string name="forecast_on_track">On track for %1$s by %2$s</string>
+    <string name="forecast_over_usual">%1$s over usual</string>
+
+    <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_safe_to_spend">Safe to spend</string>
+    <string name="safe_to_spend_title">Safe to spend</string>
+    <string name="safe_to_spend_tap_to_show">Tap to show</string>
+    <string name="safe_to_spend_per_day">About %1$s a day until %2$s, including today</string>
+    <string name="safe_to_spend_short">Bills due before %1$s are more than your balance</string>
+    <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
+    <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
+    <string name="safe_to_spend_capped">Capped by your budget: %1$s left</string>
+    <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
+    <string name="safe_to_spend_until">Safe to spend until %1$s</string>
+    <string name="safe_to_spend_accounts">Bank balance</string>
+    <string name="safe_to_spend_excluded">Not counted</string>
+    <string name="safe_to_spend_excluded_negative">Not counted (negative balance)</string>
+    <string name="safe_to_spend_bills_due">Bills due before %1$s</string>
+    <string name="safe_to_spend_no_bills">No subscriptions due</string>
+    <string name="safe_to_spend_choose_accounts">Choose accounts</string>
+    <string name="safe_to_spend_done">Done</string>
+    <string name="safe_to_spend_footnote">Bills come from your active subscriptions. Credit cards and loans don\'t count as spendable money.</string>
 
 </resources>

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -60,7 +61,6 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /*
@@ -471,7 +471,7 @@ internal fun AddTimeCard(
 ) {
     val hour = if (dateTime.hour % 12 == 0) 12 else dateTime.hour % 12
     val minute = dateTime.minute
-    val amPm = dateTime.format(DateTimeFormatter.ofPattern("a", Locale.getDefault()))
+    val amPm = dateTime.format(AppDates.pattern("a"))
 
     Row(
         modifier = modifier

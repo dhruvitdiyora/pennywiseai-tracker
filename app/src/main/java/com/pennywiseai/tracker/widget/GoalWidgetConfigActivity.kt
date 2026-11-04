@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.ComponentName
@@ -34,6 +35,7 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
+import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalRepository
@@ -65,9 +67,9 @@ class GoalWidgetConfigActivity : FragmentActivity() {
     /** Null while the app lock is checked; goals are read and shown only once true. */
     private var unlocked by mutableStateOf<Boolean?>(null)
 
-    // Pre-Android 13 in-app language; a no-op on 13+ (the system applies it).
+    // Pre-Android 13 in-app language (a no-op on 13+), then Latin digits.
     override fun attachBaseContext(newBase: android.content.Context) {
-        super.attachBaseContext(com.pennywiseai.tracker.locale.AppLanguage.wrap(newBase))
+        super.attachBaseContext(com.pennywiseai.tracker.locale.AppLanguage.wrap(newBase).withLatinDigits())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,6 +123,9 @@ class GoalWidgetConfigActivity : FragmentActivity() {
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
+                                    Button(onClick = { createGoal(appWidgetId) }) {
+                                        Text(stringResource(R.string.goals_empty_action))
+                                    }
                                 } else {
                                     GoalChoices(list) { choose(appWidgetId, it) }
                                 }
@@ -157,6 +162,30 @@ class GoalWidgetConfigActivity : FragmentActivity() {
             GoalWidget().update(this@GoalWidgetConfigActivity, glanceId)
             GoalWidgetUpdateWorker.enqueueOneShot(this@GoalWidgetConfigActivity)
             setResult(RESULT_OK, resultIntent(appWidgetId))
+            finish()
+        }
+    }
+
+    /**
+     * No goals to pick: keep the widget with no choice (it shows the first goal
+     * once there is one) and open "New goal". A choice left by a deleted goal is
+     * cleared, or the widget would stay on "Goal removed".
+     */
+    private fun createGoal(appWidgetId: Int) {
+        lifecycleScope.launch {
+            val glanceId = GlanceAppWidgetManager(this@GoalWidgetConfigActivity).getGlanceIdBy(appWidgetId)
+            updateAppWidgetState(this@GoalWidgetConfigActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                prefs.toMutablePreferences().apply { remove(GOAL_WIDGET_GOAL_ID) }
+            }
+            GoalWidget().update(this@GoalWidgetConfigActivity, glanceId)
+            GoalWidgetUpdateWorker.enqueueOneShot(this@GoalWidgetConfigActivity)
+            setResult(RESULT_OK, resultIntent(appWidgetId))
+            startActivity(
+                Intent(this@GoalWidgetConfigActivity, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    .putExtra(MainActivity.EXTRA_OPEN_BUDGETS, true)
+                    .putExtra(MainActivity.EXTRA_CREATE_GOAL, true)
+            )
             finish()
         }
     }

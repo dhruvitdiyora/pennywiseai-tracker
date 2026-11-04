@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 data class SplitItem(
     val id: Long = 0,
@@ -75,7 +76,8 @@ fun SplitEditor(
                     onClick = onRemoveSplits,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.split_editor_remove_all))
                 }
@@ -123,7 +125,8 @@ fun SplitEditor(
                     onSplitsChanged(splits + newSplit)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = availableCategories.size > splits.size
+                enabled = availableCategories.size > splits.size,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                 Spacer(modifier = Modifier.width(Spacing.xs))
@@ -227,12 +230,12 @@ private fun SplitRow(
             modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
-                value = split.category,
+                value = categoryLabel(split.category),
                 onValueChange = {},
                 readOnly = true,
                 singleLine = true,
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -253,7 +256,7 @@ private fun SplitRow(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                text = category,
+                                text = categoryLabel(category),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -306,7 +309,8 @@ private fun SplitRow(
             IconButton(
                 onClick = onRemove,
                 enabled = canRemove,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(
                     Icons.Default.Close,
@@ -356,7 +360,7 @@ fun SplitBreakdownCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = split.category,
+                        text = categoryLabel(split.category),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,7 +82,7 @@ internal fun CustomBillingCycleEditor(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitMenuExpanded)
                     },
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         .fillMaxWidth(),
                 )
                 ExposedDropdownMenu(

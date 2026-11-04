@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Vibration
+import com.pennywiseai.tracker.data.preferences.DateFormatStyle
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -45,11 +50,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.UiText
@@ -120,8 +125,10 @@ fun CurrencyFormatsSettingsScreen(
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
     val mainAccountKey by settingsViewModel.mainAccountKey.collectAsStateWithLifecycle()
+    val dateFormatStyle by settingsViewModel.dateFormatStyle.collectAsStateWithLifecycle(initialValue = DateFormatStyle.AUTO)
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showNumberFormatDialog by remember { mutableStateOf(false) }
+    var showDateFormatDialog by remember { mutableStateOf(false) }
     var showBudgetCycleDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     var showMainAccountDropdown by remember { mutableStateOf(false) }
@@ -259,8 +266,18 @@ fun CurrencyFormatsSettingsScreen(
                     title = stringResource(R.string.settings_number_format_title),
                     subtitle = stringResource(R.string.settings_number_format_subtitle),
                     onClick = { showNumberFormatDialog = true },
-                    position = ListItemPosition.Bottom,
+                    position = ListItemPosition.Middle,
                     trailingText = numberFormatStyleLabel(numberFormatStyle)
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.CalendarMonth,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = stringResource(R.string.settings_date_format_title),
+                    subtitle = stringResource(R.string.settings_date_format_subtitle),
+                    onClick = { showDateFormatDialog = true },
+                    position = ListItemPosition.Bottom,
+                    trailingText = dateFormatStyleLabel(dateFormatStyle)
                 )
             }
         }
@@ -329,6 +346,51 @@ fun CurrencyFormatsSettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDisplayCurrencyDialog = false }) {
+                    Text(stringResource(R.string.settings_action_cancel))
+                }
+            }
+        )
+    }
+
+    if (showDateFormatDialog) {
+        AlertDialog(
+            modifier = Modifier.glassDialog(),
+            containerColor = Color.Transparent,
+            onDismissRequest = { showDateFormatDialog = false },
+            title = { Text(stringResource(R.string.settings_date_format_title)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    DateFormatStyle.entries.forEach { style ->
+                        val choose = {
+                            settingsViewModel.updateDateFormatStyle(style)
+                            showDateFormatDialog = false
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(selected = style == dateFormatStyle, onClick = choose)
+                                .padding(vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = style == dateFormatStyle, onClick = choose)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Column {
+                                Text(
+                                    text = dateFormatStyleLabel(style),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = dateFormatStyleExample(style),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDateFormatDialog = false }) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -451,8 +513,10 @@ fun PrivacySecuritySettingsScreen(
     onNavigateToDataPrivacy: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
+    shakeToHideViewModel: com.pennywiseai.tracker.ui.ShakeToHideViewModel = hiltViewModel(),
 ) {
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
+    val shakeToHideEnabled by shakeToHideViewModel.enabled.collectAsStateWithLifecycle()
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
     val upiId by settingsViewModel.upiId.collectAsStateWithLifecycle(initialValue = null)
     var showUpiIdDialog by remember { mutableStateOf(false) }
@@ -475,6 +539,16 @@ fun PrivacySecuritySettingsScreen(
         SettingsSection(title = stringResource(R.string.settings_security_section)) {
             SettingsGroup {
                 SettingsSwitchRow(
+                    icon = Icons.Default.Vibration,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.settings_shake_to_hide_title),
+                    subtitle = stringResource(R.string.settings_shake_to_hide_subtitle),
+                    checked = shakeToHideEnabled,
+                    onCheckedChange = { shakeToHideViewModel.setEnabled(it) },
+                    position = ListItemPosition.Top
+                )
+                SettingsSwitchRow(
                     icon = Icons.Default.Lock,
                     iconBgColor = red_light,
                     iconTint = red_dark,
@@ -486,8 +560,8 @@ fun PrivacySecuritySettingsScreen(
                     },
                     checked = appLockUiState.isLockEnabled,
                     onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
-                    enabled = appLockUiState.canUseBiometric,
-                    position = if (appLockUiState.isLockEnabled) ListItemPosition.Top else ListItemPosition.Single
+                    enabled = appLockUiState.canUseBiometric || appLockUiState.isLockEnabled,
+                    position = if (appLockUiState.isLockEnabled) ListItemPosition.Middle else ListItemPosition.Bottom
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(
@@ -1095,6 +1169,22 @@ fun AdvancedSettingsScreen(
     ) {
         permissionViewModel.refreshNotificationAccess()
     }
+    val context = LocalContext.current
+    val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = false)
+    var showTrackedAppsDialog by remember { mutableStateOf(false) }
+    val trackedAppsViewModel: TrackedAppsViewModel = hiltViewModel()
+    val trackedApps by trackedAppsViewModel.tracked.collectAsStateWithLifecycle()
+    // The recap is a notification: on Android 13+ turning it on asks for the
+    // permission first, and a refusal leaves it off with a word on why.
+    val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setDailySummaryEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
 
     SettingsSubScreen(
         title = stringResource(R.string.settings_advanced_title),
@@ -1113,8 +1203,50 @@ fun AdvancedSettingsScreen(
                         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         notificationAccessLauncher.launch(intent)
                     },
-                    position = ListItemPosition.Single,
+                    position = ListItemPosition.Top,
                     trailingText = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_on) else stringResource(R.string.settings_notification_access_off)
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Apps,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.settings_tracked_apps_title),
+                    subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
+                        else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
+                    onClick = { showTrackedAppsDialog = true },
+                    position = ListItemPosition.Middle
+                )
+                if (showTrackedAppsDialog) {
+                    TrackedAppsDialog(
+                        viewModel = trackedAppsViewModel,
+                        hasNotificationAccess = hasNotificationAccess,
+                        onEnableAccess = {
+                            notificationAccessLauncher.launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        },
+                        onDismiss = { showTrackedAppsDialog = false }
+                    )
+                }
+                SettingsSwitchRow(
+                    icon = Icons.Default.Schedule,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.settings_daily_summary_title),
+                    subtitle = stringResource(R.string.settings_daily_summary_subtitle),
+                    checked = dailySummaryEnabled,
+                    onCheckedChange = { enabled ->
+                        val needsPermission = enabled &&
+                            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.POST_NOTIFICATIONS
+                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (needsPermission) {
+                            dailySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            settingsViewModel.setDailySummaryEnabled(enabled)
+                        }
+                    },
+                    position = ListItemPosition.Bottom
                 )
             }
         }

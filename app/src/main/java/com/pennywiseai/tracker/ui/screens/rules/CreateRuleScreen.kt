@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.presentation.add.AddSaveBar
 import com.pennywiseai.tracker.presentation.add.AddSectionLabel
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
@@ -47,6 +48,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.util.UUID
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Transaction-type options for rule condition/action pickers: stored enum name → display label.
@@ -607,10 +609,10 @@ fun CreateRuleScreen(
                 TextButton(onClick = {
                     actions = listOf(pendingBlockAction!!)
                     pendingBlockAction = null
-                }) { Text(stringResource(R.string.rules_block_confirm_action)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_block_confirm_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingBlockAction = null }) { Text(stringResource(R.string.rules_cancel)) }
+                TextButton(onClick = { pendingBlockAction = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
             }
         )
     }
@@ -727,6 +729,7 @@ internal fun ruleSummarySentence(
             }
         )
         val valueText = when (condition.field) {
+            TransactionField.CATEGORY -> categoryLabel(condition.value)
             TransactionField.TYPE -> ruleTransactionTypeLabel(condition.value)
             TransactionField.TRANSACTION_DAY_OF_WEEK ->
                 condition.value.split(",").map { day ->
@@ -766,10 +769,10 @@ internal fun ruleSummarySentence(
                 }
             )
             // Show user-friendly labels for transaction types in actions too
-            val displayValue = if (action.field == TransactionField.TYPE) {
-                ruleTransactionTypeLabel(action.value)
-            } else {
-                action.value
+            val displayValue = when (action.field) {
+                TransactionField.TYPE -> ruleTransactionTypeLabel(action.value)
+                TransactionField.CATEGORY -> categoryLabel(action.value)
+                else -> action.value
             }
             when (action.actionType) {
                 ActionType.APPEND -> stringResource(R.string.rules_preview_action_append, displayValue, fieldName)
@@ -830,7 +833,7 @@ private fun ConditionFieldSelector(
             readOnly = true,
             label = stringResource(R.string.rules_field_label),
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fieldDropdownExpanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
         ExposedDropdownMenu(
             expanded = fieldDropdownExpanded,
@@ -967,10 +970,10 @@ private fun ConditionFieldSelector(
                             val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                             onConditionChange(condition.copy(value = formatted))
                             showTimePicker = false
-                        }) { Text(stringResource(R.string.rules_ok)) }
+                        }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_ok)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                     },
                     text = { TimePicker(state = timePickerState) }
                 )
@@ -1024,7 +1027,7 @@ private fun ConditionFieldSelector(
                         readOnly = true,
                         label = stringResource(R.string.rules_field_account),
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(
                         expanded = accountDropdownExpanded,
@@ -1100,7 +1103,6 @@ private fun ConditionFieldSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LogicalOperatorToggle(
     selected: LogicalOperator,
@@ -1219,7 +1221,7 @@ private fun ActionEditor(
                 readOnly = true,
                 label = stringResource(R.string.rules_action_type_label),
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionTypeDropdownExpanded) },
-                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
             ExposedDropdownMenu(
                 expanded = actionTypeDropdownExpanded,
@@ -1295,7 +1297,7 @@ private fun ActionEditor(
                     readOnly = true,
                     label = stringResource(R.string.rules_action),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = actionFieldDropdownExpanded,

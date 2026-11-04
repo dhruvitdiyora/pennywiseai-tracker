@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -58,7 +58,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import java.math.BigDecimal
 import java.time.DayOfWeek
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -302,7 +301,7 @@ fun BudgetProgressTrack(
 fun budgetRenewalText(groupSpending: BudgetGroupSpending): String {
     val budget = groupSpending.group.budget
     val locale = LocalConfiguration.current.locales[0]
-    val dateFormatter = remember(locale) { DateTimeFormatter.ofPattern("d MMM", locale) }
+    val dateFormatter = AppDates.dayMonthFormatter()
     return when {
         groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays ->
             stringResource(R.string.budgets_finished)
@@ -368,7 +367,7 @@ fun BudgetCard(
     var animatedProgress by remember { mutableFloatStateOf(0f) }
     val animatedProgressState by animateFloatAsState(
         targetValue = animatedProgress,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
     LaunchedEffect(pctUsed) {

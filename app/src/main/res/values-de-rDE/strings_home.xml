@@ -14,6 +14,7 @@
     <string name="home_close">Schließen</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budget</string>
+    <string name="home_section_goals">Ziele</string>
     <string name="home_section_loans">Darlehen</string>
     <string name="home_section_groups">Gruppen</string>
     <string name="home_section_recent_transactions">Letzte Transaktionen</string>
@@ -28,6 +29,11 @@
     <string name="home_fab_add">Transaktion oder Abonnement hinzufügen</string>
     <string name="home_fab_sync">SMS synchronisieren (lange drücken für vollständige Wiedersynchronisierung)</string>
     <string name="home_fab_sync_hint">Halten für vollständige Resynchronisierung</string>
+    <string name="home_resync_title">Nachrichten erneut lesen</string>
+    <string name="home_resync_scan_again">Alle Nachrichten erneut scannen</string>
+    <string name="home_resync_scan_again_desc">Fügt alles hinzu, was übersehen wurde. Ihre Änderungen und alle vorhandenen Transaktionen bleiben unverändert.</string>
+    <string name="home_resync_rebuild">Komplett neu aufbauen</string>
+    <string name="home_resync_rebuild_desc">Liest SMS-Transaktionen neu ein, um Verbesserungen der Erkennung zu übernehmen. Änderungen an SMS-Transaktionen werden zurückgesetzt. Manuelle, importierte, Darlehens- und gruppierte Transaktionen bleiben erhalten.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Weitere Optionen</string>
     <string name="home_menu_monthly_recap">Monatliche Rücknahme</string>
@@ -39,6 +45,7 @@
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">Homescreen bearbeiten</string>
     <string name="home_edit_description">Sektionen auf dem Startbildschirm neu anordnen oder ausblenden.</string>
+    <string name="home_edit_move_up">Bewege %1$s nach oben</string>
     <string name="home_edit_move_down">Bewege %1$s nach unten</string>
     <!-- Calculation breakdown dialog -->
     <string name="home_breakdown_title">Berechnungsaufteilung</string>
@@ -85,6 +92,7 @@
     <string name="color_swatch_selected">Ausgewählt</string>
     <string name="profile_filter_all_accounts">Alle Konten</string>
     <string name="whats_new_got_it">Verstanden</string>
+    <string name="whats_new_title">Neuigkeiten</string>
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Tippen Sie hier, um Ihre SMS-Nachrichten auf Transaktionen zu scannen</string>
     <string name="spotlight_tap_to_dismiss">Tippen Sie irgendwo zum Verwerfen</string>
@@ -93,6 +101,7 @@
     <string name="type_filter_income">Einkommen</string>
     <string name="type_filter_expense">Kosten</string>
     <string name="type_filter_credit">Gutschrift</string>
+    <string name="type_filter_spending">Ausgaben</string>
     <string name="type_filter_transfer">Überweisung</string>
     <string name="type_filter_investment">Investitionen</string>
     <!-- ══ SMS scan progress dialog ══ -->
@@ -135,8 +144,8 @@
     <string name="account_card_outstanding">Ausstehend</string>
     <string name="account_card_balance">Saldo</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% mehr im letzten Monat</string>
-    <string name="balance_card_change_less">%1$d%% weniger vs letzten Monat</string>
+    <string name="balance_card_change_more_same_point">%1$d%% mehr als zur gleichen Zeit letzten Monat</string>
+    <string name="balance_card_change_less_same_point">%1$d%% weniger als zur gleichen Zeit letzten Monat</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Kontostand: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -149,14 +158,18 @@
     <string name="balance_card_accounts">Konten</string>
     <string name="balance_card_credit_cards">Kreditkarten</string>
     <string name="balance_card_total">Gesamt</string>
-    <string name="balance_card_approximate_note">* Einige Salden konnten nicht umgetauscht werden und werden in Originalwährung angezeigt (Gesamtsumme ist ungefähr).</string>
     <string name="balance_card_spent_this_month">Diesen Monat ausgegeben</string>
     <string name="balance_card_change_currency">Währung ändern</string>
+    <string name="balance_card_summary_income">Einkommen</string>
+    <string name="balance_card_summary_expenses">Ausgaben</string>
+    <string name="balance_card_summary_lent">Verliehen</string>
+    <string name="balance_card_summary_saved">Gespart</string>
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s über Budget</string>
     <string name="budget_card_remaining">%1$s verbleibend</string>
     <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <string name="budget_card_per_day">%1$s/Tag</string>
     <string name="budget_card_finished">Beendet</string>
     <string name="budget_card_tracking_all">Alle Ausgaben werden verfolgt</string>
     <!-- %1$s is a weekday name -->
@@ -193,6 +206,7 @@
         <item quantity="other">%1$d Elemente</item>
     </plurals>
     <string name="group_card_no_transactions">Noch keine Transaktionen</string>
+    <string name="group_card_invested">%1$s investiert</string>
     <plurals name="group_card_transaction_count">
         <item quantity="one">%1$d Transaktion</item>
         <item quantity="other">%1$d transaktionen</item>
@@ -212,22 +226,17 @@
     <string name="txn_item_tag_recurring">Wiederkehrende</string>
     <string name="txn_item_tag_business">Geschäftlich</string>
     <string name="txn_item_tag_excluded">Ausgeschlossen</string>
-    <string name="txn_item_balance_after">Bal %1$s</string>
+    <string name="txn_item_balance_after">Saldo %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Überweisung → %1$s</string>
     <string name="txn_item_transfer_from">Übertragung von %1$s</string>
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Transaktion hinzufügen</string>
-    <string name="widget_add_title">Hinzufügen</string>
-    <string name="widget_add_subtitle">Transaktion</string>
     <!-- Budget widget -->
-    <string name="widget_budget_title">Monatliches Budget</string>
-    <string name="widget_budget_tap_to_set_up">Zum Einrichten tippen</string>
+    <string name="widget_budget_title">Monatsbudget</string>
     <string name="widget_budget_percent_used">%1$d%% verwendet</string>
     <string name="widget_budget_of_limit">von %1$s</string>
-    <string name="widget_budget_left">%1$s übrig</string>
-    <string name="widget_budget_over">%1$s über</string>
     <string name="widget_budget_per_day">%1$s/Tag</string>
     <string name="widget_budget_saved">Gespeichert %1$s</string>
     <string name="widget_budget_overspent">Über %1$s</string>
@@ -239,12 +248,11 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Sonstiges</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Letzte Transaktionen</string>
-    <string name="widget_recent_add">Transaktion hinzufügen</string>
-    <string name="widget_recent_total_spend">Gesamtsumme in diesem Monat</string>
     <string name="widget_recent_empty">Noch keine Transaktionen</string>
-    <string name="widget_recent_empty_hint">Tippen + um manuell hinzuzufügen</string>
     <string name="widget_recent_fallback_title">Transaktion</string>
+    <!-- Spending summary widget -->
+    <string name="widget_summary_today">Heute</string>
+    <string name="widget_summary_month">Diesen Monat</string>
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">SMScan</string>
@@ -256,15 +264,89 @@
     <string name="notif_txn_channel_description">Benachrichtigungen für neue Transaktionen</string>
     <string name="notif_txn_unknown_merchant">Unbekannt</string>
     <string name="notif_txn_unknown_bank">Bank</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">:warnung: Saldo von %1$s — erwartet %2$s, Bank sagt %3$s</string>
     <string name="notif_txn_action_more">Mehr…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s neue Transaktion</string>
-    <string name="notif_txn_public_text">%1$s • Balance benötigt einen Blick</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • Kontostand prüfen</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <string name="notif_txn_title_spent">%1$s bei %2$s ausgegeben</string>
+    <string name="notif_txn_title_received">%1$s von %2$s erhalten</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <string name="notif_txn_ask_category">Wofür war das? · %1$s</string>
+    <string name="notif_txn_action_change">Ändern</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Keine Ausgabe</string>
+    <string name="notif_txn_action_not_income">Keine Einnahme</string>
+    <string name="notif_txn_excluded_spending">Zählt nicht als Ausgabe</string>
+    <string name="notif_txn_excluded_income">Zählt nicht als Einnahme</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Ihr Kontostand ist %1$s höher als erfasst</string>
+    <string name="notif_balance_lower">Ihr Kontostand ist %1$s niedriger als erfasst</string>
+    <string name="notif_balance_text">Möglicherweise fehlt eine Transaktion. Tippen Sie zum Prüfen.</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <string name="notif_txn_learned_title">Als %1$s gespeichert</string>
+    <string name="notif_txn_learned_text">Zahlungen hier werden ab jetzt automatisch zugeordnet.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">%d frühere Zahlung wurde ebenfalls verschoben.</item>
+        <item quantity="other">%d frühere Zahlungen wurden ebenfalls verschoben.</item>
+    </plurals>
+    <!-- Evening recap notification -->
+    <string name="notif_daily_channel_name">Tägliche Zusammenfassung</string>
+    <string name="notif_daily_channel_description">Jeden Abend ein kurzer Rückblick auf die Ausgaben des Tages</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <string name="notif_daily_title">Heute haben Sie %1$s ausgegeben</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d Transaktion</item>
+        <item quantity="other">%d Transaktionen</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d braucht eine Kategorie</item>
+        <item quantity="other">%d brauchen eine Kategorie</item>
+    </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">zuordnen, damit nur echte Ausgaben zählen</item>
+        <item quantity="other">zuordnen, damit nur echte Ausgaben zählen</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Zuordnen</string>
+    <string name="notif_daily_action_sort_all">Zuordnen</string>
+    <string name="notif_daily_action_cash">+ Bargeld</string>
+    <!-- Header over a stack of transaction alerts -->
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d neue Transaktion</item>
+        <item quantity="other">%d neue Transaktionen</item>
+    </plurals>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Saldo-Trend</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
+    <string name="pro_home_card_title">Gefällt Ihnen PennyWise?</string>
+    <string name="pro_home_card_body">Pro bietet unbegrenzte Regeln, Ziele, Exporte und Kontoauszug-Importe.</string>
+    <string name="pro_home_card_action">Pro ansehen</string>
+    <string name="pro_home_card_dismiss">Ausblenden</string>
+    <string name="home_payday_card_title">Budget am Zahltag starten?</string>
+    <string name="home_payday_card_body">Dein Gehalt scheint am %1$d. des Monats einzugehen. Soll jeder Budgetmonat an diesem Tag beginnen? Du kannst das in den Einstellungen ändern.</string>
+    <string name="home_payday_card_action">Am %1$d. starten</string>
+    <string name="home_payday_card_dismiss">Ausblenden</string>
+    <!-- Month-end forecast on the "Spent this month" card -->
+    <string name="forecast_on_track">Auf Kurs für %1$s bis %2$s</string>
+    <string name="forecast_over_usual">%1$s über dem Üblichen</string>
+    <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_safe_to_spend">Frei verfügbar</string>
+    <string name="safe_to_spend_title">Frei verfügbar</string>
+    <string name="safe_to_spend_tap_to_show">Zum Anzeigen tippen</string>
+    <string name="safe_to_spend_per_day">Etwa %1$s pro Tag bis %2$s, inklusive heute</string>
+    <string name="safe_to_spend_short">Die vor %1$s fälligen Rechnungen übersteigen Ihren Kontostand</string>
+    <string name="safe_to_spend_none_left">Nach den vor %1$s fälligen Rechnungen bleibt nichts übrig</string>
+    <string name="safe_to_spend_breakdown">Bankguthaben %1$s − %2$s an Rechnungen, fällig vor %3$s</string>
+    <string name="safe_to_spend_capped">Durch Ihr Budget begrenzt: noch %1$s</string>
+    <string name="safe_to_spend_other_currencies">Plus %1$s, separat geführt</string>
+    <string name="safe_to_spend_until">Frei verfügbar bis %1$s</string>
+    <string name="safe_to_spend_accounts">Bankguthaben</string>
+    <string name="safe_to_spend_excluded">Nicht berücksichtigt</string>
+    <string name="safe_to_spend_excluded_negative">Nicht berücksichtigt (negativer Kontostand)</string>
+    <string name="safe_to_spend_bills_due">Rechnungen fällig vor %1$s</string>
+    <string name="safe_to_spend_no_bills">Keine Abonnements fällig</string>
+    <string name="safe_to_spend_choose_accounts">Konten auswählen</string>
+    <string name="safe_to_spend_done">Fertig</string>
+    <string name="safe_to_spend_footnote">Die Rechnungen stammen aus Ihren aktiven Abonnements. Kreditkarten und Darlehen zählen nicht als verfügbares Geld.</string>
 </resources>

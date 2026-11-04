@@ -20,16 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -45,7 +42,9 @@ import com.pennywiseai.tracker.ui.components.accountBrandTint
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.formatBalance
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 
 @Composable
@@ -55,9 +54,11 @@ fun AccountCarousel(
     onAccountClick: (bankName: String, accountLast4: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     isUnifiedMode: Boolean = false,
-    selectedCurrency: String = "INR",
+    selectedCurrency: String,
     blurEffects: Boolean = false,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    isAmountHidden: Boolean = true,
+    onToggleAmountsHidden: () -> Unit = {}
 ) {
     val allAccounts = bankAccounts + creditCards
 
@@ -73,7 +74,9 @@ fun AccountCarousel(
             isUnifiedMode = isUnifiedMode,
             selectedCurrency = selectedCurrency,
             blurEffects = blurEffects,
-            hazeState = hazeState
+            hazeState = hazeState,
+            isAmountHidden = isAmountHidden,
+            onToggleAmountsHidden = onToggleAmountsHidden
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { allAccounts.size })
@@ -93,7 +96,9 @@ fun AccountCarousel(
                 isUnifiedMode = isUnifiedMode,
                 selectedCurrency = selectedCurrency,
                 blurEffects = blurEffects,
-                hazeState = hazeState
+                hazeState = hazeState,
+                isAmountHidden = isAmountHidden,
+                onToggleAmountsHidden = onToggleAmountsHidden
             )
         }
     }
@@ -116,11 +121,12 @@ private fun AccountCarouselCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isUnifiedMode: Boolean = false,
-    selectedCurrency: String = "INR",
+    selectedCurrency: String,
     blurEffects: Boolean = false,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    isAmountHidden: Boolean = true,
+    onToggleAmountsHidden: () -> Unit = {}
 ) {
-    var isAmountHidden by remember { mutableStateOf(true) }
     // Low-balance alert: tint the home card red when a non-credit account's balance
     // is at or below its user-set threshold (matches Manage Accounts). #509
     val isLowBalance = !isCreditCard &&
@@ -238,7 +244,7 @@ private fun AccountCarouselCard(
                     // The eye lives apart from the card's own tap target, so
                     // revealing a balance never navigates.
                     IconButton(
-                        onClick = { isAmountHidden = !isAmountHidden },
+                        onClick = onToggleAmountsHidden,
                         modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                     ) {
                         Icon(
@@ -274,7 +280,7 @@ private fun AccountCarouselCard(
                             // The amount remains hidden by default. In unified
                             // mode the entity already holds the display currency,
                             // so account.formatBalance() preserves its semantics.
-                            text = if (isAmountHidden) "••••••" else account.formatBalance(),
+                            text = if (isAmountHidden) AmountPrivacy.MASK else account.formatBalance(),
                             style = PennyWiseText.amountLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = primaryContentColor,

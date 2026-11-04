@@ -20,6 +20,7 @@ object BankParserFactory {
         JuspayParser(),
         CashfreeParser(),  // Cashfree payment gateway (India) — grouped with other aggregators
         SliceParser(),
+        SuryodayBankParser(),  // Suryoday Small Finance Bank (India) — SSFBNK
         CredParser(),
         LazyPayParser(),
         UtkarshBankParser(),
@@ -115,6 +116,7 @@ object BankParserFactory {
         IslamicInternationalArabBankParser(),  // Islamic International Arab Bank (Jordan) — ARABIISLAMI
         BankAlEtihadParser(),  // Bank al Etihad (Jordan) — BankEtihad
         SafwaIslamicBankParser(),  // Safwa Islamic Bank (Jordan)
+        OrangeMoneyJordanParser(),  // Orange Money (Jordan) — OrangeMoney wallet
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)
@@ -148,6 +150,7 @@ object BankParserFactory {
         CIMBThaiParser(),  // CIMB Thai (Thailand)
         KTCCreditCardParser(),  // KTC Credit Card (Thailand)
         TBankParser(),  // T-Bank / Tinkoff (Russia)
+        DubaiFirstParser(),  // Dubai First (UAE credit cards, app notifications)
         ChaseUKParser(),  // Chase UK (GBP, app notifications) — before the US Chase parser
         ChaseBankParser(),  // Chase Bank (USA)
         Trading212Parser(),  // Trading 212 (app notifications)
@@ -167,6 +170,8 @@ object BankParserFactory {
         NationsTrustBankParser(),  // Nations Trust Bank (Sri Lanka)
         NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
         NDBBankParser(),  // National Development Bank / NDB (Sri Lanka)
+        ComBankParser(),  // Commercial Bank of Ceylon / ComBank (Sri Lanka) (#848)
+        CityBankBangladeshParser(), // City Bank PLC (Bangladesh)
         BRACBankParser(),  // BRAC Bank (Bangladesh) (#943)
         BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,7 +44,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
 /*
  * The loan detail's dialogs and sheet, in Cashiro's modal chrome: dialogs are
@@ -189,7 +189,7 @@ internal fun RecordPaymentBottomSheet(
                         candidates.forEachIndexed { index, txn ->
                             ListItemCardV2(
                                 title = txn.merchantName,
-                                subtitle = txn.dateTime.format(DateTimeFormatter.ofPattern("d MMM")),
+                                subtitle = txn.dateTime.format(AppDates.dayMonthFormatter()),
                                 amount = CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
                                 shape = ListItemPosition.from(index, candidates.size).toShape(),
                                 onClick = { onLinkTransaction(txn.id) },

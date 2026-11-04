@@ -384,7 +384,12 @@ data class AppPreferences(
 
     // The user's own UPI ID for split-bill requests (#346). FULL exports only.
     @SerialName("upi_id")
-    val upiId: String? = null
+    val upiId: String? = null,
+
+    // Recurring-bill suggestions marked "Not recurring" ("CUR|merchantkey"), so a
+    // restore doesn't ask again. FULL exports only: they name merchants.
+    @SerialName("dismissed_recurring_suggestions")
+    val dismissedRecurringSuggestions: List<String> = emptyList()
 )
 
 /**
@@ -405,20 +410,16 @@ sealed class ImportResult {
 /**
  * Export result.
  */
-sealed class ExportResult {
-    data class Success(val file: java.io.File) : ExportResult()
-    data class Error(val message: String) : ExportResult()
-    data class Progress(val current: Int, val total: Int) : ExportResult()
-}
-
-/**
- * In-memory export result for scheduled and manual folder backups.
- */
 sealed class ExportBytesResult {
     // Plain class, not data class: ByteArray has reference equality, so a generated
     // equals/hashCode over it would be misleading. This result is only matched via `when`.
     class Success(val bytes: ByteArray) : ExportBytesResult()
     data class Error(val message: String) : ExportBytesResult()
+}
+
+sealed class ExportResult {
+    data class Success(val file: java.io.File) : ExportResult()
+    data class Error(val message: String) : ExportResult()
 }
 
 /**

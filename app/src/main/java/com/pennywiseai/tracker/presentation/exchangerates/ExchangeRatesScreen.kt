@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import com.pennywiseai.tracker.presentation.accounts.glassRowColor
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,7 +51,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.presentation.people.TonalTextField
@@ -71,7 +74,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
 /*
  * Exchange rates, in the Cashiro style (there is no Cashiro counterpart, so it
@@ -129,7 +131,7 @@ fun ExchangeRatesScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
             }
 
@@ -178,7 +180,7 @@ fun ExchangeRatesScreen(
                             title = uiState.lastUpdated?.let { lastUpdated ->
                                 stringResource(
                                     R.string.exchange_rates_last_updated,
-                                    lastUpdated.format(DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                                    lastUpdated.format(AppDates.dateTimeFormatter())
                                 )
                             } ?: stringResource(R.string.exchange_rates_title),
                             body = stringResource(R.string.exchange_rates_hint),
@@ -394,7 +396,8 @@ private fun EditRateDialog(
                 if (rate.isCustomRate) {
                     TextButton(
                         onClick = onResetToAuto,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(
                             text = stringResource(R.string.exchange_rates_reset),
@@ -412,13 +415,14 @@ private fun EditRateDialog(
                         onSetCustomRate(newRate)
                     }
                 },
-                enabled = !isError && rateText.isNotBlank()
+                enabled = !isError && rateText.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.exchange_rates_set_custom))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }

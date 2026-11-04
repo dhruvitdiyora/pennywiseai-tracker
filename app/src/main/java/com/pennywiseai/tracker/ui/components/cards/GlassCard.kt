@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,10 +24,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 /**
  * PennyWise's frosted-glass material — an exact port of Cashiro's (see its
@@ -119,21 +117,11 @@ fun glassFill(
  * with [tint] (the un-alpha'd role, as Cashiro passes `HazeDefaults.tint(surfaceContainerLow)`).
  * A no-op when [hazeState] is null (blur off).
  */
+@Composable
 fun Modifier.glassBlur(shape: Shape, hazeState: HazeState?, tint: Color): Modifier =
     if (hazeState == null) this else this
         .clip(shape)
-        .hazeEffect(
-            state = hazeState,
-            block = fun HazeEffectScope.() {
-                style = HazeDefaults.style(
-                    backgroundColor = Color.Transparent,
-                    tint = HazeDefaults.tint(tint),
-                    blurRadius = Dimensions.Glass.blurRadius,
-                    noiseFactor = -1f,
-                )
-                blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-            }
-        )
+        .frostedBlur(hazeState, tint = tint, blurRadius = Dimensions.Glass.blurRadius, edgeTreatment = BlurredEdgeTreatment.Unbounded)
 
 /**
  * The glass recipe as a modifier, for surfaces that aren't a [GlassCard] —

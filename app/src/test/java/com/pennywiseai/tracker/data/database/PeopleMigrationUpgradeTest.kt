@@ -1,7 +1,11 @@
 package com.pennywiseai.tracker.data.database
 
+import kotlinx.coroutines.runBlocking
+import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.sqlite.SQLiteConnection
+import androidx.room3.useReaderConnection
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -54,10 +58,9 @@ class PeopleMigrationUpgradeTest {
             insertLoan(db, 4, "   ")
         }
 
-        val room = openWithRoom()
+        val db = upgradeWithRoom()
         try {
-            val db = room.openHelper.writableDatabase
-            assertEquals(SCHEMA_VERSION, db.version)
+            assertEquals(SCHEMA_VERSION, count(db, "PRAGMA user_version"))
             assertEquals(2, count(db, "SELECT COUNT(*) FROM people"))
             // Both spellings of Asha point at the same person.
             assertEquals(
@@ -66,7 +69,7 @@ class PeopleMigrationUpgradeTest {
             )
             assertEquals(1, count(db, "SELECT COUNT(*) FROM loans WHERE person_id IS NULL"))
         } finally {
-            room.close()
+            db.close()
         }
     }
 
@@ -94,24 +97,27 @@ class PeopleMigrationUpgradeTest {
             insertLoan(db, 1, "Asha", personId = 7)
         }
 
-        val room = openWithRoom(fromVersion = 63)
+        val db = upgradeWithRoom()
         try {
-            val db = room.openHelper.writableDatabase
-            assertEquals(SCHEMA_VERSION, db.version)
+            assertEquals(SCHEMA_VERSION, count(db, "PRAGMA user_version"))
             assertEquals(1, count(db, "SELECT COUNT(*) FROM people"))
             assertEquals(7, count(db, "SELECT person_id FROM loans WHERE id = 1"))
             assertEquals(0, count(db, "SELECT COUNT(*) FROM webhook_profiles"))
         } finally {
-            room.close()
+            db.close()
         }
     }
 
-    private fun openWithRoom(@Suppress("UNUSED_PARAMETER") fromVersion: Int = 67): PennyWiseDatabase =
-        Room.databaseBuilder(context, PennyWiseDatabase::class.java, DB)
+    /** Opens [DB] through Room (running migrations and validation), then hands back a plain connection. */
+    private fun upgradeWithRoom(): SQLiteConnection {
+        val room = Room.databaseBuilder(context, PennyWiseDatabase::class.java, DB)
+            .setDriver(AndroidSQLiteDriver())
             .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
-            .allowMainThreadQueries()
             .build()
-            .also { assertNotNull(it.openHelper.writableDatabase) }
+        runBlocking { room.useReaderConnection { it.usePrepared("SELECT 1") { stmt -> stmt.step() } } }
+        room.close()
+        return AndroidSQLiteDriver().open(context.getDatabasePath(DB).path)
+    }
 
     /** Builds [DB] exactly as the exported [version].json describes, at that user_version. */
     private fun createFromSchema(version: Int, seed: (SupportSQLiteDatabase) -> Unit) {
@@ -169,10 +175,10 @@ class PeopleMigrationUpgradeTest {
         )
     }
 
-    private fun count(db: SupportSQLiteDatabase, sql: String): Int =
-        db.query(sql).use { c ->
-            assertTrue(c.moveToFirst())
-            c.getInt(0)
+    private fun count(db: SQLiteConnection, sql: String): Int =
+        db.prepare(sql).use { stmt ->
+            assertTrue(stmt.step())
+            stmt.getLong(0).toInt()
         }
 
     private companion object {

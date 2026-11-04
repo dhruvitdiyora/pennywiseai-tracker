@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -52,19 +53,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeDefaults.tint
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeProgressive
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -121,7 +118,7 @@ fun CustomTitleTopAppBar(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LargerTopAppBar(
     modifier: Modifier = Modifier,
@@ -180,18 +177,11 @@ private fun LargerTopAppBar(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            tint = tint(backgroundColor),
-                            blurRadius = 10.dp,
-                            noiseFactor = -1f,
-                        )
-                        progressive =
-                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                    }
+                if (blurEffects) Modifier.frostedBlur(
+                    hazeState,
+                    blurRadius = 10.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Rectangle,
+                    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f),
                 ) else Modifier
             )
             .background(
@@ -227,7 +217,7 @@ private fun TitleForLargeTopAppBar(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMediumEmphasized,
                 textAlign = TextAlign.Start,
                 modifier = modifier
                     .fillMaxWidth()
@@ -238,7 +228,7 @@ private fun TitleForLargeTopAppBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RegularTopAppBar(
     modifier: Modifier = Modifier,
@@ -392,7 +382,6 @@ private fun HomeBarTitle(
  * progressive gradient — with a page-background tint strong enough that
  * scrolled text never reads through. Blur off gives a near-solid scrim.
  */
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun Modifier.compactBarGlass(
     hazeState: HazeState,
@@ -400,19 +389,7 @@ fun Modifier.compactBarGlass(
     pageBackground: Color,
 ): Modifier = this
     .then(
-        if (blurEffects) Modifier.hazeEffect(
-            state = hazeState,
-            block = fun HazeEffectScope.() {
-                style = HazeDefaults.style(
-                    backgroundColor = Color.Transparent,
-                    tint = tint(pageBackground.copy(alpha = 0.9f)),
-                    blurRadius = 20.dp,
-                    noiseFactor = -1f,
-                )
-                progressive =
-                    HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0.6f)
-            }
-        ) else Modifier
+        if (blurEffects) Modifier.frostedBlur(hazeState, tint = pageBackground.copy(alpha = 0.9f), blurRadius = 20.dp, progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0.6f)) else Modifier
     )
     .background(
         // Without a real blur (turned off, or Android 11 and older where Haze

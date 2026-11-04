@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- SMS Permissions for reading and receiving transaction messages -->
+    <!-- Shake to hide amounts: a short buzz confirms the shake. Install-time, no prompt. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
@@ -31,6 +33,14 @@
     <!-- Explicitly remove AD_ID permission to ensure privacy -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
+    <!-- #994 step 4: list launchable apps for "Track Other Apps" (no QUERY_ALL_PACKAGES needed). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".PennyWiseApplication"
         android:allowBackup="false"
@@ -45,6 +55,7 @@
         android:theme="@style/Theme.Pennywisecompose">
 
         <!-- GPU acceleration for LiteRT-LM (optional) -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
 
         <activity
@@ -81,13 +92,29 @@
 
         <!-- Translucent picker launched from the "More categories…" txn-alert
              notification action (#303). singleTask + excludeFromRecents so a
-             second tap doesn't stack instances and it never shows in Recents. -->
+             second tap doesn't stack instances and it never shows in Recents.
+             Its own task (empty affinity), so picking doesn't bring the app's
+             task forward and leave the user inside PennyWise. No noHistory:
+             the app-lock PIN screen on API 26-27 is an activity started for a
+             result, and a noHistory picker would be finished under it. -->
         <activity
             android:name=".receiver.QuickCategoryPickerActivity"
             android:exported="false"
+            android:taskAffinity=""
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
-            android:noHistory="true"
+            android:theme="@style/Theme.PennyWise.Transparent" />
+
+        <!-- Quick cash add (amount, category, Save) over whatever is on screen,
+             from the widgets' + and the evening recap. Same task setup as the
+             picker above; adjustResize keeps Save above the keyboard. -->
+        <activity
+            android:name=".presentation.add.QuickAddActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.PennyWise.Transparent" />
 
         <!-- Quick Settings tile: swipe down -> tap -> Add Transaction -->
@@ -161,6 +188,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- "Bill due tomorrow" reminder actions: paid in cash / skip this time -->
+        <receiver
+            android:name=".receiver.BillReminderActionReceiver"
+            android:exported="false" />
+
         <!-- Notification listener for bank app notifications -->
         <service
             android:name=".receiver.BankNotificationListenerService"
@@ -207,6 +239,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/recent_transactions_widget_info" />
+        </receiver>
+
+        <!-- Spending summary: today + this month + quick add, one row -->
+        <receiver
+            android:name=".widget.SpendingSummaryWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_summary">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/spending_summary_widget_info" />
         </receiver>
 
         <!-- Goal widgets (#914): one chosen goal (2x2) and up to three goals (4x2) -->

@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.compose.material3.ButtonDefaults
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
@@ -55,13 +58,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.people.PeopleExtendedFab
 import com.pennywiseai.tracker.presentation.people.PeopleTonalActionButton
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
@@ -364,6 +368,7 @@ fun ManageAccountsScreen(
                             onOpenDetail = openDetail,
                             onDelete = { askDelete(account) },
                             onEdit = { openEdit(account) },
+                            isUnanchored = (account.bankName to account.accountLast4) in uiState.unanchoredAccounts,
                         )
                     }
                 }
@@ -455,6 +460,7 @@ fun ManageAccountsScreen(
                                 onOpenDetail = openDetail,
                                 onDelete = { askDelete(account) },
                                 onEdit = { openEdit(account) },
+                                isUnanchored = (account.bankName to account.accountLast4) in uiState.unanchoredAccounts,
                             )
                         }
 
@@ -643,12 +649,12 @@ fun ManageAccountsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.applyPendingProfileReassign() }) {
+                TextButton(onClick = { viewModel.applyPendingProfileReassign() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.manage_accounts_reassign_move))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }) {
+                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.manage_accounts_reassign_keep))
                 }
             }
@@ -680,6 +686,7 @@ private fun ManageBankAccountRow(
     isHidden: Boolean,
     linkedCards: List<CardEntity>,
     viewModel: ManageAccountsViewModel,
+    isUnanchored: Boolean = false,
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
@@ -691,6 +698,7 @@ private fun ManageBankAccountRow(
         account = account,
         linkedCards = linkedCards,
         isHidden = isHidden,
+        isUnanchored = isUnanchored,
         onToggleVisibility = onToggleVisibility,
         onUpdateBalance = onUpdateBalance,
         onViewHistory = onViewHistory,

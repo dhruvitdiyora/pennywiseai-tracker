@@ -138,7 +138,7 @@ fun ChatMessageItem(
                 ) else Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.xs),
             ) {
                 Text(
-                    text = message.message,
+                    text = com.pennywiseai.tracker.utils.CurrencyFormatter.maskAmountsIn(message.message),
                     style = MaterialTheme.typography.bodyLarge,
                     color = contentColor,
                 )

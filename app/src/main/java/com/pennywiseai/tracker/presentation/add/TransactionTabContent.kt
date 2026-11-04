@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.presentation.add
 
+import androidx.compose.material.icons.filled.Tag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -26,10 +28,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.CategoryIcon
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -42,8 +45,9 @@ import com.pennywiseai.tracker.ui.icons.iconax.Shop
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import androidx.compose.ui.platform.LocalDensity
 
 /** Which account picker the shared account sheet is currently assigning to. */
 private enum class AccountPickerTarget { FROM, TO }
@@ -127,10 +131,10 @@ fun TransactionTabContent(
             ) {
                 AddDateCard(
                     dayLabel = uiState.date.format(
-                        DateTimeFormatter.ofPattern("dd MMMM", Locale.getDefault())
+                        AppDates.pattern("dd MMMM")
                     ),
                     yearLabel = uiState.date.format(
-                        DateTimeFormatter.ofPattern("yyyy", Locale.getDefault())
+                        AppDates.pattern("yyyy")
                     ),
                     onClickLabel = stringResource(R.string.add_pick_date),
                     onClick = { showDatePicker = true },
@@ -193,7 +197,7 @@ fun TransactionTabContent(
 
             // ── Merchant + Notes (connected cards) ──
             // Merchant is meaningless for a TRANSFER (it moves money between own
-            // accounts), so hide it and show Notes on its own.
+            // accounts), so hide it and start the group at Notes.
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
@@ -214,15 +218,28 @@ fun TransactionTabContent(
                     )
                 }
 
+                val notesShape = if (isTransfer) topShape else ListItemPosition.Middle.toShape()
                 TextField(
                     value = uiState.notes,
                     onValueChange = viewModel::updateTransactionNotes,
                     label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .addGlassField(if (isTransfer) fullShape else bottomShape),
-                    shape = if (isTransfer) fullShape else bottomShape,
+                        .addGlassField(notesShape),
+                    shape = notesShape,
                     leadingIcon = { Icon(Iconax.DocumentText2, contentDescription = null) },
+                    colors = addGlassFieldColors()
+                )
+                TextField(
+                    value = uiState.reference,
+                    onValueChange = viewModel::updateTransactionReference,
+                    label = { Text(stringResource(R.string.add_field_reference), fontWeight = FontWeight.SemiBold) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .addGlassField(bottomShape),
+                    shape = bottomShape,
+                    leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
                     colors = addGlassFieldColors()
                 )
                 uiState.merchantError?.takeIf { !isTransfer }?.let { error ->
@@ -252,10 +269,11 @@ fun TransactionTabContent(
             // ── Budget Impact (INCOME only) ──
             if (uiState.transactionType == TransactionType.INCOME) {
                 val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsState()
+                val refundCategories by viewModel.refundCategories.collectAsState()
                 AddBudgetImpactSection(
                     budgetImpactType = uiState.budgetImpactType,
                     budgetCategory = uiState.budgetCategory,
-                    activeBudgetCategories = activeBudgetCategories,
+                    activeBudgetCategories = if (uiState.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) refundCategories else activeBudgetCategories,
                     onImpactTypeChange = viewModel::updateBudgetImpactType,
                     onCategoryChange = viewModel::updateBudgetCategory
                 )
@@ -370,7 +388,8 @@ fun TransactionTabContent(
                             viewModel.updateTransactionDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
@@ -399,7 +418,8 @@ fun TransactionTabContent(
                     onClick = {
                         viewModel.updateTransactionTime(timePickerState.hour, timePickerState.minute)
                         showTimePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
@@ -461,7 +481,7 @@ internal fun AddCategorySelector(
                         }
                     )
                     Text(
-                        text = category,
+                        text = categoryLabel(category),
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (error == null) {
                             MaterialTheme.colorScheme.onSurface
@@ -552,7 +572,8 @@ fun ReceiptPickerSection(
                         .size(Dimensions.Component.minTouchTarget),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    ),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Close,
@@ -679,7 +700,7 @@ private fun AddBudgetImpactSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .addGlassField(MaterialTheme.shapes.large)
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     shape = MaterialTheme.shapes.large,
                     colors = addGlassFieldColors()
                 )
@@ -696,7 +717,7 @@ private fun AddBudgetImpactSection(
                     } else {
                         activeBudgetCategories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category) },
+                                text = { Text(categoryLabel(category)) },
                                 onClick = {
                                     onCategoryChange(category)
                                     expanded = false

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
@@ -45,7 +46,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButtonDefaults
-import androidx.compose.material3.TonalToggleButton
+import androidx.compose.material3.FilledTonalToggleButton
+import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -61,18 +63,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavHostController
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -81,8 +77,9 @@ import dev.chrisbanes.haze.hazeEffect
 @Composable
 fun PennyWiseBottomNavigation(
     modifier: Modifier = Modifier,
-    navController: NavHostController,
-    currentDestination: NavDestination?,
+    /** Route of the tab on screen ([BottomNavItem.route]), or null. */
+    selectedRoute: String?,
+    onTabSelected: (BottomNavItem) -> Unit,
     navBarStyle: NavBarStyle,
     hideLabels: Boolean = false,
     hidePill: Boolean = false,
@@ -97,13 +94,7 @@ fun PennyWiseBottomNavigation(
 
     fun navigateTo(item: BottomNavItem) {
         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        navController.navigate(item.route) {
-            popUpTo(navController.graph.startDestinationId) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-        }
+        onTabSelected(item)
     }
 
     Box(modifier = modifier) {
@@ -126,27 +117,12 @@ fun PennyWiseBottomNavigation(
                     ),
                     tonalElevation = Dimensions.Elevation.raisedCard,
                     modifier = Modifier.then(
-                        if (blurEffects) Modifier.hazeEffect(
-                            state = hazeState,
-                            block = fun HazeEffectScope.() {
-                                style = HazeDefaults.style(
-                                    backgroundColor = Color.Transparent,
-                                    tint = HazeDefaults.tint(containerColor),
-                                    blurRadius = 20.dp,
-                                    noiseFactor = -1f,
-                                )
-                                blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                            }
-                        ) else Modifier
+                        if (blurEffects) Modifier.frostedBlur(hazeState, tint = containerColor, blurRadius = 20.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded) else Modifier
                     )
                 ) {
                     navigationItems.forEach { item ->
                         val title = stringResource(item.titleRes)
-                        val selected = currentDestination?.hierarchy?.any {
-                            // Match on the route base so query-arg routes (e.g.
-                            // "transactions?type=…") still light up their tab.
-                            it.route?.substringBefore('?') == item.route
-                        } == true
+                        val selected = item.route == selectedRoute
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
@@ -216,17 +192,7 @@ fun PennyWiseBottomNavigation(
                         .navigationBarsPadding()
                         .clip(FloatingToolbarDefaults.ContainerShape)
                         .then(
-                            if (blurEffects) Modifier.hazeEffect(
-                                state = hazeState,
-                                block = fun HazeEffectScope.() {
-                                    style = HazeDefaults.style(
-                                        backgroundColor = Color.Transparent,
-                                        blurRadius = 20.dp,
-                                        noiseFactor = -1f,
-                                    )
-                                    blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                                }
-                            ) else Modifier
+                            if (blurEffects) Modifier.frostedBlur(hazeState, blurRadius = 20.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded) else Modifier
                         )
                         .zIndex(1000f)
                         .animateContentSize(MaterialTheme.motionScheme.fastSpatialSpec()),
@@ -257,23 +223,20 @@ fun PennyWiseBottomNavigation(
                     }
                     navigationItems.forEach { item ->
                         val title = stringResource(item.titleRes)
-                        val selected = currentDestination?.hierarchy?.any {
-                            // Match on the route base so query-arg routes (e.g.
-                            // "transactions?type=…") still light up their tab.
-                            it.route?.substringBefore('?') == item.route
-                        } == true
+                        val selected = item.route == selectedRoute
 
-                        TonalToggleButton(
+                        FilledTonalToggleButton(
                             checked = selected,
                             onCheckedChange = {
                                 navigateTo(item)
                             },
                             // Cashiro: pill at rest, a softer rounded rect when checked.
-                            shapes = ToggleButtonDefaults.shapes(
+                            shapes = ToggleButtonShapes(
                                 shape = FloatingToolbarDefaults.ContainerShape,
+                                pressedShape = MaterialTheme.shapes.extraLarge,
                                 checkedShape = MaterialTheme.shapes.extraLarge
                             ),
-                            colors = ToggleButtonDefaults.toggleButtonColors(
+                            colors = ToggleButtonDefaults.colors(
                                 containerColor = if (blurEffects)
                                     MaterialTheme.colorScheme.surfaceBright.copy(0.6f)
                                 else MaterialTheme.colorScheme.surfaceBright,

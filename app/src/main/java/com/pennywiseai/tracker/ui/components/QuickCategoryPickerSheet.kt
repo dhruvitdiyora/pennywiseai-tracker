@@ -1,6 +1,11 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,7 +15,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.presentation.categories.CategoryAvatar
 import com.pennywiseai.tracker.presentation.categories.CategorySearchField
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -19,12 +23,14 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +43,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 internal fun filterCategoriesForQuery(
     categories: List<CategoryEntity>,
@@ -81,6 +88,15 @@ fun QuickCategoryPickerSheet(
     searchPlaceholder: String? = null,
     // "Add category" on top of the list (#854); null hides it.
     onAddCategory: (() -> Unit)? = null,
+    // Notification picker only: a "2 of 3" beside the title while walking the
+    // recap's unsorted rows, and a "Not an expense" row that drops the
+    // transaction from totals ([onExclude] persists and dismisses).
+    progress: String? = null,
+    // Notification picker only: which transaction this is ("Merchant · JD21"),
+    // in place of the generic title — from the recap there's no alert beside it.
+    subject: String? = null,
+    excludeLabel: String? = null,
+    onExclude: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
@@ -127,7 +143,7 @@ fun QuickCategoryPickerSheet(
         // pill search field from Categories, then grouped tonal rows with each
         // category's tinted avatar.
         Text(
-            text = resolvedTitle,
+            text = subject ?: resolvedTitle,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(
@@ -143,6 +159,14 @@ fun QuickCategoryPickerSheet(
             placeholder = resolvedSearchPlaceholder,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.dialog)
         )
+        if (progress != null) {
+            Text(
+                text = progress,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Dimensions.Padding.dialog, vertical = Spacing.xs)
+            )
+        }
         // LazyColumn so long category lists stay reachable when the sheet is
         // fully expanded; a plain Column would render items past the screen
         // bottom unscrollable.
@@ -156,6 +180,33 @@ fun QuickCategoryPickerSheet(
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
+            if (onExclude != null && excludeLabel != null) {
+                item(key = "exclude") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onExclude)
+                            .padding(
+                                horizontal = Dimensions.Padding.content,
+                                vertical = Spacing.sm
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.VisibilityOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = excludeLabel,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
+                }
+            }
             if (onAddCategory != null) {
                 item(key = "add-category") {
                     GroupedRow(
@@ -239,7 +290,7 @@ private fun CategoryPickerRow(
     ) {
         CategoryAvatar(category = category, size = Dimensions.Icon.avatar)
         Text(
-            text = category.name,
+            text = categoryLabel(category.name),
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -81,9 +82,9 @@ fun BalanceChart(
             val date = it.timestamp
             when {
                 isYearly -> date.format(DateTimeFormatter.ofPattern("yyyy"))
-                isMonthly && spansMultipleYears -> date.format(DateTimeFormatter.ofPattern("MMM yy"))
-                isMonthly -> date.format(DateTimeFormatter.ofPattern("MMM"))
-                else -> date.format(DateTimeFormatter.ofPattern("dd MMM"))
+                isMonthly && spansMultipleYears -> date.format(AppDates.pattern("MMM yy"))
+                isMonthly -> date.format(AppDates.pattern("MMM"))
+                else -> date.format(AppDates.pattern("dd MMM"))
             }
         }.let(::thinAxisLabels)
     }

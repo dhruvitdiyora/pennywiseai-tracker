@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -48,11 +50,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.UiText
@@ -96,6 +98,7 @@ import com.pennywiseai.tracker.ui.theme.grey_dark
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import com.pennywiseai.tracker.data.preferences.DateFormatStyle
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
@@ -895,7 +898,7 @@ internal fun SettingsDropdownItem(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 shape = MaterialTheme.shapes.large,
                 colors = TextFieldDefaults.colors(
                     // A field nested inside an already-tonal row needs a step
@@ -954,7 +957,7 @@ internal fun AiChatSettingsItem(
 
             when (downloadState) {
                 DownloadState.NOT_DOWNLOADED -> {
-                    Button(onClick = onDownload) {
+                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.settings_ai_download))
@@ -969,7 +972,7 @@ internal fun AiChatSettingsItem(
                     )
                 }
                 DownloadState.PAUSED -> {
-                    Button(onClick = onDownload) {
+                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.settings_ai_retry))
@@ -986,7 +989,7 @@ internal fun AiChatSettingsItem(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
-                        TextButton(onClick = onDelete) {
+                        TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.settings_ai_delete))
                         }
                     }
@@ -996,7 +999,8 @@ internal fun AiChatSettingsItem(
                         onClick = onDownload,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
-                        )
+                        ),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1024,7 +1028,7 @@ internal fun AiChatSettingsItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1038,7 +1042,8 @@ internal fun AiChatSettingsItem(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Cancel, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1078,7 +1083,8 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 contentColor = MaterialTheme.colorScheme.onBackground
-            )
+            ),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -1087,6 +1093,19 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             )
         }
     }
+}
+
+// Each option is named by what it looks like today; only Auto needs a word.
+@Composable
+internal fun dateFormatStyleLabel(style: DateFormatStyle): String =
+    if (style == DateFormatStyle.AUTO) stringResource(R.string.settings_number_format_auto)
+    else AppDates.dateFormatter(style = style).format(java.time.LocalDate.now())
+
+@Composable
+internal fun dateFormatStyleExample(style: DateFormatStyle): String {
+    val today = java.time.LocalDate.now()
+    val short = AppDates.dayMonthFormatter(style = style).format(today)
+    return if (style == DateFormatStyle.AUTO) "${AppDates.dateFormatter(style = style).format(today)} · $short" else short
 }
 
 @Composable
@@ -1130,12 +1149,12 @@ internal fun formatSmsScanCustomDate(dateMillis: Long): String {
     return java.time.Instant.ofEpochMilli(dateMillis)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        .format(AppDates.dateFormatter())
 }
 
 internal fun formatSmsScanCustomDateShort(dateMillis: Long): String {
     return java.time.Instant.ofEpochMilli(dateMillis)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
+        .format(AppDates.dayMonthFormatter())
 }

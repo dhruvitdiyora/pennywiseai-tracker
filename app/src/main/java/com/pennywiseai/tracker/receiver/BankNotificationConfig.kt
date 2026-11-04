@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.receiver
 
 import android.app.Notification
+import android.content.Context
+import android.content.pm.PackageManager
 import com.pennywiseai.parser.core.bank.BankParserFactory
 
 /**
@@ -24,7 +26,9 @@ object BankNotificationConfig {
         "com.avuscapital.trading212" to "Trading212",
         // Huntington (USA) – app notifications use the same wording as its texts;
         // alias must match HuntingtonBankParser.canHandle()
-        "com.huntington.m" to "Huntington"    // Huntington Mobile Banking
+        "com.huntington.m" to "Huntington",   // Huntington Mobile Banking
+        // Dubai First (UAE credit cards, a FAB brand) – alias must match DubaiFirstParser.canHandle()
+        "com.bankfab.pbg.ae.dubaifirst" to "DubaiFirst"
     )
 
     /** Sender aliases notification-booked transactions are saved under. */
@@ -36,6 +40,17 @@ object BankNotificationConfig {
      */
     val notificationBankNames: Set<String> by lazy {
         notificationAliases.mapNotNull { BankParserFactory.getParser(it)?.getBankName() }.toSet()
+    }
+
+    /**
+     * How to show a suggestion's sender: a tracked app (#994) is stored by package,
+     * so show its name ("Robinhood"). An SMS sender isn't a package and stays as is.
+     */
+    fun displayName(context: Context, sender: String): String = try {
+        val pm = context.packageManager
+        pm.getApplicationLabel(pm.getApplicationInfo(sender, 0)).toString()
+    } catch (e: PackageManager.NameNotFoundException) {
+        sender
     }
 
     fun isAllowed(packageName: String): Boolean =
@@ -54,11 +69,21 @@ object BankNotificationConfig {
             extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.let { add(it) }
         }
 
-        if (textParts.isNotEmpty()) {
-            val merged = textParts.joinToString("\n") { it.toString() }.trim()
-            if (merged.isNotBlank()) return merged
-        }
+        val merged = textParts.joinToString("\n") { it.toString() }.trim()
+        return withTitle(extras.getCharSequence(Notification.EXTRA_TITLE)?.toString(), merged)
+    }
 
-        return extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+    /**
+     * Keeps the title with the body: some apps put the heading ("Card Transaction",
+     * "… Refund") in the title and only the fields in the text, and the heading is
+     * what tells a purchase from a refund.
+     */
+    internal fun withTitle(title: String?, body: String): String {
+        val t = title?.trim().orEmpty()
+        return when {
+            body.isBlank() -> t
+            t.isEmpty() || body.contains(t) -> body
+            else -> "$t\n$body"
+        }
     }
 }

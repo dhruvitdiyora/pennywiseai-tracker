@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.groups
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import com.pennywiseai.tracker.presentation.accounts.glassRowColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +31,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GroupSummary
@@ -54,7 +55,7 @@ import com.pennywiseai.tracker.utils.sumByCurrency
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TransactionGroupsScreen(
     onNavigateBack: () -> Unit = {},

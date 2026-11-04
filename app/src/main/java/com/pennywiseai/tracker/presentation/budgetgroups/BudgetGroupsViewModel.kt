@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.presentation.budgetgroups
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.widget.inAppLanguage
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -422,9 +424,10 @@ class BudgetGroupsViewModel @Inject constructor(
                 }
                 val boost = if (cat.matchType != null) BigDecimal.ZERO
                     else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
-                val effectiveBudget = currencyConversionService.convertAmount(
-                    cat.budgetAmount + boost, baseCurrency, displayCurrency
-                )
+                val convertedBudget = currencyConversionService.convertAmountOrNull(
+                    cat.budgetAmount, baseCurrency, displayCurrency
+                ) ?: BigDecimal.ZERO
+                val effectiveBudget = convertedBudget + boost
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                     (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
@@ -443,9 +446,9 @@ class BudgetGroupsViewModel @Inject constructor(
         }
 
         val convertedTotalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
-            currencyConversionService.convertAmount(
+            currencyConversionService.convertAmountOrNull(
                 group.budget.limitAmount, baseCurrency, displayCurrency
-            )
+            ) ?: BigDecimal.ZERO
         } else {
             categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
         }
@@ -652,7 +655,13 @@ class BudgetGroupsViewModel @Inject constructor(
     fun runSmartDefaults() {
         viewModelScope.launch {
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
-            budgetGroupRepository.createSmartDefaults(baseCurrency)
+            val res = context.inAppLanguage()
+            budgetGroupRepository.createSmartDefaults(
+                baseCurrency,
+                spendingName = res.getString(R.string.budget_group_default_spending),
+                fixedCostsName = res.getString(R.string.budget_group_default_fixed_costs),
+                investmentsName = res.getString(R.string.budget_group_default_investments)
+            )
             com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker.enqueueOneShot(context)
         }
     }

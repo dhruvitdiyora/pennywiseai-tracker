@@ -7,7 +7,6 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
@@ -56,19 +55,19 @@ fun TransactionTotalsCard(
 ) {
     val incomeAlpha by animateFloatAsState(
         targetValue = if (isLoading) 0.5f else 1f,
-        animationSpec = tween(300),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "income_alpha"
     )
 
     val expenseAlpha by animateFloatAsState(
         targetValue = if (isLoading) 0.5f else 1f,
-        animationSpec = tween(300),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "expense_alpha"
     )
 
     val netAlpha by animateFloatAsState(
         targetValue = if (isLoading) 0.5f else 1f,
-        animationSpec = tween(300),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "net_alpha"
     )
 
@@ -264,20 +263,21 @@ private fun CurrencyPickerPill(
             onDismissRequest = { expanded = false },
             shape = MaterialTheme.shapes.large
         ) {
-            availableCurrencies.forEach { currency ->
-                DropdownMenuItem(
+            availableCurrencies.forEachIndexed { index, currency ->
+                SelectableDropdownMenuItem(
+                    selected = currency == selectedCurrency,
                     text = { Text(currency) },
                     onClick = {
                         onCurrencySelected(currency)
                         expanded = false
                     },
-                    leadingIcon = {
-                        if (currency == selectedCurrency) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null
-                            )
-                        }
+                    shapes = MenuDefaults.itemShape(index, availableCurrencies.size),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                    selectedLeadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null
+                        )
                     }
                 )
             }

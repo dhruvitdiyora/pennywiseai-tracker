@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
+import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import com.pennywiseai.tracker.ui.icons.iconax.ReceiptItem
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
@@ -63,7 +66,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -95,9 +98,8 @@ import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoanDetailScreen(
     onNavigateBack: () -> Unit = {},
@@ -175,7 +177,7 @@ fun LoanDetailScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -472,7 +474,7 @@ private fun LoanHeroCard(
                 color = scheme.surfaceContainerLow,
             ) {
                 Text(
-                    text = note,
+                    text = CurrencyFormatter.maskAmountsIn(note),
                     modifier = Modifier.padding(Spacing.smd),
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
@@ -536,9 +538,9 @@ private fun LoanTransactionItem(
     val color = if (moneyIn) scheme.income else scheme.expense
     val sign = if (moneyIn) "+" else "-"
     val icon = if (moneyIn) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward
-    val date = transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+    val date = transaction.dateTime.format(AppDates.dateFormatter())
     val originalLabel = stringResource(R.string.loan_detail_original_chip)
-    val note = transaction.description?.takeIf { it.isNotBlank() }
+    val note = transaction.description?.takeIf { it.isNotBlank() }?.let(CurrencyFormatter::maskAmountsIn)
 
     ListItemCardV2(
         title = transaction.merchantName,

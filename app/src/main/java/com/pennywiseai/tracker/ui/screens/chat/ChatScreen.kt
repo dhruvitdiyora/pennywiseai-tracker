@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -74,7 +75,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
@@ -87,12 +88,10 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * The AI chat screen, restyled after Cashiro's: a large collapsing title, a tonal
@@ -659,18 +658,7 @@ private fun ChatOverflowMenu(
             modifier = Modifier
                 .clip(menuShape)
                 .then(
-                    if (blurEffects) Modifier.hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                tint = HazeDefaults.tint(menuColor.copy(alpha = 0.5f)),
-                                blurRadius = 36.dp,
-                                noiseFactor = -1f,
-                            )
-                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                        }
-                    ) else Modifier
+                    if (blurEffects) Modifier.frostedBlur(hazeState, tint = menuColor.copy(alpha = 0.5f), blurRadius = 36.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded) else Modifier
                 ),
             containerColor = menuColor.copy(alpha = if (blurEffects) 0.7f else 1f),
             shape = menuShape,

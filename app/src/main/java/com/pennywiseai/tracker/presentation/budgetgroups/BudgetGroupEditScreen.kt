@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
-import androidx.compose.animation.animateContentSize
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import com.pennywiseai.tracker.utils.AppDates
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,7 +67,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.presentation.add.AddChoiceChip
@@ -91,7 +93,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -161,7 +163,7 @@ fun BudgetGroupEditScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -248,8 +250,8 @@ fun BudgetGroupEditScreen(
                 // persisted [startDate, endDate] cache is refreshed on save so
                 // the home card / widget stay in sync).
                 item(key = "period") {
-                    val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
-                    val longDateFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+                    val dateFormatter = AppDates.dateFormatter()
+                    val longDateFormatter = AppDates.dayMonthFormatter()
 
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
                         AddSectionLabel(text = stringResource(R.string.budget_edit_period))
@@ -438,7 +440,7 @@ fun BudgetGroupEditScreen(
                                 uiState.availableCategories.forEach { categoryName ->
                                     BudgetCategoryMenuItem(
                                         categoryName = categoryName,
-                                        label = categoryName,
+                                        label = categoryLabel(categoryName),
                                         onClick = {
                                             viewModel.addCategory(categoryName)
                                             showAddCategoryDropdown = false

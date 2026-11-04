@@ -26,6 +26,9 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.data.repository.mappingFits
+import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
@@ -179,6 +182,19 @@ class TransactionDetailViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    // A refund can give back to any expense category, not only budgeted ones
+    // (#983) — Analytics and Home net it off whichever category it names.
+    // Budget categories stay first since they're the likely pick.
+    val refundCategories: StateFlow<List<String>> = combine(
+        activeBudgetCategories,
+        categoryRepository.getVisibleExpenseCategories()
+    ) { budget, expense -> (budget + expense.map { it.name }).distinct() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     // Transaction group state
     val availableGroups: StateFlow<List<TransactionGroupEntity>> = transactionGroupRepository.getAllGroups()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -316,7 +332,11 @@ class TransactionDetailViewModel @Inject constructor(
             transaction?.let {
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
-                loadSplits(transactionId)
+                // Splits are a live Flow that never completes: collected on its own
+                // job, or nothing below would ever run for a split transaction —
+                // its loan chip came back as "Mark as loan" (#1032).
+                splitsJob?.cancel()
+                splitsJob = viewModelScope.launch { loadSplits(transactionId) }
                 loadReceiptUri(it)
                 // Clear stale loan state when the (re)loaded transaction has no
                 // loan — e.g. the loan was deleted elsewhere and we reload on
@@ -331,13 +351,23 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    // Every visible category of both types: the adjustment sheet's picker
+    // filters by the adjustment's own type, which can differ from this one's.
+    val adjustmentCategories: StateFlow<List<CategoryEntity>> = categoryRepository.getVisibleCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     /**
      * Records the untracked amount behind a balance mismatch as a manual
      * transaction dated just before this one, on the same account (#734).
      * No balance row is written: the bank's reported balance already includes
      * it, so the ledger must not move — the adjustment only explains the gap.
+     *
+     * [merchant] is what the user typed in the sheet (blank → "Balance
+     * adjustment"); [pickedCategory] is null when they left the picker alone,
+     * in which case the merchant's mapping (if it fits the type) or the
+     * sheet's default is used.
      */
-    fun addBalanceAdjustment() {
+    fun addBalanceAdjustment(merchant: String, pickedCategory: String?) {
         val tx = _transaction.value ?: return
         val d = _balanceDiscrepancy.value ?: return
         // One adjustment per tap-burst: the flag disables the button, and the
@@ -345,31 +375,18 @@ class TransactionDetailViewModel @Inject constructor(
         if (!_isAddingAdjustment.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             try {
-                val delta = d.delta
-                // Just before the reporting transaction, but never at/before the
-                // snapshot the detector starts from — or it would fall outside the
-                // window and the mismatch would never clear.
-                val since = d.since
-                val at = tx.dateTime.minusSeconds(1).let { if (since != null && !it.isAfter(since)) tx.dateTime else it }
-                transactionRepository.insertTransaction(
-                    TransactionEntity(
-                        amount = delta.abs(),
-                        merchantName = "Balance adjustment",
-                        category = "Others",
-                        transactionType = if (delta.signum() < 0) TransactionType.EXPENSE else TransactionType.INCOME,
-                        dateTime = at,
-                        description = "Untracked amount so the app matches the bank's reported balance of " +
-                            CurrencyFormatter.formatCurrency(d.reported, d.currency),
-                        smsBody = null,
-                        bankName = tx.bankName,
-                        smsSender = null,
-                        accountNumber = tx.accountNumber,
-                        balanceAfter = null,
-                        transactionHash = "manual_balance_adjustment_${tx.id}",
-                        currency = d.currency
-                    )
-                )
+                val type = balanceAdjustmentType(d)
+                val name = merchant.trim()
+                val category = pickedCategory
+                    ?: name.takeIf { it.isNotEmpty() }
+                        ?.let { merchantMappingRepository.getCategoryForMerchant(it) }
+                        ?.takeIf { mappingFits(categoryRepository.getCategoryByName(it)?.isIncome, type) }
+                    ?: categoryRepository.getVisibleCategories().first().balanceAdjustmentDefaultCategory(type)
+                transactionRepository.insertTransaction(balanceAdjustment(tx, d, name, category))
                 _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
+                if (_balanceDiscrepancy.value == null) {
+                    com.pennywiseai.tracker.receiver.SmsBroadcastReceiver.cancelBalanceDiscrepancyNotification(context, tx)
+                }
             } catch (e: Exception) {
                 _errorMessage.value = UiText.Res(R.string.txn_detail_error_add_adjustment, listOf(e.message.toString()))
             } finally {
@@ -388,6 +405,8 @@ class TransactionDetailViewModel @Inject constructor(
             CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
         }
     }
+
+    private var splitsJob: kotlinx.coroutines.Job? = null
 
     private suspend fun loadSplits(transactionId: Long) {
         val hasSplits = transactionRepository.hasSplits(transactionId)
@@ -669,6 +688,11 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    // Raw while typing; [normalizeReference] trims it on save. Never touches smsSender.
+    fun updateReference(reference: String) {
+        _editableTransaction.update { it?.copy(reference = reference) }
+    }
+
     fun addTag(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
@@ -728,8 +752,14 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun updateBudgetImpactType(type: BudgetImpactType?) {
         _budgetImpactType.value = type
-        if (type == null) _budgetCategory.value = null
-        _editableTransaction.update { it?.copy(budgetImpactType = type, budgetCategory = if (type == null) null else it.budgetCategory) }
+        // Extra budget only applies to budgeted categories; drop a refund-only pick on switch.
+        val kept = when {
+            type == null -> null
+            type == BudgetImpactType.ADD_TO_LIMIT && _budgetCategory.value !in activeBudgetCategories.value -> null
+            else -> _budgetCategory.value
+        }
+        _budgetCategory.value = kept
+        _editableTransaction.update { it?.copy(budgetImpactType = type, budgetCategory = kept) }
     }
 
     fun updateBudgetCategory(category: String?) {
@@ -967,6 +997,7 @@ class TransactionDetailViewModel @Inject constructor(
                 val normalizedTransaction = toSave.copy(
                     // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
                     merchantName = toSave.merchantName.trim(),
+                    reference = normalizeReference(toSave.reference),
                     bankName = resolvedBankName,
                     receiptPath = newReceiptPath,
                     loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
@@ -1341,6 +1372,9 @@ class TransactionDetailViewModel @Inject constructor(
 internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: String): String =
     originalMerchant ?: savedMerchant
 
+/** A typed reference number as stored: trimmed, and null when blank (#996). */
+internal fun normalizeReference(raw: String?): String? = raw?.trim()?.ifEmpty { null }
+
 internal sealed class AliasWrite {
     data class Set(val merchant: String, val alias: String) : AliasWrite()
     data class Remove(val merchant: String) : AliasWrite()
@@ -1374,3 +1408,43 @@ internal fun aliasWriteOnSave(
     }
 }
 
+
+/** A shortfall is money that left untracked; a surplus is money that came in. */
+internal fun balanceAdjustmentType(d: BalanceDiscrepancy): TransactionType =
+    if (d.delta.signum() < 0) TransactionType.EXPENSE else TransactionType.INCOME
+
+/** The adjustment sheet's default category: Others for an expense, Income for income. */
+internal fun List<CategoryEntity>.balanceAdjustmentDefaultCategory(type: TransactionType): String =
+    if (type == TransactionType.INCOME) pickerDefault("Income", isIncome = true)
+    else pickerDefault("Others", isIncome = false)
+
+/** The manual transaction that explains [d]'s gap, reported on [tx] (#734). */
+internal fun balanceAdjustment(
+    tx: TransactionEntity,
+    d: BalanceDiscrepancy,
+    merchant: String,
+    category: String
+): TransactionEntity {
+    val delta = d.delta
+    // Just before the reporting transaction, but never at/before the
+    // snapshot the detector starts from — or it would fall outside the
+    // window and the mismatch would never clear.
+    val since = d.since
+    val at = tx.dateTime.minusSeconds(1).let { if (since != null && !it.isAfter(since)) tx.dateTime else it }
+    return TransactionEntity(
+        amount = delta.abs(),
+        merchantName = merchant.trim().ifEmpty { "Balance adjustment" },
+        category = category,
+        transactionType = balanceAdjustmentType(d),
+        dateTime = at,
+        description = "Untracked amount so the app matches the bank's reported balance of " +
+            CurrencyFormatter.formatCurrency(d.reported, d.currency, maskIfHidden = false), // stored text
+        smsBody = null,
+        bankName = tx.bankName,
+        smsSender = null,
+        accountNumber = tx.accountNumber,
+        balanceAfter = null,
+        transactionHash = "manual_balance_adjustment_${tx.id}",
+        currency = d.currency
+    )
+}

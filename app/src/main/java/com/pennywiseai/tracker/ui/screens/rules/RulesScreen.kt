@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import com.pennywiseai.tracker.presentation.accounts.glassRowColor
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,7 +56,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
@@ -100,8 +103,9 @@ import dev.chrisbanes.haze.hazeSource
  * "create" button. Rule behaviour (toggle, edit, duplicate, apply to past,
  * delete, export/import/reset, the free-tier rule cap) is unchanged.
  */
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RulesScreen(
     onNavigateBack: () -> Unit,
@@ -236,7 +240,7 @@ fun RulesScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         } else {
             LazyColumn(
@@ -472,6 +476,22 @@ private fun RuleSummaryLine(text: String) {
  * summary and a priority tag on the left; the per-rule menu (active rules only) and
  * the on/off switch on the right.
  */
+// The starter rule is stored in English: RuleTemplateService seeds it and the
+// grouping above matches on its name. Show it in the app's language until the
+// user edits it.
+private const val STARTER_RULE_NAME = "Small Payments to Food"
+private const val STARTER_RULE_DESCRIPTION = "Categorize small expense payments (under 200) as Food & Dining"
+
+@Composable
+private fun com.pennywiseai.tracker.domain.model.rule.TransactionRule.displayName(): String =
+    if (isSystemTemplate && name == STARTER_RULE_NAME) stringResource(R.string.rule_template_small_payments_name) else name
+
+@Composable
+private fun com.pennywiseai.tracker.domain.model.rule.TransactionRule.displayDescription(): String? =
+    if (isSystemTemplate && name == STARTER_RULE_NAME && description == STARTER_RULE_DESCRIPTION)
+        stringResource(R.string.rule_template_small_payments_description)
+    else description
+
 @Composable
 private fun RuleRow(
     rule: TransactionRule,
@@ -502,14 +522,14 @@ private fun RuleRow(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Text(
-                text = rule.name,
+                text = rule.displayName(),
                 style = PennyWiseText.rowTitle,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            rule.description?.let { description ->
+            rule.displayDescription()?.let { description ->
                 Text(
                     text = description,
                     style = PennyWiseText.rowSubtitle,
@@ -620,7 +640,7 @@ private fun RuleRow(
                 )
             },
             title = { Text(stringResource(R.string.rules_delete_title)) },
-            text = { Text(stringResource(R.string.rules_delete_body, rule.name)) },
+            text = { Text(stringResource(R.string.rules_delete_body, rule.displayName())) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -629,13 +649,14 @@ private fun RuleRow(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.rules_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.rules_cancel))
                 }
             }
@@ -643,6 +664,7 @@ private fun RuleRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BatchApplyDialog(
     rule: TransactionRule,
@@ -658,7 +680,7 @@ private fun BatchApplyDialog(
     val title = when {
         progress != null -> stringResource(R.string.rules_batch_applying)
         isLoading && dryRunResult == null -> stringResource(R.string.rules_batch_previewing)
-        dryRunResult != null && result == null -> stringResource(R.string.rules_batch_preview_title, rule.name)
+        dryRunResult != null && result == null -> stringResource(R.string.rules_batch_preview_title, rule.displayName())
         else -> stringResource(R.string.rules_batch_title)
     }
 
@@ -682,7 +704,7 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(stringResource(R.string.rules_batch_scanning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -737,11 +759,7 @@ private fun BatchApplyDialog(
                                         ) {
                                             val orig = diff.original
                                             Text(
-                                                text = stringResource(
-                                                    R.string.utility_rules_batch_sample_title,
-                                                    orig.merchantName,
-                                                    CurrencyFormatter.formatCurrency(orig.amount, orig.currency)
-                                                ),
+                                                text = "${orig.merchantName} - ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(orig.amount, orig.currency)}",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -755,7 +773,7 @@ private fun BatchApplyDialog(
                                                 val mod = diff.modified
                                                 if (orig.category != mod.category) {
                                                     Text(
-                                                        text = stringResource(R.string.rules_batch_change_category, orig.category, mod.category),
+                                                        text = stringResource(R.string.rules_batch_change_category, categoryLabel(orig.category), categoryLabel(mod.category)),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }
@@ -805,7 +823,7 @@ private fun BatchApplyDialog(
                     // Initial state — show options with preview button
                     progress == null && result == null -> {
                         Text(
-                            text = stringResource(R.string.rules_batch_confirm, rule.name),
+                            text = stringResource(R.string.rules_batch_confirm, rule.displayName()),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -821,7 +839,7 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(
                                 text = pluralStringResource(R.plurals.rules_batch_processing, progress.second, progress.first, progress.second),
                                 style = MaterialTheme.typography.bodySmall
@@ -896,10 +914,10 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                         if (dryRunResult.totalMatched > 0) {
-                            TextButton(onClick = onApplyToUncategorized) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
-                            TextButton(onClick = onApplyToAll) { Text(stringResource(R.string.rules_batch_apply_all)) }
+                            TextButton(onClick = onApplyToUncategorized, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
+                            TextButton(onClick = onApplyToAll, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_all)) }
                         }
                     }
                 }
@@ -921,7 +939,7 @@ private fun BatchApplyDialog(
 
                 // Done — close button
                 result != null -> {
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_close)) }
+                    TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_close)) }
                 }
             }
         }

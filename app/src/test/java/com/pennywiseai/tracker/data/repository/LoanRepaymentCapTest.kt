@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -35,13 +35,13 @@ class LoanRepaymentCapTest {
     @Before
     fun setUp() {
         // Repayments run in a Room transaction; run the block inline against the mocked DAOs.
-        mockkStatic("androidx.room.RoomDatabaseKt")
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
     }
 
     @After
     fun tearDown() {
-        unmockkStatic("androidx.room.RoomDatabaseKt")
+        unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
     }
 
     private fun loan(remaining: String) = LoanEntity(

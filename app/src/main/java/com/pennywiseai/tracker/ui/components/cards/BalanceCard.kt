@@ -1,11 +1,14 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -32,7 +35,12 @@ import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +70,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.LongArrow
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income_dark
@@ -79,6 +88,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.ui.text.style.TextAlign
+import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
 import androidx.compose.animation.AnimatedVisibility
@@ -131,7 +141,8 @@ fun BalanceCard(
     isNetWorthApproximate: Boolean = false,
     netWorthChangePercent: Int?,
     monthlyChange: BigDecimal,
-    monthlyChangePercent: Int,
+    /** Null hides the change chip (no last-month spending to compare with). */
+    monthlyChangePercent: Int?,
     currency: String,
     currentMonthIncome: BigDecimal,
     currentMonthExpenses: BigDecimal,
@@ -154,6 +165,7 @@ fun BalanceCard(
     creditCards: List<AccountBalanceEntity> = emptyList(),
     loanAccounts: List<AccountBalanceEntity> = emptyList(),
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
+    forecast: SpendForecast? = null,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
     initiallyExpanded: Boolean = false,
     modifier: Modifier = Modifier,
@@ -378,6 +390,7 @@ fun BalanceCard(
                             lastMonthSpendingHistory = lastMonthSpendingHistory,
                             lastMonthSpending = lastMonthSpending,
                             isBalanceHidden = isBalanceHidden,
+                            forecast = forecast,
                             isDark = isDark,
                         )
 
@@ -548,25 +561,29 @@ private fun SpendingSection(
     currentMonthLent: BigDecimal,
     currentMonthTotal: BigDecimal,
     monthlyChange: BigDecimal,
-    monthlyChangePercent: Int,
+    monthlyChangePercent: Int?,
     spendingHistory: List<BigDecimal>,
     lastMonthSpendingHistory: List<BigDecimal>,
     lastMonthSpending: BigDecimal,
     isBalanceHidden: Boolean,
     isDark: Boolean,
+    forecast: SpendForecast? = null,
 ) {
     val isMoreSpending = monthlyChange >= BigDecimal.ZERO
     // Inverted for spending context: more spending = red, less spending = green
-    val changeColor = if (isMoreSpending) {
+    val changeColor = if (monthlyChangePercent == 0) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else if (isMoreSpending) {
         if (isDark) expense_dark else expense_light
     } else {
         if (isDark) income_dark else income_light
     }
-    val absPercent = kotlin.math.abs(monthlyChangePercent)
-    val changeText = if (isMoreSpending) {
-        stringResource(R.string.balance_card_change_more, absPercent)
-    } else {
-        stringResource(R.string.balance_card_change_less, absPercent)
+    val changeText = monthlyChangePercent?.let { percent ->
+        when {
+            isBalanceHidden -> "••••"
+            isMoreSpending -> stringResource(R.string.balance_card_change_more_same_point, kotlin.math.abs(percent))
+            else -> stringResource(R.string.balance_card_change_less_same_point, kotlin.math.abs(percent))
+        }
     }
     val expenseColor = if (isDark) expense_dark else expense_light
 
@@ -592,11 +609,17 @@ private fun SpendingSection(
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     )
     Spacer(modifier = Modifier.height(Spacing.xs))
-    SpendingMetaRow(
-        changeText = if (isBalanceHidden) "••••" else changeText,
-        changeColor = changeColor,
-        isIncrease = isMoreSpending
-    )
+    if (changeText != null) {
+        SpendingMetaRow(
+            changeText = changeText,
+            changeColor = changeColor,
+            isIncrease = isMoreSpending
+        )
+    }
+    forecast?.let {
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        ForecastRow(it, isBalanceHidden)
+    }
 
     if (spendingHistory.isNotEmpty()) {
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -975,7 +998,7 @@ private fun NetWorthTrendChart(
                 }
             }
 
-            val dateFormat = remember { DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()) }
+            val dateFormat = AppDates.dayMonthFormatter()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1143,6 +1166,52 @@ private fun MiniSparkline(
         )
     }
 }
+
+/** "On track for ₹42,300 by 31 Oct", plus an "over usual" chip styled like the change chip. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
+    val isDark = isSystemInDarkTheme()
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        itemVerticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(
+                R.string.forecast_on_track,
+                if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
+                forecast.periodEnd.format(SHORT_DATE)
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        forecast.overUsual?.let { over ->
+            Surface(
+                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.forecast_over_usual,
+                        if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(over, forecast.currency)
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDark) expense_dark else expense_light,
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * "31 Oct" — day and short month, in the user's locale. A getter, not a cached val: a
+ * formatter built once keeps the locale the process started in, so after switching the
+ * app language the month stayed in the old one.
+ */
+internal val SHORT_DATE: DateTimeFormatter get() = AppDates.dayMonthFormatter()
 
 @Composable
 private fun CurrencyChip(

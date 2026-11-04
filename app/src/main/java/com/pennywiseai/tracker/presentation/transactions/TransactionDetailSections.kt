@@ -1,5 +1,28 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.theme.expense_light
+import com.pennywiseai.tracker.ui.theme.expense_dark
+import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.income_dark
+import com.pennywiseai.tracker.presentation.people.tonalTextFieldColors
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import android.content.Intent
 import android.widget.Toast
@@ -174,10 +197,18 @@ internal fun TxnDetailReadOnlyBody(
         // Bank balance vs. ledger prediction (#734/#135): surface the gap and
         // offer to record it as an untracked transaction.
         discrepancy?.let { gap ->
+            var showAdjustmentSheet by rememberSaveable { mutableStateOf(false) }
+            if (showAdjustmentSheet) {
+                BalanceAdjustmentSheet(
+                    discrepancy = gap,
+                    viewModel = viewModel,
+                    onDismiss = { showAdjustmentSheet = false }
+                )
+            }
             TxnDetailMismatchCard(
                 discrepancy = gap,
                 adding = addingAdjustment,
-                onAdd = { viewModel.addBalanceAdjustment() }
+                onAdd = { showAdjustmentSheet = true }
             )
         }
 
@@ -320,8 +351,8 @@ private fun TxnDetailReceiptRows(
     val balanceAfter = transaction.balanceAfter
     val reference = transaction.reference
     val smsSender = transaction.smsSender
-    val description = transaction.description
-    val smsBody = transaction.smsBody
+    val description = transaction.description?.let(CurrencyFormatter::maskAmountsIn)
+    val smsBody = transaction.smsBody?.let(CurrencyFormatter::maskAmountsIn)
     val effectiveProfileId = transaction.profileId ?: accountProfileId
     val isBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
 
@@ -350,7 +381,7 @@ private fun TxnDetailReceiptRows(
             )
         } else {
             TxnReceiptChip(
-                text = transaction.category,
+                text = categoryLabel(transaction.category),
                 container = CategoryMapping.colorFor(transaction.category)
                     .copy(alpha = Dimensions.Alpha.tonalIconContainer),
                 leading = { CategoryIcon(category = transaction.category, size = Dimensions.Icon.small) }
@@ -764,6 +795,121 @@ private fun TxnDetailMismatchCard(
     }
 }
 
+/**
+ * Names the untracked amount behind a balance mismatch before it's added
+ * (#734): the amount is fixed, only "what was it?" and the category are asked.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BalanceAdjustmentSheet(
+    discrepancy: BalanceDiscrepancy,
+    viewModel: TransactionDetailViewModel,
+    onDismiss: () -> Unit,
+) {
+    val type = balanceAdjustmentType(discrepancy)
+    val isIncome = type == TransactionType.INCOME
+    val categories by viewModel.adjustmentCategories.collectAsStateWithLifecycle()
+    var merchant by rememberSaveable { mutableStateOf("") }
+    // Null until the user picks: the view model then tries the merchant's mapping.
+    var pickedCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    val shownCategory = pickedCategory ?: categories.balanceAdjustmentDefaultCategory(type)
+    var expanded by remember { mutableStateOf(false) }
+    val isDark = isAppInDarkTheme()
+    val amountColor = if (isIncome) {
+        if (isDark) income_dark else income_light
+    } else {
+        if (isDark) expense_dark else expense_light
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Spacing.xl)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Column {
+                Text(
+                    text = stringResource(
+                        if (isIncome) R.string.txn_detail_adjustment_title_income
+                        else R.string.txn_detail_adjustment_title_expense
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = (if (isIncome) "+" else "-") +
+                        CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = amountColor
+                )
+            }
+            TextField(
+                value = merchant,
+                onValueChange = { merchant = it },
+                label = { Text(stringResource(R.string.txn_detail_adjustment_what)) },
+                placeholder = { Text(stringResource(R.string.txn_detail_adjustment_what_placeholder)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = ListItemPosition.Single.toShape(),
+                colors = tonalTextFieldColors()
+            )
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                TextField(
+                    value = categoryLabel(shownCategory),
+                    onValueChange = { },
+                    label = { Text(stringResource(R.string.txn_detail_label_category)) },
+                    leadingIcon = { SelectedCategoryIcon(categories.find { it.name == shownCategory }) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                    readOnly = true,
+                    shape = ListItemPosition.Single.toShape(),
+                    colors = tonalTextFieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    CategoryMenuItems(
+                        categories = categories,
+                        isIncome = isIncome,
+                        onSelected = {
+                            pickedCategory = it.name
+                            expanded = false
+                        }
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End)
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.txn_detail_action_cancel))
+                }
+                Button(onClick = {
+                    viewModel.addBalanceAdjustment(merchant, pickedCategory)
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.txn_detail_adjustment_add))
+                }
+            }
+        }
+    }
+}
+
 // ── SMS + splits ──────────────────────────────────────────────────────────
 
 /** The original SMS: a single tonal row that unfolds into the monospaced message. */
@@ -828,7 +974,7 @@ internal fun TxnDetailSmsSection(smsBody: String, modifier: Modifier = Modifier)
                     color = scheme.surfaceContainerHigh
                 ) {
                     Text(
-                        text = smsBody,
+                        text = CurrencyFormatter.maskAmountsIn(smsBody),
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontFamily = FontFamily.Monospace
                         ),
@@ -859,7 +1005,7 @@ private fun TxnDetailSplitBreakdown(splits: List<SplitItem>, currency: String) {
                 ) {
                     TxnDetailCategoryTile(split.category)
                     Text(
-                        text = split.category,
+                        text = categoryLabel(split.category),
                         style = PennyWiseText.rowTitle,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,

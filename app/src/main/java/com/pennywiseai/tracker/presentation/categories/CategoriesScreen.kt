@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,14 +30,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -503,25 +507,25 @@ private fun SwipeableCategoryItem(
     onToggleHidden: (CategoryEntity) -> Unit,
 ) {
     val category = group.parent
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            when (dismissValue) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    if (!category.isSystem) {
-                        onDelete(category)
-                        // Keep the row in place while impact is reviewed.
-                        false
-                    } else {
-                        false // Don't allow swipe for system categories
-                    }
-                }
-                else -> false
-            }
+    // Only EndToStart has an anchor, and only for non-system categories, so any dismiss is a delete.
+    // Not rememberSaveable: a restored row must start at rest, or onDismiss re-fires.
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
+    val scope = rememberCoroutineScope()
+    // M3 re-runs onDismiss whenever the lambda changes while dismissed, so keep it stable.
+    val currentOnDelete by rememberUpdatedState({ onDelete(category) })
+    val onDismiss = remember {
+        { _: SwipeToDismissBoxValue ->
+            currentOnDelete()
+            // Keep the row in place while impact is reviewed.
+            scope.launch { dismissState.reset() }
+            Unit
         }
-    )
+    }
 
     SwipeToDismissBox(
         state = dismissState,
+        onDismiss = onDismiss,
         backgroundContent = {
             if (!category.isSystem) {
                 val color by animateColorAsState(

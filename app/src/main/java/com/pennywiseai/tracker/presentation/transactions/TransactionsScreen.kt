@@ -63,7 +63,7 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -82,9 +82,11 @@ import com.pennywiseai.tracker.ui.icons.iconax.CloseCircle
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Search
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -344,6 +346,18 @@ fun TransactionsScreen(
     // stack need matching bottom clearance (whether or not a back arrow shows).
     val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
 
+    // As a tab under the floating nav bar, Add docks beside the bar and Export
+    // moves to the top bar instead of a FAB stack.
+    val navDock = if (reserveBottomBarSpace) LocalNavDock.current else null
+    if (navDock != null) {
+        DockNavAction(
+            NavDockAction(
+                icon = Icons.Default.Add,
+                contentDescription = stringResource(R.string.txn_list_add_transaction),
+                onClick = onAddTransactionClick
+            )
+        )
+    }
 
     Scaffold(
         modifier = modifier
@@ -415,6 +429,16 @@ fun TransactionsScreen(
                             onClick = onNavigateBack,
                             contentDescription = stringResource(R.string.txn_list_back),
                         )
+                    },
+                    actionContent = {
+                        if (navDock != null && uiState.transactions.isNotEmpty()) {
+                            IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                                Icon(
+                                    imageVector = Icons.Default.FileDownload,
+                                    contentDescription = stringResource(R.string.txn_list_export_csv)
+                                )
+                            }
+                        }
                     },
                     hazeState = hazeState
                 )
@@ -1001,7 +1025,8 @@ private fun BulkGroupPickerSheet(
                                     onCreateGroup(newGroupName.trim())
                                 }
                             },
-                            enabled = newGroupName.isNotBlank()
+                            enabled = newGroupName.isNotBlank(),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.txn_list_group_create))
                         }
@@ -1010,7 +1035,8 @@ private fun BulkGroupPickerSheet(
             } else {
                 TextButton(
                     onClick = { showCreateField = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -1033,21 +1059,27 @@ private fun SwipeToEditCategory(
     content: @Composable () -> Unit
 ) {
     val view = LocalView.current
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                onRequestEdit(transaction)
-            }
-            // Never let the swipe complete — we use it purely as a gesture trigger
-            // and snap back to the resting state.
-            false
+    val scope = rememberCoroutineScope()
+    // Not rememberSaveable: a restored row must start at rest, or onDismiss re-fires.
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
+    // M3 re-runs onDismiss whenever the lambda changes while dismissed, so keep it stable.
+    val currentTransaction by rememberUpdatedState(transaction)
+    val currentOnRequestEdit by rememberUpdatedState(onRequestEdit)
+    val onDismiss = remember {
+        { _: SwipeToDismissBoxValue ->
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            currentOnRequestEdit(currentTransaction)
+            scope.launch { dismissState.reset() }
+            Unit
         }
-    )
+    }
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true,
+        // The swipe is purely a gesture trigger: fire the edit, then animate back to rest.
+        onDismiss = onDismiss,
         backgroundContent = {
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
@@ -1386,7 +1418,7 @@ private fun TransactionSearchBar(
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
                             Text(
-                                text = if (categoryFilter != null) stringResource(R.string.txn_list_search_in_category, categoryFilter)
+                                text = if (categoryFilter != null) stringResource(R.string.txn_list_search_in_category, categoryLabel(categoryFilter))
                                 else stringResource(R.string.txn_list_search_placeholder),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1399,7 +1431,7 @@ private fun TransactionSearchBar(
                 }
             )
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+                IconButton(onClick = { onQueryChange("") }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Iconax.CloseCircle,
                         contentDescription = stringResource(R.string.txn_list_clear_search),

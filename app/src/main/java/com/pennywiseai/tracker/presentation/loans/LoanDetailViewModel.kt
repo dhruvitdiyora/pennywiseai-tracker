@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -7,7 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.LoanRepository
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +36,7 @@ data class LoanDetailUiState(
 @HiltViewModel
 class LoanDetailViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -157,11 +161,14 @@ class LoanDetailViewModel @Inject constructor(
     fun deleteLoan() {
         viewModelScope.launch {
             loanRepository.deleteLoan(loanId)
+            WidgetRefresher.refreshTransactionWidgets(context)
             _uiState.value = _uiState.value.copy(showDeleteDialog = false, isDeleted = true)
         }
     }
 
+    /** After every loan change: a forgiven or repaid balance moves the widgets' "Spent" (#938). */
     private suspend fun refreshLoan() {
+        WidgetRefresher.refreshTransactionWidgets(context)
         val loan = loanRepository.getLoanById(loanId)
         _uiState.value = _uiState.value.copy(loan = loan)
     }

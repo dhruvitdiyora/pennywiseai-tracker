@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -26,13 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeDefaults.tint
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 /**
  * Height of the expanded Home header — the same 150dp the shared
@@ -58,7 +54,7 @@ private val HOME_BAR_EXPANDED_HEIGHT = 150.dp
  *   `Row`, as the bar hands this slot a single child.
  * @param expandedContent The greeting row shown while the page is scrolled to the top.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
     title: String,
@@ -91,19 +87,7 @@ fun HomeTopBar(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            tint = tint(backgroundColor),
-                            blurRadius = 10.dp,
-                            noiseFactor = -1f,
-                        )
-                        progressive =
-                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                    }
-                ) else Modifier
+                if (blurEffects) Modifier.frostedBlur(hazeState, tint = pageBackground, blurRadius = 10.dp, progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)) else Modifier
             )
             .background(
                 Brush.verticalGradient(

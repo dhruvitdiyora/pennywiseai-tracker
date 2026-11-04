@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.database.dao
 
-import androidx.room.*
+import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +38,8 @@ interface MerchantMappingDao {
 
     @Query("SELECT * FROM merchant_mappings")
     suspend fun getAllMappingsList(): List<MerchantMappingEntity>
+
+    /** The row stored under exactly [merchantName] (its primary key). */
+    @Query("SELECT * FROM merchant_mappings WHERE merchant_name = :merchantName")
+    suspend fun getMapping(merchantName: String): MerchantMappingEntity?
 }

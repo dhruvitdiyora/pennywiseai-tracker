@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.groups
 
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
 import com.pennywiseai.tracker.presentation.accounts.glassRowColor
 import androidx.compose.foundation.background
@@ -71,7 +72,6 @@ import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import java.text.NumberFormat
-import java.time.format.DateTimeFormatter
 
 /*
  * Pieces shared by the Transaction Groups list and the group detail screen, so
@@ -303,9 +303,9 @@ internal fun GroupTransactionRow(
         else -> ""
     }
     val amountText = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency))
-    val description = transaction.description?.takeIf { it.isNotBlank() }
+    val description = transaction.description?.takeIf { it.isNotBlank() }?.let(CurrencyFormatter::maskAmountsIn)
     val dateText = remember(transaction.dateTime, showYear) {
-        transaction.dateTime.format(DateTimeFormatter.ofPattern(if (showYear) "d MMM yyyy" else "d MMM"))
+        transaction.dateTime.format(if (showYear) AppDates.dateFormatter() else AppDates.dayMonthFormatter())
     }
     val accessibleSubtitle = buildString {
         if (description != null) {

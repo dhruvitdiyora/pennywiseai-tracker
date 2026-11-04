@@ -23,6 +23,10 @@ import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.SafeToSpend
+import com.pennywiseai.tracker.domain.spending.SpendForecast
+import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
@@ -40,6 +44,8 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
@@ -64,6 +70,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -115,6 +122,8 @@ class HomeViewModel @Inject constructor(
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
     @ApplicationContext private val context: Context,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
+    private val categoryRepository: CategoryRepository,
+    private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
 ) : ViewModel() {
 
     /**
@@ -196,6 +205,16 @@ class HomeViewModel @Inject constructor(
     // Calendar year-to-date income/expense per currency, for the net-worth hero's This year figure.
     private var currentYearBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
+    // The previous SpendForecast.USUAL_PERIODS complete cycles, most recent first, for
+    // the forecast's "usual". The first one is lastMonthBreakdownMap.
+    private var previousCycleBreakdownMaps: List<Map<String, TransactionRepository.MonthlyBreakdown>> = emptyList()
+    // The previous cycle cut at today's day-of-cycle, for the "vs this time last month" chip.
+    private var lastMonthSamePointBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
+
+    // Per-currency LENT-loan settlement loss for each of those cycles, folded into "usual"
+    // the same way currentMonthLoanLossByCurrency is folded into this cycle's spend.
+    private var previousCycleLoanLoss: List<Map<String, BigDecimal>> = emptyList()
+
     // Per-currency total loss from LENT loans settled this month. Folded into the displayed
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
     private var currentMonthLoanLossByCurrency: Map<String, BigDecimal> = emptyMap()
@@ -217,6 +236,12 @@ class HomeViewModel @Inject constructor(
     private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>?>(null)
     private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value ?: emptyList()
 
+    // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.
+    private val spendableRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
+
+    // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
+    private val today = MutableStateFlow(LocalDate.now())
+
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
      * order, and init calls refreshSharePrompt(). Leaving this further down the class
@@ -225,6 +250,120 @@ class HomeViewModel @Inject constructor(
     private val _showSharePrompt = MutableStateFlow(false)
     val showSharePrompt: StateFlow<Boolean> = _showSharePrompt.asStateFlow()
 
+
+    /**
+     * The one-time "start budgets on payday?" card: the day the salary seems to land, offered
+     * only while the budget cycle is still the calendar month (day 1) and the card hasn't been
+     * accepted or dismissed. Null hides it. Detection reruns on any change to those months'
+     * transactions (a salary arriving with a later scan, or one recategorized as Salary).
+     */
+    val paydaySuggestion: StateFlow<Int?> = combine(
+        userPreferencesRepository.paydaySuggestionHandled,
+        userPreferencesRepository.budgetCycleStartDay,
+    ) { handled, cycleDay -> !handled && cycleDay == 1 }
+        .distinctUntilChanged()
+        .flatMapLatest { eligible ->
+            if (!eligible) return@flatMapLatest flowOf(null)
+            // Complete months only: a stray credit early in the current month would
+            // otherwise be that month's "salary" and break the agreement check.
+            val thisMonth = YearMonth.now()
+            combine(
+                transactionRepository.getTransactionsBetweenDates(
+                    thisMonth.minusMonths(PAYDAY_HISTORY_MONTHS).atDay(1).atStartOfDay(),
+                    thisMonth.atDay(1).atStartOfDay().minusNanos(1)
+                ),
+                categoryRepository.getAllCategories(),
+            ) { transactions, categories ->
+                // By built-in identity, so a translated or renamed Salary category still matches.
+                detectPayday(transactions, categories.nameForBuiltin("Salary"))?.takeIf { it != 1 }
+            }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The compact "possible recurring bills" card: the untracked repeating payments
+     * found in history, or null to hide it. Dismissing hides it for 30 days, and
+     * after that it comes back only for a suggestion it hasn't shown before.
+     */
+    val recurringSuggestions: StateFlow<List<com.pennywiseai.tracker.domain.spending.RecurringSuggestion>?> = combine(
+        recurringSuggestionsUseCase.suggestions,
+        userPreferencesRepository.recurringHomeCardSeen,
+        userPreferencesRepository.recurringHomeCardDismissedAt,
+    ) { suggestions, seen, dismissedAt ->
+        val quiet = dismissedAt != null &&
+            System.currentTimeMillis() - dismissedAt < RECURRING_CARD_QUIET_MILLIS
+        suggestions.takeIf { list -> !quiet && list.any { it.key !in seen } }
+    }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun dismissRecurringSuggestions(shown: List<com.pennywiseai.tracker.domain.spending.RecurringSuggestion>) {
+        viewModelScope.launch {
+            userPreferencesRepository.dismissRecurringHomeCard(shown.map { it.key }, System.currentTimeMillis())
+        }
+    }
+
+    /**
+     * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
+     * out) less active subscriptions due before the cycle ends, capped at what's left
+     * in the overall budget ([safeToSpendCap]). Netted per currency;
+     * in unified mode each figure is converted to the display currency first, and one
+     * with no rate stays in its own currency as a separate line. Null hides the card.
+     */
+    val safeToSpend: StateFlow<SafeToSpendUi?> = combine(
+        spendableRaw,
+        subscriptionRepository.getActiveSubscriptions(),
+        userPreferencesRepository.safeToSpendExcludedAccounts,
+        combine(
+            _currentCycleWindow,
+            today,
+            _uiState.map { it.budgetSummary }.distinctUntilChanged(),
+        ) { window, day, budgets -> Triple(window.second, day, budgets?.safeToSpendCap(day)) },
+        combine(
+            userPreferencesRepository.unifiedCurrencyMode,
+            userPreferencesRepository.displayCurrency,
+            _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
+            currencyConversionService.getAllRatesFlow(),
+        ) { unified, display, selected, _ -> if (unified) display to true else selected to false },
+    ) { accounts, subscriptions, excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
+        if (accounts.isEmpty()) return@combine null
+        suspend fun Money.forTotal(): Money =
+            if (!unified || currency == primaryCurrency) this
+            else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
+                ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
+        val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, periodEnd)
+        val results = SafeToSpend.calculate(
+            balances = countedInSafeToSpend(accounts, excluded).map { Money(it.balance, it.currency).forTotal() },
+            bills = bills.map { it.copy(amount = it.amount.forTotal()) },
+            today = today,
+            periodEnd = periodEnd,
+            budgetLeft = budgetLeft,
+        )
+        val primary = results.firstOrNull { it.currency == primaryCurrency }
+            ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
+        SafeToSpendUi(primary, results - primary, periodEnd, accounts, excluded, bills)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Called when Home resumes. On a new day, move the cycle window (if it rolled over)
+     * and re-run the day-based figures: forecast and Safe to spend.
+     */
+    fun refreshDate() {
+        val now = LocalDate.now()
+        if (now == today.value) return
+        today.value = now
+        viewModelScope.launch {
+            _currentCycleWindow.value = BudgetCycle.currentCycle(now, userPreferencesRepository.budgetCycleStartDay.first())
+            updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+        }
+    }
+
+    fun setSafeToSpendAccountIncluded(account: AccountBalanceEntity, included: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setSafeToSpendAccountIncluded(safeToSpendKey(account), included)
+        }
+    }
 
     init {
         loadUnifiedModePreferences()
@@ -241,10 +380,16 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val base = userPreferencesRepository.baseCurrency.first()
             baseCurrency = base
-            selectedCurrencyForTrend.value = base
+            // In unified mode every figure is converted into the display currency, so
+            // start there — starting on the base currency would label converted
+            // amounts with the wrong symbol (e.g. USD values shown as ₹).
+            val initial = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
+                userPreferencesRepository.displayCurrency.first()
+            } else base
+            selectedCurrencyForTrend.value = initial
             _uiState.value = _uiState.value.copy(
-                selectedCurrency = base,
-                availableCurrencies = listOf(base)
+                selectedCurrency = initial,
+                availableCurrencies = listOf(initial)
             )
             loadHomeData()
         }
@@ -260,12 +405,10 @@ class HomeViewModel @Inject constructor(
      * (or once on first emission). Cheap: just two `LocalDate` reads + arithmetic.
      */
     private fun observeBudgetCycle() {
-        // Read once: the toggle owns the state after that, so a slow save can't
-        // flip it back. Skipped if the user already toggled before it loaded.
-        viewModelScope.launch {
-            val hidden = userPreferencesRepository.isBalanceHidden.first()
-            if (!balanceVisibilityToggled) _uiState.value = _uiState.value.copy(isBalanceHidden = hidden)
-        }
+        // Followed live: a shake or the eye anywhere in the app updates Home too.
+        userPreferencesRepository.isBalanceHidden
+            .onEach { hidden -> _uiState.value = _uiState.value.copy(isBalanceHidden = hidden) }
+            .launchIn(viewModelScope)
 
         userPreferencesRepository.budgetCycleStartDay
             .onEach { startDay ->
@@ -274,14 +417,9 @@ class HomeViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    private var balanceVisibilityToggled = false
-
+    /** Hides or shows amounts app-wide; remembered across launches. */
     fun toggleBalanceVisibility() {
-        balanceVisibilityToggled = true
-        val hidden = !_uiState.value.isBalanceHidden
-        _uiState.value = _uiState.value.copy(isBalanceHidden = hidden)
-        // Remembered across launches, so a revealed balance stays revealed.
-        viewModelScope.launch { userPreferencesRepository.setBalanceHidden(hidden) }
+        viewModelScope.launch { userPreferencesRepository.toggleBalanceHidden() }
     }
 
     fun setShowHomeBanner(show: Boolean) {
@@ -313,6 +451,8 @@ class HomeViewModel @Inject constructor(
 
                 val currentSelected = _uiState.value.selectedCurrency
                 val availableCurrencies = _uiState.value.availableCurrencies
+                // Unified mode pins the selection to the display currency.
+                if (userPreferencesRepository.unifiedCurrencyMode.first()) return@onEach
                 if (baseCurrency != currentSelected && !hasUserSelectedCurrency) {
                     if (availableCurrencies.isEmpty() || availableCurrencies.contains(baseCurrency)) {
                         selectCurrency(baseCurrency)
@@ -478,11 +618,13 @@ class HomeViewModel @Inject constructor(
             // flatMapLatest on the cycle window so a start-day change (e.g. Settings
             // → "25th" while the screen is open) cancels the in-flight query and
             // re-fetches against the new window — without this, the captured
-            // cycleStart would go stale.
-            _currentCycleWindow
-                .flatMapLatest { (cycleStart, _) ->
-                    val now = LocalDate.now()
-                    transactionRepository.getTransactionsBetweenDates(cycleStart, now)
+            // cycleStart would go stale. `today` too: resuming on a new day inside the
+            // same cycle leaves the window unchanged, and the old end date would keep
+            // today's spending out of "Spent this month".
+            combine(_currentCycleWindow, today) { (cycleStart, _), day -> cycleStart to day }
+                .distinctUntilChanged()
+                .flatMapLatest { (cycleStart, day) ->
+                    transactionRepository.getTransactionsBetweenDates(cycleStart, day)
                 }
                 .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
                     transactions to profileId
@@ -524,6 +666,7 @@ class HomeViewModel @Inject constructor(
                 // Separate credit cards from regular accounts (hide zero balance accounts).
                 // Loan accounts land in neither: they are owed, not spendable (#792).
                 val rawRegularAccounts = spendableAccounts(balances)
+                spendableRaw.value = rawRegularAccounts
                 val rawCreditCards = balances.filter { it.isCreditCard }
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
@@ -542,23 +685,12 @@ class HomeViewModel @Inject constructor(
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
                 val loanAccounts = convertAccountEntities(owedLoanAccounts(balances), selectedCurrency, isUnified)
 
-                // regularAccounts/creditCards are already pre-converted by
-                // convertAccountEntities (currency == selectedCurrency for everything it
-                // could convert). So just sum their balances; anything still in a foreign
-                // currency is one we couldn't get a rate for — add its raw amount as a
-                // best-effort fallback and flag the total as approximate.
-                var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-                var hasApproximateBalance = false
-                for (account in regularAccounts) {
-                    totalBalanceInSelectedCurrency += account.balance
-                    if (account.currency != selectedCurrency) hasApproximateBalance = true
-                }
-
-                var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-                for (card in creditCards) {
-                    totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                    if (card.currency != selectedCurrency) hasApproximateBalance = true
-                }
+                // Only balances already in selectedCurrency are totalled; anything else (native
+                // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+                val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+                val totalBalanceInSelectedCurrency = totals.balance
+                val totalAvailableCreditInSelectedCurrency = totals.availableCredit
+                val hasApproximateBalance = totals.hasOtherCurrencies
 
                 // Update available currencies to include account currencies
                 val currentAvailableCurrencies = _uiState.value.availableCurrencies.toSet()
@@ -732,23 +864,9 @@ class HomeViewModel @Inject constructor(
                 // so settlement losses silently stopped reaching "Spent" after #571.
                 .collect { (settledLoans, profileId, balances) ->
                     val keys = buildProfileAccountKeys(balances)
-                    val byCurrency = mutableMapOf<String, BigDecimal>()
-                    for (loan in settledLoans) {
-                        val sourceTx = loanRepository.getOriginalTransactionForLoan(loan.id)
-                        // Null sourceTx means the loan has no live linked transaction (all were
-                        // unlinked or deleted). Skip entirely — without a transaction we can't
-                        // attribute the loss to any profile, and treating null as "include
-                        // everywhere" would double-count it for users with multiple profiles.
-                        val belongsToProfile = sourceTx != null &&
-                            filterTransactionsByProfile(listOf(sourceTx), profileId, keys).isNotEmpty()
-                        if (!belongsToProfile) continue
-
-                        val loss = loanRepository.getSettlementLoss(loan)
-                        if (loss > BigDecimal.ZERO) {
-                            byCurrency.merge(loan.currency, loss) { a, b -> a + b }
-                        }
+                    currentMonthLoanLossByCurrency = loanRepository.settlementLossByCurrency(settledLoans) {
+                        filterTransactionsByProfile(listOf(it), profileId, keys).isNotEmpty()
                     }
-                    currentMonthLoanLossByCurrency = byCurrency
                     updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
         }
@@ -758,24 +876,60 @@ class HomeViewModel @Inject constructor(
             // "Last month" here means "previous cycle" so the comparison lines up with the
             // custom start day (a user on the 25th-of-month cycle sees 25th→24th vs
             // 25th→24th, not 1st→today vs 1st→today).
+            //
+            // One query covers the last SpendForecast.USUAL_PERIODS cycles so the
+            // forecast's "usual" uses exactly this spend definition too.
             _currentCycleWindow
                 .flatMapLatest { current ->
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                    val (lastMonthStart, lastMonthEnd) = BudgetCycle.previousCycle(current, startDay)
-                    transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd)
+                    val cycles = generateSequence(BudgetCycle.previousCycle(current, startDay)) {
+                        BudgetCycle.previousCycle(it, startDay)
+                    }.take(SpendForecast.USUAL_PERIODS).toList()
+                    transactionRepository.getTransactionsBetweenDates(cycles.last().first, cycles.first().second)
+                        .map { transactions -> cycles to transactions }
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
-                    transactions to profileId
+                .combine(userPreferencesRepository.selectedProfileId) { pair, profileId ->
+                    pair to profileId
                 }
-                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .forTotals()
+                .combine(_cachedAccountBalances.filterNotNull()) { (pair, profileId), balances ->
+                    val (cycles, transactions) = pair
+                    val keys = buildProfileAccountKeys(balances)
+                    previousCycleLoanLoss = cycles.map { (start, end) ->
+                        val settled = loanRepository.getLentLoansSettledInPeriod(
+                            start.atStartOfDay(), end.atTime(java.time.LocalTime.MAX)
+                        ).first()
+                        loanRepository.settlementLossByCurrency(settled) {
+                            filterTransactionsByProfile(listOf(it), profileId, keys).isNotEmpty()
+                        }
+                    }
+                    cycles to filterTransactionsByProfile(transactions, profileId, keys).forTotals()
                 }
-                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
-                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
+                    Triple(cycles, nonLoan, creditAsExpense)
                 }
-                .collect { breakdownByCurrency ->
-                    updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
+                // `today` too: the same-point window grows by a day every day.
+                .combine(today) { (cycles, nonLoan, creditAsExpense), day ->
+                    val full = cycles.map { (start, end) ->
+                        computeBreakdownByCurrency(
+                            nonLoan.filter { it.dateTime.toLocalDate() in start..end },
+                            creditAsExpense
+                        )
+                    }
+                    // As many days into the previous cycle as today is into this one, under
+                    // the headline's own spend rules (credit-card preference included).
+                    val (prevStart, prevEnd) = cycles.first()
+                    val elapsed = ChronoUnit.DAYS.between(_currentCycleWindow.value.first, day).coerceAtLeast(0)
+                    val cutoff = minOf(prevStart.plusDays(elapsed), prevEnd)
+                    val samePoint = computeBreakdownByCurrency(
+                        nonLoan.filter { it.dateTime.toLocalDate() in prevStart..cutoff },
+                        creditAsExpense
+                    )
+                    full to samePoint
+                }
+                .collect { (breakdowns, samePoint) ->
+                    previousCycleBreakdownMaps = breakdowns
+                    lastMonthSamePointBreakdownMap = samePoint
+                    updateBreakdownForSelectedCurrency(breakdowns.first(), isCurrentMonth = false)
                 }
         }
 
@@ -803,15 +957,19 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load cumulative spending sparkline for current cycle + previous cycle comparison
-            val now = LocalDate.now()
-            _currentCycleWindow
-                .flatMapLatest { (firstOfMonth, cycleEnd) ->
+            // Load cumulative spending sparkline for current cycle + previous cycle comparison.
+            // Keyed on `today` as well, like the "Spent" query, so a next-day resume
+            // extends the chart instead of freezing it at the ViewModel's first day.
+            var now = today.value
+            combine(_currentCycleWindow, today) { window, day -> window to day }
+                .distinctUntilChanged()
+                .flatMapLatest { (window, day) ->
+                    now = day
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                    val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to cycleEnd, startDay)
+                    val (lastMonthStart, _) = BudgetCycle.previousCycle(window, startDay)
                     transactionRepository.getTransactionsBetweenDates(
                         startDate = lastMonthStart,
-                        endDate = now
+                        endDate = day
                     )
                 }
                 .combine(userPreferencesRepository.selectedProfileId) { allTransactions, profileId ->
@@ -820,6 +978,11 @@ class HomeViewModel @Inject constructor(
                 .combine(_cachedAccountBalances.filterNotNull()) { (allTransactions, profileId), balances ->
                     filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
                 }
+                // Rebuild on a currency switch too, or the sparkline keeps drawing the
+                // previous currency's figures.
+                .combine(
+                    _uiState.map { it.selectedCurrency to it.isUnifiedMode }.distinctUntilChanged()
+                ) { allTransactions, _ -> allTransactions }
                 .collect { allTransactions ->
                     val (firstOfMonth, _) = _currentCycleWindow.value
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
@@ -873,7 +1036,6 @@ class HomeViewModel @Inject constructor(
                         spendingHistory = cumulativeList,
                         lastMonthSpendingHistory = lastMonthCumulative
                     )
-                    calculateMonthlyChange()
                 }
         }
 
@@ -883,8 +1045,11 @@ class HomeViewModel @Inject constructor(
                 loanRepository.getActiveLoans(),
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
-                personRepository.observePeople(includeArchived = true)
-            ) { loans, isUnified, displayCurrency, people ->
+                personRepository.observePeople(includeArchived = true),
+                // Native mode totals only the selected currency, so re-total on a switch
+                // instead of relabelling the old currency's figures.
+                _uiState.map { it.selectedCurrency }.distinctUntilChanged()
+            ) { loans, isUnified, displayCurrency, people, _ ->
                 if (loans.isEmpty()) null
                 else Quad(loans, isUnified, displayCurrency, people.associate { it.person.id to it.person })
             }.collect { summary ->
@@ -1038,23 +1203,20 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.displayCurrency
             ) { subscriptions, isUnified, displayCurrency ->
                 Triple(subscriptions, isUnified, displayCurrency)
-            }.collect { (allSubscriptions, isUnified, displayCurrency) ->
-                // The Home card reads "N subscriptions · ₹x / month": only money
-                // going out, each charge scaled to its monthly equivalent so a
-                // yearly plan doesn't count as twelve months' spend in one.
-                val subscriptions = allSubscriptions.filter {
-                    it.direction == SubscriptionDirection.EXPENSE
-                }
-                fun SubscriptionEntity.monthlyAmount() =
-                    SubscriptionBillingCycle.monthlyEquivalent(amount, billingCycle)
+            }.collect { (allActive, isUnified, displayCurrency) ->
+                // Money going out only: an income "subscription" (salary, rent received)
+                // isn't a bill, and a weekly or annual charge is folded to its monthly
+                // share so the card's "Monthly total" is one.
+                val subscriptions = allActive.filter { it.direction == SubscriptionDirection.EXPENSE }
                 // Unified mode collapses to one converted figure. Native mode keeps
                 // currencies apart — summing ₹ + $ into one figure mislabels it — so
                 // we expose a per-currency map the card renders as "₹499 · $10".
+                val monthlyCosts = subscriptions.map { it to SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
                 val totalAmount = if (isUnified) {
                     var total = java.math.BigDecimal.ZERO
-                    for (sub in subscriptions) {
+                    for ((sub, monthly) in monthlyCosts) {
                         total += currencyConversionService.convertAmountOrNull(
-                            sub.monthlyAmount(), sub.currency, displayCurrency
+                            monthly, sub.currency, displayCurrency
                         ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
@@ -1064,12 +1226,15 @@ class HomeViewModel @Inject constructor(
                 val totalByCurrency: Map<String, Money> = if (isUnified) {
                     emptyMap()
                 } else {
-                    subscriptions.sumByCurrency({ it.currency }, { it.monthlyAmount() })
+                    monthlyCosts.sumByCurrency({ it.first.currency }, { it.second })
                 }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
                     upcomingSubscriptionsTotal = totalAmount,
-                    upcomingSubscriptionsByCurrency = totalByCurrency
+                    upcomingSubscriptionsByCurrency = totalByCurrency,
+                    nextDueSubscription = subscriptions
+                        .filter { it.nextPaymentDate != null }
+                        .minByOrNull { it.nextPaymentDate!! }
                 )
             }
         }
@@ -1079,7 +1244,9 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
                 userPreferencesRepository.baseCurrency,
-                _currentCycleWindow
+                // Re-run on a new day too: a weekly budget can reset inside the same
+                // monthly cycle, and Safe to spend's cap reads this summary's windows.
+                combine(_currentCycleWindow, today) { cycle, _ -> cycle }
             ) { unifiedMode, displayCurrency, baseCurrency, cycle ->
                 Quad(unifiedMode, displayCurrency, baseCurrency, cycle)
             }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency, cycle) ->
@@ -1111,17 +1278,17 @@ class HomeViewModel @Inject constructor(
     }
     
     private fun calculateMonthlyChange() {
-        val currentExpenses = _uiState.value.currentMonthExpenses
-        val lastExpenses = _uiState.value.lastMonthExpenses
-        val change = currentExpenses - lastExpenses
-        val changePercent = if (lastExpenses != BigDecimal.ZERO) {
-            change.multiply(BigDecimal(100)).divide(lastExpenses, 0, RoundingMode.HALF_UP).toInt()
-        } else {
-            0
-        }
-        _uiState.value = _uiState.value.copy(
-            monthlyChange = change,
-            monthlyChangePercent = changePercent
+        // Compare like with like: spend so far vs the same number of days into the
+        // previous cycle, not the whole previous cycle — that made every early-cycle
+        // day read as a green "% less".
+        // ponytail: settlement losses sit in the headline but not the same-point window
+        // (as with the old full-cycle figure); add a windowed loss query if it matters.
+        val state = _uiState.value
+        val current = state.currentMonthExpenses
+        val lastAtSamePoint = state.lastMonthSamePointExpenses
+        _uiState.value = state.copy(
+            monthlyChange = current - lastAtSamePoint,
+            monthlyChangePercent = monthlyChangePercent(current, lastAtSamePoint)
         )
     }
     
@@ -1137,6 +1304,7 @@ class HomeViewModel @Inject constructor(
             val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
             val rawRegularAccounts = spendableAccounts(visibleBalances)
+            spendableRaw.value = rawRegularAccounts
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
 
             val selectedCurrency = _uiState.value.selectedCurrency
@@ -1147,19 +1315,12 @@ class HomeViewModel @Inject constructor(
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
             val loanAccounts = convertAccountEntities(owedLoanAccounts(visibleBalances), selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalance = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalance += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-            var totalAvailableCredit = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCredit += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            // Only balances already in selectedCurrency are totalled; anything else (native
+            // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+            val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+            val totalBalance = totals.balance
+            val totalAvailableCredit = totals.availableCredit
+            val hasApproximateBalance = totals.hasOtherCurrencies
 
             val netWorth = computeNetWorth(visibleBalances, selectedCurrency, isUnified)
 
@@ -1252,6 +1413,7 @@ class HomeViewModel @Inject constructor(
 
             val balances = filterVisibleBalances(allBalances, hiddenAccounts)
             val rawRegularAccounts = spendableAccounts(balances)
+            spendableRaw.value = rawRegularAccounts
             val rawCreditCards = balances.filter { it.isCreditCard }
 
             val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
@@ -1270,20 +1432,12 @@ class HomeViewModel @Inject constructor(
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
             val loanAccounts = convertAccountEntities(owedLoanAccounts(balances), selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalanceInSelectedCurrency += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-
-            var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            // Only balances already in selectedCurrency are totalled; anything else (native
+            // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+            val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+            val totalBalanceInSelectedCurrency = totals.balance
+            val totalAvailableCreditInSelectedCurrency = totals.availableCredit
+            val hasApproximateBalance = totals.hasOtherCurrencies
 
             val netWorth = computeNetWorth(balances, selectedCurrency, isUnified)
 
@@ -1399,6 +1553,19 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.markSharePromptHandled(lastMonthKey)
         }
+    }
+
+    /** "Start on day N" on the payday card: the budget cycle moves to payday, and the card never comes back. */
+    fun acceptPaydaySuggestion(day: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.markPaydaySuggestionHandled()
+            userPreferencesRepository.updateBudgetCycleStartDay(day)
+        }
+    }
+
+    /** ✕ on the payday card. The day stays settable in Settings → Budget cycle. */
+    fun dismissPaydaySuggestion() {
+        viewModelScope.launch { userPreferencesRepository.markPaydaySuggestionHandled() }
     }
 
     /** "See Pro" or ✕ on the Pro card — either way it never comes back. */
@@ -1539,6 +1706,7 @@ class HomeViewModel @Inject constructor(
                 val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
                 val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
                 val yearBreakdown = aggregateBreakdowns(currentYearBreakdownMap, selectedCurrency)
+                val lastSamePoint = aggregateBreakdowns(lastMonthSamePointBreakdownMap, selectedCurrency).expenses
                 val loanLoss = aggregateAcrossCurrencies(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
                 val lent = aggregateAcrossCurrencies(currentMonthLentByCurrency, selectedCurrency, isUnified = true)
 
@@ -1551,8 +1719,20 @@ class HomeViewModel @Inject constructor(
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
                     currentYearTotal = yearBreakdown.total,
+                    lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
-                    availableCurrencies = availableCurrencies
+                    availableCurrencies = availableCurrencies,
+                    spendForecast = forecastFor(
+                        currentBreakdown.expenses + loanLoss,
+                        selectedCurrency,
+                        previousCycleBreakdownMaps.mapIndexed { i, map ->
+                            val loss = previousCycleLoanLoss.getOrNull(i).orEmpty()
+                            // A cycle with only a settlement loss still counts as history.
+                            if (map.isEmpty() && loss.isEmpty()) null
+                            else aggregateBreakdowns(map, selectedCurrency).expenses +
+                                aggregateAcrossCurrencies(loss, selectedCurrency, isUnified = true)
+                        }
+                    )
                 )
                 calculateMonthlyChange()
             }
@@ -1583,11 +1763,29 @@ class HomeViewModel @Inject constructor(
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
                 currentYearTotal = yearTotal,
+                lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies
+                availableCurrencies = availableCurrencies,
+                spendForecast = forecastFor(
+                    currentBreakdown.expenses + loanLoss,
+                    selectedCurrency,
+                    previousCycleBreakdownMaps.mapIndexed { i, map ->
+                        val spent = map[selectedCurrency]?.expenses
+                        val loss = previousCycleLoanLoss.getOrNull(i)?.get(selectedCurrency)
+                        // A cycle with only a settlement loss still counts as history.
+                        if (spent == null && loss == null) null
+                        else (spent ?: BigDecimal.ZERO) + (loss ?: BigDecimal.ZERO)
+                    }
+                )
             )
             calculateMonthlyChange()
         }
+    }
+
+    /** Month-end forecast for the "Spent this month" figure; null until day 7 of the cycle. */
+    private fun forecastFor(spent: BigDecimal, currency: String, previous: List<BigDecimal?>): SpendForecast? {
+        val (start, end) = _currentCycleWindow.value
+        return SpendForecast.of(spent, currency, start, end, LocalDate.now(), previous)
     }
 
     private suspend fun aggregateAcrossCurrencies(
@@ -1746,11 +1944,12 @@ class HomeViewModel @Inject constructor(
 
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
             val isTrackingAll = group.categories.isEmpty()
+            val window = raw.currentWindows[group.budget.id]
             val daysRemaining = daysRemainingFor(group.budget)
             val daysElapsed = daysElapsedFor(group.budget)
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
-                val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
+                val convertedBudget = currencyConversionService.convertAmountOrNull(cat.budgetAmount, baseCurrency, displayCurrency) ?: BigDecimal.ZERO
                 val effectiveBudget = convertedBudget +
                     (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
@@ -1767,9 +1966,9 @@ class HomeViewModel @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val convertedGroupLimit = currencyConversionService.convertAmount(
+            val convertedGroupLimit = currencyConversionService.convertAmountOrNull(
                 group.budget.limitAmount, baseCurrency, displayCurrency
-            )
+            ) ?: BigDecimal.ZERO
             // "Category Limits" are optional — the group-level limit is the
             // source of truth when set (including when isTrackingAll), with
             // the per-cat sum as a fallback for budgets that only define
@@ -1801,7 +2000,12 @@ class HomeViewModel @Inject constructor(
                 dailyAllowance = dailyAllowance,
                 daysRemaining = daysRemaining,
                 daysElapsed = daysElapsed,
-                isTrackingAllExpenses = isTrackingAll
+                isTrackingAllExpenses = isTrackingAll,
+                // The window the repo resolved, as the single-currency path sets it;
+                // without it the window defaults to today..today with 0 days.
+                windowStart = window?.start ?: LocalDate.now(),
+                windowEnd = window?.end ?: LocalDate.now(),
+                windowDays = window?.days ?: 0
             )
         }
 
@@ -1845,6 +2049,8 @@ class HomeViewModel @Inject constructor(
         const val BALANCE_TREND_DAYS = 180L
         /** Rows in Home's Recent list (Cashiro shows three, then "View All"). */
         const val HOME_RECENT_LIMIT = 3
+
+        const val RECURRING_CARD_QUIET_MILLIS = 30L * 24 * 60 * 60 * 1000
     }
 
 }
@@ -1872,13 +2078,17 @@ data class HomeUiState(
     val lastMonthIncome: BigDecimal = BigDecimal.ZERO,
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
-    val monthlyChangePercent: Int = 0,
+    val lastMonthSamePointExpenses: BigDecimal = BigDecimal.ZERO,
+    /** Null when last month had no spending: there is nothing to compare with. */
+    val monthlyChangePercent: Int? = null,
     val recentItems: List<HomeRecentItem> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     /** Unified-mode total, converted to the display currency. */
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
     /** Native-mode totals, kept per-currency so a ₹ + $ mix isn't summed. */
     val upcomingSubscriptionsByCurrency: Map<String, Money> = emptyMap(),
+    /** The soonest-due active EXPENSE subscription, for the card's "Next:" line. */
+    val nextDueSubscription: SubscriptionEntity? = null,
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
@@ -1916,8 +2126,75 @@ data class HomeUiState(
     /** Calendar year-to-date income minus expenses in [selectedCurrency]. */
     val currentYearTotal: BigDecimal = BigDecimal.ZERO,
     val loanSummary: LoanSummary? = null,
+    val spendForecast: SpendForecast? = null,
     val selectedProfileId: Long? = null,
     val profiles: List<ProfileEntity> = emptyList()
+)
+
+/** Pref key for an account in the Safe to spend selection. */
+internal fun safeToSpendKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"
+
+/**
+ * Cash or a mobile wallet below zero: money can't really go negative there, so it's a
+ * tracking gap, not debt, and stays out of Safe to spend. An overdrawn bank account
+ * is real debt and still counts.
+ */
+internal fun isUncountedNegative(account: AccountBalanceEntity): Boolean =
+    account.balance.signum() < 0 &&
+        (account.accountType.equals("CASH", ignoreCase = true) ||
+            account.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER)
+
+/** The accounts Safe to spend adds up: not left out by the user, not [isUncountedNegative]. */
+internal fun countedInSafeToSpend(accounts: List<AccountBalanceEntity>, excluded: Set<String>) =
+    accounts.filter { safeToSpendKey(it) !in excluded && !isUncountedNegative(it) }
+
+/**
+ * What's left in the overall budget for Safe to spend: a spending limit that tracks
+ * all expenses and runs today, with its "remaining" exactly as the Home budget card
+ * shows it. Several such budgets (say weekly and monthly): the tightest one wins.
+ */
+internal fun BudgetOverallSummary.safeToSpendCap(today: LocalDate): Money? =
+    groups.filter {
+        it.isTrackingAllExpenses && it.group.budget.groupType == BudgetGroupType.LIMIT &&
+            it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
+    }.minOfOrNull { it.remaining }?.let { Money(it, currency) }
+
+internal data class BalanceTotals(
+    val balance: BigDecimal,
+    val availableCredit: BigDecimal,
+    /** Some account or card is in another currency and was left out of both totals. */
+    val hasOtherCurrencies: Boolean,
+)
+
+internal fun balanceTotals(
+    accounts: List<AccountBalanceEntity>,
+    creditCards: List<AccountBalanceEntity>,
+    currency: String,
+): BalanceTotals {
+    val (sameAccounts, otherAccounts) = accounts.partition { it.currency == currency }
+    val (sameCards, otherCards) = creditCards.partition { it.currency == currency }
+    return BalanceTotals(
+        balance = sameAccounts.fold(BigDecimal.ZERO) { a, acc -> a + acc.balance },
+        availableCredit = sameCards.fold(BigDecimal.ZERO) { a, c -> a + (c.creditLimit ?: BigDecimal.ZERO) - c.balance },
+        hasOtherCurrencies = otherAccounts.isNotEmpty() || otherCards.isNotEmpty(),
+    )
+}
+
+internal fun monthlyChangePercent(current: BigDecimal, last: BigDecimal): Int? =
+    if (last.signum() == 0) null
+    else (current - last).multiply(BigDecimal(100)).divide(last, 0, RoundingMode.HALF_UP).toInt()
+
+data class SafeToSpendUi(
+    /** The headline figure, in the display (unified) or selected currency. */
+    val primary: SafeToSpend,
+    /** Figures in other currencies, never added to [primary]. */
+    val others: List<SafeToSpend>,
+    val periodEnd: LocalDate,
+    /** Every visible spendable account, each in its own currency. */
+    val accounts: List<AccountBalanceEntity>,
+    val excludedKeys: Set<String>,
+    /** Bills due today..[periodEnd], each in its own currency. */
+    val bills: List<Bill>,
 )
 
 data class LoanSummary(

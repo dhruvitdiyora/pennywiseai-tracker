@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.builtinKey
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.billing.license.LicenseManager
@@ -16,9 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.decodeFromString
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import kotlinx.serialization.json.decodeFromStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Locale
@@ -100,14 +98,13 @@ class BackupImporter @Inject constructor(
     private suspend fun readBackupFile(uri: Uri): PennyWiseBackup {
         return withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val content = reader.readText()
+                // Streamed, so a large backup isn't also held as one big String.
                 // backupJson tolerates missing keys (older backups → Kotlin
                 // defaults) and unknown keys (newer backups → ignored). The
                 // old Gson `normalized()` net is no longer needed because the
                 // `= emptyList()` / field defaults on the models now actually
                 // apply. See BackupSerializers + docs/backup-format.md.
-                backupJson.decodeFromString<PennyWiseBackup>(content)
+                backupJson.decodeFromStream<PennyWiseBackup>(inputStream.buffered())
             } ?: throw Exception("Failed to read backup file")
         }
     }
@@ -932,11 +929,13 @@ class BackupImporter @Inject constructor(
         val existingBudgetNames = database.budgetDao().getAllBudgets().first().map { it.name }.toSet()
 
         budgets.insertEachCounting(onSkip) { budget ->
-            if (!existingBudgetNames.contains(budget.name)) {
+            // One savepoint per budget: a failing category rolls back the whole
+            // budget instead of committing it with only some of its categories.
+            if (!existingBudgetNames.contains(budget.name)) database.withTransaction {
                 // Use the return value from insertBudget to get the new ID directly
                 // instead of querying (which would miss inactive budgets)
                 val newBudgetId = database.budgetDao().insertBudget(budget.copy(id = 0))
-                
+
                 // Import categories for this budget using the returned ID
                 budgetCategories.filter { it.budgetId == budget.id }.forEach { category ->
                     val updatedCategory = category.copy(id = 0, budgetId = newBudgetId)
@@ -1135,6 +1134,9 @@ class BackupImporter @Inject constructor(
         preferences.app.lastReviewPromptTime?.let {
             userPreferencesRepository.updateLastReviewPromptTime(it)
         }
+        // Additive, like ignored accounts: a restore never brings back a suggestion
+        // dismissed on this device.
+        userPreferencesRepository.addDismissedRecurringSuggestions(preferences.app.dismissedRecurringSuggestions)
 
         // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
         preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
 import com.pennywiseai.tracker.ui.components.forPicker
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
@@ -30,7 +31,7 @@ import com.pennywiseai.tracker.ui.icons.iconax.VideoPlay
 import com.pennywiseai.tracker.ui.icons.iconax.VideoTime
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,7 +123,7 @@ fun SubscriptionTabContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .addGlassField(fullShape)
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = fullShape,
                         colors = addGlassFieldColors()
@@ -147,10 +148,10 @@ fun SubscriptionTabContent(
                 // Next payment date
                 AddDateCard(
                     dayLabel = uiState.nextPaymentDate.format(
-                        DateTimeFormatter.ofPattern("dd MMMM", Locale.getDefault())
+                        AppDates.pattern("dd MMMM")
                     ),
                     yearLabel = uiState.nextPaymentDate.format(
-                        DateTimeFormatter.ofPattern("yyyy", Locale.getDefault())
+                        AppDates.pattern("yyyy")
                     ),
                     onClickLabel = stringResource(R.string.subscriptions_edit_next_date),
                     onClick = { showDatePicker = true },
@@ -315,7 +316,8 @@ fun SubscriptionTabContent(
                             viewModel.updateSubscriptionNextPaymentDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {

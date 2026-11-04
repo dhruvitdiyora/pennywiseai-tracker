@@ -10,13 +10,15 @@ package com.pennywiseai.tracker.data.preferences
  * would shift existing users' saved layouts.
  */
 enum class HomeSection(val label: String) {
+    SAFE_TO_SPEND("Safe to spend"),
     BUDGETS("Budgets"),
-    GOALS("Goals"),
-    LOANS("Loans"),
-    GROUPS("Groups"),
     RECENT_TRANSACTIONS("Recent Transactions"),
     ACCOUNTS("Bank Accounts"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),
+    LOANS("Loans"),
+    GOALS("Goals"),
+    GROUPS("Groups"),
+    MONEY_IN_MOTION("Money in motion"),
     ACTIVITY("Activity"),
 }
 
@@ -32,6 +34,7 @@ object HomeSectionLayout {
      * rest. Only affects a blank preference - a stored layout decodes as saved.
      */
     val DEFAULT: List<Pair<HomeSection, Boolean>> = listOf(
+        HomeSection.SAFE_TO_SPEND,
         HomeSection.RECENT_TRANSACTIONS,
         HomeSection.GOALS,
         HomeSection.ACCOUNTS,
@@ -39,6 +42,7 @@ object HomeSectionLayout {
         HomeSection.BUDGETS,
         HomeSection.LOANS,
         HomeSection.GROUPS,
+        HomeSection.MONEY_IN_MOTION,
         HomeSection.ACTIVITY,
     ).map { it to true }
 
@@ -46,8 +50,9 @@ object HomeSectionLayout {
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }
 
     /**
-     * Unknown names are dropped; enum values absent from the string are appended
-     * visible so a section added in a later version shows up instead of vanishing.
+     * Unknown names are dropped; enum values absent from the string are inserted
+     * visible at their default position (clamped to the end), so a section added
+     * in a later version shows up where a new user would see it.
      */
     fun decode(raw: String?): List<Pair<HomeSection, Boolean>> {
         if (raw.isNullOrBlank()) return DEFAULT
@@ -57,6 +62,9 @@ object HomeSectionLayout {
             HomeSection.entries.firstOrNull { it.name == t.removePrefix("!") }?.let { it to !hidden }
         }.distinctBy { it.first }
         val seen = parsed.mapTo(HashSet()) { it.first }
-        return parsed + HomeSection.entries.filter { it !in seen }.map { it to true }
+        val layout = parsed.toMutableList()
+        HomeSection.entries.filter { it !in seen }
+            .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to true) }
+        return layout
     }
 }

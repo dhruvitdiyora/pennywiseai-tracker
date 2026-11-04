@@ -13,8 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,16 +119,7 @@ fun ListItemCardV2(
      */
     subtitleContent: (@Composable () -> Unit)? = null,
 ) {
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        contentPadding = if (contentPaddingValues != null) 0.dp else contentPadding,
-        containerColor = containerColor,
-        // Cashiro rows are bare solid surfaces: no border.
-        border = BorderStroke(0.dp, Color.Transparent),
-        onClick = onClick,
-        onLongClick = onLongClick
-    ) {
+    val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier
                 .then(if (contentPaddingValues != null) Modifier.padding(contentPaddingValues) else Modifier)
@@ -187,4 +181,29 @@ fun ListItemCardV2(
             }
         }
     }
+    if (onClick == null) {
+        PennyWiseCardV2(
+            modifier = modifier.fillMaxWidth(),
+            shape = shape,
+            contentPadding = if (contentPaddingValues != null) 0.dp else contentPadding,
+            containerColor = containerColor,
+            // Cashiro rows are bare solid surfaces: no border.
+            border = BorderStroke(0.dp, Color.Transparent),
+            onLongClick = onLongClick
+        ) { row() }
+        return
+    }
+    // Tappable rows are M3 Expressive segmented list items: same resting shape
+    // and fill as the card, plus the native press/focus shape morph.
+    SegmentedListItem(
+        onClick = onClick,
+        onLongClick = onLongClick,
+        shapes = ListItemDefaults.shapes(shape = shape),
+        modifier = modifier.fillMaxWidth(),
+        colors = (containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow).let {
+            ListItemDefaults.segmentedColors(containerColor = it, contentColor = contentColorFor(it))
+        },
+        contentPadding = if (contentPaddingValues != null) PaddingValues() else PaddingValues(contentPadding),
+        content = row
+    )
 }

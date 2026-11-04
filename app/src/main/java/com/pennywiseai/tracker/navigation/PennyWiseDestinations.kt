@@ -1,77 +1,121 @@
 package com.pennywiseai.tracker.navigation
 
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
-// Define navigation destinations using Kotlin Serialization
+// Navigation 3 keys: @Serializable so rememberNavBackStack survives process death.
+// Their properties are also handed to each entry's SavedStateHandle (see RouteArgs).
 @Serializable
-object AppLock
+data object AppLock : NavKey
 
 @Serializable
-object OnBoarding
+data object OnBoarding : NavKey
 
 @Serializable
-object Permission
+data object Permission : NavKey
 
 @Serializable
-object Home
+data object Home : NavKey
+
+/** The Transactions tab; any filter set means a drill-down (shows a back arrow). */
+@Serializable
+data class Transactions(
+    val category: String? = null,
+    val merchant: String? = null,
+    val period: String? = null,
+    val currency: String? = null,
+    val focusSearch: Boolean = false,
+    val type: String? = null,
+    val startDate: Long? = null,
+    val endDate: Long? = null,
+    val account: String? = null,
+    val tag: String? = null,
+    // Set by an explicit open from Home ("See all", search): a new entry, so the
+    // list's ViewModel starts over instead of keeping filters picked in the tab.
+    val openId: Long = 0L
+) : NavKey
 
 @Serializable
-object Transactions
+data object Settings : NavKey
 
 @Serializable
-object Settings
+data object SettingsCurrencyFormats : NavKey
 
 @Serializable
-object SettingsCurrencyFormats
+data object SettingsBackupImport : NavKey
 
 @Serializable
-object SettingsBackupImport
+data object SettingsPrivacySecurity : NavKey
 
 @Serializable
-object SettingsPrivacySecurity
+data object SettingsAdvanced : NavKey
 
 @Serializable
-object SettingsAdvanced
+data object Categories : NavKey
 
 @Serializable
-object Categories
+data object Analytics : NavKey
 
 @Serializable
-object Analytics
+data object Chat : NavKey
 
 @Serializable
-object Chat
+data class TransactionDetail(val transactionId: Long) : NavKey
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class AddTransaction(
+    val sourceTransactionId: Long? = null,
+    val sharedText: String? = null,
+    // The quick add sheet's draft ("More details"): what was typed there.
+    val amount: String? = null,
+    val merchant: String? = null,
+    val category: String? = null,
+    val bankName: String? = null,
+    val accountLast4: String? = null,
+    // A suggestion from Unrecognized SMS (#994): its currency, type and SMS time,
+    // and the SMS row to hide once the transaction is saved.
+    val currency: String? = null,
+    val type: String? = null,
+    val dateTime: String? = null,
+    val unrecognizedSmsId: Long? = null,
+    // Unique per open, so two Add screens on the stack never share one ViewModel/draft
+    // (Navigation 3 keys an entry's ViewModels by its key). Always encoded, so the
+    // same value comes back after process death.
+    @EncodeDefault val openId: Long = System.nanoTime(),
+) : NavKey
 
 @Serializable
-data class TransactionDetail(val transactionId: Long)
+data class AccountDetail(val bankName: String, val accountLast4: String) : NavKey
 
 @Serializable
-data class AddTransaction(val sourceTransactionId: Long? = null, val sharedText: String? = null)
+data object UnrecognizedSms : NavKey
 
 @Serializable
-data class AccountDetail(val bankName: String, val accountLast4: String)
+data object Faq : NavKey
 
 @Serializable
-object UnrecognizedSms
+data object Rules : NavKey
 
 @Serializable
-object Faq
+data class CreateRule(val ruleId: String? = null, val duplicateFromId: String? = null) : NavKey
 
 @Serializable
-object Rules
-
-@Serializable
-data class CreateRule(val ruleId: String? = null, val duplicateFromId: String? = null)
-
-@Serializable
-object ExchangeRates
+data object ExchangeRates : NavKey
 
 /** The Budgets screen; [createGoal] starts "New goal" on open (Pro gate included), as the goals widget's "+" does. */
 @Serializable
-data class BudgetGroups(val createGoal: Boolean = false)
+data class BudgetGroups(
+    val createGoal: Boolean = false,
+    // Distinct per widget tap: entries are keyed by value, so a repeated "+" needs
+    // a new key to get a fresh screen (and New goal again).
+    val tapId: Long = 0L
+) : NavKey
 
 @Serializable
-data class BudgetGroupEdit(val groupId: Long = -1L)
+data class BudgetGroupEdit(val groupId: Long = -1L) : NavKey
 
 /**
  * Per-budget history drill-down. The (year, month) selects the period;
@@ -83,89 +127,97 @@ data class BudgetHistory(
     val groupId: Long,
     val year: Int,
     val month: Int
-)
+) : NavKey
 
 /** A savings Goal's own screen (#914). */
 @Serializable
-data class GoalDetail(val goalId: Long)
+data class GoalDetail(val goalId: Long) : NavKey
 
 /** Create (goalId = -1) or edit a Goal. */
 @Serializable
-data class GoalEdit(val goalId: Long = -1L)
+data class GoalEdit(val goalId: Long = -1L) : NavKey
 
 @Serializable
 data class BudgetDetail(
     val groupId: Long,
     val year: Int,
     val month: Int,
-)
+) : NavKey
 
 @Serializable
-object Loans
+data object Loans : NavKey
 
 @Serializable
-object Contacts
+data object Contacts : NavKey
 
 @Serializable
-object PersonalDashboard
+data object PersonalDashboard : NavKey
 
 @Serializable
-data class PersonDetail(val personId: Long)
+data class PersonDetail(val personId: Long) : NavKey
 
 @Serializable
-object RecurringTransactions
+data object RecurringTransactions : NavKey
 
 @Serializable
-data class LoanDetail(val loanId: Long)
+data class LoanDetail(val loanId: Long) : NavKey
 
 @Serializable
-object TransactionGroups
+data object TransactionGroups : NavKey
 
 @Serializable
-data class TransactionGroupDetail(val groupId: Long)
+data class TransactionGroupDetail(val groupId: Long) : NavKey
 
 @Serializable
-object ImportStatement
+data object ImportStatement : NavKey
 
 @Serializable
-object Webhooks
+data object Webhooks : NavKey
 
 @Serializable
-object CloudBackup
+data object CloudBackup : NavKey
 
 @Serializable
-object AiAccess
+data object AiAccess : NavKey
 
 @Serializable
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,
     val currency: String? = null
-)
+) : NavKey
+
+// Screens inside MainScreen's tab stacks (Home, Settings, Categories, Faq,
+// UnrecognizedSms and ImportStatement are reused there too).
+@Serializable
+data object Subscriptions : NavKey
+
+@Serializable
+data object Appearance : NavKey
+
+@Serializable
+data object ManageAccounts : NavKey
+
+@Serializable
+data object AddAccount : NavKey
+
+@Serializable
+data class BalanceHistory(val bankName: String, val accountLast4: String) : NavKey
 
 // Settings sub-screens reachable from the root-level Settings route (opened from
 // the standalone Transactions screen). MainScreen has its own string routes for
 // the same screens; these mirror them on the root nav graph.
 @Serializable
-object SettingsDataPrivacy
+data object SettingsDataPrivacy : NavKey
 
 @Serializable
-object SettingsAppearance
+data object SettingsAppearance : NavKey
 
 @Serializable
-object SettingsAbout
+data object SettingsAbout : NavKey
 
 @Serializable
-object SettingsLicenses
+data object SettingsLicenses : NavKey
 
 @Serializable
-object SettingsProfiles
-
-@Serializable
-object ManageAccounts
-
-@Serializable
-object AddAccount
-
-@Serializable
-data class BalanceHistory(val bankName: String, val accountLast4: String)
+data object SettingsProfiles : NavKey
