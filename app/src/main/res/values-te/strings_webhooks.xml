@@ -2,12 +2,9 @@
 <resources>
     <string name="webhooks_title">వెబ్‌హుక్‌లు</string>
     <string name="webhooks_settings_subtitle">ఎంచుకున్న డేటాను మీ ఎండ్‌పాయింట్‌కు పంపండి</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · ఎంచుకున్న డేటాను మీ ఎండ్‌పాయింట్‌కు పంపండి</string>
     <string name="webhooks_add_title">వెబ్‌హుక్‌ను జోడించండి</string>
     <string name="webhooks_edit_title">వెబ్‌హుక్‌ను సవరించండి</string>
     <string name="webhooks_history_title">డెలివరీ చరిత్ర</string>
-    <string name="webhooks_pro_body">వెబ్‌హుక్ సింక్ ఒక Pro ఫీచర్. ఎంచుకున్న ఆర్థిక డేటాను మీ సొంత ఎండ్‌పాయింట్‌కు ఆటోమేటిక్‌గా పంపండి.</string>
-    <string name="webhooks_unlock_pro">Pro తో అన్‌లాక్ చేయండి</string>
     <string name="webhooks_save">వెబ్‌హుక్‌ను సేవ్ చేయండి</string>
     <string name="webhooks_history_empty">ఇంకా డెలివరీలు లేవు. క్యూలోని పని నెట్‌వర్క్ కనెక్షన్ కోసం వేచి ఉంటుంది.</string>
     <string name="webhooks_log_delivered">డెలివర్ అయింది</string>

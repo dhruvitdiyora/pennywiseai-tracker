@@ -11,8 +11,6 @@
     </plurals>
     <string name="txn_export_total_transactions">Total des transactions :</string>
     <string name="txn_export_date_range">Plage de dates :</string>
-    <string name="txn_export_free_limit_notice">Exportation gratuite : premier %1$d sur %2$d lignes</string>
-    <string name="txn_export_unlock_all">Débloquer tout</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">Transaction %1$d exportée avec succès</item>
         <item quantity="other">Les transactions %1$d ont été exportées avec succès</item>
@@ -20,7 +18,6 @@
     <string name="txn_export_file_size">Taille: %1$s</string>
     <string name="txn_export_action_cancel">Abandonner</string>
     <string name="txn_export_action_export">Exportation</string>
-    <string name="txn_export_action_export_first">Exporter le premier %1$d</string>
     <string name="txn_export_action_done">Fait</string>
     <string name="txn_export_share_subject">Export des transactions en cashiro</string>
     <string name="txn_export_share_chooser_title">Partager CSV</string>

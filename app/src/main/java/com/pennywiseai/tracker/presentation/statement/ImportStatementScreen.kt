@@ -4,11 +4,8 @@ import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -16,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -87,9 +83,7 @@ fun ImportStatementScreen(
     viewModel: ImportStatementViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val canImportThisMonth by viewModel.canImportThisMonth.collectAsStateWithLifecycle()
     val showSupportNudge by viewModel.showSupportNudge.collectAsStateWithLifecycle()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
 
     val pdfPicker = rememberLauncherForActivityResult(
@@ -103,17 +97,8 @@ fun ImportStatementScreen(
         onResult = { uri -> uri?.let { viewModel.importSpreadsheet(it) } }
     )
 
-    // Free users get 1 import / calendar month; Pro is unlimited. Centralising
-    // the gate here means every "select file" entry point shares the same
-    // enforcement without sprinkling checks. PDFs and spreadsheets share it.
-    val onTryLaunchPicker: () -> Unit = {
-        if (canImportThisMonth) pdfPicker.launch("application/pdf")
-        else showUpgradeSheet = true
-    }
-    val onTryLaunchSpreadsheet: () -> Unit = {
-        if (canImportThisMonth) spreadsheetPicker.launch(SPREADSHEET_TYPES)
-        else showUpgradeSheet = true
-    }
+    val onTryLaunchPicker: () -> Unit = { pdfPicker.launch("application/pdf") }
+    val onTryLaunchSpreadsheet: () -> Unit = { spreadsheetPicker.launch(SPREADSHEET_TYPES) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -217,12 +202,6 @@ fun ImportStatementScreen(
                 )
             }
         }
-    }
-
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
-        )
     }
 
     if (showSupportDialog) {

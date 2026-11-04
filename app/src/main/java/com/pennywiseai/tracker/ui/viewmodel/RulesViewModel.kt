@@ -6,10 +6,7 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.billing.EntitlementGate
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import com.pennywiseai.tracker.billing.FreeTierLimits
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -38,14 +35,7 @@ class RulesViewModel @Inject constructor(
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val getCategoriesUseCase: GetCategoriesUseCase,
-    entitlementGate: EntitlementGate,
 ) : ViewModel() {
-
-    /**
-     * Pro entitlement. Drives both the "create another rule" gate below
-     * and the inline quota caption on the Rules screen.
-     */
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
 
@@ -84,20 +74,6 @@ class RulesViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-
-    /**
-     * True when the user is allowed to create another rule — either Pro
-     * (unlimited) or under [FreeTierLimits.MAX_RULES]. The Rules screen's
-     * FAB checks this to decide between opening the create flow and
-     * triggering the paywall.
-     */
-    val canCreateMoreRules: StateFlow<Boolean> = combine(rules, isProEntitled) { all, pro ->
-        pro || all.size < FreeTierLimits.MAX_RULES
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = true,
-    )
 
     /**
      * Non-hidden accounts from `hidden_accounts` SharedPreferences key.
@@ -262,9 +238,6 @@ class RulesViewModel @Inject constructor(
      * Adds the rules in [uri] to this install. Imported rules get fresh ids, so
      * a file can be applied more than once without colliding; a rule whose name
      * already exists is skipped rather than duplicated.
-     *
-     * The free-tier rule cap still applies — importing must not be a way around
-     * the paywall the create screen enforces.
      */
     fun importRules(uri: Uri) {
         viewModelScope.launch {
@@ -278,30 +251,14 @@ class RulesViewModel @Inject constructor(
                 val fresh = decoded.rules.filterNot { it.name.trim().lowercase() in existingNames }
                 val duplicates = decoded.rules.size - fresh.size
 
-                val allowance = if (isProEntitled.value) {
-                    fresh.size
-                } else {
-                    (FreeTierLimits.MAX_RULES - existing.size).coerceAtLeast(0)
-                }
-                val toImport = fresh.take(allowance)
                 // One insert, so a failure can't leave the set half-applied.
-                ruleRepository.insertRules(toImport)
+                ruleRepository.insertRules(fresh)
 
-                val blocked = fresh.size - toImport.size
                 val skipped = decoded.duplicatedInFile
                 _sharingMessage.value = buildList {
-                    add(UiText.Plural(R.plurals.rules_imported, toImport.size))
+                    add(UiText.Plural(R.plurals.rules_imported, fresh.size))
                     if (duplicates > 0) add(UiText.Plural(R.plurals.rules_import_already_existed, duplicates))
                     if (skipped > 0) add(UiText.Plural(R.plurals.rules_import_collapsed, skipped))
-                    if (blocked > 0) {
-                        add(
-                            UiText.Plural(
-                                R.plurals.rules_import_blocked_by_limit,
-                                blocked,
-                                listOf(blocked, FreeTierLimits.MAX_RULES)
-                            )
-                        )
-                    }
                 }
             } catch (e: Exception) {
                 _sharingMessage.value = listOf(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.rules_import_failed))

@@ -21,7 +21,6 @@
     <string name="analytics_group_by_account">ఖాతా వారీగా</string>
     <string name="analytics_group_by_tag">ట్యాగ్ వారీగా</string>
     <string name="analytics_group_by_day_of_week">వారంలోని రోజు వారీగా</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_filter_clear">క్లియర్ చేయండి</string>
     <string name="analytics_filter_all_profiles">అన్ని ఖాతాలు</string>
     <string name="analytics_filter_currency">కరెన్సీ</string>

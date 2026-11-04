@@ -154,44 +154,6 @@
     <string name="import_statement_balance_set_note">Zůstatek z výpisu plus to, co PennyWise zaznamenala po konci výpisu.</string>
     <string name="import_statement_balance_applied">Zůstatek aktualizován na %1$s.</string>
     <string name="import_statement_balance_newer">Vaše banka od tohoto výpisu nahlásila novější zůstatek, proto PennyWise ponechá ten.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_title">PennyWise Pro</string>
-    <string name="upgrade_subtitle_member">Všechny aktivní funkce Pro</string>
-    <string name="upgrade_subtitle_upgrade">Vše odemčeno pomocí licenčního klíče</string>
-    <string name="upgrade_enter_license_key">Zadejte licenční klíč</string>
-    <string name="upgrade_support_note">Built by a solo dev — Pro financuje co dál. Děkujeme.</string>
-    <string name="upgrade_available_at">PennyWise Pro je k dispozici na %1$s</string>
-    <string name="upgrade_copied">Zkopírováno</string>
-    <string name="upgrade_copy_address">Kopírovat adresu</string>
-    <string name="upgrade_includes">Zahrnuje</string>
-    <string name="upgrade_feature_rules">Neomezená vlastní pravidla</string>
-    <string name="upgrade_feature_statements">Neomezené importy výpisů</string>
-    <string name="upgrade_feature_csv">Neomezený export CSV</string>
-    <string name="upgrade_feature_merge_accounts">Sloučit duplicitní účty</string>
-    <string name="upgrade_restoring">Obnovuji…</string>
-    <string name="upgrade_restore">Obnovit</string>
-    <string name="upgrade_get_help">Získat pomoc</string>
-    <string name="upgrade_welcome_eyebrow">VÍCE</string>
-    <string name="upgrade_celebration_title">Jste Pro-člen</string>
-    <string name="upgrade_celebration_body">Děkujeme za podporu PennyWise — každá funkce v seznamu je nyní vaše.</string>
-    <string name="upgrade_continue">Pokračovat</string>
-    <string name="upgrade_active_eyebrow">AKTIVNÍ</string>
-    <string name="upgrade_active_title">Všechny Pro funkce odemčeny</string>
-    <string name="upgrade_via_license_key">Via licenční klíč · %1$s</string>
-    <string name="upgrade_remove_license_key">Odstranit licenční klíč</string>
-    <string name="upgrade_manage_subscription">Spravovat předplatné</string>
-    <string name="upgrade_error_play_unavailable">Obchod Play se nezdařil. Zkuste to znovu později.</string>
-    <string name="upgrade_cancel">Zrušit</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Aktivovat licenční klíč</string>
-    <string name="upgrade_license_dialog_body">Vložte klíč z e-mailu s nákupem. Pro aktivaci na tomto zařízení se okamžitě aktivuje.</string>
-    <string name="upgrade_license_email_label">E-mail s nákupem</string>
-    <string name="upgrade_license_email_supporting">Potvrďte, že vlastníte klíč před tím, než opustíte jiné zařízení.</string>
-    <string name="upgrade_license_move_here">Přesunout do tohoto zařízení</string>
-    <string name="upgrade_license_activate">Aktivovat</string>
-    <string name="upgrade_license_error_invalid">Tento klíč není platný. Zkontrolujte překlepy a zkuste to znovu.</string>
-    <string name="upgrade_license_error_active_elsewhere">Tento klíč je již aktivní na jiném zařízení.</string>
-    <string name="upgrade_license_error_offline">Licenční server se nezdařil. Zkontrolujte připojení a zkuste to znovu.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_logo_cd">PennyWise</string>
     <string name="onboarding_welcome_title">Vítejte v PennyWise</string>
@@ -390,12 +352,6 @@
         <item quantity="few">%1$d opakované názvy v souboru byly sbaleny.</item>
         <item quantity="many">%1$d opakované názvy v souboru byly sbaleny.</item>
         <item quantity="other">%1$d opakované názvy v souboru byly sbaleny.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d další potřeba Pro — jsi na volném limitu %2$d.</item>
-        <item quantity="few">%1$d další potřeba Pro — jsi na volném limitu %2$d.</item>
-        <item quantity="many">%1$d další potřeba Pro — jsi na volném limitu %2$d.</item>
-        <item quantity="other">%1$d další potřeba Pro — jsi na volném limitu %2$d.</item>
     </plurals>
     <string name="rules_import_failed">Import se nezdařil.</string>
     <!-- Apply rule to past transactions -->

@@ -37,7 +37,6 @@ import com.pennywiseai.tracker.domain.spending.SpendForecast
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import com.pennywiseai.tracker.ui.components.BalancePoint
@@ -173,13 +172,8 @@ class AnalyticsViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
-    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
-
-    // The tag and day-of-week groupings are Pro (#422); basic tagging (create /
-    // apply / filter-by-tag) stays free.
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     // name -> hex color for the user's categories (incl. recolored built-ins), so
     // Analytics renders each category in its assigned color instead of gray (#586).
@@ -244,18 +238,14 @@ class AnalyticsViewModel @Inject constructor(
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
     /**
-     * The breakdown's grouping (#422), remembered like the chart type. A stored Pro
-     * grouping shows as Category while the user isn't Pro (a lapsed subscription).
+     * The breakdown's grouping (#422), remembered like the chart type.
      */
-    val groupBy: StateFlow<AnalyticsGroupBy> = combine(
-        userPreferencesRepository.getAnalyticsGroupBy(),
-        isProEntitled
-    ) { saved, isPro -> AnalyticsGroupBy.fromSaved(saved).allowedFor(isPro) }
+    val groupBy: StateFlow<AnalyticsGroupBy> = userPreferencesRepository.getAnalyticsGroupBy()
+        .map { saved -> AnalyticsGroupBy.fromSaved(saved) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AnalyticsGroupBy.CATEGORY)
 
-    /** Picks a grouping. A Pro one without Pro is ignored; the screen shows the upgrade sheet instead. */
+    /** Picks a grouping. */
     fun setGroupBy(groupBy: AnalyticsGroupBy) {
-        if (groupBy.allowedFor(isProEntitled.value) != groupBy) return
         viewModelScope.launch { userPreferencesRepository.saveAnalyticsGroupBy(groupBy.name) }
     }
 

@@ -105,7 +105,7 @@ data class CreateRule(val ruleId: String? = null, val duplicateFromId: String? =
 @Serializable
 data object ExchangeRates : NavKey
 
-/** The Budgets screen; [createGoal] starts "New goal" on open (Pro gate included), as the goals widget's "+" does. */
+/** The Budgets screen; [createGoal] starts "New goal" on open, as the goals widget's "+" does. */
 @Serializable
 data class BudgetGroups(
     val createGoal: Boolean = false,

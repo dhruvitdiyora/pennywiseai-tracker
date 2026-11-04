@@ -21,7 +21,6 @@
     <string name="analytics_group_by_account">கணக்கு வாரியாக</string>
     <string name="analytics_group_by_tag">குறிச்சொல் வாரியாக</string>
     <string name="analytics_group_by_day_of_week">வார நாள் வாரியாக</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_filter_clear">அழி</string>
     <string name="analytics_filter_all_profiles">அனைத்துக் கணக்குகளும்</string>
     <string name="analytics_filter_currency">நாணயம்</string>

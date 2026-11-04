@@ -14,7 +14,6 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -130,21 +129,6 @@ class GoalRepositoryTest {
         coEvery { transactionDao.getTransactionById(9) } returns txn("500", deleted = true)
         assertTrue(runCatching { repo.addContribution(1, BigDecimal("10"), transactionId = 9) }.isFailure)
         assertTrue(runCatching { repo.addContribution(1, BigDecimal("-10")) }.isFailure)
-    }
-
-    @Test
-    fun canCreateGoalCountsOnlyActiveGoals() = runBlocking {
-        val today = LocalDate.of(2026, 10, 16)
-        val reached = goal.copy(id = 2)
-        coEvery { goalDao.observeGoals() } returns flowOf(listOf(reached, goal.copy(id = 3, isArchived = true)))
-        coEvery { goalDao.observeEffectiveContributions() } returns flowOf(
-            listOf(GoalContributionEntity(goalId = 2, amount = BigDecimal("1000")))
-        )
-        assertTrue(repo.canCreateGoal(isPro = false, today = today))
-
-        coEvery { goalDao.observeGoals() } returns flowOf(listOf(reached, goal))
-        assertFalse(repo.canCreateGoal(isPro = false, today = today))
-        assertTrue(repo.canCreateGoal(isPro = true, today = today))
     }
 
     @Test

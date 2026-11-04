@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">लेन-देन हटाया गया</string>
     <string name="home_undo">पूर्ववत करें</string>
-    <string name="home_upgrade_pro">PennyWise Pro में अपग्रेड करें</string>
     <string name="home_profile_filter">प्रोफ़ाइल फ़िल्टर</string>
     <string name="home_more_options">अधिक विकल्प</string>
     <string name="home_view_all">सभी देखें</string>
@@ -349,10 +348,6 @@
     <string name="notif_txn_category_bank">%1$s • %2$s</string>
     <string name="notif_txn_balance_discrepancy">⚠ बैलेंस में %1$s का अंतर — अपेक्षित %2$s, बैंक के अनुसार %3$s</string>
     <string name="notif_txn_public_title">%1$s नया लेन-देन</string>
-    <string name="pro_home_card_title">PennyWise पसंद आ रहा है?</string>
-    <string name="pro_home_card_body">Pro में मिलते हैं अनलिमिटेड नियम, लक्ष्य, निर्यात और स्टेटमेंट आयात।</string>
-    <string name="pro_home_card_action">Pro देखें</string>
-    <string name="pro_home_card_dismiss">हटाएं</string>
     <string name="home_payday_card_title">वेतन वाले दिन से बजट शुरू करें?</string>
     <string name="home_payday_card_body">लगता है आपका वेतन महीने की %1$d तारीख को आता है। क्या हर बजट महीना उसी दिन से शुरू करें? आप इसे सेटिंग्स में बदल सकते हैं।</string>
     <string name="home_payday_card_action">%1$d तारीख से शुरू करें</string>

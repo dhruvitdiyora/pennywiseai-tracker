@@ -2,7 +2,6 @@
 <resources>
     <string name="home_transaction_deleted">లావాదేవీ తొలగించబడింది</string>
     <string name="home_undo">రద్దు చేయండి</string>
-    <string name="home_upgrade_pro">PennyWise Pro కి అప్‌గ్రేడ్ చేయండి</string>
     <string name="home_profile_filter">ప్రొఫైల్ ఫిల్టర్</string>
     <string name="home_more_options">మరిన్ని ఎంపికలు</string>
     <string name="home_view_all">అన్నీ చూడండి</string>
@@ -251,8 +250,4 @@
     <string name="notif_txn_public_title">%1$s కొత్త లావాదేవీ</string>
     <string name="notif_txn_public_text">%1$s • బ్యాలెన్స్‌ను తనిఖీ చేయాలి</string>
     <string name="balance_chart_label">బ్యాలెన్స్ ధోరణి</string>
-    <string name="pro_home_card_title">PennyWise నచ్చిందా?</string>
-    <string name="pro_home_card_body">Pro లో అపరిమిత నియమాలు, లక్ష్యాలు, ఎగుమతులు మరియు స్టేట్‌మెంట్ దిగుమతులు ఉంటాయి.</string>
-    <string name="pro_home_card_action">Pro చూడండి</string>
-    <string name="pro_home_card_dismiss">తీసివేయండి</string>
 </resources>

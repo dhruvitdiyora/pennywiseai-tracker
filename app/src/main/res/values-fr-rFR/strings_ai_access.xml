@@ -3,12 +3,9 @@
 <resources>
     <string name="ai_access_settings_title">Connecter Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Laissez des apps d\'AI lire vos données quand vous l\'autorisez</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · Laissez des apps d\'AI lire vos données quand vous l\'autorisez</string>
     <string name="ai_access_title">Accès AI</string>
     <string name="ai_access_back">Retour</string>
     <string name="ai_access_intro">Interrogez Claude, ChatGPT ou une autre app d\'AI sur vos dépenses, ou ouvrez le tableau de bord sur un ordinateur. Ils peuvent lire vos transactions, soldes et abonnements uniquement pendant une session AI. Ils ne peuvent rien modifier.</string>
-    <string name="ai_access_pro_only">L\'accès AI est une fonctionnalité Pro.</string>
-    <string name="ai_access_unlock">Débloquer avec Pro</string>
     <string name="ai_access_session_title">Session AI</string>
     <string name="ai_access_session_off">Désactivée. Choisissez combien de temps garder PennyWise connecté, ou utilisez la vignette PennyWise AI dans les Réglages rapides.</string>
     <string name="ai_access_session_on">Activée · %1$d:%2$02d restantes</string>

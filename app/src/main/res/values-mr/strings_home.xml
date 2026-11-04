@@ -2,7 +2,6 @@
 <resources>
     <string name="home_transaction_deleted">व्यवहार हटवला</string>
     <string name="home_undo">पूर्ववत करा</string>
-    <string name="home_upgrade_pro">PennyWise Pro वर अपग्रेड करा</string>
     <string name="home_profile_filter">प्रोफाइल फिल्टर</string>
     <string name="home_more_options">आणखी पर्याय</string>
     <string name="home_view_all">सर्व पाहा</string>
@@ -251,8 +250,4 @@
     <string name="notif_txn_public_title">%1$s नवीन व्यवहार</string>
     <string name="notif_txn_public_text">%1$s • शिल्लक तपासणे आवश्यक</string>
     <string name="balance_chart_label">शिल्लक कल</string>
-    <string name="pro_home_card_title">PennyWise आवडतोय?</string>
-    <string name="pro_home_card_body">Pro मध्ये अमर्यादित नियम, उद्दिष्टे, एक्सपोर्ट आणि स्टेटमेंट इम्पोर्ट मिळतात.</string>
-    <string name="pro_home_card_action">Pro पाहा</string>
-    <string name="pro_home_card_dismiss">डिसमिस करा</string>
 </resources>

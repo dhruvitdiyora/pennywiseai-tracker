@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">लेनदेन मेटाइयो</string>
     <string name="home_undo">पूर्ववत गर्नुहोस्</string>
-    <string name="home_upgrade_pro">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
     <string name="home_profile_filter">प्रोफाइल फिल्टर</string>
     <string name="home_more_options">थप विकल्पहरू</string>
     <string name="home_view_all">सबै हेर्नुहोस्</string>
@@ -315,10 +314,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">सन्तुलन प्रवृत्ति</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <string name="pro_home_card_title">PennyWise मन पर्यो?</string>
-    <string name="pro_home_card_body">Pro ले असीमित नियम, लक्ष्य, निर्यात र स्टेटमेन्ट आयात थप्छ।</string>
-    <string name="pro_home_card_action">Pro हेर्नुहोस्</string>
-    <string name="pro_home_card_dismiss">हटाउनुहोस्</string>
     <string name="home_payday_card_title">तलब आउने दिनबाट बजेट सुरु गर्ने?</string>
     <string name="home_payday_card_body">तपाईंको तलब महिनाको %1$d गते आउने देखिन्छ। हरेक बजेट महिना त्यही दिनबाट सुरु गर्ने? तपाईं यसलाई सेटिङमा परिवर्तन गर्न सक्नुहुन्छ।</string>
     <string name="home_payday_card_action">%1$d गतेबाट सुरु गर्नुहोस्</string>

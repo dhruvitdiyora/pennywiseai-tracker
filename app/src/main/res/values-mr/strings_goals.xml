@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="goals_section_title">उद्दिष्टे</string>
-    <string name="upgrade_feature_goals">अमर्यादित उद्दिष्टे</string>
     <string name="goals_new">नवीन उद्दिष्ट</string>
     <string name="goals_empty_title">एखाद्या गोष्टीसाठी बचत करा</string>
     <string name="goals_empty_body">लक्ष्य रक्कम आणि अंतिम तारीख निवडा, आणि दरमहा किती बाजूला ठेवायचे ते पाहा.</string>

@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">Metas</string>
-    <string name="upgrade_feature_goals">Metas ilimitadas</string>
     <string name="goals_new">Nueva meta</string>
     <string name="goals_empty_title">Ahorra para algo</string>
     <string name="goals_empty_body">Elige un monto objetivo y una fecha límite, y ve cuánto apartar cada mes.</string>

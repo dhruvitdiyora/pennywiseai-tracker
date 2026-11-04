@@ -24,7 +24,6 @@
     <string name="analytics_group_by_account">खाते के हिसाब से</string>
     <string name="analytics_group_by_tag">टैग के हिसाब से</string>
     <string name="analytics_group_by_day_of_week">हफ़्ते के दिन के हिसाब से</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">साफ करें</string>
     <string name="analytics_filter_all_profiles">सभी खाते</string>
@@ -307,7 +306,6 @@
     <string name="mark_paid_or_mark_today">या आज का मार्क करें</string>
     <string name="mark_paid_today">आज</string>
     <string name="mark_paid_yesterday">कल</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_percent">%1$d%%</string>
     <string name="analytics_percent_below_one" formatted="false">&lt;1%</string>
     <string name="analytics_pie_percent">(%1$d%%)</string>

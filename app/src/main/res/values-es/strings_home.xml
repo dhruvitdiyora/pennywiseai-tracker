@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transacción eliminada</string>
     <string name="home_undo">Deshacer</string>
-    <string name="home_upgrade_pro">Pásate a PennyWise Pro</string>
     <string name="home_profile_filter">Filtro de perfil</string>
     <string name="home_more_options">Más opciones</string>
     <string name="home_view_all">Ver todo</string>
@@ -313,10 +312,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Evolución del saldo</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <string name="pro_home_card_title">¿Te gusta PennyWise?</string>
-    <string name="pro_home_card_body">Pro agrega reglas, metas, exportaciones e importaciones de estados de cuenta ilimitadas.</string>
-    <string name="pro_home_card_action">Ver Pro</string>
-    <string name="pro_home_card_dismiss">Descartar</string>
     <string name="home_payday_card_title">¿Empezar el presupuesto el día de pago?</string>
     <string name="home_payday_card_body">Parece que tu sueldo llega el día %1$d del mes. ¿Quieres que cada mes de presupuesto empiece ese día? Puedes cambiarlo en Ajustes.</string>
     <string name="home_payday_card_action">Empezar el día %1$d</string>

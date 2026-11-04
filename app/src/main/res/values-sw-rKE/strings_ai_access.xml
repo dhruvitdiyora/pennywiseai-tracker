@@ -3,12 +3,9 @@
 <resources>
     <string name="ai_access_settings_title">Unganisha Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Ruhusu app za AI zisome data yako unapoziruhusu</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · Ruhusu app za AI zisome data yako unapoziruhusu</string>
     <string name="ai_access_title">Ufikiaji wa AI</string>
     <string name="ai_access_back">Rudi</string>
     <string name="ai_access_intro">Uliza Claude, ChatGPT au app nyingine ya AI kuhusu matumizi yako, au fungua dashibodi kwenye kompyuta. Zinaweza kusoma miamala, salio na usajili wako tu wakati kipindi cha AI kimewashwa. Haziwezi kubadilisha chochote.</string>
-    <string name="ai_access_pro_only">Ufikiaji wa AI ni kipengele cha Pro.</string>
-    <string name="ai_access_unlock">Fungua kwa Pro</string>
     <string name="ai_access_session_title">Kipindi cha AI</string>
     <string name="ai_access_session_off">Kimezimwa. Chagua muda wa kuweka PennyWise ikiwa imeunganishwa, au tumia kigae cha PennyWise AI kwenye Mipangilio ya Haraka.</string>
     <string name="ai_access_session_minutes">Dak %d</string>

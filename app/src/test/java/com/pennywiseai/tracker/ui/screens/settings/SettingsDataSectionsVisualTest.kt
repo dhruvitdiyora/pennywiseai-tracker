@@ -76,7 +76,6 @@ class SettingsDataSectionsVisualTest {
         SettingsBackupSections(
             scheduledFolderBackupEnabled = scheduledBackupEnabled,
             scheduledFolderBackupLastTimestamp = null,
-            isProEntitled = true,
             smsScanAllTime = false,
             smsScanUseCustomDate = false,
             smsScanCustomDate = null,

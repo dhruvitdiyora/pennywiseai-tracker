@@ -2,12 +2,9 @@
 <resources>
     <string name="webhooks_title">વેબહુક</string>
     <string name="webhooks_settings_subtitle">પસંદ કરેલો ડેટા તમારા એન્ડપોઇન્ટ પર મોકલો</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · પસંદ કરેલો ડેટા તમારા એન્ડપોઇન્ટ પર મોકલો</string>
     <string name="webhooks_add_title">વેબહુક ઉમેરો</string>
     <string name="webhooks_edit_title">વેબહુક સંપાદિત કરો</string>
     <string name="webhooks_history_title">ડિલિવરી ઇતિહાસ</string>
-    <string name="webhooks_pro_body">વેબહુક સિંક એક Pro સુવિધા છે. પસંદ કરેલો નાણાકીય ડેટા આપમેળે તમારા પોતાના એન્ડપોઇન્ટ પર મોકલો.</string>
-    <string name="webhooks_unlock_pro">Pro સાથે અનલૉક કરો</string>
     <string name="webhooks_save">વેબહુક સાચવો</string>
     <string name="webhooks_history_empty">હજી કોઈ ડિલિવરી નથી. કતારમાંનું કામ નેટવર્ક કનેક્શનની રાહ જુએ છે.</string>
     <string name="webhooks_log_delivered">પહોંચાડ્યું</string>

@@ -1,9 +1,7 @@
 package com.pennywiseai.tracker.presentation.recurring
 
 import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.foundation.BorderStroke
 import com.pennywiseai.tracker.presentation.accounts.glassSheetContainerColor
-import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +58,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,11 +88,9 @@ import com.pennywiseai.tracker.ui.components.TINTED_CONTAINER_ALPHA
 import com.pennywiseai.tracker.ui.components.TonalNavigationButton
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.pickerDefault
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.legibleOn
@@ -115,7 +110,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
@@ -129,12 +123,9 @@ fun RecurringTransactionsScreen(
     val templates by viewModel.templates.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
-    val canAddMore by viewModel.canAddMore.collectAsStateWithLifecycle()
 
     // Null = editor closed. Non-null = editing this form (id 0 for a fresh add).
     var editing by remember { mutableStateOf<RecurringFormState?>(null) }
-    // Free tier allows a limited number of templates; adding beyond it opens the paywall (#706).
-    var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
 
     val active = templates.filter { it.isActive }
     val paused = templates.filterNot { it.isActive }
@@ -167,10 +158,7 @@ fun RecurringTransactionsScreen(
         floatingActionButton = {
             PeopleExtendedFab(
                 label = stringResource(R.string.recurring_fab_label),
-                onClick = {
-                    if (canAddMore) editing = RecurringFormState(currency = baseCurrency)
-                    else showUpgradeSheet = true
-                },
+                onClick = { editing = RecurringFormState(currency = baseCurrency) },
                 expanded = fabExpanded
             )
         }
@@ -264,11 +252,6 @@ fun RecurringTransactionsScreen(
         )
     }
 
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
-        )
-    }
 }
 
 @Composable

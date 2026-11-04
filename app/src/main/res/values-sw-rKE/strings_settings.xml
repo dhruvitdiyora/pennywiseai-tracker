@@ -7,10 +7,6 @@
     <string name="settings_action_cancel">Ghairi</string>
     <string name="settings_action_ok">Sawa</string>
     <string name="settings_action_done">Imekamilika</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_title_upgrade">Pandisha hadi PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Inatumika · vipengele vyote vya ziada vimefunguliwa</string>
-    <string name="settings_pro_subtitle_upgrade">Kanuni, taarifa za benki, uhamishaji wa data bila kikomo, na zaidi</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">Mapendeleo</string>
     <string name="settings_appearance_title">Mwonekano</string>
@@ -92,7 +88,6 @@
     <string name="settings_export_data_subtitle">Hifadhi nakala ya data yote kwenye faili</string>
     <string name="settings_folder_backup_title">Nakala ya Akiba ya Folda Kiotomatiki</string>
     <string name="settings_folder_backup_subtitle_enabled">Nakala ya kila siku saa 8 usiku (2:00 AM) kwenye folda uliyochagua</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · Hifadhi nakala kwenye folda kila siku saa 8 usiku (2:00 AM)</string>
     <string name="settings_folder_backup_subtitle_disabled">Hifadhi nakala kwenye folda kila siku saa 8 usiku (2:00 AM)</string>
     <string name="settings_export_include_receipts_title">Jumuisha picha za risiti</string>
     <string name="settings_export_include_receipts_subtitle">Ongeza picha za risiti zilizoambatishwa kwenye nakala zinazohamishwa (faili kubwa zaidi)</string>
@@ -234,7 +229,6 @@
     <string name="settings_developer_mode_title">Hali ya Msanidi</string>
     <string name="settings_developer_mode_subtitle">Onyesha taarifa za kiufundi kwenye gumzo</string>
     <string name="settings_webhooks_subtitle">Tuma data uliyochagua kwenye endpoint yako</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · Tuma data uliyochagua kwenye endpoint yako</string>
     <!-- Support & Community -->
     <string name="settings_support_section">Msaada &amp; Jumuiya</string>
     <string name="settings_help_faq_title">Msaada &amp; Maswali</string>
@@ -284,8 +278,6 @@
     <string name="webhooks_title_edit">Hariri webhook</string>
     <string name="webhooks_title_history">Historia ya utumaji</string>
     <string name="webhooks_back">Rudi</string>
-    <string name="webhooks_pro_body">Usawazishaji wa webhook ni kipengele cha Pro. Tuma data ya kifedha uliyochagua kwenye endpoint yako mwenyewe kiotomatiki.</string>
-    <string name="webhooks_unlock_pro">Fungua kwa Pro</string>
     <string name="webhooks_intro">Webhooks hutuma data ya kifedha uliyochagua nje ya kifaa hiki kwenda endpoint unayochagua. Washa tu endpoint unazoziamini. Tumia HTTPS kulinda data na vitambulisho.</string>
     <string name="webhooks_add">Ongeza webhook</string>
     <string name="webhooks_interval_label">Muda wa usawazishaji kwa saa</string>

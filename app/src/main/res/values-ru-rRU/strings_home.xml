@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Транзакция удалена</string>
     <string name="home_undo">Отменить</string>
-    <string name="home_upgrade_pro">Обновить до PennyWise Pro</string>
     <string name="home_profile_filter">Фильтр профиля</string>
     <string name="home_more_options">Больше опций</string>
     <string name="home_view_all">Показать всё</string>
@@ -354,10 +353,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Тренд баланса</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <string name="pro_home_card_title">Нравится PennyWise?</string>
-    <string name="pro_home_card_body">Pro добавляет неограниченные правила, цели, экспорт и импорт выписок.</string>
-    <string name="pro_home_card_action">Подробнее о Pro</string>
-    <string name="pro_home_card_dismiss">Скрыть</string>
     <string name="home_payday_card_title">Начинать бюджет в день зарплаты?</string>
     <string name="home_payday_card_body">Похоже, зарплата приходит %1$d-го числа. Начинать каждый бюджетный месяц с этого дня? Это можно изменить в Настройках.</string>
     <string name="home_payday_card_action">Начинать %1$d-го</string>

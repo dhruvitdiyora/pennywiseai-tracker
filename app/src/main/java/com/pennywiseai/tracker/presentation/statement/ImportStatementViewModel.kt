@@ -7,7 +7,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.UiText
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.ParsedTransaction
-import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.statement.ImportStatementUseCase
@@ -21,20 +20,14 @@ import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 import javax.inject.Inject
 
 sealed class ImportStatementUiState {
@@ -77,7 +70,6 @@ sealed class ImportStatementUiState {
 class ImportStatementViewModel @Inject constructor(
     private val importStatementUseCase: ImportStatementUseCase,
     private val preferences: UserPreferencesRepository,
-    entitlementGate: EntitlementGate,
     @ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
@@ -85,7 +77,7 @@ class ImportStatementViewModel @Inject constructor(
     val uiState: StateFlow<ImportStatementUiState> = _uiState.asStateFlow()
 
     // F-Droid-only contextual support nudge, shown once per global cooldown after
-    // a successful import (a Pro-equivalent power feature on the open build).
+    // a successful import.
     private val _showSupportNudge = MutableStateFlow(false)
     val showSupportNudge: StateFlow<Boolean> = _showSupportNudge.asStateFlow()
 
@@ -100,31 +92,6 @@ class ImportStatementViewModel @Inject constructor(
         val account: AccountBalanceEntity?,
         val table: List<List<String>>? = null,
         val mapping: StatementColumnMapping? = null
-    )
-
-    /**
-     * True when the user is allowed to import a statement right now — either
-     * Pro (unlimited) or has not yet imported this calendar month. The UI
-     * reads this to decide between opening the file picker and triggering
-     * the paywall. PDF and spreadsheet statements share the one quota.
-     *
-     * Calendar-month boundary is computed in the system default zone, which
-     * matches how a user thinks about "this month" without needing a
-     * stored month-string that's fragile across timezone changes.
-     */
-    val canImportThisMonth: StateFlow<Boolean> = combine(
-        entitlementGate.isProEntitled,
-        preferences.lastStatementImportAt,
-    ) { pro, lastAtMillis ->
-        if (pro) return@combine true
-        if (lastAtMillis == null) return@combine true
-        val lastDate = Instant.ofEpochMilli(lastAtMillis).atZone(ZoneId.systemDefault()).toLocalDate()
-        val today = LocalDate.now(ZoneId.systemDefault())
-        lastDate.year != today.year || lastDate.month != today.month
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = true,
     )
 
     fun importStatement(uri: Uri, password: String? = null) {
@@ -247,13 +214,7 @@ class ImportStatementViewModel @Inject constructor(
             try {
                 val keep = state.plan.newIndices.toSet() - state.excluded
                 val result = importStatementUseCase.commit(p.parsed, keep)
-                // Record the import so the next attempt this month is
-                // gated; Pro users will still see canImportThisMonth=true
-                // because the combine() short-circuits on entitlement. A
-                // statement that was already fully in PennyWise changed
-                // nothing, so it doesn't use up the month's free import.
                 if (result.imported + result.enriched > 0) {
-                    preferences.markStatementImported(System.currentTimeMillis())
                     // Gate the claim on the flavor first so Play builds (where the
                     // nudge never renders) don't silently consume the global cap.
                     if (BuildConfig.IS_FDROID_BUILD && preferences.claimSupportNudge()) {

@@ -146,43 +146,6 @@
     <string name="import_statement_balance_set_note">Salio la taarifa pamoja na kile PennyWise ilirekodi baada ya taarifa kuisha.</string>
     <string name="import_statement_balance_applied">Salio limesasishwa kuwa %1$s.</string>
     <string name="import_statement_balance_newer">Benki yako imeripoti salio jipya zaidi tangu taarifa hii, kwa hiyo PennyWise inabaki na hilo.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_subtitle_member">Uwezo wote wa Pro unatumika</string>
-    <string name="upgrade_subtitle_upgrade">Kila kitu kinafunguliwa kwa ufunguo wa leseni</string>
-    <string name="upgrade_enter_license_key">Weka ufunguo wa leseni</string>
-    <string name="upgrade_support_note">Imetengenezwa na msanidi mmoja — Pro inafadhili kinachofuata. Asante.</string>
-    <string name="upgrade_available_at">PennyWise Pro inapatikana kwenye %1$s</string>
-    <string name="upgrade_copied">Imenakiliwa</string>
-    <string name="upgrade_copy_address">Nakili anwani</string>
-    <string name="upgrade_includes">Inajumuisha</string>
-    <string name="upgrade_feature_rules">Kanuni maalum bila kikomo</string>
-    <string name="upgrade_feature_statements">Uingizaji wa taarifa bila kikomo</string>
-    <string name="upgrade_feature_csv">Uhamishaji wa CSV bila kikomo</string>
-    <string name="upgrade_feature_merge_accounts">Unganisha akaunti zilizojirudia</string>
-    <string name="upgrade_restoring">Inarejesha…</string>
-    <string name="upgrade_restore">Rejesha</string>
-    <string name="upgrade_get_help">Pata msaada</string>
-    <string name="upgrade_welcome_eyebrow">KARIBU</string>
-    <string name="upgrade_celebration_title">Wewe ni mwanachama wa Pro</string>
-    <string name="upgrade_celebration_body">Asante kwa kuiunga mkono PennyWise — kila kipengele kwenye orodha sasa ni chako.</string>
-    <string name="upgrade_continue">Endelea</string>
-    <string name="upgrade_active_eyebrow">INATUMIKA</string>
-    <string name="upgrade_active_title">Vipengele vyote vya Pro vimefunguliwa</string>
-    <string name="upgrade_via_license_key">Kupitia ufunguo wa leseni · %1$s</string>
-    <string name="upgrade_remove_license_key">Ondoa ufunguo wa leseni</string>
-    <string name="upgrade_manage_subscription">Dhibiti usajili</string>
-    <string name="upgrade_error_play_unavailable">Imeshindwa kufikia Play Store. Jaribu tena baadaye.</string>
-    <string name="upgrade_cancel">Ghairi</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Washa ufunguo wa leseni</string>
-    <string name="upgrade_license_dialog_body">Bandika ufunguo kutoka barua pepe ya ununuzi wako. Pro itawashwa kwenye kifaa hiki papo hapo.</string>
-    <string name="upgrade_license_email_label">Barua pepe ya ununuzi</string>
-    <string name="upgrade_license_email_supporting">Inathibitisha kuwa unamiliki ufunguo kabla haujaondoka kwenye kifaa kingine.</string>
-    <string name="upgrade_license_move_here">Hamishia kwenye kifaa hiki</string>
-    <string name="upgrade_license_activate">Washa</string>
-    <string name="upgrade_license_error_invalid">Ufunguo huo si halali. Angalia makosa ya uandishi kisha ujaribu tena.</string>
-    <string name="upgrade_license_error_active_elsewhere">Ufunguo huu tayari unatumika kwenye kifaa kingine.</string>
-    <string name="upgrade_license_error_offline">Imeshindwa kufikia seva ya leseni. Angalia muunganisho wako kisha ujaribu tena.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">Karibu PennyWise</string>
     <string name="onboarding_welcome_body">Kifuatiliaji chako cha matumizi chenye AI kinachotambua miamala kutoka SMS moja kwa moja.</string>
@@ -363,10 +326,6 @@
     <plurals name="rules_import_collapsed">
         <item quantity="one">Jina %1$d lililojirudia kwenye faili limeunganishwa.</item>
         <item quantity="other">Majina %1$d yaliyojirudia kwenye faili yameunganishwa.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d zaidi inahitaji Pro — umefikia kikomo cha bure cha %2$d.</item>
-        <item quantity="other">%1$d zaidi zinahitaji Pro — umefikia kikomo cha bure cha %2$d.</item>
     </plurals>
     <string name="rules_import_failed">Uingizaji umeshindwa.</string>
     <!-- Apply rule to past transactions -->

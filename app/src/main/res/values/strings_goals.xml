@@ -4,7 +4,6 @@
 
     <!-- Budgets screen section -->
     <string name="goals_section_title">Goals</string>
-    <string name="upgrade_feature_goals">Unlimited goals</string>
     <string name="goals_new">New goal</string>
     <string name="goals_empty_title">Save for something</string>
     <string name="goals_empty_body">Pick a target amount and a due date, and see how much to set aside each month.</string>

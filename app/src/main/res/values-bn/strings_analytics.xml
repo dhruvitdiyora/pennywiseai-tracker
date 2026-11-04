@@ -21,7 +21,6 @@
     <string name="analytics_group_by_account">অ্যাকাউন্ট অনুযায়ী</string>
     <string name="analytics_group_by_tag">ট্যাগ অনুযায়ী</string>
     <string name="analytics_group_by_day_of_week">সপ্তাহের দিন অনুযায়ী</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_filter_clear">মুছুন</string>
     <string name="analytics_filter_all_profiles">সব অ্যাকাউন্ট</string>
     <string name="analytics_filter_currency">মুদ্রা</string>

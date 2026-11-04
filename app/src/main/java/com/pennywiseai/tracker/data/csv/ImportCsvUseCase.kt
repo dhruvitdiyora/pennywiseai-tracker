@@ -21,7 +21,7 @@ import javax.inject.Singleton
  * parses it, dedups the parsed rows against what's already in the DB (by the
  * deterministic import hash) and inserts the rest.
  *
- * Free feature (onboarding/migration) — not gated behind Pro.
+ * Onboarding/migration feature.
  */
 @Singleton
 class ImportCsvUseCase @Inject constructor(

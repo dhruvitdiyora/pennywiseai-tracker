@@ -25,7 +25,7 @@ const REDIRECT = `${BASE}/dashboard/`;
 const RESOURCE = `${BASE}/mcp`;
 const ss = sessionStorage;
 
-/** The phone answered with a message for the user (not connected, Pro ended, timed out). */
+/** The phone answered with a message for the user (not connected, timed out). */
 export class PhoneError extends Error {}
 export class SignedOut extends Error {}
 

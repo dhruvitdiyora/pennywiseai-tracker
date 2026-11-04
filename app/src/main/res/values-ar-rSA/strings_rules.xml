@@ -162,44 +162,6 @@
     <string name="import_statement_balance_set_note">رصيد الكشف مضافًا إليه ما سجّله PennyWise بعد نهاية الكشف.</string>
     <string name="import_statement_balance_applied">تم تحديث الرصيد إلى %1$s.</string>
     <string name="import_statement_balance_newer">أبلغ بنكك عن رصيد أحدث بعد هذا الكشف، لذا يحتفظ PennyWise به.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_title">PennyWise Pro</string>
-    <string name="upgrade_subtitle_member">جميع القدرات المحترفة نشطة</string>
-    <string name="upgrade_subtitle_upgrade">تم فتح كل شيء باستخدام مفتاح الترخيص</string>
-    <string name="upgrade_enter_license_key">أدخل مفتاح الترخيص</string>
-    <string name="upgrade_support_note">بنيت بواسطة ديف فردي - برو أموال ما يلي. شكرا لكم.</string>
-    <string name="upgrade_available_at">PennyWise Pro متاح على %1$s</string>
-    <string name="upgrade_copied">منسوخ</string>
-    <string name="upgrade_copy_address">نسخ العنوان</string>
-    <string name="upgrade_includes">يشمل</string>
-    <string name="upgrade_feature_rules">قواعد مخصصة غير محدودة</string>
-    <string name="upgrade_feature_statements">استيراد غير محدود لكشوف الحساب</string>
-    <string name="upgrade_feature_csv">تصدير CSV غير محدود</string>
-    <string name="upgrade_feature_merge_accounts">دمج الحسابات المكررة</string>
-    <string name="upgrade_restoring">إستعادة…</string>
-    <string name="upgrade_restore">استعادة</string>
-    <string name="upgrade_get_help">الحصول على المساعدة</string>
-    <string name="upgrade_welcome_eyebrow">لطيف</string>
-    <string name="upgrade_celebration_title">أنت عضو محترف</string>
-    <string name="upgrade_celebration_body">شكرا لك على مساندتكم بيني وايز - كل الميزة في القائمة هي الآن خاصتك.</string>
-    <string name="upgrade_continue">متابعة</string>
-    <string name="upgrade_active_eyebrow">نشط</string>
-    <string name="upgrade_active_title">جميع الميزات المحترفة غير مقفلة</string>
-    <string name="upgrade_via_license_key">مفتاح ترخيص Via · %1$s</string>
-    <string name="upgrade_remove_license_key">إزالة مفتاح الترخيص</string>
-    <string name="upgrade_manage_subscription">إدارة الاشتراك</string>
-    <string name="upgrade_error_play_unavailable">تعذر الوصول إلى متجر اللعب. حاول مرة أخرى لاحقاً.</string>
-    <string name="upgrade_cancel">إلغاء</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">تنشيط مفتاح الترخيص</string>
-    <string name="upgrade_license_dialog_body">لصق المفتاح من البريد الإلكتروني للشراء الخاص بك. يعمل المحترف على هذا الجهاز على الفور.</string>
-    <string name="upgrade_license_email_label">شراء البريد الإلكتروني</string>
-    <string name="upgrade_license_email_supporting">يؤكد أنك تملك المفتاح قبل أن يترك الجهاز الآخر.</string>
-    <string name="upgrade_license_move_here">نقل إلى هذا الجهاز</string>
-    <string name="upgrade_license_activate">تفعيل</string>
-    <string name="upgrade_license_error_invalid">هذا المفتاح غير صالح. تحقق من الطباعة وحاول مرة أخرى.</string>
-    <string name="upgrade_license_error_active_elsewhere">هذا المفتاح نشط بالفعل على جهاز آخر.</string>
-    <string name="upgrade_license_error_offline">تعذر الوصول إلى خادم الترخيص. تحقق من اتصالك وحاول مرة أخرى.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_logo_cd">PennyWise</string>
     <string name="onboarding_welcome_title">مرحبا بكم في PennyWise</string>
@@ -414,14 +376,6 @@
         <item quantity="few">انهارت أسماء %1$d المتكررة في الملف.</item>
         <item quantity="many">انهارت أسماء %1$d المتكررة في الملف.</item>
         <item quantity="other">انهارت أسماء %1$d المتكررة في الملف.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="zero">يحتاج %1$d المزيد من المحترف - أنت في الحد المجاني من %2$d.</item>
-        <item quantity="one">يحتاج %1$d المزيد من المحترف - أنت في الحد المجاني من %2$d.</item>
-        <item quantity="two">يحتاج %1$d المزيد من المحترف - أنت في الحد المجاني من %2$d.</item>
-        <item quantity="few">يحتاج %1$d المزيد من المحترف - أنت في الحد المجاني من %2$d.</item>
-        <item quantity="many">يحتاج %1$d المزيد من المحترف - أنت في الحد المجاني من %2$d.</item>
-        <item quantity="other">يحتاج %1$d المزيد من المحترف - أنت في الحد المجاني من %2$d.</item>
     </plurals>
     <string name="rules_import_failed">فشل الاستيراد.</string>
     <!-- Apply rule to past transactions -->

@@ -35,14 +35,9 @@ android {
 
             val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
-            // Cloudflare Worker that frees a license key's activation so it
-            // can move to a new phone. Empty = "Move to this device" hidden.
-            val licenseMoveUrl = localProperties.getProperty("LICENSE_MOVE_URL", "")
-            buildConfigField("String", "LICENSE_MOVE_URL", "\"$licenseMoveUrl\"")
         } else {
             // Fallback empty key for CI/CD builds
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"\"")
-            buildConfigField("String", "LICENSE_MOVE_URL", "\"\"")
         }
     }
 
@@ -344,10 +339,6 @@ dependencies {
     // PDFBox Android for PDF statement parsing
     implementation(libs.pdfbox.android)
 
-    // Google Play Billing — STANDARD FLAVOR ONLY. F-Droid forbids the
-    // proprietary library; its build keeps Pro features unlocked via the
-    // FdroidBillingGateway stub and does not need the dep.
-    "standardImplementation"(libs.billing.ktx)
 
     // Google Drive cloud backup (Authorization API, drive.appdata scope) — STANDARD
     // FLAVOR ONLY. F-Droid gets WebDAV only and binds UnavailableGoogleDriveFeature.

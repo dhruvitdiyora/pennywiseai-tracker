@@ -146,44 +146,6 @@
     <string name="import_statement_balance_set_note">Saldo laut Kontoauszug plus das, was PennyWise nach dem Ende des Kontoauszugs erfasst hat.</string>
     <string name="import_statement_balance_applied">Kontostand auf %1$s aktualisiert.</string>
     <string name="import_statement_balance_newer">Ihre Bank hat seit diesem Kontoauszug einen neueren Kontostand gemeldet, daher behält PennyWise diesen.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_title">PennyWise Pro</string>
-    <string name="upgrade_subtitle_member">Alle Pro-Fähigkeiten aktiv</string>
-    <string name="upgrade_subtitle_upgrade">Alles entsperrt mit einem Lizenzschlüssel</string>
-    <string name="upgrade_enter_license_key">Lizenzschlüssel eingeben</string>
-    <string name="upgrade_support_note">Erstellt von einem Solo-Entwickler — Pro finanziert was als nächstes geschieht. Vielen Dank.</string>
-    <string name="upgrade_available_at">PennyWise Pro ist verfügbar unter %1$s</string>
-    <string name="upgrade_copied">Kopiert</string>
-    <string name="upgrade_copy_address">Adresse kopieren</string>
-    <string name="upgrade_includes">Beinhaltet</string>
-    <string name="upgrade_feature_rules">Unbegrenzte benutzerdefinierte Regeln</string>
-    <string name="upgrade_feature_statements">Unbegrenzte Kontoauszug-Importe</string>
-    <string name="upgrade_feature_csv">Unbegrenzter CSV-Export</string>
-    <string name="upgrade_feature_merge_accounts">Doppelte Konten zusammenführen</string>
-    <string name="upgrade_restoring">Wiederherstellen…</string>
-    <string name="upgrade_restore">Wiederherstellen</string>
-    <string name="upgrade_get_help">Hilfe erhalten</string>
-    <string name="upgrade_welcome_eyebrow">WILLKOMMEN</string>
-    <string name="upgrade_celebration_title">Du bist ein Pro-Mitglied</string>
-    <string name="upgrade_celebration_body">Vielen Dank für die Unterstützung von PennyWise – alle Funktionen auf der Liste gehören jetzt Ihnen.</string>
-    <string name="upgrade_continue">Weiter</string>
-    <string name="upgrade_active_eyebrow">AKTIV</string>
-    <string name="upgrade_active_title">Alle Pro-Funktionen freigeschaltet</string>
-    <string name="upgrade_via_license_key">Mit Lizenzschlüssel · %1$s</string>
-    <string name="upgrade_remove_license_key">Lizenzschlüssel entfernen</string>
-    <string name="upgrade_manage_subscription">Abonnement verwalten</string>
-    <string name="upgrade_error_play_unavailable">Play Store konnte nicht erreicht werden. Versuchen Sie es später erneut.</string>
-    <string name="upgrade_cancel">Abbrechen</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Lizenzschlüssel aktivieren</string>
-    <string name="upgrade_license_dialog_body">Fügen Sie den Schlüssel aus Ihrer Bestell-E-Mail ein. Pro aktiviert sich sofort auf diesem Gerät.</string>
-    <string name="upgrade_license_email_label">E-Mail kaufen</string>
-    <string name="upgrade_license_email_supporting">Bestätigt Sie den Schlüssel, bevor er das andere Gerät verlässt.</string>
-    <string name="upgrade_license_move_here">Auf dieses Gerät verschieben</string>
-    <string name="upgrade_license_activate">Aktivieren</string>
-    <string name="upgrade_license_error_invalid">Dieser Schlüssel ist nicht gültig. Prüfe auf Tippfehler und versuche es erneut.</string>
-    <string name="upgrade_license_error_active_elsewhere">Dieser Schlüssel ist bereits auf einem anderen Gerät aktiv.</string>
-    <string name="upgrade_license_error_offline">Konnte den Lizenzserver nicht erreichen. Überprüfe deine Verbindung und versuche es erneut.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_logo_cd">Barrio</string>
     <string name="onboarding_welcome_title">Willkommen bei PennyWise</string>
@@ -366,10 +328,6 @@
     <plurals name="rules_import_collapsed">
         <item quantity="one">%1$d wiederholter Name in der Datei wurde zusammengebrochen.</item>
         <item quantity="other">%1$d wiederholte Namen in der Datei wurden zusammengebrochen.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d mehr brauche Pro — du hast das kostenlose Limit von %2$d erreicht.</item>
-        <item quantity="other">%1$d mehr brauche Pro — du hast das kostenlose Limit von %2$d erreicht.</item>
     </plurals>
     <string name="rules_import_failed">Import fehlgeschlagen.</string>
     <!-- Apply rule to past transactions -->

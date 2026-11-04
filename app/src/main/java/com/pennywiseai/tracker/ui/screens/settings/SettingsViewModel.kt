@@ -8,19 +8,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
@@ -51,7 +47,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.first
-import java.net.URLEncoder
 import java.io.File
 import javax.inject.Inject
 
@@ -72,11 +67,8 @@ class SettingsViewModel @Inject constructor(
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
     private val modelDownloader: com.pennywiseai.tracker.data.manager.ModelDownloader,
-    entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
-    /** Drives the Settings → Pro row: shows "Active" when true, "Upgrade" when false. */
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     
     
     // Download state
@@ -627,7 +619,7 @@ class SettingsViewModel @Inject constructor(
     
     /**
      * Imports historical transactions from a CSV in PennyWise's own export format.
-     * Free feature (onboarding/migration) — not gated behind Pro.
+     * Onboarding/migration feature.
      */
     fun importCsv(uri: android.net.Uri) {
         viewModelScope.launch {

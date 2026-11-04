@@ -2,12 +2,9 @@
 <resources>
     <string name="ai_access_settings_title">Claude / ChatGPT সংযুক্ত করুন</string>
     <string name="ai_access_settings_subtitle">আপনি যতক্ষণ অনুমতি দেবেন, AI অ্যাপকে আপনার ডেটা পড়তে দিন</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · আপনি যতক্ষণ অনুমতি দেবেন, AI অ্যাপকে আপনার ডেটা পড়তে দিন</string>
     <string name="ai_access_title">AI অ্যাক্সেস</string>
     <string name="ai_access_back">ফিরে যান</string>
     <string name="ai_access_intro">Claude, ChatGPT বা অন্য কোনো AI অ্যাপকে আপনার খরচ সম্পর্কে জিজ্ঞাসা করুন, অথবা কম্পিউটারে ড্যাশবোর্ড খুলুন। AI সেশন চালু থাকলেই শুধু তারা আপনার লেনদেন, ব্যালেন্স ও সাবস্ক্রিপশন পড়তে পারে। তারা কিছুই বদলাতে পারে না।</string>
-    <string name="ai_access_pro_only">AI অ্যাক্সেস একটি Pro ফিচার।</string>
-    <string name="ai_access_unlock">Pro দিয়ে আনলক করুন</string>
     <string name="ai_access_session_title">AI সেশন</string>
     <string name="ai_access_session_off">বন্ধ। জিজ্ঞাসা করার আগে একটি শুরু করুন, বা কুইক সেটিংসে PennyWise AI টাইল ব্যবহার করুন।</string>
     <string name="ai_access_session_minutes">%d মিনিট</string>

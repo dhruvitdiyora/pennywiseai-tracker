@@ -129,13 +129,6 @@ class GoalRulesTest {
     }
 
     @Test
-    fun freeTierAllowsOneActiveGoal_proIsUnlimited() {
-        assertTrue(GoalRules.canCreateGoal(isPro = false, activeGoalCount = 0))
-        assertFalse(GoalRules.canCreateGoal(isPro = false, activeGoalCount = 1))
-        assertTrue(GoalRules.canCreateGoal(isPro = true, activeGoalCount = 7))
-    }
-
-    @Test
     fun capAmountsScalesProportionallyAndSumsExactlyToTheCap() {
         val capped = GoalRules.capAmounts(listOf(BigDecimal("100.00"), BigDecimal("50.00"), BigDecimal("50.00")), BigDecimal("100"))
         assertEquals(listOf("50.00", "25.00", "25.00"), capped.map { it.toPlainString() })

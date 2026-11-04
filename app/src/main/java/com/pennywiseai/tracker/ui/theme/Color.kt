@@ -246,7 +246,7 @@ val yellow_light = Color(0xFFFFF8E1)
 val yellow_dark = Color(0xFFF57F17)
 /** Body text on a [yellow_light] surface — readable in both themes since the surface never darkens. */
 val yellow_on_light = Color(0xFF3A2B00)
-/** Pro tonal card in dark theme: a deep gold surface so it sits with the other cards. */
+/** Tonal card in dark theme: a deep gold surface so it sits with the other cards. */
 val yellow_surface_dark = Color(0xFF2E2614)
 /** Text on [yellow_surface_dark]. */
 val yellow_on_dark = Color(0xFFFFE6A8)

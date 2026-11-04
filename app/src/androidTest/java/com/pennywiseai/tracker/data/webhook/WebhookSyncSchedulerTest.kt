@@ -6,7 +6,6 @@ import androidx.work.Configuration
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
-import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import io.mockk.every
@@ -29,11 +28,9 @@ class WebhookSyncSchedulerTest {
         val work = WorkManager.getInstance(context)
         val profiles = MutableStateFlow(listOf(WebhookProfileEntity(
             id = "schedule-test", name = "Test", url = "https://example.com/hook")))
-        val pro = MutableStateFlow<Boolean?>(true)
         val repository = mockk<WebhookRepository> { every { observeProfiles() } returns profiles }
         val preferences = mockk<WebhookPreferences> { every { intervalHours } returns MutableStateFlow(6) }
-        val gate = mockk<EntitlementGate> { every { resolvedProEntitlement } returns pro }
-        val scheduler = WebhookSyncScheduler(context, repository, preferences, gate)
+        val scheduler = WebhookSyncScheduler(context, repository, preferences)
         val observation = launch { scheduler.observeSchedule() }
         suspend fun awaitWork(state: WorkInfo.State): WorkInfo = withTimeout(10_000) {
             var info: WorkInfo? = null
@@ -46,13 +43,7 @@ class WebhookSyncSchedulerTest {
         }
         try {
             val original = awaitWork(WorkInfo.State.ENQUEUED)
-            pro.value = null
-            delay(100)
-            assertEquals(original.id, awaitWork(WorkInfo.State.ENQUEUED).id)
-            pro.value = true
-            delay(100)
-            assertEquals(original.id, awaitWork(WorkInfo.State.ENQUEUED).id)
-            pro.value = false
+            profiles.value = emptyList()
             assertEquals(original.id, awaitWork(WorkInfo.State.CANCELLED).id)
         } finally {
             observation.cancelAndJoin()

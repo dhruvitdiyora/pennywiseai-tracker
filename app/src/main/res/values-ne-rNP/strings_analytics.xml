@@ -24,7 +24,6 @@
     <string name="analytics_group_by_account">खाता अनुसार</string>
     <string name="analytics_group_by_tag">ट्याग अनुसार</string>
     <string name="analytics_group_by_day_of_week">हप्ताको दिन अनुसार</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">खाली गर्नुहोस्</string>
     <string name="analytics_filter_all_profiles">सबै खाता</string>

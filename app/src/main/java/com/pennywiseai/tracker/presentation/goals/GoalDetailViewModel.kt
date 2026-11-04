@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.goals
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
@@ -34,7 +33,6 @@ data class MoneySheetState(val saving: Boolean = false, val error: MoneyError? =
 class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val conversionService: CurrencyConversionService,
-    private val entitlementGate: EntitlementGate,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -116,10 +114,8 @@ class GoalDetailViewModel @Inject constructor(
         viewModelScope.launch { goalRepository.deleteGoal(goalId) }
     }
 
-    /** Repeat creates a new goal, so it passes the same Pro gate as creating one. */
-    fun repeatForNextYear(onCreated: (Long) -> Unit, onBlocked: () -> Unit) {
+    fun repeatForNextYear(onCreated: (Long) -> Unit) {
         viewModelScope.launch {
-            if (!goalRepository.canCreateGoal(entitlementGate.isProEntitled.value)) { onBlocked(); return@launch }
             runCatching { goalRepository.repeatForNextYear(goalId) }.onSuccess(onCreated)
         }
     }

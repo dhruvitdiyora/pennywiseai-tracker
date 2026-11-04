@@ -58,15 +58,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,7 +81,6 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
-import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -122,7 +116,6 @@ fun GoalDetailScreen(
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
     var mode by remember { mutableStateOf<MoneySheetMode?>(null) }
     var showDelete by rememberSaveable { mutableStateOf(false) }
-    var showUpgrade by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state) { if (state is GoalDetailState.Gone) onNavigateBack() }
     LaunchedEffect(sheet.done) { if (sheet.done) { mode = null; viewModel.resetSheet() } }
@@ -155,7 +148,7 @@ fun GoalDetailScreen(
                         GoalOverflowMenu(
                             progress = progress,
                             onEdit = { onEdit(progress.goal.id) },
-                            onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
+                            onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal) },
                             onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
                             onDelete = { showDelete = true },
                         )
@@ -225,7 +218,6 @@ fun GoalDetailScreen(
         )
     }
 
-    if (showUpgrade) UpgradeSheet(onDismiss = { showUpgrade = false })
 }
 
 @Composable

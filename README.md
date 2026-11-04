@@ -52,7 +52,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 - **🔒 Private by Design** — All AI processing and transaction storage happen on your phone; no accounts, no analytics, no servers collecting your data
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
-- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **[PennyWise Pro](#pennywise-pro)** upgrade (unlimited rules, PDF statement imports, CSV export, account merge, scheduled backups) supports the solo developer
+- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers, and every feature is free for everyone
 
 **Core Features**
 
@@ -212,7 +212,7 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 
 ### Network access — every outbound call the app can make
 
-1. **Google Play services** *(Play Store build only)* — Google Play Billing (optional Pro subscription), In-App Updates, In-App Review, and the sign-in for optional Google Drive backup. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all of these (and Google Drive backup) and is fully Google-free.**
+1. **Google Play services** *(Play Store build only)* — In-App Updates, In-App Review, and the sign-in for optional Google Drive backup. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all of these (and Google Drive backup) and is fully Google-free.**
 2. **Exchange rates** — fetched from `open.er-api.com`. Automatic currency conversion runs **only when you hold more than one currency** (same-currency conversions make no call), but opening the currency picker also fetches the current rate list. Either way the request carries just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
 3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
 4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
@@ -308,15 +308,6 @@ adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.ap
 </p>
 
 **Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • Google AI Edge (on-device LLM) • Material Design 3
-
-## PennyWise Pro
-
-Pro unlocks unlimited custom rules, unlimited PDF statement imports, unlimited CSV export, duplicate-account merge and scheduled daily backups. It's how a solo developer keeps adding banks and features.
-
-**Buy it on the website: [pennywise.zynth.dev/pro](https://pennywise.zynth.dev/pro)** — ₹2,000 lifetime, ₹699/year or ₹149/month, GST included, cards and UPI accepted. You get a license key by email; in the app open **Settings → PennyWise Pro → Have a license key?** and paste it. One phone at a time; restoring a full PennyWise backup on a new phone carries Pro over, and the key dialog offers "Move to this device" for everything else (Play build 2.20.0+).
-
-- **Google Play**: in-app purchase is currently unavailable (payments-profile verification on Google's side). Existing Play purchases keep working; new buyers use the website key.
-- **F-Droid / IzzyOnDroid**: every Pro feature is already unlocked, free. Buying a key there is purely a way to support the project (and it works on the Play build too).
 
 ## Community & Support
 

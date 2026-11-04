@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.home
 
-import com.pennywiseai.tracker.domain.model.SubscriptionBillingCycle
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
@@ -70,7 +69,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -121,17 +119,10 @@ class HomeViewModel @Inject constructor(
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
     @ApplicationContext private val context: Context,
-    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val categoryRepository: CategoryRepository,
     private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
 ) : ViewModel() {
 
-    /**
-     * Drives the subtle Pro chip in the home top bar — hidden when the
-     * user is already entitled so we never push to existing buyers.
-     */
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-    
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     // Unset until the base currency loads, so the trend never renders in a
     // guessed currency first.
@@ -1567,8 +1558,6 @@ class HomeViewModel @Inject constructor(
     fun dismissPaydaySuggestion() {
         viewModelScope.launch { userPreferencesRepository.markPaydaySuggestionHandled() }
     }
-
-    /** "See Pro" or ✕ on the Pro card — either way it never comes back. */
 
     fun checkForInAppReview(activity: ComponentActivity) {
         viewModelScope.launch {

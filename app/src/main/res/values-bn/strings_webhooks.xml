@@ -2,12 +2,9 @@
 <resources>
     <string name="webhooks_title">ওয়েবহুক</string>
     <string name="webhooks_settings_subtitle">নির্বাচিত ডেটা আপনার এন্ডপয়েন্টে পাঠান</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · নির্বাচিত ডেটা আপনার এন্ডপয়েন্টে পাঠান</string>
     <string name="webhooks_add_title">ওয়েবহুক যোগ করুন</string>
     <string name="webhooks_edit_title">ওয়েবহুক সম্পাদনা করুন</string>
     <string name="webhooks_history_title">ডেলিভারির ইতিহাস</string>
-    <string name="webhooks_pro_body">ওয়েবহুক সিঙ্ক একটি Pro ফিচার। নির্বাচিত আর্থিক ডেটা স্বয়ংক্রিয়ভাবে আপনার নিজের এন্ডপয়েন্টে পাঠান।</string>
-    <string name="webhooks_unlock_pro">Pro দিয়ে আনলক করুন</string>
     <string name="webhooks_save">ওয়েবহুক সংরক্ষণ করুন</string>
     <string name="webhooks_history_empty">এখনও কোনো ডেলিভারি নেই। সারিতে থাকা কাজ নেটওয়ার্ক সংযোগের অপেক্ষা করে।</string>
     <string name="webhooks_log_delivered">ডেলিভারি হয়েছে</string>

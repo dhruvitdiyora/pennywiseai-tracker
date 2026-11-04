@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="goals_section_title">લક્ષ્યો</string>
-    <string name="upgrade_feature_goals">અમર્યાદિત લક્ષ્યો</string>
     <string name="goals_new">નવું લક્ષ્ય</string>
     <string name="goals_empty_title">કોઈ વસ્તુ માટે બચત કરો</string>
     <string name="goals_empty_body">લક્ષ્ય રકમ અને નિયત તારીખ પસંદ કરો, અને જુઓ કે દર મહિને કેટલું અલગ રાખવું.</string>

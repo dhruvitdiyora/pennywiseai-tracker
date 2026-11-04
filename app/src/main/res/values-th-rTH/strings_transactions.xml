@@ -10,15 +10,12 @@
     </plurals>
     <string name="txn_export_total_transactions">ธุรกรรมทั้งหมด:</string>
     <string name="txn_export_date_range">ช่วงวันที่:</string>
-    <string name="txn_export_free_limit_notice">ส่งออกฟรี: %1$d แถวแรกจาก %2$d แถว</string>
-    <string name="txn_export_unlock_all">ปลดล็อกทั้งหมด</string>
     <plurals name="txn_export_success_message">
         <item quantity="other">ส่งออกธุรกรรม %1$d รายการสำเร็จ</item>
     </plurals>
     <string name="txn_export_file_size">ขนาด: %1$s</string>
     <string name="txn_export_action_cancel">ยกเลิก</string>
     <string name="txn_export_action_export">ส่งออก</string>
-    <string name="txn_export_action_export_first">ส่งออก %1$d แถวแรก</string>
     <string name="txn_export_action_done">เสร็จสิ้น</string>
     <string name="txn_export_share_subject">ส่งออกธุรกรรม PennyWise</string>
     <string name="txn_export_share_chooser_title">แชร์ CSV</string>

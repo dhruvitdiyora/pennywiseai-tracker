@@ -21,7 +21,6 @@
     <string name="analytics_group_by_account">ખાતા મુજબ</string>
     <string name="analytics_group_by_tag">ટૅગ મુજબ</string>
     <string name="analytics_group_by_day_of_week">અઠવાડિયાના દિવસ મુજબ</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_filter_clear">સાફ કરો</string>
     <string name="analytics_filter_all_profiles">બધાં ખાતાં</string>
     <string name="analytics_filter_currency">ચલણ</string>

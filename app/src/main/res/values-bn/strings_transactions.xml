@@ -11,8 +11,6 @@
     <string name="txn_export_total_transactions">মোট লেনদেন:</string>
     <string name="txn_export_date_range">তারিখের পরিসর:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_export_free_limit_notice">বিনামূল্যে এক্সপোর্ট: %2$dটির মধ্যে প্রথম %1$dটি সারি</string>
-    <string name="txn_export_unlock_all">সব আনলক করুন</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">%1$dটি লেনদেন সফলভাবে এক্সপোর্ট হয়েছে</item>
         <item quantity="other">%1$dটি লেনদেন সফলভাবে এক্সপোর্ট হয়েছে</item>
@@ -20,7 +18,6 @@
     <string name="txn_export_file_size">আকার: %1$s</string>
     <string name="txn_export_action_cancel">বাতিল করুন</string>
     <string name="txn_export_action_export">এক্সপোর্ট করুন</string>
-    <string name="txn_export_action_export_first">প্রথম %1$dটি এক্সপোর্ট করুন</string>
     <string name="txn_export_action_done">সম্পন্ন</string>
     <string name="txn_export_share_subject">PennyWise লেনদেন এক্সপোর্ট</string>
     <string name="txn_export_share_chooser_title">CSV শেয়ার করুন</string>

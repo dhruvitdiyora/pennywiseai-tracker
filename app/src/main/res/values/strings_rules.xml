@@ -148,45 +148,7 @@
     <string name="import_statement_balance_set_note">Statement balance plus what PennyWise recorded after the statement ended.</string>
     <string name="import_statement_balance_applied">Balance updated to %1$s.</string>
     <string name="import_statement_balance_newer">Your bank has reported a newer balance since this statement, so PennyWise keeps that one.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_title">PennyWise Pro</string>
-    <string name="upgrade_subtitle_member">All Pro capabilities active</string>
-    <string name="upgrade_subtitle_upgrade">Everything unlocked with a license key</string>
-    <string name="upgrade_enter_license_key">Enter license key</string>
-    <string name="upgrade_support_note">Built by a solo dev — Pro funds what\'s next. Thank you.</string>
-    <string name="upgrade_available_at">PennyWise Pro is available at %1$s</string>
-    <string name="upgrade_copied">Copied</string>
-    <string name="upgrade_copy_address">Copy address</string>
-    <string name="upgrade_includes">Includes</string>
-    <string name="upgrade_feature_rules">Unlimited custom rules</string>
-    <string name="upgrade_feature_statements">Unlimited statement imports</string>
-    <string name="upgrade_feature_csv">Unlimited CSV export</string>
-    <string name="upgrade_feature_merge_accounts">Merge duplicate accounts</string>
-    <string name="upgrade_restoring">Restoring…</string>
-    <string name="upgrade_restore">Restore</string>
-    <string name="upgrade_get_help">Get help</string>
-    <string name="upgrade_welcome_eyebrow">WELCOME</string>
-    <string name="upgrade_celebration_title">You\'re a Pro member</string>
-    <string name="upgrade_celebration_body">Thank you for backing PennyWise — every feature on the list is now yours.</string>
-    <string name="upgrade_continue">Continue</string>
-    <string name="upgrade_active_eyebrow">ACTIVE</string>
-    <string name="upgrade_active_title">All Pro features unlocked</string>
-    <string name="upgrade_via_license_key">Via license key · %1$s</string>
-    <string name="upgrade_remove_license_key">Remove license key</string>
-    <string name="upgrade_manage_subscription">Manage subscription</string>
-    <string name="upgrade_error_play_unavailable">Couldn\'t reach Play Store. Try again later.</string>
-    <string name="upgrade_cancel">Cancel</string>
 
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Activate license key</string>
-    <string name="upgrade_license_dialog_body">Paste the key from your purchase email. Pro activates on this device right away.</string>
-    <string name="upgrade_license_email_label">Purchase email</string>
-    <string name="upgrade_license_email_supporting">Confirms you own the key before it leaves the other device.</string>
-    <string name="upgrade_license_move_here">Move to this device</string>
-    <string name="upgrade_license_activate">Activate</string>
-    <string name="upgrade_license_error_invalid">That key isn\'t valid. Check for typos and try again.</string>
-    <string name="upgrade_license_error_active_elsewhere">This key is already active on another device.</string>
-    <string name="upgrade_license_error_offline">Couldn\'t reach the license server. Check your connection and try again.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_logo_cd">PennyWise</string>
     <string name="onboarding_welcome_title">Welcome to PennyWise</string>
@@ -373,10 +335,6 @@
     <plurals name="rules_import_collapsed">
         <item quantity="one">%1$d repeated name in the file was collapsed.</item>
         <item quantity="other">%1$d repeated names in the file were collapsed.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d more need Pro — you\'re at the free limit of %2$d.</item>
-        <item quantity="other">%1$d more need Pro — you\'re at the free limit of %2$d.</item>
     </plurals>
     <string name="rules_import_failed">Import failed.</string>
 

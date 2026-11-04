@@ -5,11 +5,6 @@
     <string name="settings_action_cancel">రద్దు చేయండి</string>
     <string name="settings_action_ok">సరే</string>
     <string name="settings_action_done">పూర్తయింది</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">PennyWise Pro కి అప్‌గ్రేడ్ చేయండి</string>
-    <string name="settings_pro_subtitle_active">సక్రియం · అన్ని ఫీచర్‌లు అన్‌లాక్ అయ్యాయి</string>
-    <string name="settings_pro_subtitle_upgrade">అపరిమిత నియమాలు, ఎగుమతులు మరియు మరిన్ని</string>
     <string name="settings_personalization_section">వ్యక్తిగతీకరణ</string>
     <string name="settings_appearance_title">రూపం</string>
     <string name="settings_appearance_subtitle">థీమ్, రంగులు, ఫాంట్‌లు &amp; నావిగేషన్</string>
@@ -82,7 +77,6 @@
     <string name="settings_export_data_subtitle">మొత్తం డేటాను ఫైల్‌కు బ్యాకప్ చేయండి</string>
     <string name="settings_folder_backup_title">ఆటోమేటిక్ ఫోల్డర్ బ్యాకప్</string>
     <string name="settings_folder_backup_subtitle_enabled">మీరు ఎంచుకున్న ఫోల్డర్‌కు ప్రతిరోజూ 2:00 AM కి బ్యాకప్</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · ప్రతిరోజూ 2:00 AM కి ఫోల్డర్‌లో బ్యాకప్‌ను సేవ్ చేయండి</string>
     <string name="settings_folder_backup_subtitle_disabled">ప్రతిరోజూ 2:00 AM కి ఫోల్డర్‌లో బ్యాకప్‌ను సేవ్ చేయండి</string>
     <string name="settings_export_include_receipts_title">రసీదు ఫోటోలను చేర్చండి</string>
     <string name="settings_export_include_receipts_subtitle">ఎగుమతి చేసిన బ్యాకప్‌లలో జతచేసిన రసీదు ఫోటోలను జోడించండి (పెద్ద ఫైల్)</string>

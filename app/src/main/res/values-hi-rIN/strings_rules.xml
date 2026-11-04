@@ -146,43 +146,6 @@
     <string name="import_statement_balance_set_note">स्टेटमेंट की बाकी राशि, साथ में स्टेटमेंट खत्म होने के बाद PennyWise में दर्ज हुआ हिसाब।</string>
     <string name="import_statement_balance_applied">बाकी राशि %1$s कर दी गई।</string>
     <string name="import_statement_balance_newer">इस स्टेटमेंट के बाद आपके बैंक ने नई बाकी राशि बताई है, इसलिए PennyWise वही रखता है।</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_subtitle_member">सभी Pro सुविधाएँ चालू हैं</string>
-    <string name="upgrade_subtitle_upgrade">लाइसेंस की से सब कुछ अनलॉक</string>
-    <string name="upgrade_enter_license_key">लाइसेंस की डालें</string>
-    <string name="upgrade_support_note">एक अकेले डेवलपर ने बनाया है — Pro से आगे का काम चलता है। धन्यवाद।</string>
-    <string name="upgrade_available_at">PennyWise Pro यहाँ उपलब्ध है: %1$s</string>
-    <string name="upgrade_copied">कॉपी हो गया</string>
-    <string name="upgrade_copy_address">पता कॉपी करें</string>
-    <string name="upgrade_includes">इसमें शामिल है</string>
-    <string name="upgrade_feature_rules">अनलिमिटेड कस्टम नियम</string>
-    <string name="upgrade_feature_statements">अनलिमिटेड स्टेटमेंट इंपोर्ट</string>
-    <string name="upgrade_feature_csv">अनलिमिटेड CSV एक्सपोर्ट</string>
-    <string name="upgrade_feature_merge_accounts">डुप्लिकेट खाते मिलाएँ</string>
-    <string name="upgrade_restoring">रिस्टोर हो रहा है…</string>
-    <string name="upgrade_restore">पुनर्स्थापित करें</string>
-    <string name="upgrade_get_help">मदद लें</string>
-    <string name="upgrade_welcome_eyebrow">स्वागत है</string>
-    <string name="upgrade_celebration_title">आप Pro मेंबर हैं</string>
-    <string name="upgrade_celebration_body">PennyWise का साथ देने के लिए धन्यवाद — लिस्ट की हर सुविधा अब आपकी है।</string>
-    <string name="upgrade_continue">जारी रखें</string>
-    <string name="upgrade_active_eyebrow">चालू</string>
-    <string name="upgrade_active_title">सभी Pro सुविधाएँ अनलॉक हैं</string>
-    <string name="upgrade_via_license_key">लाइसेंस की से · %1$s</string>
-    <string name="upgrade_remove_license_key">लाइसेंस की हटाएँ</string>
-    <string name="upgrade_manage_subscription">सब्सक्रिप्शन मैनेज करें</string>
-    <string name="upgrade_error_play_unavailable">Play Store से कनेक्ट नहीं हो पाया। बाद में फिर कोशिश करें।</string>
-    <string name="upgrade_cancel">रद्द करें</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">लाइसेंस की चालू करें</string>
-    <string name="upgrade_license_dialog_body">खरीदारी वाले ईमेल से की पेस्ट करें। Pro इस डिवाइस पर तुरंत चालू हो जाएगा।</string>
-    <string name="upgrade_license_email_label">खरीदारी वाला ईमेल</string>
-    <string name="upgrade_license_email_supporting">दूसरे डिवाइस से की हटने से पहले यह पक्का करता है कि की आपकी है।</string>
-    <string name="upgrade_license_move_here">इस डिवाइस पर लाएँ</string>
-    <string name="upgrade_license_activate">चालू करें</string>
-    <string name="upgrade_license_error_invalid">यह की सही नहीं है। टाइपिंग की गलती जाँचकर फिर कोशिश करें।</string>
-    <string name="upgrade_license_error_active_elsewhere">यह की पहले से किसी दूसरे डिवाइस पर चालू है।</string>
-    <string name="upgrade_license_error_offline">लाइसेंस सर्वर से कनेक्ट नहीं हो पाया। अपना कनेक्शन जाँचकर फिर कोशिश करें।</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">PennyWise में आपका स्वागत है</string>
     <string name="onboarding_welcome_body">आपका AI वाला खर्च ट्रैकर, जो SMS मैसेज से लेन-देन अपने-आप पहचान लेता है।</string>
@@ -362,10 +325,6 @@
     <plurals name="rules_import_collapsed">
         <item quantity="one">फ़ाइल में %1$d दोहराया गया नाम एक कर दिया गया।</item>
         <item quantity="other">फ़ाइल में %1$d दोहराए गए नाम एक कर दिए गए।</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d और के लिए Pro चाहिए — आप %2$d की फ़्री लिमिट पर हैं।</item>
-        <item quantity="other">%1$d और के लिए Pro चाहिए — आप %2$d की फ़्री लिमिट पर हैं।</item>
     </plurals>
     <string name="rules_import_failed">इंपोर्ट नहीं हो पाया।</string>
     <!-- Apply rule to past transactions -->
@@ -559,7 +518,6 @@
     <string name="rules_preview_action_clear">%1$s साफ़ करें</string>
     <!-- field, value -->
     <string name="import_statement_balance_unknown">—</string>
-    <string name="upgrade_title">PennyWise Pro</string>
     <string name="onboarding_logo_cd">PennyWise</string>
     <string name="chat_download_progress">%1$d MB / %2$d MB</string>
     <string name="chat_context_percent">%1$d%%</string>

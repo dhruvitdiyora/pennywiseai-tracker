@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="goals_section_title">লক্ষ্য</string>
-    <string name="upgrade_feature_goals">সীমাহীন লক্ষ্য</string>
     <string name="goals_new">নতুন লক্ষ্য</string>
     <string name="goals_empty_title">কিছুর জন্য সঞ্চয় করুন</string>
     <string name="goals_empty_body">একটি লক্ষ্য পরিমাণ ও শেষ তারিখ বেছে নিন, এবং দেখুন প্রতি মাসে কত আলাদা রাখতে হবে।</string>

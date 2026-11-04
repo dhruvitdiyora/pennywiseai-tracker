@@ -11,8 +11,6 @@
     <string name="txn_export_total_transactions">மொத்தப் பரிவர்த்தனைகள்:</string>
     <string name="txn_export_date_range">தேதி வரம்பு:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_export_free_limit_notice">இலவச ஏற்றுமதி: %2$d இல் முதல் %1$d வரிசைகள்</string>
-    <string name="txn_export_unlock_all">அனைத்தையும் திற</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">%1$d பரிவர்த்தனை வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது</item>
         <item quantity="other">%1$d பரிவர்த்தனைகள் வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டன</item>
@@ -20,7 +18,6 @@
     <string name="txn_export_file_size">அளவு: %1$s</string>
     <string name="txn_export_action_cancel">ரத்துசெய்</string>
     <string name="txn_export_action_export">ஏற்றுமதி செய்</string>
-    <string name="txn_export_action_export_first">முதல் %1$d ஐ ஏற்றுமதி செய்</string>
     <string name="txn_export_action_done">முடிந்தது</string>
     <string name="txn_export_share_subject">PennyWise பரிவர்த்தனைகள் ஏற்றுமதி</string>
     <string name="txn_export_share_chooser_title">CSV ஐப் பகிர்</string>

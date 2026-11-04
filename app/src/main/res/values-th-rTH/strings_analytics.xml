@@ -24,7 +24,6 @@
     <string name="analytics_group_by_account">ตามบัญชี</string>
     <string name="analytics_group_by_tag">ตามแท็ก</string>
     <string name="analytics_group_by_day_of_week">ตามวันในสัปดาห์</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">ล้าง</string>
     <string name="analytics_filter_all_profiles">บัญชีทั้งหมด</string>

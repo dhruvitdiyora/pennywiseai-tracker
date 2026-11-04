@@ -97,7 +97,7 @@ not getting stiff, robotic translations.
 > Devanagari and **keep the English loanwords people actually say** — "SMS",
 > "bank", "app", "budget", "AI". Avoid Sanskritized/government-form Hindi.
 >
-> **Always keep in Latin / untranslated:** `PennyWise AI`, `PennyWise`, `Pro`,
+> **Always keep in Latin / untranslated:** `PennyWise AI`, `PennyWise`,
 > `SMS`, `AI`, `AGPL`, `Qwen`, `UPI`, currency symbols (₹ $ AED …) and numbers.
 >
 > **Length:** the app **title** must stay ≤ 30 characters and the **short

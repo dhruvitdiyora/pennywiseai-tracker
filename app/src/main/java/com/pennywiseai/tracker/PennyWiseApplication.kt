@@ -39,9 +39,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     lateinit var appLockRepository: AppLockRepository
 
     @Inject
-    lateinit var purchaseGateway: com.pennywiseai.tracker.billing.PurchaseGateway
-
-    @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
 
     @Inject
@@ -187,28 +184,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         }
     }
 
-    private var billingRefreshed = false
-
-    /**
-     * Billing-entitlement sync, once per process, the first time a screen
-     * opens. Not in [onCreate]: the process also starts for an incoming SMS,
-     * a bank notification, a worker or a widget, and connecting to Play
-     * Billing there also queues the library's own usage logs for upload
-     * (#881). Those starts don't need a fresh check — the cached entitlement
-     * (DataStore) covers them. No-op on F-Droid. A failure keeps the cache.
-     */
-    private fun refreshBillingOnce() {
-        if (billingRefreshed) return
-        billingRefreshed = true
-        applicationScope.launch {
-            try {
-                purchaseGateway.refresh()
-            } catch (e: Exception) {
-                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
-            }
-        }
-    }
-
     private var lastLocales: android.os.LocaleList? = null
 
     // Widgets bake translated text into their stored snapshots, so rebuild them
@@ -243,7 +218,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // App came to foreground
                 isInForeground = true
                 isAppInForeground = true
-                refreshBillingOnce()
                 // Check if app should be locked when returning from background
                 checkAndLockApp()
             }

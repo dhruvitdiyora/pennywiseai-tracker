@@ -2,7 +2,6 @@
 <resources>
     <!-- ══ Settings → Advanced → Webhooks ══ -->
     <string name="webhooks_settings_subtitle">Send selected data to your endpoint</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · Send selected data to your endpoint</string>
     <string name="webhooks_add_title">Add webhook</string>
     <string name="webhooks_edit_title">Edit webhook</string>
     <string name="webhooks_history_title">Delivery history</string>

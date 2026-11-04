@@ -19,17 +19,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import com.pennywiseai.tracker.ui.icons.iconax.AiCommentary
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,21 +34,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
-import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.GlassCard
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.filterIcon
 import com.pennywiseai.tracker.ui.components.shortLabel
@@ -109,9 +102,7 @@ fun AnalyticsScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
-    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val groupBy by viewModel.groupBy.collectAsStateWithLifecycle()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.CHART) }
@@ -419,18 +410,12 @@ fun AnalyticsScreen(
             item(key = "group-by") {
                 AnalyticsGroupByRow(
                     groupBy = groupBy,
-                    isProEntitled = isProEntitled,
                     expanded = showGroupByMenu,
                     onClick = { showGroupByMenu = true },
                     onDismiss = { showGroupByMenu = false },
                     onSelected = { option ->
                         showGroupByMenu = false
-                        // A Pro grouping without Pro opens the upgrade sheet; the view stays put.
-                        if (option.allowedFor(isProEntitled) == option) {
-                            viewModel.setGroupBy(option)
-                        } else {
-                            showUpgradeSheet = true
-                        }
+                        viewModel.setGroupBy(option)
                     },
                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                 )
@@ -701,11 +686,6 @@ fun AnalyticsScreen(
         )
     }
 
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false }
-        )
-    }
 }
 
 /**
@@ -1240,7 +1220,6 @@ private fun AnalyticsOptionsFab(
 @Composable
 private fun AnalyticsGroupByRow(
     groupBy: AnalyticsGroupBy,
-    isProEntitled: Boolean,
     expanded: Boolean,
     onClick: () -> Unit,
     onDismiss: () -> Unit,
@@ -1275,17 +1254,6 @@ private fun AnalyticsGroupByRow(
                                 contentDescription = null
                             )
                         },
-                        // Subtle Pro hint for free users; picking it opens the upgrade sheet.
-                        trailingIcon = if (option.isPro && !isProEntitled) {
-                            {
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = stringResource(R.string.analytics_group_by_pro),
-                                    tint = yellow_dark,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                            }
-                        } else null,
                         onClick = { onSelected(option) }
                     )
                 }

@@ -24,7 +24,6 @@
     <string name="analytics_group_by_account">По счетам</string>
     <string name="analytics_group_by_tag">По тегам</string>
     <string name="analytics_group_by_day_of_week">По дням недели</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Очистить</string>
     <string name="analytics_filter_all_profiles">Все счета</string>

@@ -2,7 +2,6 @@
 <resources>
     <string name="home_transaction_deleted">লেনদেন মোছা হয়েছে</string>
     <string name="home_undo">পূর্বাবস্থায় ফেরান</string>
-    <string name="home_upgrade_pro">PennyWise Pro তে আপগ্রেড করুন</string>
     <string name="home_profile_filter">প্রোফাইল ফিল্টার</string>
     <string name="home_more_options">আরও বিকল্প</string>
     <string name="home_view_all">সব দেখুন</string>
@@ -251,8 +250,4 @@
     <string name="notif_txn_public_title">%1$s নতুন লেনদেন</string>
     <string name="notif_txn_public_text">%1$s • ব্যালেন্স দেখা দরকার</string>
     <string name="balance_chart_label">ব্যালেন্সের প্রবণতা</string>
-    <string name="pro_home_card_title">PennyWise ভালো লাগছে?</string>
-    <string name="pro_home_card_body">Pro তে সীমাহীন নিয়ম, লক্ষ্য, এক্সপোর্ট ও স্টেটমেন্ট ইমপোর্ট পাওয়া যায়।</string>
-    <string name="pro_home_card_action">Pro দেখুন</string>
-    <string name="pro_home_card_dismiss">বাতিল করুন</string>
 </resources>

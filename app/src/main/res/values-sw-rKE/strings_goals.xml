@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">Malengo</string>
-    <string name="upgrade_feature_goals">Malengo bila kikomo</string>
     <string name="goals_new">Lengo jipya</string>
     <string name="goals_empty_title">Weka akiba kwa kitu fulani</string>
     <string name="goals_empty_body">Chagua kiasi unacholenga na tarehe ya mwisho, kisha uone kiasi cha kuweka kando kila mwezi.</string>

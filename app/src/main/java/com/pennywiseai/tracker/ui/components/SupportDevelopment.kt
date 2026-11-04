@@ -8,13 +8,11 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,7 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -40,14 +37,9 @@ import com.pennywiseai.tracker.ui.theme.yellow_light
 
 /**
  * The "Support development" tip-jar dialog. Shared so both the Settings entry
- * and contextual F-Droid nudges present an identical ask. F-Droid builds have
- * everything unlocked (no Pro to sell), so this is a donation prompt — never a
- * gate.
- *
- * Two ways to give: a UPI tip, and — F-Droid only — buying a Pro key on the
- * website, which is the only option open to anyone without UPI. The web route
- * is gated on the flavour rather than just left unreachable, because Play's
- * Payments policy forbids the Play build from carrying a link like this.
+ * and contextual F-Droid nudges present an identical ask. Everything is free,
+ * so this is a donation prompt — never a gate.
+
  */
 @Composable
 fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
@@ -68,8 +60,6 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                     stringResource(R.string.support_dialog_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                // F-Droid only: the real one lives in that source set.
-                SupportWebOption(onOpened = onDismiss)
                 // Show the VPA so a user without a UPI app (or who'd rather pay
                 // from their bank app) can copy it manually.
                 Row(
@@ -113,7 +103,7 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
 
 /**
  * A subtle, tappable tonal card used to nudge F-Droid users toward the tip jar
- * at a power-feature moment (the F-Droid analog of the Play paywall). Kept low
+ * at a power-feature moment. Kept low
  * key on purpose — it never blocks and is frequency-capped by the caller.
  */
 @Composable

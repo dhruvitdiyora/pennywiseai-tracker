@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">Cíle</string>
-    <string name="upgrade_feature_goals">Neomezené cíle</string>
     <string name="goals_new">Nový cíl</string>
     <string name="goals_empty_title">Šetřete na něco</string>
     <string name="goals_empty_body">Zvolte cílovou částku a termín a uvidíte, kolik si máte každý měsíc odložit.</string>

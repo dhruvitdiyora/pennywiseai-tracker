@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">تم حذف المعاملة</string>
     <string name="home_undo">تراجع</string>
-    <string name="home_upgrade_pro">الترقية إلى PennyWise Pro</string>
     <string name="home_profile_filter">فلتر الملف الشخصي</string>
     <string name="home_more_options">خيارات أكثر</string>
     <string name="home_view_all">عرض الكل</string>
@@ -394,10 +393,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <string name="pro_home_card_title">يعجبك PennyWise؟</string>
-    <string name="pro_home_card_body">مع Pro تحصل على قواعد وأهداف وعمليات تصدير واستيراد كشوف حساب بلا حدود.</string>
-    <string name="pro_home_card_action">اكتشف Pro</string>
-    <string name="pro_home_card_dismiss">إخفاء</string>
     <string name="home_payday_card_title">هل تبدأ الميزانية يوم الراتب؟</string>
     <string name="home_payday_card_body">يبدو أن راتبك يصل في اليوم %1$d من الشهر. هل تريد أن يبدأ كل شهر في ميزانيتك من هذا اليوم؟ يمكنك تغييره من الإعدادات.</string>
     <string name="home_payday_card_action">ابدأ من اليوم %1$d</string>

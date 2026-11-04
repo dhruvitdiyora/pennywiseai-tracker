@@ -54,7 +54,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.aiaccess.AiRelayClient
-import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
@@ -65,9 +64,7 @@ import java.time.ZoneId
 fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val session by viewModel.session.collectAsStateWithLifecycle()
-    val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val relayUrl by viewModel.relayUrl.collectAsStateWithLifecycle()
-    var showUpgrade by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
     var showRelay by rememberSaveable { mutableStateOf(relayUrl != AiRelayClient.DEFAULT_RELAY_URL) }
     var relayInput by rememberSaveable(relayUrl) { mutableStateOf(relayUrl) }
@@ -89,11 +86,6 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
             contentPadding = PaddingValues(vertical = Spacing.md)
         ) {
             item { Text(stringResource(R.string.ai_access_intro), style = MaterialTheme.typography.bodyMedium) }
-            if (!isPro) {
-                item { Text(stringResource(R.string.ai_access_pro_only), style = MaterialTheme.typography.titleMedium) }
-                item { Button(onClick = { showUpgrade = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_unlock)) } }
-                return@LazyColumn
-            }
             // The relay-address error shows under its field instead.
             state.message?.takeIf { it != R.string.ai_access_relay_invalid }?.let { message ->
                 item {
@@ -246,7 +238,6 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
         }
     }
 
-    if (showUpgrade) UpgradeSheet(onDismiss = { showUpgrade = false })
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },

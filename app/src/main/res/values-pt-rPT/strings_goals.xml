@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">Objetivos</string>
-    <string name="upgrade_feature_goals">Objetivos ilimitados</string>
     <string name="goals_new">Novo objetivo</string>
     <string name="goals_empty_title">Poupe para algo</string>
     <string name="goals_empty_body">Escolha um montante e uma data limite, e veja quanto deve pôr de parte por mês.</string>

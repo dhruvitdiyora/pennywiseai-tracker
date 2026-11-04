@@ -141,8 +141,7 @@ fun MarkAsPaidSheet(
                     vertical = Spacing.md,
                 ),
         ) {
-            // Eyebrow chip — financial-document micro-typography matching
-            // the paywall sheet's pattern (gold there, primary here).
+            // Eyebrow chip — financial-document micro-typography.
             EyebrowChip(
                 text = eyebrowText,
                 isAccent = isIncome,
@@ -420,7 +419,7 @@ private fun relativeDate(date: LocalDate): String {
     }
 }
 
-/** Tiny letter-spaced uppercase label. Matches the paywall eyebrow pattern. */
+/** Tiny letter-spaced uppercase label. */
 @Composable
 private fun EyebrowChip(text: String, isAccent: Boolean) {
     val container = if (isAccent) {

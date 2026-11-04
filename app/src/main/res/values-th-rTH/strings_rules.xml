@@ -142,43 +142,6 @@
     <string name="import_statement_balance_set_note">ยอดคงเหลือตาม Statement บวกกับรายการที่ PennyWise บันทึกหลังจาก Statement สิ้นสุด</string>
     <string name="import_statement_balance_applied">อัปเดตยอดคงเหลือเป็น %1$s แล้ว</string>
     <string name="import_statement_balance_newer">ธนาคารของคุณแจ้งยอดคงเหลือที่ใหม่กว่า Statement นี้แล้ว PennyWise จึงใช้ยอดนั้นต่อไป</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_subtitle_member">ใช้ความสามารถ Pro ได้ทั้งหมด</string>
-    <string name="upgrade_subtitle_upgrade">ปลดล็อกทุกอย่างด้วยคีย์ใบอนุญาต</string>
-    <string name="upgrade_enter_license_key">ใส่คีย์ใบอนุญาต</string>
-    <string name="upgrade_support_note">สร้างโดยนักพัฒนาคนเดียว Pro ช่วยสนับสนุนสิ่งที่จะมาต่อไป ขอบคุณครับ</string>
-    <string name="upgrade_available_at">PennyWise Pro มีให้ที่ %1$s</string>
-    <string name="upgrade_copied">คัดลอกแล้ว</string>
-    <string name="upgrade_copy_address">คัดลอกที่อยู่</string>
-    <string name="upgrade_includes">ประกอบด้วย</string>
-    <string name="upgrade_feature_rules">กฎแบบกำหนดเองไม่จำกัด</string>
-    <string name="upgrade_feature_statements">นำเข้า Statement ไม่จำกัด</string>
-    <string name="upgrade_feature_csv">ส่งออก CSV ไม่จำกัด</string>
-    <string name="upgrade_feature_merge_accounts">รวมบัญชีที่ซ้ำกัน</string>
-    <string name="upgrade_restoring">กำลังเรียกคืน…</string>
-    <string name="upgrade_restore">เรียกคืน</string>
-    <string name="upgrade_get_help">ขอความช่วยเหลือ</string>
-    <string name="upgrade_welcome_eyebrow">ยินดีต้อนรับ</string>
-    <string name="upgrade_celebration_title">คุณเป็นสมาชิก Pro แล้ว</string>
-    <string name="upgrade_celebration_body">ขอบคุณที่สนับสนุน PennyWise ตอนนี้ทุกฟีเจอร์ในรายการเป็นของคุณแล้ว</string>
-    <string name="upgrade_continue">ดำเนินการต่อ</string>
-    <string name="upgrade_active_eyebrow">ใช้งานอยู่</string>
-    <string name="upgrade_active_title">ปลดล็อกฟีเจอร์ Pro ทั้งหมดแล้ว</string>
-    <string name="upgrade_via_license_key">ผ่านคีย์ใบอนุญาต · %1$s</string>
-    <string name="upgrade_remove_license_key">ลบคีย์ใบอนุญาต</string>
-    <string name="upgrade_manage_subscription">จัดการการสมัครสมาชิก</string>
-    <string name="upgrade_error_play_unavailable">เชื่อมต่อ Play Store ไม่ได้ ลองใหม่ภายหลัง</string>
-    <string name="upgrade_cancel">ยกเลิก</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">เปิดใช้งานคีย์ใบอนุญาต</string>
-    <string name="upgrade_license_dialog_body">วางคีย์จากอีเมลยืนยันการซื้อ Pro จะเปิดใช้งานบนเครื่องนี้ทันที</string>
-    <string name="upgrade_license_email_label">อีเมลที่ใช้ซื้อ</string>
-    <string name="upgrade_license_email_supporting">ใช้ยืนยันว่าคุณเป็นเจ้าของคีย์ ก่อนย้ายออกจากเครื่องอื่น</string>
-    <string name="upgrade_license_move_here">ย้ายมาเครื่องนี้</string>
-    <string name="upgrade_license_activate">เปิดใช้งาน</string>
-    <string name="upgrade_license_error_invalid">คีย์นี้ไม่ถูกต้อง ตรวจสอบว่าพิมพ์ถูกแล้วลองอีกครั้ง</string>
-    <string name="upgrade_license_error_active_elsewhere">คีย์นี้เปิดใช้งานอยู่บนเครื่องอื่นแล้ว</string>
-    <string name="upgrade_license_error_offline">เชื่อมต่อเซิร์ฟเวอร์ใบอนุญาตไม่ได้ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">ยินดีต้อนรับสู่ PennyWise</string>
     <string name="onboarding_welcome_body">แอปบันทึกรายจ่ายพลัง AI ที่ตรวจจับธุรกรรมจากข้อความ SMS ให้อัตโนมัติ</string>
@@ -350,9 +313,6 @@
     </plurals>
     <plurals name="rules_import_collapsed">
         <item quantity="other">รวมชื่อที่ซ้ำกันในไฟล์ %1$d ชื่อ</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="other">อีก %1$d กฎต้องใช้ Pro เพราะคุณใช้ครบโควตาฟรี %2$d กฎแล้ว</item>
     </plurals>
     <string name="rules_import_failed">นำเข้าไม่สำเร็จ</string>
     <!-- Apply rule to past transactions -->

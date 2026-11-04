@@ -11,8 +11,6 @@
     <string name="txn_export_total_transactions">કુલ વ્યવહારો:</string>
     <string name="txn_export_date_range">તારીખ શ્રેણી:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_export_free_limit_notice">મફત એક્સપોર્ટ: %2$d માંથી પહેલી %1$d હરોળો</string>
-    <string name="txn_export_unlock_all">બધું અનલૉક કરો</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">%1$d વ્યવહાર સફળતાપૂર્વક એક્સપોર્ટ થયો</item>
         <item quantity="other">%1$d વ્યવહારો સફળતાપૂર્વક એક્સપોર્ટ થયા</item>
@@ -20,7 +18,6 @@
     <string name="txn_export_file_size">કદ: %1$s</string>
     <string name="txn_export_action_cancel">રદ કરો</string>
     <string name="txn_export_action_export">એક્સપોર્ટ કરો</string>
-    <string name="txn_export_action_export_first">પહેલા %1$d એક્સપોર્ટ કરો</string>
     <string name="txn_export_action_done">થઈ ગયું</string>
     <string name="txn_export_share_subject">PennyWise વ્યવહારો એક્સપોર્ટ</string>
     <string name="txn_export_share_chooser_title">CSV શેર કરો</string>

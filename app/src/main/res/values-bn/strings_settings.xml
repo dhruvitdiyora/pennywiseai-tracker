@@ -5,11 +5,6 @@
     <string name="settings_action_cancel">বাতিল করুন</string>
     <string name="settings_action_ok">ঠিক আছে</string>
     <string name="settings_action_done">সম্পন্ন</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">PennyWise Pro তে আপগ্রেড করুন</string>
-    <string name="settings_pro_subtitle_active">সক্রিয় · সব ফিচার আনলক</string>
-    <string name="settings_pro_subtitle_upgrade">সীমাহীন নিয়ম, এক্সপোর্ট ও আরও অনেক কিছু</string>
     <string name="settings_personalization_section">ব্যক্তিগতকরণ</string>
     <string name="settings_appearance_title">চেহারা</string>
     <string name="settings_appearance_subtitle">থিম, রং, ফন্ট ও নেভিগেশন</string>
@@ -82,7 +77,6 @@
     <string name="settings_export_data_subtitle">সব ডেটা একটি ফাইলে ব্যাকআপ করুন</string>
     <string name="settings_folder_backup_title">স্বয়ংক্রিয় ফোল্ডার ব্যাকআপ</string>
     <string name="settings_folder_backup_subtitle_enabled">আপনার বেছে নেওয়া ফোল্ডারে প্রতিদিন 2:00 AM এ ব্যাকআপ</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · প্রতিদিন 2:00 AM এ একটি ফোল্ডারে ব্যাকআপ সংরক্ষণ করুন</string>
     <string name="settings_folder_backup_subtitle_disabled">প্রতিদিন 2:00 AM এ একটি ফোল্ডারে ব্যাকআপ সংরক্ষণ করুন</string>
     <string name="settings_export_include_receipts_title">রসিদের ছবি অন্তর্ভুক্ত করুন</string>
     <string name="settings_export_include_receipts_subtitle">এক্সপোর্ট করা ব্যাকআপে সংযুক্ত রসিদের ছবি যোগ করুন (বড় ফাইল)</string>

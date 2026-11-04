@@ -7,12 +7,6 @@
     <string name="settings_action_cancel">Abbrechen</string>
     <string name="settings_action_ok">Ok</string>
     <string name="settings_action_done">Fertig</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">Upgrade auf PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Aktiv · Alle Leistungsmerkmale entsperrt</string>
-    <string name="settings_pro_subtitle_upgrade">Unbegrenzte Regeln, Anweisungen, Exporte und mehr</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">Personalisierung</string>
     <string name="settings_appearance_title">Erscheinungsbild</string>
@@ -94,7 +88,6 @@
     <string name="settings_export_data_subtitle">Alle Daten in eine Datei sichern</string>
     <string name="settings_folder_backup_title">Automatische Ordnersicherung</string>
     <string name="settings_folder_backup_subtitle_enabled">Tägliches Backup um 2:00 Uhr in den ausgewählten Ordner</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · Backup jeden Tag um 2:00 Uhr in einem Ordner speichern</string>
     <string name="settings_folder_backup_subtitle_disabled">Backup jeden Tag um 2:00 Uhr in einem Ordner speichern</string>
     <string name="settings_export_include_receipts_title">Belegfotos einschließen</string>
     <string name="settings_export_include_receipts_subtitle">Angehängte Belegfotos in exportierte Backups aufnehmen (größere Datei)</string>
@@ -237,7 +230,6 @@
     <string name="settings_developer_mode_title">Entwicklermodus</string>
     <string name="settings_developer_mode_subtitle">Technische Informationen im Chat anzeigen</string>
     <string name="settings_webhooks_subtitle">Ausgewählte Daten an Ihren Endpunkt senden</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · Ausgewählte Daten an Ihren Endpunkt senden</string>
     <!-- Support & Community -->
     <string name="settings_support_section">Unterstütze &amp; Community</string>
     <string name="settings_help_faq_title">Hilfe &amp; FAQ</string>
@@ -287,8 +279,6 @@
     <string name="webhooks_title_edit">Webhook bearbeiten</string>
     <string name="webhooks_title_history">Zustellverlauf</string>
     <string name="webhooks_back">Zurück</string>
-    <string name="webhooks_pro_body">Webhook-Synchronisierung ist eine Pro-Funktion. Senden Sie ausgewählte Finanzdaten automatisch an Ihren eigenen Endpunkt.</string>
-    <string name="webhooks_unlock_pro">Mit Pro freischalten</string>
     <string name="webhooks_intro">Webhooks senden Ihre ausgewählten Finanzdaten von diesem Gerät an einen Endpunkt Ihrer Wahl. Aktivieren Sie nur Endpunkte, denen Sie vertrauen. Verwenden Sie HTTPS, um Daten und Zugangsdaten zu schützen.</string>
     <string name="webhooks_add">Webhook hinzufügen</string>
     <string name="webhooks_interval_label">Synchronisierungsintervall in Stunden</string>

@@ -146,43 +146,6 @@
     <string name="import_statement_balance_set_note">Saldo del estado de cuenta más lo que PennyWise registró después de que terminó el estado de cuenta.</string>
     <string name="import_statement_balance_applied">Saldo actualizado a %1$s.</string>
     <string name="import_statement_balance_newer">Tu banco informó un saldo más reciente después de este estado de cuenta, así que PennyWise conserva ese.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_subtitle_member">Todas las funciones Pro activas</string>
-    <string name="upgrade_subtitle_upgrade">Todo desbloqueado con una clave de licencia</string>
-    <string name="upgrade_enter_license_key">Ingresar clave de licencia</string>
-    <string name="upgrade_support_note">Hecha por un solo desarrollador: Pro financia lo que viene. Gracias.</string>
-    <string name="upgrade_available_at">PennyWise Pro está disponible en %1$s</string>
-    <string name="upgrade_copied">Copiado</string>
-    <string name="upgrade_copy_address">Copiar dirección</string>
-    <string name="upgrade_includes">Incluye</string>
-    <string name="upgrade_feature_rules">Reglas personalizadas ilimitadas</string>
-    <string name="upgrade_feature_statements">Importaciones de estados de cuenta ilimitadas</string>
-    <string name="upgrade_feature_csv">Exportación CSV ilimitada</string>
-    <string name="upgrade_feature_merge_accounts">Unir cuentas duplicadas</string>
-    <string name="upgrade_restoring">Restaurando…</string>
-    <string name="upgrade_restore">Restaurar</string>
-    <string name="upgrade_get_help">Obtener ayuda</string>
-    <string name="upgrade_welcome_eyebrow">BIENVENIDO</string>
-    <string name="upgrade_celebration_title">Ya eres miembro Pro</string>
-    <string name="upgrade_celebration_body">Gracias por apoyar PennyWise: todas las funciones de la lista ya son tuyas.</string>
-    <string name="upgrade_continue">Continuar</string>
-    <string name="upgrade_active_eyebrow">ACTIVO</string>
-    <string name="upgrade_active_title">Todas las funciones Pro desbloqueadas</string>
-    <string name="upgrade_via_license_key">Con clave de licencia · %1$s</string>
-    <string name="upgrade_remove_license_key">Quitar clave de licencia</string>
-    <string name="upgrade_manage_subscription">Administrar suscripción</string>
-    <string name="upgrade_error_play_unavailable">No se pudo conectar con Play Store. Inténtalo más tarde.</string>
-    <string name="upgrade_cancel">Cancelar</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Activar clave de licencia</string>
-    <string name="upgrade_license_dialog_body">Pega la clave del correo de tu compra. Pro se activa en este dispositivo al instante.</string>
-    <string name="upgrade_license_email_label">Correo de la compra</string>
-    <string name="upgrade_license_email_supporting">Confirma que la clave es tuya antes de quitarla del otro dispositivo.</string>
-    <string name="upgrade_license_move_here">Pasar a este dispositivo</string>
-    <string name="upgrade_license_activate">Activar</string>
-    <string name="upgrade_license_error_invalid">Esa clave no es válida. Revisa si hay errores y vuelve a intentarlo.</string>
-    <string name="upgrade_license_error_active_elsewhere">Esta clave ya está activa en otro dispositivo.</string>
-    <string name="upgrade_license_error_offline">No se pudo conectar con el servidor de licencias. Revisa tu conexión y vuelve a intentarlo.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">Te damos la bienvenida a PennyWise</string>
     <string name="onboarding_welcome_body">Tu control de gastos con AI que detecta automáticamente las transacciones de tus SMS.</string>
@@ -358,10 +321,6 @@
     <plurals name="rules_import_collapsed">
         <item quantity="one">Se unificó %1$d nombre repetido en el archivo.</item>
         <item quantity="other">Se unificaron %1$d nombres repetidos en el archivo.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d más necesita Pro: llegaste al límite gratuito de %2$d.</item>
-        <item quantity="other">%1$d más necesitan Pro: llegaste al límite gratuito de %2$d.</item>
     </plurals>
     <string name="rules_import_failed">La importación falló.</string>
     <!-- Apply rule to past transactions -->

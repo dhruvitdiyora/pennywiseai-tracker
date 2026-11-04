@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transakce odstraněna</string>
     <string name="home_undo">Zpět</string>
-    <string name="home_upgrade_pro">Upgradovat na PennyWise Pro</string>
     <string name="home_profile_filter">Filtr profilu</string>
     <string name="home_more_options">Další možnosti</string>
     <string name="home_view_all">Zobrazit vše</string>
@@ -354,10 +353,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Vývoj zůstatku</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <string name="pro_home_card_title">Líbí se vám PennyWise?</string>
-    <string name="pro_home_card_body">Pro přidává neomezená pravidla, cíle, exporty a importy výpisů.</string>
-    <string name="pro_home_card_action">Zobrazit Pro</string>
-    <string name="pro_home_card_dismiss">Zavřít</string>
     <string name="home_payday_card_title">Začínat rozpočet ve výplatní den?</string>
     <string name="home_payday_card_body">Zdá se, že výplata vám chodí %1$d. dne v měsíci. Začínat každý rozpočtový měsíc tímto dnem? Můžete to změnit v Nastavení.</string>
     <string name="home_payday_card_action">Začínat %1$d. dne</string>

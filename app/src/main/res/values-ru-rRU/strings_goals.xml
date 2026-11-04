@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">Цели</string>
-    <string name="upgrade_feature_goals">Неограниченные цели</string>
     <string name="goals_new">Новая цель</string>
     <string name="goals_empty_title">Копите на что-нибудь</string>
     <string name="goals_empty_body">Выберите целевую сумму и срок — и увидите, сколько откладывать каждый месяц.</string>

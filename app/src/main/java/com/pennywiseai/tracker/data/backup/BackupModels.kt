@@ -364,15 +364,6 @@ data class AppPreferences(
     @SerialName("last_review_prompt_time")
     val lastReviewPromptTime: Long? = null,
 
-    // Website-sold Pro license (Dodo). Travels with the backup so a restore on
-    // a new phone keeps Pro without re-entering the key or hitting the
-    // one-device activation limit. Both optional: pre-license backups omit them.
-    @SerialName("license_key")
-    val licenseKey: String? = null,
-
-    @SerialName("license_instance_id")
-    val licenseInstanceId: String? = null,
-
     // Accounts the user chose to ignore (#826), as "bankName_last4" keys.
     // Without this a restore silently starts tracking a relative's account
     // again. Defaulted, so pre-#826 backups still import.

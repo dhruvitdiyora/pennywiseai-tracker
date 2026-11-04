@@ -13,8 +13,6 @@
     </plurals>
     <string name="txn_export_total_transactions">Усяго транзакцый:</string>
     <string name="txn_export_date_range">Перыяд:</string>
-    <string name="txn_export_free_limit_notice">Бясплатны экспарт: першыя %1$d з %2$d радкоў</string>
-    <string name="txn_export_unlock_all">Адкрыць усё</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">Экспартавана %1$d транзакцыя</item>
         <item quantity="few">Экспартавана %1$d транзакцыі</item>
@@ -24,7 +22,6 @@
     <string name="txn_export_file_size">Памер: %1$s</string>
     <string name="txn_export_action_cancel">Скасаваць</string>
     <string name="txn_export_action_export">Экспартаваць</string>
-    <string name="txn_export_action_export_first">Экспартаваць першыя %1$d</string>
     <string name="txn_export_action_done">Гатова</string>
     <string name="txn_export_share_subject">Экспарт транзакцый PennyWise</string>
     <string name="txn_export_share_chooser_title">Абагуліць CSV</string>

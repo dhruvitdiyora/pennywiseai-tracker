@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
 import androidx.compose.material3.ButtonDefaults
-import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import androidx.compose.ui.platform.LocalContext
@@ -65,7 +64,6 @@ import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.people.PeopleExtendedFab
 import com.pennywiseai.tracker.presentation.people.PeopleTonalActionButton
-import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
@@ -108,8 +106,6 @@ fun ManageAccountsScreen(
     // Account merge (#368) — single screen-level entry point; the sheet handles
     // source + target selection + confirmation in one self-contained flow.
     var showMergeSheet by remember { mutableStateOf(false) }
-    val isProEntitled by viewModel.isProEntitled.collectAsState()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsState()
     val dismissedDuplicates = remember { mutableStateListOf<String>() }
@@ -207,14 +203,9 @@ fun ManageAccountsScreen(
                 },
                 actionContent = {
                     // Show Merge only when there are at least 2 accounts to choose between.
-                    // Pro-only feature — free users see the icon (so the feature is
-                    // discoverable) but the tap routes to the paywall instead.
                     if (uiState.accounts.size >= 2) {
                         PeopleTonalActionButton(
-                            onClick = {
-                                if (isProEntitled) showMergeSheet = true
-                                else showUpgradeSheet = true
-                            },
+                            onClick = { showMergeSheet = true },
                             icon = Iconax.HierarchySquare3,
                             contentDescription = stringResource(R.string.merge_accounts_title),
                         )
@@ -597,7 +588,7 @@ fun ManageAccountsScreen(
 
     // Two rows for one account (#873): offer to merge them, once per pair.
     if (!showMergeSheet && !showDeleteConfirmDialog && !showEditDialog && !showUpdateDialog &&
-        !showUpgradeSheet && !showSupportDialog && pendingProfileReassign == null && accountDuplicate != null) {
+        !showSupportDialog && pendingProfileReassign == null && accountDuplicate != null) {
         val (source, target) = accountDuplicate
         val duplicateKey = BankAccountMergeStore.mappingKey(source.bankName, source.currency, source.accountLast4)
         DuplicateAccountDialog(
@@ -623,12 +614,6 @@ fun ManageAccountsScreen(
                 showMergeSheet = false
             },
             onDismiss = { showMergeSheet = false }
-        )
-    }
-
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
         )
     }
 

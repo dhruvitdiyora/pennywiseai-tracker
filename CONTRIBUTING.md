@@ -103,7 +103,7 @@ app/                  # Android app (Compose UI, Room, Hilt)
     ├── ui/               # Shared UI components, theme, remaining screens
     ├── navigation/       # Navigation graph
     ├── widget/ worker/ receiver/   # Widgets, WorkManager jobs, SMS receiver
-    └── billing/ backup/ core/ utils/
+    └── backup/ core/ utils/
 parser-core/          # Kotlin Multiplatform bank parsers (shared with iOS)
 shared/               # Shared Kotlin code for the iOS app
 iosApp/               # Swift iOS app

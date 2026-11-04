@@ -5,11 +5,6 @@
     <string name="settings_action_cancel">રદ કરો</string>
     <string name="settings_action_ok">બરાબર</string>
     <string name="settings_action_done">થઈ ગયું</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">PennyWise Pro માં અપગ્રેડ કરો</string>
-    <string name="settings_pro_subtitle_active">સક્રિય · બધી સુવિધાઓ અનલૉક</string>
-    <string name="settings_pro_subtitle_upgrade">અમર્યાદિત નિયમો, એક્સપોર્ટ અને વધુ</string>
     <string name="settings_personalization_section">વ્યક્તિગતકરણ</string>
     <string name="settings_appearance_title">દેખાવ</string>
     <string name="settings_appearance_subtitle">થીમ, રંગો, ફૉન્ટ અને નેવિગેશન</string>
@@ -82,7 +77,6 @@
     <string name="settings_export_data_subtitle">બધા ડેટાનો ફાઇલમાં બૅકઅપ લો</string>
     <string name="settings_folder_backup_title">આપમેળે ફોલ્ડર બૅકઅપ</string>
     <string name="settings_folder_backup_subtitle_enabled">તમે પસંદ કરેલા ફોલ્ડરમાં દરરોજ 2:00 AM એ બૅકઅપ</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · દરરોજ 2:00 AM એ ફોલ્ડરમાં બૅકઅપ સાચવો</string>
     <string name="settings_folder_backup_subtitle_disabled">દરરોજ 2:00 AM એ ફોલ્ડરમાં બૅકઅપ સાચવો</string>
     <string name="settings_export_include_receipts_title">રસીદ ફોટા સામેલ કરો</string>
     <string name="settings_export_include_receipts_subtitle">એક્સપોર્ટ કરેલા બૅકઅપમાં જોડેલા રસીદ ફોટા ઉમેરો (મોટી ફાઇલ)</string>

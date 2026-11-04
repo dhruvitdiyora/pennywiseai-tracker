@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="goals_section_title">లక్ష్యాలు</string>
-    <string name="upgrade_feature_goals">అపరిమిత లక్ష్యాలు</string>
     <string name="goals_new">కొత్త లక్ష్యం</string>
     <string name="goals_empty_title">దేనికోసమైనా పొదుపు చేయండి</string>
     <string name="goals_empty_body">లక్ష్య మొత్తం మరియు గడువు తేదీని ఎంచుకుని, ప్రతి నెల ఎంత పక్కన పెట్టాలో చూడండి.</string>

@@ -5,11 +5,6 @@
     <string name="settings_action_cancel">ரத்துசெய்</string>
     <string name="settings_action_ok">சரி</string>
     <string name="settings_action_done">முடிந்தது</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">PennyWise Pro க்கு மேம்படுத்து</string>
-    <string name="settings_pro_subtitle_active">செயலில் · அனைத்து அம்சங்களும் திறக்கப்பட்டன</string>
-    <string name="settings_pro_subtitle_upgrade">வரம்பற்ற விதிகள், ஏற்றுமதிகள் மற்றும் பல</string>
     <string name="settings_personalization_section">தனிப்பயனாக்கம்</string>
     <string name="settings_appearance_title">தோற்றம்</string>
     <string name="settings_appearance_subtitle">தீம், நிறங்கள், எழுத்துருக்கள் &amp; வழிசெலுத்தல்</string>
@@ -82,7 +77,6 @@
     <string name="settings_export_data_subtitle">அனைத்துத் தரவையும் கோப்பில் காப்புப்பிரதி எடு</string>
     <string name="settings_folder_backup_title">தானியங்கு கோப்புறைக் காப்புப்பிரதி</string>
     <string name="settings_folder_backup_subtitle_enabled">நீங்கள் தேர்ந்தெடுத்த கோப்புறைக்குத் தினமும் 2:00 AM க்குக் காப்புப்பிரதி</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · தினமும் 2:00 AM க்குக் கோப்புறையில் காப்புப்பிரதியைச் சேமி</string>
     <string name="settings_folder_backup_subtitle_disabled">தினமும் 2:00 AM க்குக் கோப்புறையில் காப்புப்பிரதியைச் சேமி</string>
     <string name="settings_export_include_receipts_title">ரசீது படங்களைச் சேர்</string>
     <string name="settings_export_include_receipts_subtitle">ஏற்றுமதி செய்த காப்புப்பிரதிகளில் இணைத்த ரசீது படங்களைச் சேர் (பெரிய கோப்பு)</string>

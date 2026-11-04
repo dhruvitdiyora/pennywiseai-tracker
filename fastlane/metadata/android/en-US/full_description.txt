@@ -24,7 +24,7 @@ Ask "what did I spend on food last month?" and get a real answer. The AI model (
 • Nothing leaves your device
 • Open source (AGPL-3.0) — read the code yourself
 
-★ Free, with an optional Pro upgrade
-PennyWise is free to use. An optional Pro license adds unlimited custom rules, PDF statement imports, CSV export, duplicate-account merge and scheduled daily backups — and directly supports a solo developer building PennyWise independently. Already have a license key? Enter it under Settings → PennyWise Pro.
+★ Free, with every feature included
+PennyWise is free to use. Unlimited custom rules, PDF statement imports, CSV export, duplicate-account merge and scheduled daily backups are all included, with nothing to buy.
 
 A money manager, budget planner and spending tracker in one — for people who hate typing in expenses.

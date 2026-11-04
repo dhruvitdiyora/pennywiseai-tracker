@@ -31,7 +31,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.SheetValue
@@ -53,9 +52,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -63,11 +60,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
-import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
@@ -338,8 +333,7 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
 }
 
 /**
- * The Goals section at the top of the Budgets screen. Owns the Pro gate for
- * "New goal" (#914): free users get [com.pennywiseai.tracker.billing.FreeTierLimits.MAX_ACTIVE_GOALS].
+ * The Goals section at the top of the Budgets screen (#914).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -352,13 +346,12 @@ fun GoalsSection(
 ) {
     val goals by viewModel.activeGoals.collectAsStateWithLifecycle()
     val archived by viewModel.archivedGoals.collectAsStateWithLifecycle()
-    var showUpgrade by rememberSaveable { mutableStateOf(false) }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val active = goals ?: return
-    val create = { viewModel.requestCreate(onAllowed = onCreateGoal, onBlocked = { showUpgrade = true }) }
-    // The goals widget's "+": start "New goal" once, through the same Pro gate.
+    val create = onCreateGoal
+    // The goals widget's "+": start "New goal" once.
     LaunchedEffect(createOnOpen) {
-        if (createOnOpen) viewModel.createOnOpenOnce(onAllowed = onCreateGoal, onBlocked = { showUpgrade = true })
+        if (createOnOpen) viewModel.createOnOpenOnce(onCreateGoal)
     }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
@@ -437,7 +430,6 @@ fun GoalsSection(
         }
     }
 
-    if (showUpgrade) UpgradeSheet(onDismiss = { showUpgrade = false })
 }
 
 @Composable

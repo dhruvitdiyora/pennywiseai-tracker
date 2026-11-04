@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="webhooks_settings_subtitle">चुना गया डेटा अपने एंडपॉइंट पर भेजें</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · चुना गया डेटा अपने एंडपॉइंट पर भेजें</string>
     <string name="webhooks_add_title">वेबहुक जोड़ें</string>
     <string name="webhooks_edit_title">वेबहुक संपादित करें</string>
     <string name="webhooks_history_title">डिलीवरी इतिहास</string>

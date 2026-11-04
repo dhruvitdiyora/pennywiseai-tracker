@@ -38,7 +38,7 @@ data class ManageAccountsUiState(
     val isLoading: Boolean = false,
     val errorMessage: UiText? = null,
     val successMessage: UiText? = null,
-    // F-Droid-only contextual support nudge after a merge (a Pro-equivalent
+    // F-Droid-only contextual support nudge after a merge (a power
     // power feature); persists past the transient successMessage until dismissed.
     val showSupportNudge: Boolean = false
 )
@@ -78,18 +78,10 @@ class ManageAccountsViewModel @Inject constructor(
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
-    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
     private val bankAccountMerges = BankAccountMergeStore(context)
 
-    /**
-     * Drives the Merge-accounts action — Pro-only gate. Free users still
-     * see the icon (so they discover the feature) but tapping it opens
-     * the paywall instead of the merge sheet.
-     */
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-    
     // Reads/writes go through the shared store so the ingestion gate, the
     // transaction list and the backup all see the same set (#826).
     
@@ -567,11 +559,10 @@ class ManageAccountsViewModel @Inject constructor(
      * partial-merge window is short.
      */
     fun mergeAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
-        if (!isProEntitled.value) return
         performAccountMerge(source, target)
     }
 
-    /** Free repair is limited to an unambiguous duplicate proposed by the shared store. */
+    /** Repair is limited to an unambiguous duplicate proposed by the shared store. */
     fun repairDuplicateAccounts(source: AccountBalanceEntity, target: AccountBalanceEntity) {
         val candidate = BankAccountMergeStore.duplicatePairs(_uiState.value.accounts).firstOrNull { (short, full) ->
             short.bankName == source.bankName && short.accountLast4 == source.accountLast4 &&
@@ -582,7 +573,7 @@ class ManageAccountsViewModel @Inject constructor(
         performAccountMerge(candidate.first, candidate.second)
     }
 
-    /** Executes both the Pro merge and the separately validated free duplicate repair. */
+    /** Executes both the merge and the separately validated duplicate repair. */
     private fun performAccountMerge(
         source: AccountBalanceEntity,
         target: AccountBalanceEntity

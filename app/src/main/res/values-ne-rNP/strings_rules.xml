@@ -146,43 +146,6 @@
     <string name="import_statement_balance_set_note">स्टेटमेन्टको बालान्स र स्टेटमेन्ट सकिएपछि PennyWise ले रेकर्ड गरेको रकम।</string>
     <string name="import_statement_balance_applied">बालान्स %1$s मा अपडेट भयो।</string>
     <string name="import_statement_balance_newer">यो स्टेटमेन्टपछि तपाईंको बैंकले नयाँ बालान्स पठाएको छ, त्यसैले PennyWise ले त्यही राख्छ।</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_subtitle_member">सबै Pro सुविधा सक्रिय छन्</string>
-    <string name="upgrade_subtitle_upgrade">लाइसेन्स कीले सबै कुरा अनलक</string>
-    <string name="upgrade_enter_license_key">लाइसेन्स की हाल्नुहोस्</string>
-    <string name="upgrade_support_note">एक्लो developer ले बनाएको — Pro ले आउँदा कामलाई सहयोग गर्छ। धन्यवाद।</string>
-    <string name="upgrade_available_at">PennyWise Pro %1$s मा उपलब्ध छ</string>
-    <string name="upgrade_copied">कपी भयो</string>
-    <string name="upgrade_copy_address">ठेगाना कपी गर्नुहोस्</string>
-    <string name="upgrade_includes">समावेश</string>
-    <string name="upgrade_feature_rules">असीमित आफ्नै नियम</string>
-    <string name="upgrade_feature_statements">असीमित स्टेटमेन्ट आयात</string>
-    <string name="upgrade_feature_csv">असीमित CSV निर्यात</string>
-    <string name="upgrade_feature_merge_accounts">दोहोरिएका खाता गाभ्नुहोस्</string>
-    <string name="upgrade_restoring">पुनःस्थापना गर्दै…</string>
-    <string name="upgrade_restore">पुनःस्थापना गर्नुहोस्</string>
-    <string name="upgrade_get_help">मद्दत लिनुहोस्</string>
-    <string name="upgrade_welcome_eyebrow">स्वागत छ</string>
-    <string name="upgrade_celebration_title">तपाईं Pro सदस्य हुनुहुन्छ</string>
-    <string name="upgrade_celebration_body">PennyWise लाई साथ दिनुभएकोमा धन्यवाद — सूचीका सबै सुविधा अब तपाईंका हुन्।</string>
-    <string name="upgrade_continue">जारी राख्नुहोस्</string>
-    <string name="upgrade_active_eyebrow">सक्रिय</string>
-    <string name="upgrade_active_title">सबै Pro सुविधा अनलक भए</string>
-    <string name="upgrade_via_license_key">लाइसेन्स कीद्वारा · %1$s</string>
-    <string name="upgrade_remove_license_key">लाइसेन्स की हटाउनुहोस्</string>
-    <string name="upgrade_manage_subscription">सदस्यता व्यवस्थापन गर्नुहोस्</string>
-    <string name="upgrade_error_play_unavailable">Play Store सम्म पुग्न सकिएन। पछि फेरि प्रयास गर्नुहोस्।</string>
-    <string name="upgrade_cancel">रद्द गर्नुहोस्</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">लाइसेन्स की सक्रिय गर्नुहोस्</string>
-    <string name="upgrade_license_dialog_body">खरिदको इमेलबाट की पेस्ट गर्नुहोस्। यो डिभाइसमा Pro तुरुन्तै सक्रिय हुन्छ।</string>
-    <string name="upgrade_license_email_label">खरिद गर्दाको इमेल</string>
-    <string name="upgrade_license_email_supporting">की अर्को डिभाइसबाट सर्नुअघि यो तपाईंकै हो भनेर पुष्टि गर्छ।</string>
-    <string name="upgrade_license_move_here">यो डिभाइसमा सार्नुहोस्</string>
-    <string name="upgrade_license_activate">सक्रिय गर्नुहोस्</string>
-    <string name="upgrade_license_error_invalid">त्यो की मान्य छैन। टाइपिङ गल्ती जाँचेर फेरि प्रयास गर्नुहोस्।</string>
-    <string name="upgrade_license_error_active_elsewhere">यो की अर्को डिभाइसमा पहिले नै सक्रिय छ।</string>
-    <string name="upgrade_license_error_offline">लाइसेन्स सर्भरसम्म पुग्न सकिएन। जडान जाँचेर फेरि प्रयास गर्नुहोस्।</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">PennyWise मा स्वागत छ</string>
     <string name="onboarding_welcome_body">SMS सन्देशबाट लेनदेन आफैं पत्ता लगाउने तपाईंको AI-संचालित खर्च ट्र्याकर।</string>
@@ -362,10 +325,6 @@
     <plurals name="rules_import_collapsed">
         <item quantity="one">फाइलमा दोहोरिएको %1$d नाम एउटै बनाइयो।</item>
         <item quantity="other">फाइलमा दोहोरिएका %1$d नाम एउटै बनाइए।</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">थप %1$d का लागि Pro चाहिन्छ — तपाईं %2$d को निःशुल्क सीमामा पुग्नुभयो।</item>
-        <item quantity="other">थप %1$d का लागि Pro चाहिन्छ — तपाईं %2$d को निःशुल्क सीमामा पुग्नुभयो।</item>
     </plurals>
     <string name="rules_import_failed">आयात असफल भयो।</string>
     <!-- Apply rule to past transactions -->

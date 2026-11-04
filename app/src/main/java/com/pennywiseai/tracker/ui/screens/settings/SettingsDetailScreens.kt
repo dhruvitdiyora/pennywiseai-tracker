@@ -5,31 +5,18 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Vibration
 import com.pennywiseai.tracker.data.preferences.DateFormatStyle
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.animation.*
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.*
@@ -38,45 +25,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import android.widget.Toast
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.ui.components.AvatarHelper
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
-import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
-import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
-import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.RowLabels
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.icons.iconax.Edit2
-import com.pennywiseai.tracker.ui.icons.iconax.Iconax
-import com.pennywiseai.tracker.ui.screens.profile.EditProfileSheet
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.amber_light
-import com.pennywiseai.tracker.ui.theme.amber_dark
-import com.pennywiseai.tracker.ui.theme.orange_light
-import com.pennywiseai.tracker.ui.theme.orange_dark
 import com.pennywiseai.tracker.ui.theme.green_light
 import com.pennywiseai.tracker.ui.theme.green_dark
 import com.pennywiseai.tracker.ui.theme.teal_light
@@ -91,15 +50,8 @@ import com.pennywiseai.tracker.ui.theme.pink_light
 import com.pennywiseai.tracker.ui.theme.pink_dark
 import com.pennywiseai.tracker.ui.theme.purple_light
 import com.pennywiseai.tracker.ui.theme.purple_dark
-import com.pennywiseai.tracker.ui.theme.cyan_light
-import com.pennywiseai.tracker.ui.theme.cyan_dark
-import com.pennywiseai.tracker.ui.theme.yellow_light
-import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.grey_light
 import com.pennywiseai.tracker.ui.theme.grey_dark
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
@@ -733,13 +685,11 @@ fun BackupImportSettingsScreen(
     val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
     val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
-    val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
     val exportIncludeReceipts by settingsViewModel.exportIncludeReceipts.collectAsStateWithLifecycle(initialValue = true)
     val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSmsScanDialog by remember { mutableStateOf(false) }
     var showSmsScanDatePicker by remember { mutableStateOf(false) }
     var showExportOptionsDialog by remember { mutableStateOf(false) }
@@ -796,7 +746,6 @@ fun BackupImportSettingsScreen(
         SettingsBackupSections(
             scheduledFolderBackupEnabled = scheduledFolderBackupEnabled,
             scheduledFolderBackupLastTimestamp = scheduledFolderBackupLastTimestamp,
-            isProEntitled = isProEntitled,
             exportIncludeReceipts = exportIncludeReceipts,
             folderBackupIncludeReceipts = folderBackupIncludeReceipts,
             smsScanAllTime = smsScanAllTime,
@@ -806,13 +755,7 @@ fun BackupImportSettingsScreen(
             onExportData = { settingsViewModel.exportBackup() },
             onExportIncludeReceiptsChange = { settingsViewModel.setExportIncludeReceipts(it) },
             onFolderBackupIncludeReceiptsChange = { settingsViewModel.setFolderBackupIncludeReceipts(it) },
-            onScheduledFolderBackupChange = { enabled ->
-                if (enabled && !isProEntitled) {
-                    showUpgradeSheet = true
-                } else {
-                    settingsViewModel.setScheduledFolderBackupEnabled(enabled)
-                }
-            },
+            onScheduledFolderBackupChange = { enabled -> settingsViewModel.setScheduledFolderBackupEnabled(enabled) },
             onBackupNow = { settingsViewModel.backupToFolderNow() },
             onChangeBackupFolder = { settingsViewModel.requestChangeBackupFolder() },
             onImportBackup = { importLauncher.launch("*/*") },
@@ -1140,11 +1083,6 @@ fun BackupImportSettingsScreen(
         )
     }
 
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
-        )
-    }
 }
 
 @Composable
@@ -1160,8 +1098,6 @@ fun AdvancedSettingsScreen(
     val downloadedMB by settingsViewModel.downloadedMB.collectAsStateWithLifecycle()
     val totalMB by settingsViewModel.totalMB.collectAsStateWithLifecycle()
     val isDeveloperModeEnabled by settingsViewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle(initialValue = false)
-    val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     val permissionUiState by permissionViewModel.uiState.collectAsStateWithLifecycle()
     val hasNotificationAccess = permissionUiState.hasNotificationAccess
     val notificationAccessLauncher = rememberLauncherForActivityResult(
@@ -1269,8 +1205,8 @@ fun AdvancedSettingsScreen(
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
                     title = stringResource(R.string.ai_access_settings_title),
-                    subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
-                    onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
+                    subtitle = stringResource(R.string.ai_access_settings_subtitle),
+                    onClick = onNavigateToAiAccess,
                     position = ListItemPosition.Single
                 )
             }
@@ -1283,8 +1219,8 @@ fun AdvancedSettingsScreen(
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
                     title = stringResource(R.string.webhooks_title),
-                    subtitle = stringResource(if (isProEntitled) R.string.webhooks_settings_subtitle else R.string.webhooks_settings_subtitle_pro),
-                    onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
+                    subtitle = stringResource(R.string.webhooks_settings_subtitle),
+                    onClick = onNavigateToWebhooks,
                     position = ListItemPosition.Top
                 )
                 SettingsSwitchRow(
@@ -1301,9 +1237,4 @@ fun AdvancedSettingsScreen(
         }
     }
 
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
-        )
-    }
 }

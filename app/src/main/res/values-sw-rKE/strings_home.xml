@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Muamala umefutwa</string>
     <string name="home_undo">Tendua</string>
-    <string name="home_upgrade_pro">Pandisha hadi PennyWise Pro</string>
     <string name="home_profile_filter">Chuja kwa wasifu</string>
     <string name="home_more_options">Chaguo zaidi</string>
     <string name="home_view_all">Ona Zote</string>
@@ -315,10 +314,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Mwenendo wa Salio</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <string name="pro_home_card_title">Unafurahia PennyWise?</string>
-    <string name="pro_home_card_body">Pro inaongeza kanuni, malengo, uhamishaji wa data na uingizaji wa taarifa za benki bila kikomo.</string>
-    <string name="pro_home_card_action">Ona Pro</string>
-    <string name="pro_home_card_dismiss">Ondoa</string>
     <string name="home_payday_card_title">Anza bajeti siku ya mshahara?</string>
     <string name="home_payday_card_body">Inaonekana mshahara wako hufika tarehe %1$d ya mwezi. Ungependa kila mwezi wa bajeti uanze siku hiyo? Unaweza kubadilisha hili kwenye Mipangilio.</string>
     <string name="home_payday_card_action">Anza tarehe %1$d</string>

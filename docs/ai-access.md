@@ -1,6 +1,6 @@
 # AI access: Claude, ChatGPT and the dashboard
 
-PennyWise Pro can let AI apps — and a big-screen dashboard on a computer — read your data while you allow it. Your data stays on your phone: during an **AI session** the app's questions travel through PennyWise's relay to your phone, your phone answers from its own database, and the answer goes back the same way. The relay never stores or logs them. Design: [ADR 0002](adr/0002-ai-access-via-worker-relay.md).
+PennyWise can let AI apps — and a big-screen dashboard on a computer — read your data while you allow it. Your data stays on your phone: during an **AI session** the app's questions travel through PennyWise's relay to your phone, your phone answers from its own database, and the answer goes back the same way. The relay never stores or logs them. Design: [ADR 0002](adr/0002-ai-access-via-worker-relay.md).
 
 ## Connect Claude or ChatGPT (once)
 

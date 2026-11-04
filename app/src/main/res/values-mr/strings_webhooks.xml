@@ -2,12 +2,9 @@
 <resources>
     <string name="webhooks_title">वेबहुक</string>
     <string name="webhooks_settings_subtitle">निवडलेला डेटा तुमच्या एंडपॉइंटला पाठवा</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · निवडलेला डेटा तुमच्या एंडपॉइंटला पाठवा</string>
     <string name="webhooks_add_title">वेबहुक जोडा</string>
     <string name="webhooks_edit_title">वेबहुक संपादित करा</string>
     <string name="webhooks_history_title">डिलिव्हरी इतिहास</string>
-    <string name="webhooks_pro_body">वेबहुक सिंक हे Pro वैशिष्ट्य आहे. निवडलेला आर्थिक डेटा आपोआप तुमच्या स्वतःच्या एंडपॉइंटला पाठवा.</string>
-    <string name="webhooks_unlock_pro">Pro ने अनलॉक करा</string>
     <string name="webhooks_save">वेबहुक जतन करा</string>
     <string name="webhooks_history_empty">अद्याप डिलिव्हरी नाही. रांगेतील काम नेटवर्क कनेक्शनची वाट पाहते.</string>
     <string name="webhooks_log_delivered">पोहोचवले</string>

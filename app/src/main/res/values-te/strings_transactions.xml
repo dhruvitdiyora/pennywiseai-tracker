@@ -11,8 +11,6 @@
     <string name="txn_export_total_transactions">మొత్తం లావాదేవీలు:</string>
     <string name="txn_export_date_range">తేదీ పరిధి:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_export_free_limit_notice">ఉచిత ఎగుమతి: %2$d లో మొదటి %1$d వరుసలు</string>
-    <string name="txn_export_unlock_all">అన్నీ అన్‌లాక్ చేయండి</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">%1$d లావాదేవీ విజయవంతంగా ఎగుమతి అయింది</item>
         <item quantity="other">%1$d లావాదేవీలు విజయవంతంగా ఎగుమతి అయ్యాయి</item>
@@ -20,7 +18,6 @@
     <string name="txn_export_file_size">పరిమాణం: %1$s</string>
     <string name="txn_export_action_cancel">రద్దు చేయండి</string>
     <string name="txn_export_action_export">ఎగుమతి చేయండి</string>
-    <string name="txn_export_action_export_first">మొదటి %1$d ఎగుమతి చేయండి</string>
     <string name="txn_export_action_done">పూర్తయింది</string>
     <string name="txn_export_share_subject">PennyWise లావాదేవీల ఎగుమతి</string>
     <string name="txn_export_share_chooser_title">CSV ను షేర్ చేయండి</string>

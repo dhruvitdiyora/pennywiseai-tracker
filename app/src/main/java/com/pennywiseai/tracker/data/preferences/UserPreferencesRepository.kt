@@ -121,23 +121,10 @@ open class UserPreferencesRepository @Inject constructor(
         // Feature discovery
         val HAS_USED_FULL_RESYNC = booleanPreferencesKey("has_used_full_resync")
 
-        // Pro tier — UI-cached entitlement to avoid first-frame flicker
-        // while the BillingClient connects.
-        val PRO_CACHED_IS_PRO = booleanPreferencesKey("pro_cached_is_pro")
-
-        // Website-sold Pro (Dodo license key). Key + activation instance are
-        // what Dodo needs to validate; validated_at drives the offline policy.
-        val LICENSE_KEY = stringPreferencesKey("license_key")
-        val LICENSE_INSTANCE_ID = stringPreferencesKey("license_instance_id")
-        val LICENSE_VALIDATED_AT = longPreferencesKey("license_validated_at")
-        val LICENSE_PRODUCT_NAME = stringPreferencesKey("license_product_name")
-
         // F-Droid support nudge — epoch-day of the last contextual "Support
         // development" prompt, so it stays frequency-capped.
         val SUPPORT_NUDGE_LAST_SHOWN_DAY = longPreferencesKey("support_nudge_last_shown_epoch_day")
 
-        // Pro tier — statement-import monthly quota tracking.
-        val LAST_STATEMENT_IMPORT_AT = longPreferencesKey("last_statement_import_at")
         val STATEMENT_COLUMN_MAPPINGS = stringPreferencesKey("statement_column_mappings")
 
         // What's New feature
@@ -793,48 +780,6 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    // Pro tier — UI-cached entitlement so first frame after cold start
-    // doesn't flicker `false → true` while BillingClient connects. Real
-    // source of truth is Play; this is a hint only.
-    val proCachedIsPro: Flow<Boolean> = context.dataStore.data
-        .map { it[PreferencesKeys.PRO_CACHED_IS_PRO] ?: false }
-
-    suspend fun setProCachedIsPro(isPro: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.PRO_CACHED_IS_PRO] = isPro
-        }
-    }
-
-    /** Stored website license (Dodo). Null [StoredLicense.key] means none. */
-    val storedLicense: Flow<StoredLicense?> = context.dataStore.data.map { p ->
-        p[PreferencesKeys.LICENSE_KEY]?.let { key ->
-            StoredLicense(
-                key = key,
-                instanceId = p[PreferencesKeys.LICENSE_INSTANCE_ID],
-                validatedAt = p[PreferencesKeys.LICENSE_VALIDATED_AT] ?: 0L,
-                productName = p[PreferencesKeys.LICENSE_PRODUCT_NAME],
-            )
-        }
-    }
-
-    suspend fun setStoredLicense(license: StoredLicense?) {
-        context.dataStore.edit { p ->
-            if (license == null) {
-                p.remove(PreferencesKeys.LICENSE_KEY)
-                p.remove(PreferencesKeys.LICENSE_INSTANCE_ID)
-                p.remove(PreferencesKeys.LICENSE_VALIDATED_AT)
-                p.remove(PreferencesKeys.LICENSE_PRODUCT_NAME)
-            } else {
-                p[PreferencesKeys.LICENSE_KEY] = license.key
-                license.instanceId?.let { p[PreferencesKeys.LICENSE_INSTANCE_ID] = it }
-                    ?: p.remove(PreferencesKeys.LICENSE_INSTANCE_ID)
-                p[PreferencesKeys.LICENSE_VALIDATED_AT] = license.validatedAt
-                license.productName?.let { p[PreferencesKeys.LICENSE_PRODUCT_NAME] = it }
-                    ?: p.remove(PreferencesKeys.LICENSE_PRODUCT_NAME)
-            }
-        }
-    }
-
     /** Epoch-day the contextual F-Droid support nudge was last shown (0 = never). */
     val supportNudgeLastShownDay: Flow<Long> = context.dataStore.data
         .map { it[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L }
@@ -860,21 +805,6 @@ open class UserPreferencesRepository @Inject constructor(
             }
         }
         return claimed
-    }
-
-    /**
-     * Epoch-millis of the last successful PDF statement import, or null if
-     * the user has never imported. Consumed by the statement-import gate —
-     * free users get one import per calendar month, so this single
-     * timestamp is enough (no per-month counter needed since the limit is 1).
-     */
-    val lastStatementImportAt: Flow<Long?> = context.dataStore.data
-        .map { it[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] }
-
-    suspend fun markStatementImported(epochMillis: Long) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] = epochMillis
-        }
     }
 
     /**
@@ -1354,10 +1284,3 @@ data class UserPreferences(
     val budgetCycleStartDay: Int = 1
 )
 
-/** A website-sold Pro license as persisted in DataStore. */
-data class StoredLicense(
-    val key: String,
-    val instanceId: String?,
-    val validatedAt: Long,
-    val productName: String?,
-)

@@ -124,7 +124,6 @@ app/
 │   ├── receiver/                # SMS / notification entry points
 │   ├── worker/                  # WorkManager jobs (SMS scan retry, scheduled backups)
 │   ├── widget/                  # Home-screen widgets
-│   ├── billing/                 # Play Billing + FreeTierLimits
 │   ├── backup/ core/ initializer/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)

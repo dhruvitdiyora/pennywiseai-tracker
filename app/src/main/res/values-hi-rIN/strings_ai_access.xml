@@ -3,12 +3,9 @@
 <resources>
     <string name="ai_access_settings_title">Claude / ChatGPT कनेक्ट करें</string>
     <string name="ai_access_settings_subtitle">आपकी इजाज़त रहने तक AI ऐप्स आपका डेटा पढ़ सकें</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · आपकी इजाज़त रहने तक AI ऐप्स आपका डेटा पढ़ सकें</string>
     <string name="ai_access_title">AI एक्सेस</string>
     <string name="ai_access_back">वापस</string>
     <string name="ai_access_intro">Claude, ChatGPT या किसी और AI ऐप से अपने खर्च के बारे में पूछें, या कंप्यूटर पर डैशबोर्ड खोलें। वे आपके लेन-देन, बाकी राशि और सदस्यताएँ सिर्फ़ तभी पढ़ सकते हैं जब AI सेशन चालू हो। वे कुछ भी बदल नहीं सकते।</string>
-    <string name="ai_access_pro_only">AI एक्सेस एक Pro सुविधा है।</string>
-    <string name="ai_access_unlock">Pro से अनलॉक करें</string>
     <string name="ai_access_session_title">AI सेशन</string>
     <string name="ai_access_session_off">बंद है। चुनें कि PennyWise कितनी देर कनेक्ट रहे, या क्विक सेटिंग्स में PennyWise AI टाइल इस्तेमाल करें।</string>
     <string name="ai_access_session_minutes">%d मिनट</string>

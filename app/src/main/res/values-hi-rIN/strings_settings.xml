@@ -7,10 +7,6 @@
     <string name="settings_action_cancel">रद्द करें</string>
     <string name="settings_action_ok">ठीक है</string>
     <string name="settings_action_done">समाप्त</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_title_upgrade">PennyWise Pro में अपग्रेड करें</string>
-    <string name="settings_pro_subtitle_active">एक्टिव · सभी पावर फ़ीचर्स अनलॉक</string>
-    <string name="settings_pro_subtitle_upgrade">अनलिमिटेड नियम, स्टेटमेंट, निर्यात और भी बहुत कुछ</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">पर्सनलाइज़ेशन</string>
     <string name="settings_appearance_title">दिखावट</string>
@@ -92,7 +88,6 @@
     <string name="settings_export_data_subtitle">सारा डेटा एक फ़ाइल में बैकअप करें</string>
     <string name="settings_folder_backup_title">ऑटोमैटिक फ़ोल्डर बैकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">रोज़ रात 2:00 बजे आपके चुने फ़ोल्डर में बैकअप</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · रोज़ रात 2:00 बजे एक फ़ोल्डर में बैकअप सहेजें</string>
     <string name="settings_folder_backup_subtitle_disabled">रोज़ रात 2:00 बजे एक फ़ोल्डर में बैकअप सहेजें</string>
     <string name="settings_export_include_receipts_title">रसीद की फ़ोटो शामिल करें</string>
     <string name="settings_export_include_receipts_subtitle">निर्यात किए गए बैकअप में जुड़ी रसीद की फ़ोटो जोड़ें (फ़ाइल बड़ी होगी)</string>
@@ -235,7 +230,6 @@
     <string name="settings_developer_mode_subtitle">चैट में तकनीकी जानकारी दिखाएँ</string>
     <string name="settings_webhooks_title">वेबहुक</string>
     <string name="settings_webhooks_subtitle">चुना हुआ डेटा अपने एंडपॉइंट पर भेजें</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · चुना हुआ डेटा अपने एंडपॉइंट पर भेजें</string>
     <!-- Support & Community -->
     <string name="settings_support_section">सहायता और कम्युनिटी</string>
     <string name="settings_help_faq_title">मदद और सामान्य प्रश्न</string>
@@ -285,8 +279,6 @@
     <string name="webhooks_title_edit">वेबहुक संपादित करें</string>
     <string name="webhooks_title_history">डिलीवरी इतिहास</string>
     <string name="webhooks_back">वापस</string>
-    <string name="webhooks_pro_body">वेबहुक सिंक एक Pro फ़ीचर है। चुना हुआ वित्तीय डेटा अपने-आप अपने एंडपॉइंट पर भेजें।</string>
-    <string name="webhooks_unlock_pro">Pro से अनलॉक करें</string>
     <string name="webhooks_intro">वेबहुक आपका चुना हुआ वित्तीय डेटा इस डिवाइस से बाहर आपके चुने एंडपॉइंट पर भेजते हैं। सिर्फ़ भरोसेमंद एंडपॉइंट ही चालू करें। डेटा और क्रेडेंशियल सुरक्षित रखने के लिए HTTPS इस्तेमाल करें।</string>
     <string name="webhooks_add">वेबहुक जोड़ें</string>
     <string name="webhooks_interval_label">सिंक अंतराल (घंटों में)</string>
@@ -425,8 +417,6 @@
     <string name="faq_multiple_accounts_question">एक ही बैंक के कई खाते कैसे ट्रैक करूँ?</string>
     <string name="faq_multiple_accounts_answer">SMS में दिखने वाले आखिरी 4 अंकों के आधार पर ऐप अलग-अलग खाते अपने-आप पहचान लेता है।</string>
     <!-- Still need help -->
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_language_system_default">सिस्टम डिफ़ॉल्ट</string>
     <string name="settings_language_system_default_hint">अपने फ़ोन की भाषा उपयोग करें</string>
     <string name="settings_language_sheet_title">भाषा चुनें</string>

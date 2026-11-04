@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.encodeToStream
 import java.io.File
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -121,14 +120,6 @@ class BackupExporter @Inject constructor(
         val firstLaunchTime = userPreferencesRepository.getFirstLaunchTime().first()
         val hasShownReviewPrompt = userPreferencesRepository.getHasShownReviewPrompt().first()
         val lastReviewPromptTime = userPreferencesRepository.getLastReviewPromptTime().first()
-        // The license is a bearer credential: it only rides along in FULL
-        // exports (the user's own restore file), never in masked/anonymous
-        // ones meant for sharing.
-        val storedLicense = if (privacy == ExportPrivacy.FULL) {
-            userPreferencesRepository.storedLicense.first()
-        } else {
-            null
-        }
         val lastScanTimestamp = userPreferencesRepository.getLastScanTimestamp().first()
         val lastScanPeriod = userPreferencesRepository.getLastScanPeriod().first()
         val smsScanUseCustomDate = userPreferencesRepository.getSmsScanUseCustomDate()
@@ -293,8 +284,6 @@ class BackupExporter @Inject constructor(
                     firstLaunchTime = firstLaunchTime,
                     hasShownReviewPrompt = hasShownReviewPrompt,
                     lastReviewPromptTime = lastReviewPromptTime,
-                    licenseKey = storedLicense?.key,
-                    licenseInstanceId = storedLicense?.instanceId,
                     // Bank name + last four, so it identifies accounts the same
                     // way the licence key identifies a person — FULL only, or a
                     // masked export would leak what the mode exists to hide.

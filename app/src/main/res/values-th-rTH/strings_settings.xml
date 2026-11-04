@@ -7,10 +7,6 @@
     <string name="settings_action_cancel">ยกเลิก</string>
     <string name="settings_action_ok">ตกลง</string>
     <string name="settings_action_done">เสร็จสิ้น</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_title_upgrade">อัปเกรดเป็น PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">ใช้งานอยู่ · ปลดล็อกฟีเจอร์ขั้นสูงทั้งหมดแล้ว</string>
-    <string name="settings_pro_subtitle_upgrade">กฎ Statement การส่งออก และอื่นๆ ได้ไม่จำกัด</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">ปรับแต่ง</string>
     <string name="settings_appearance_title">ลักษณะ</string>
@@ -90,7 +86,6 @@
     <string name="settings_export_data_subtitle">สำรองข้อมูลทั้งหมดเป็นไฟล์</string>
     <string name="settings_folder_backup_title">สำรองข้อมูลลงโฟลเดอร์อัตโนมัติ</string>
     <string name="settings_folder_backup_subtitle_enabled">สำรองข้อมูลทุกวันตอน 2:00 น. ลงโฟลเดอร์ที่คุณเลือก</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · บันทึกข้อมูลสำรองลงโฟลเดอร์ทุกวันตอน 2:00 น.</string>
     <string name="settings_folder_backup_subtitle_disabled">บันทึกข้อมูลสำรองลงโฟลเดอร์ทุกวันตอน 2:00 น.</string>
     <string name="settings_export_include_receipts_title">รวมรูปใบเสร็จ</string>
     <string name="settings_export_include_receipts_subtitle">ใส่รูปใบเสร็จที่แนบไว้ในข้อมูลสำรองที่ส่งออก (ไฟล์ใหญ่ขึ้น)</string>
@@ -226,7 +221,6 @@
     <string name="settings_developer_mode_subtitle">แสดงข้อมูลทางเทคนิคในแชท</string>
     <string name="settings_webhooks_title">Webhook</string>
     <string name="settings_webhooks_subtitle">ส่งข้อมูลที่เลือกไปยังปลายทางของคุณ</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · ส่งข้อมูลที่เลือกไปยังปลายทางของคุณ</string>
     <!-- Support & Community -->
     <string name="settings_support_section">ความช่วยเหลือและชุมชน</string>
     <string name="settings_help_faq_title">ความช่วยเหลือและคำถามที่พบบ่อย</string>
@@ -276,8 +270,6 @@
     <string name="webhooks_title_edit">แก้ไข Webhook</string>
     <string name="webhooks_title_history">ประวัติการส่ง</string>
     <string name="webhooks_back">กลับ</string>
-    <string name="webhooks_pro_body">การซิงค์ผ่าน Webhook เป็นฟีเจอร์ Pro ส่งข้อมูลการเงินที่เลือกไปยังปลายทางของคุณเองโดยอัตโนมัติ</string>
-    <string name="webhooks_unlock_pro">ปลดล็อกด้วย Pro</string>
     <string name="webhooks_intro">Webhook จะส่งข้อมูลการเงินที่คุณเลือกออกนอกเครื่องนี้ไปยังปลายทางที่คุณกำหนด เปิดใช้เฉพาะปลายทางที่คุณเชื่อถือ และใช้ HTTPS เพื่อปกป้องข้อมูลและข้อมูลยืนยันตัวตน</string>
     <string name="webhooks_add">เพิ่ม Webhook</string>
     <string name="webhooks_interval_label">ความถี่ในการซิงค์ (ชั่วโมง)</string>

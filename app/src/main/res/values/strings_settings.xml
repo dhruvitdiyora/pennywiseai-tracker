@@ -9,13 +9,6 @@
     <string name="settings_action_ok">OK</string>
     <string name="settings_action_done">Done</string>
 
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">Upgrade to PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Active · all features unlocked</string>
-    <string name="settings_pro_subtitle_upgrade">Unlimited rules, exports and more</string>
-
     <!-- Personalization -->
     <string name="settings_personalization_section">Personalization</string>
     <string name="settings_appearance_title">Appearance</string>
@@ -105,7 +98,6 @@
     <string name="settings_export_data_subtitle">Backup all data to a file</string>
     <string name="settings_folder_backup_title">Automatic Folder Backup</string>
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Save a backup to a folder every day at 2:00 AM</string>
     <string name="settings_export_include_receipts_title">Include receipt photos</string>
     <string name="settings_export_include_receipts_subtitle">Add attached receipt photos to exported backups (larger file)</string>
@@ -266,7 +258,6 @@
     <string name="settings_developer_mode_subtitle">Show technical information in chat</string>
     <string name="settings_webhooks_title">Webhooks</string>
     <string name="settings_webhooks_subtitle">Send selected data to your endpoint</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · Send selected data to your endpoint</string>
 
     <!-- Support & Community -->
     <string name="settings_support_section">Support &amp; Community</string>
@@ -326,8 +317,6 @@
     <string name="webhooks_title_edit">Edit webhook</string>
     <string name="webhooks_title_history">Delivery history</string>
     <string name="webhooks_back">Back</string>
-    <string name="webhooks_pro_body">Webhook sync is a Pro feature. Send selected financial data to your own endpoint automatically.</string>
-    <string name="webhooks_unlock_pro">Unlock with Pro</string>
     <string name="webhooks_intro">Webhooks send your selected financial data outside this device to an endpoint you choose. Only enable endpoints you trust. Use HTTPS to protect data and credentials.</string>
     <string name="webhooks_add">Add webhook</string>
     <string name="webhooks_interval_label">Sync interval in hours</string>

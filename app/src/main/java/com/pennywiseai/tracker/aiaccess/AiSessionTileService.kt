@@ -7,7 +7,6 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.billing.EntitlementGate
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -16,7 +15,6 @@ import javax.inject.Inject
 class AiSessionTileService : TileService() {
 
     @Inject lateinit var state: AiSessionState
-    @Inject lateinit var entitlementGate: EntitlementGate
 
     override fun onStartListening() {
         val tile = qsTile ?: return
@@ -30,8 +28,6 @@ class AiSessionTileService : TileService() {
         unlockAndRun {
             when {
                 state.session.value != null -> AiSessionService.stop(this)
-                // Not Pro: open the app, where AI access explains the upgrade.
-                !entitlementGate.isProEntitled.value -> openApp()
                 else -> runCatching { AiSessionService.start(this, 30) }.onFailure { openApp() }
             }
             onStartListening()

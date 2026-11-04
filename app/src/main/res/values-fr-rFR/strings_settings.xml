@@ -7,12 +7,6 @@
     <string name="settings_action_cancel">Abandonner</string>
     <string name="settings_action_ok">Ok</string>
     <string name="settings_action_done">Fait</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">Mettre à niveau vers PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Activé · toutes les fonctionnalités d\'énergie déverrouillées</string>
-    <string name="settings_pro_subtitle_upgrade">Règles illimitées, relevés, exports et plus encore</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">Personnalisation</string>
     <string name="settings_appearance_title">Apparence</string>
@@ -90,7 +84,6 @@
     <string name="settings_export_data_subtitle">Sauvegarder toutes les données dans un fichier</string>
     <string name="settings_folder_backup_title">Sauvegarde automatique du dossier</string>
     <string name="settings_folder_backup_subtitle_enabled">Sauvegarde quotidienne à 2h00 du matin dans le dossier de votre choix</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · Sauvegardez une sauvegarde dans un dossier tous les jours à 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Enregistrez une sauvegarde dans un dossier tous les jours à 2:00 AM</string>
     <string name="settings_export_include_receipts_title">Inclure les photos de reçus</string>
     <string name="settings_export_include_receipts_subtitle">Ajouter les photos de reçus jointes aux sauvegardes exportées (fichier plus volumineux)</string>
@@ -233,7 +226,6 @@
     <string name="settings_developer_mode_title">Mode développeur</string>
     <string name="settings_developer_mode_subtitle">Afficher les informations techniques dans le chat</string>
     <string name="settings_webhooks_subtitle">Envoyer les données choisies vers votre endpoint</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · Envoyer les données choisies vers votre endpoint</string>
     <!-- Support & Community -->
     <string name="settings_support_section">Soutenir &amp; Communauté</string>
     <string name="settings_help_faq_title">Aide &amp; FAQ</string>
@@ -283,8 +275,6 @@
     <string name="webhooks_title_edit">Modifier le webhook</string>
     <string name="webhooks_title_history">Historique des envois</string>
     <string name="webhooks_back">Retour</string>
-    <string name="webhooks_pro_body">La synchronisation par webhook est une fonctionnalité Pro. Envoyez automatiquement les données financières choisies vers votre propre endpoint.</string>
-    <string name="webhooks_unlock_pro">Débloquer avec Pro</string>
     <string name="webhooks_intro">Les webhooks envoient les données financières choisies hors de cet appareil, vers un endpoint de votre choix. N\'activez que des endpoints de confiance. Utilisez HTTPS pour protéger les données et les identifiants.</string>
     <string name="webhooks_add">Ajouter un webhook</string>
     <string name="webhooks_interval_label">Intervalle de synchronisation (heures)</string>

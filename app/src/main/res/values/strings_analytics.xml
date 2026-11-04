@@ -25,8 +25,6 @@
     <string name="analytics_group_by_account">By account</string>
     <string name="analytics_group_by_tag">By tag</string>
     <string name="analytics_group_by_day_of_week">By day of week</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
-    <string name="analytics_group_by_pro">Pro</string>
 
     <!-- Filters -->
     <string name="analytics_filter_clear">Clear</string>

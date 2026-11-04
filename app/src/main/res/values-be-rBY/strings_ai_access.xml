@@ -3,12 +3,9 @@
 <resources>
     <string name="ai_access_settings_title">Падключыць Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Дазвольце AI-праграмам чытаць вашы даныя, пакуль вы гэта дазваляеце</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · Дазвольце AI-праграмам чытаць вашы даныя, пакуль вы гэта дазваляеце</string>
     <string name="ai_access_title">Доступ для AI</string>
     <string name="ai_access_back">Назад</string>
     <string name="ai_access_intro">Спытайце Claude, ChatGPT ці іншую AI-праграму пра свае выдаткі або адкрыйце панэль на камп\'ютары. Яны могуць чытаць вашы транзакцыі, балансы і падпіскі толькі пакуль уключаны AI-сеанс. Змяніць яны нічога не могуць.</string>
-    <string name="ai_access_pro_only">Доступ для AI — функцыя Pro.</string>
-    <string name="ai_access_unlock">Адкрыць з Pro</string>
     <string name="ai_access_session_title">AI-сеанс</string>
     <string name="ai_access_session_off">Выключаны. Выберыце, як доўга PennyWise будзе падключаны, або скарыстайцеся пліткай PennyWise AI у хуткіх наладах.</string>
     <string name="ai_access_session_minutes">%d хв</string>

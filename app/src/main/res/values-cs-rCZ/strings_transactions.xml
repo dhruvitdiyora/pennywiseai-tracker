@@ -14,8 +14,6 @@
     <string name="txn_export_total_transactions">Celkové transakce:</string>
     <string name="txn_export_date_range">Rozsah dat:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_export_free_limit_notice">Volný export: první %1$d z %2$d řádků</string>
-    <string name="txn_export_unlock_all">Odemknout vše</string>
     <plurals name="txn_export_success_message">
         <item quantity="one">%1$d transakce byla úspěšně exportována</item>
         <item quantity="few">%1$d transakcí úspěšně exportováno</item>
@@ -25,7 +23,6 @@
     <string name="txn_export_file_size">Velikost: %1$s</string>
     <string name="txn_export_action_cancel">Zrušit</string>
     <string name="txn_export_action_export">Exportovat</string>
-    <string name="txn_export_action_export_first">Exportovat první %1$d</string>
     <string name="txn_export_action_done">Hotovo</string>
     <string name="txn_export_share_subject">Export transakcí do PennyWise</string>
     <string name="txn_export_share_chooser_title">Sdílet CSV</string>

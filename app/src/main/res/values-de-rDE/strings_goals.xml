@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">Ziele</string>
-    <string name="upgrade_feature_goals">Unbegrenzte Ziele</string>
     <string name="goals_new">Neues Ziel</string>
     <string name="goals_empty_title">Auf etwas sparen</string>
     <string name="goals_empty_body">Wählen Sie einen Zielbetrag und ein Fälligkeitsdatum und sehen Sie, wie viel Sie jeden Monat zurücklegen sollten.</string>

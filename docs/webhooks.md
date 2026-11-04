@@ -1,14 +1,5 @@
 # Webhooks
 
-Webhook creation, configuration, manual sync, synthetic tests, and automatic
-delivery require Pro. F-Droid builds have this access unlocked. Free users can
-see the Settings entry and upgrade prompt. Scheduling requires Pro. Existing
-schedule timing is retained while entitlement loads and the initial Play check
-is pending. Once initialization finishes without Pro, the periodic job is cancelled.
-Failed Play checks retain cached access, following the app's existing offline policy.
-Queued work cannot send data
-without entitlement.
-
 Open Settings → Developer → Webhooks to send selected financial data to an
 endpoint you control. This is an opt-in exception to PennyWise's on-device data
 processing. Remote endpoints require HTTPS. HTTP is supported only for

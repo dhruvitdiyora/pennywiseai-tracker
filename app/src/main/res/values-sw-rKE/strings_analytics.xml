@@ -24,7 +24,6 @@
     <string name="analytics_group_by_account">Kwa akaunti</string>
     <string name="analytics_group_by_tag">Kwa lebo</string>
     <string name="analytics_group_by_day_of_week">Kwa siku ya wiki</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Futa</string>
     <string name="analytics_filter_all_profiles">Akaunti Zote</string>

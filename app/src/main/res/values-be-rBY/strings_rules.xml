@@ -154,43 +154,6 @@
     <string name="import_statement_balance_set_note">Баланс з выпіскі плюс тое, што PennyWise запісаў пасля заканчэння выпіскі.</string>
     <string name="import_statement_balance_applied">Баланс абноўлены: %1$s.</string>
     <string name="import_statement_balance_newer">Пасля гэтай выпіскі банк паведаміў пра навейшы баланс, таму PennyWise пакідае яго.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_subtitle_member">Усе магчымасці Pro актыўныя</string>
-    <string name="upgrade_subtitle_upgrade">Усё адкрываецца ліцэнзійным ключом</string>
-    <string name="upgrade_enter_license_key">Увесці ліцэнзійны ключ</string>
-    <string name="upgrade_support_note">Робіць адзін распрацоўшчык — Pro фінансуе тое, што будзе далей. Дзякуй.</string>
-    <string name="upgrade_available_at">PennyWise Pro даступны на %1$s</string>
-    <string name="upgrade_copied">Скапіявана</string>
-    <string name="upgrade_copy_address">Скапіяваць адрас</string>
-    <string name="upgrade_includes">Уключае</string>
-    <string name="upgrade_feature_rules">Неабмежаваныя ўласныя правілы</string>
-    <string name="upgrade_feature_statements">Неабмежаваны імпарт выпісак</string>
-    <string name="upgrade_feature_csv">Неабмежаваны экспарт CSV</string>
-    <string name="upgrade_feature_merge_accounts">Аб\'яднанне дублікатаў рахункаў</string>
-    <string name="upgrade_restoring">Аднаўленне…</string>
-    <string name="upgrade_restore">Аднавіць</string>
-    <string name="upgrade_get_help">Атрымаць дапамогу</string>
-    <string name="upgrade_welcome_eyebrow">ВІТАЕМ</string>
-    <string name="upgrade_celebration_title">Вы ўдзельнік Pro</string>
-    <string name="upgrade_celebration_body">Дзякуй, што падтрымліваеце PennyWise — усе функцыі са спіса цяпер вашы.</string>
-    <string name="upgrade_continue">Працягнуць</string>
-    <string name="upgrade_active_eyebrow">АКТЫЎНА</string>
-    <string name="upgrade_active_title">Усе функцыі Pro адкрыты</string>
-    <string name="upgrade_via_license_key">Праз ліцэнзійны ключ · %1$s</string>
-    <string name="upgrade_remove_license_key">Выдаліць ліцэнзійны ключ</string>
-    <string name="upgrade_manage_subscription">Кіраваць падпіскай</string>
-    <string name="upgrade_error_play_unavailable">Не ўдалося звязацца з Play Store. Паспрабуйце пазней.</string>
-    <string name="upgrade_cancel">Скасаваць</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Актываваць ліцэнзійны ключ</string>
-    <string name="upgrade_license_dialog_body">Устаўце ключ з ліста пра пакупку. Pro актывуецца на гэтай прыладзе адразу.</string>
-    <string name="upgrade_license_email_label">Email пакупкі</string>
-    <string name="upgrade_license_email_supporting">Пацвярджае, што ключ ваш, перш чым ён будзе перанесены з іншай прылады.</string>
-    <string name="upgrade_license_move_here">Перанесці на гэтую прыладу</string>
-    <string name="upgrade_license_activate">Актываваць</string>
-    <string name="upgrade_license_error_invalid">Ключ несапраўдны. Праверце, ці няма памылак, і паспрабуйце яшчэ раз.</string>
-    <string name="upgrade_license_error_active_elsewhere">Гэты ключ ужо актываваны на іншай прыладзе.</string>
-    <string name="upgrade_license_error_offline">Не ўдалося звязацца з серверам ліцэнзій. Праверце падключэнне і паспрабуйце яшчэ раз.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">Вітаем у PennyWise</string>
     <string name="onboarding_welcome_body">Ваш памочнік з AI для ўліку выдаткаў, які сам знаходзіць транзакцыі ў SMS.</string>
@@ -386,12 +349,6 @@
         <item quantity="few">Аб\'яднана паўтораных назваў у файле: %1$d.</item>
         <item quantity="many">Аб\'яднана паўтораных назваў у файле: %1$d.</item>
         <item quantity="other">Аб\'яднана паўтораных назваў у файле: %1$d.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">Яшчэ %1$d патрабуе Pro — вы дасягнулі бясплатнага ліміту ў %2$d.</item>
-        <item quantity="few">Яшчэ %1$d патрабуюць Pro — вы дасягнулі бясплатнага ліміту ў %2$d.</item>
-        <item quantity="many">Яшчэ %1$d патрабуюць Pro — вы дасягнулі бясплатнага ліміту ў %2$d.</item>
-        <item quantity="other">Яшчэ %1$d патрабуюць Pro — вы дасягнулі бясплатнага ліміту ў %2$d.</item>
     </plurals>
     <string name="rules_import_failed">Памылка імпарту.</string>
     <!-- Apply rule to past transactions -->

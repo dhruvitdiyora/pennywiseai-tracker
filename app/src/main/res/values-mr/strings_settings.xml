@@ -5,11 +5,6 @@
     <string name="settings_action_cancel">रद्द करा</string>
     <string name="settings_action_ok">ठीक आहे</string>
     <string name="settings_action_done">झाले</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">PennyWise Pro वर अपग्रेड करा</string>
-    <string name="settings_pro_subtitle_active">सक्रिय · सर्व वैशिष्ट्ये अनलॉक</string>
-    <string name="settings_pro_subtitle_upgrade">अमर्यादित नियम, एक्सपोर्ट आणि बरेच काही</string>
     <string name="settings_personalization_section">वैयक्तिकरण</string>
     <string name="settings_appearance_title">स्वरूप</string>
     <string name="settings_appearance_subtitle">थीम, रंग, फॉन्ट आणि नेव्हिगेशन</string>
@@ -82,7 +77,6 @@
     <string name="settings_export_data_subtitle">सर्व डेटाचा फाइलमध्ये बॅकअप घ्या</string>
     <string name="settings_folder_backup_title">स्वयंचलित फोल्डर बॅकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">तुम्ही निवडलेल्या फोल्डरमध्ये दररोज 2:00 AM ला बॅकअप</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · दररोज 2:00 AM ला फोल्डरमध्ये बॅकअप जतन करा</string>
     <string name="settings_folder_backup_subtitle_disabled">दररोज 2:00 AM ला फोल्डरमध्ये बॅकअप जतन करा</string>
     <string name="settings_export_include_receipts_title">पावती फोटो समाविष्ट करा</string>
     <string name="settings_export_include_receipts_subtitle">एक्सपोर्ट केलेल्या बॅकअपमध्ये जोडलेले पावती फोटो समाविष्ट करा (मोठी फाइल)</string>

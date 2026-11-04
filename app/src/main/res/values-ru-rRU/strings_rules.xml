@@ -154,44 +154,6 @@
     <string name="import_statement_balance_set_note">Баланс по выписке плюс то, что PennyWise записал после ее окончания.</string>
     <string name="import_statement_balance_applied">Баланс обновлен до %1$s.</string>
     <string name="import_statement_balance_newer">После этой выписки банк уже сообщил более свежий баланс, поэтому PennyWise оставляет его.</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_title">PennyWise Pro</string>
-    <string name="upgrade_subtitle_member">Все возможности Pro активны</string>
-    <string name="upgrade_subtitle_upgrade">Всё разблокировано с лицензионным ключом</string>
-    <string name="upgrade_enter_license_key">Введите лицензионный ключ</string>
-    <string name="upgrade_support_note">Сделано сольным девом — Pro funds что дальше. Спасибо.</string>
-    <string name="upgrade_available_at">PennyWise Pro доступен на %1$s</string>
-    <string name="upgrade_copied">Скопировано</string>
-    <string name="upgrade_copy_address">Копировать адрес</string>
-    <string name="upgrade_includes">Включает</string>
-    <string name="upgrade_feature_rules">Неограниченное количество пользовательских правил</string>
-    <string name="upgrade_feature_statements">Неограниченный импорт выписок</string>
-    <string name="upgrade_feature_csv">Неограниченный экспорт CSV</string>
-    <string name="upgrade_feature_merge_accounts">Объединить повторяющиеся учетные записи</string>
-    <string name="upgrade_restoring">Восстановление…</string>
-    <string name="upgrade_restore">Восстановить</string>
-    <string name="upgrade_get_help">Получить помощь</string>
-    <string name="upgrade_welcome_eyebrow">ДОБРО ПОЖАЛОСЬ</string>
-    <string name="upgrade_celebration_title">Вы являетесь участником Pro</string>
-    <string name="upgrade_celebration_body">Спасибо за поддержку PennyWise — все функции в списке теперь ваш.</string>
-    <string name="upgrade_continue">Продолжить</string>
-    <string name="upgrade_active_eyebrow">АКТИВНЫЙ</string>
-    <string name="upgrade_active_title">Все функции Pro разблокированы</string>
-    <string name="upgrade_via_license_key">Через лицензионный ключ · %1$s</string>
-    <string name="upgrade_remove_license_key">Удалить лицензионный ключ</string>
-    <string name="upgrade_manage_subscription">Управление подпиской</string>
-    <string name="upgrade_error_play_unavailable">Не удалось подключиться к Play Store. Повторите попытку позже.</string>
-    <string name="upgrade_cancel">Отмена</string>
-    <!-- License key dialog -->
-    <string name="upgrade_license_dialog_title">Активировать лицензионный ключ</string>
-    <string name="upgrade_license_dialog_body">Вставьте ключ из вашей электронной почты. Pro немедленно активирует на этом устройстве.</string>
-    <string name="upgrade_license_email_label">Покупка электронной почты</string>
-    <string name="upgrade_license_email_supporting">Подтверждает ваш владелец ключа, прежде чем он покинет другое устройство.</string>
-    <string name="upgrade_license_move_here">Переместить на это устройство</string>
-    <string name="upgrade_license_activate">Активировать</string>
-    <string name="upgrade_license_error_invalid">Этот ключ недействителен. Проверьте опечатки и повторите попытку.</string>
-    <string name="upgrade_license_error_active_elsewhere">Этот ключ уже активен на другом устройстве.</string>
-    <string name="upgrade_license_error_offline">Не удалось подключиться к серверу лицензии. Проверьте подключение и повторите попытку.</string>
     <!-- ══ Onboarding ══ -->
     <string name="onboarding_logo_cd">PennyWise</string>
     <string name="onboarding_welcome_title">Добро пожаловать в PennyWise</string>
@@ -390,12 +352,6 @@
         <item quantity="few">В файле свернуты повторяющиеся имена %1$d.</item>
         <item quantity="many">В файле свернуты повторяющиеся имена %1$d.</item>
         <item quantity="other">В файле свернуты повторяющиеся имена %1$d.</item>
-    </plurals>
-    <plurals name="rules_import_blocked_by_limit">
-        <item quantity="one">%1$d больше нужен Pro — у вас есть бесплатный лимит %2$d.</item>
-        <item quantity="few">%1$d больше нужен Pro — у вас есть бесплатный лимит %2$d.</item>
-        <item quantity="many">%1$d больше нужен Pro — у вас есть бесплатный лимит %2$d.</item>
-        <item quantity="other">%1$d больше нужен Pro — у вас есть бесплатный лимит %2$d.</item>
     </plurals>
     <string name="rules_import_failed">Ошибка импорта.</string>
     <!-- Apply rule to past transactions -->

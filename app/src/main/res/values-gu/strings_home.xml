@@ -2,7 +2,6 @@
 <resources>
     <string name="home_transaction_deleted">વ્યવહાર કાઢી નાખ્યો</string>
     <string name="home_undo">પૂર્વવત્ કરો</string>
-    <string name="home_upgrade_pro">PennyWise Pro માં અપગ્રેડ કરો</string>
     <string name="home_profile_filter">પ્રોફાઇલ ફિલ્ટર</string>
     <string name="home_more_options">વધુ વિકલ્પો</string>
     <string name="home_view_all">બધું જુઓ</string>
@@ -251,8 +250,4 @@
     <string name="notif_txn_public_title">%1$s નવો વ્યવહાર</string>
     <string name="notif_txn_public_text">%1$s • બેલેન્સ તપાસવાની જરૂર છે</string>
     <string name="balance_chart_label">બેલેન્સનું વલણ</string>
-    <string name="pro_home_card_title">PennyWise ગમે છે?</string>
-    <string name="pro_home_card_body">Pro માં અમર્યાદિત નિયમો, લક્ષ્યો, એક્સપોર્ટ અને સ્ટેટમેન્ટ ઇમ્પોર્ટ મળે છે.</string>
-    <string name="pro_home_card_action">Pro જુઓ</string>
-    <string name="pro_home_card_dismiss">બરખાસ્ત કરો</string>
 </resources>

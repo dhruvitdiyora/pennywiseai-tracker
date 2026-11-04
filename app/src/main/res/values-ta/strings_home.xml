@@ -2,7 +2,6 @@
 <resources>
     <string name="home_transaction_deleted">பரிவர்த்தனை நீக்கப்பட்டது</string>
     <string name="home_undo">செயல்தவிர்</string>
-    <string name="home_upgrade_pro">PennyWise Pro க்கு மேம்படுத்து</string>
     <string name="home_profile_filter">சுயவிவர வடிகட்டி</string>
     <string name="home_more_options">மேலும் விருப்பங்கள்</string>
     <string name="home_view_all">அனைத்தையும் காண்</string>
@@ -251,8 +250,4 @@
     <string name="notif_txn_public_title">%1$s புதிய பரிவர்த்தனை</string>
     <string name="notif_txn_public_text">%1$s • இருப்பைச் சரிபார்க்க வேண்டும்</string>
     <string name="balance_chart_label">இருப்புப் போக்கு</string>
-    <string name="pro_home_card_title">PennyWise பிடித்திருக்கிறதா?</string>
-    <string name="pro_home_card_body">Pro இல் வரம்பற்ற விதிகள், இலக்குகள், ஏற்றுமதிகள் மற்றும் அறிக்கை இறக்குமதிகள் கிடைக்கும்.</string>
-    <string name="pro_home_card_action">Pro ஐப் பார்</string>
-    <string name="pro_home_card_dismiss">நிராகரி</string>
 </resources>

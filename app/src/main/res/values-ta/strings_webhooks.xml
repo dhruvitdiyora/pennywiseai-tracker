@@ -2,12 +2,9 @@
 <resources>
     <string name="webhooks_title">வெப்ஹூக்குகள்</string>
     <string name="webhooks_settings_subtitle">தேர்ந்தெடுத்த தரவை உங்கள் எண்ட்பாயிண்டுக்கு அனுப்பு</string>
-    <string name="webhooks_settings_subtitle_pro">Pro · தேர்ந்தெடுத்த தரவை உங்கள் எண்ட்பாயிண்டுக்கு அனுப்பு</string>
     <string name="webhooks_add_title">வெப்ஹூக்கைச் சேர்</string>
     <string name="webhooks_edit_title">வெப்ஹூக்கைத் திருத்து</string>
     <string name="webhooks_history_title">விநியோக வரலாறு</string>
-    <string name="webhooks_pro_body">வெப்ஹூக் ஒத்திசைவு ஒரு Pro அம்சம். தேர்ந்தெடுத்த நிதித் தரவை உங்கள் சொந்த எண்ட்பாயிண்டுக்குத் தானாக அனுப்புங்கள்.</string>
-    <string name="webhooks_unlock_pro">Pro மூலம் திற</string>
     <string name="webhooks_save">வெப்ஹூக்கைச் சேமி</string>
     <string name="webhooks_history_empty">இதுவரை விநியோகங்கள் இல்லை. வரிசையில் உள்ள பணி பிணைய இணைப்புக்காகக் காத்திருக்கும்.</string>
     <string name="webhooks_log_delivered">விநியோகிக்கப்பட்டது</string>

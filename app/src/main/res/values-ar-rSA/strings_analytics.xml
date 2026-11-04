@@ -24,8 +24,6 @@
     <string name="analytics_group_by_account">حسب الحساب</string>
     <string name="analytics_group_by_tag">حسب العلامة</string>
     <string name="analytics_group_by_day_of_week">حسب يوم الأسبوع</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
-    <string name="analytics_group_by_pro">Pro</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">مسح</string>
     <string name="analytics_filter_all_profiles">جميع الحسابات</string>

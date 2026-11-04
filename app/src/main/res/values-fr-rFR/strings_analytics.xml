@@ -24,7 +24,6 @@
     <string name="analytics_group_by_account">Par compte</string>
     <string name="analytics_group_by_tag">Par étiquette</string>
     <string name="analytics_group_by_day_of_week">Par jour de la semaine</string>
-    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Nettoyer</string>
     <string name="analytics_filter_all_profiles">Tous les comptes</string>

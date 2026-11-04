@@ -3,12 +3,9 @@
 <resources>
     <string name="ai_access_settings_title">Připojit Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Nechte AI aplikace číst vaše data, dokud to povolíte</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · Nechte AI aplikace číst vaše data, dokud to povolíte</string>
     <string name="ai_access_title">Přístup pro AI</string>
     <string name="ai_access_back">Zpět</string>
     <string name="ai_access_intro">Zeptejte se Claude, ChatGPT nebo jiné AI aplikace na své výdaje, nebo otevřete přehled na počítači. Vaše transakce, zůstatky a předplatné mohou číst jen během zapnuté AI relace. Nic změnit nemohou.</string>
-    <string name="ai_access_pro_only">Přístup pro AI je funkce Pro.</string>
-    <string name="ai_access_unlock">Odemknout s Pro</string>
     <string name="ai_access_session_title">AI relace</string>
     <string name="ai_access_session_off">Vypnuto. Vyberte, jak dlouho má PennyWise zůstat připojená, nebo použijte dlaždici PennyWise AI v Rychlém nastavení.</string>
     <string name="ai_access_session_on">Zapnuto · zbývá %1$d:%2$02d</string>

@@ -3,12 +3,9 @@
 <resources>
     <string name="ai_access_settings_title">Подключить Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">AI-приложения читают ваши данные, пока вы это разрешаете</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · AI-приложения читают ваши данные, пока вы это разрешаете</string>
     <string name="ai_access_title">Доступ для AI</string>
     <string name="ai_access_back">Назад</string>
     <string name="ai_access_intro">Спрашивайте Claude, ChatGPT или другое AI-приложение о своих расходах или откройте панель на компьютере. Они видят ваши транзакции, балансы и подписки только во время AI-сессии. Изменить они ничего не могут.</string>
-    <string name="ai_access_pro_only">Доступ для AI — функция Pro.</string>
-    <string name="ai_access_unlock">Открыть с Pro</string>
     <string name="ai_access_session_title">AI-сессия</string>
     <string name="ai_access_session_off">Выключена. Выберите, на сколько подключить PennyWise, или используйте плитку PennyWise AI в быстрых настройках.</string>
     <string name="ai_access_session_minutes">%d мин</string>

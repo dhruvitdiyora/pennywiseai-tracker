@@ -61,10 +61,6 @@ class GoalRepository @Inject constructor(
     fun observeContributionsForTransaction(transactionId: Long): Flow<List<GoalContributionEntity>> =
         goalDao.observeContributionsForTransaction(transactionId)
 
-    /** Whether a new goal may be created: Pro, or fewer active goals than the free limit. */
-    suspend fun canCreateGoal(isPro: Boolean, today: LocalDate = LocalDate.now()): Boolean =
-        GoalRules.canCreateGoal(isPro, observeGoals(today).first().count { it.isActive })
-
     suspend fun createGoal(
         name: String,
         targetAmount: BigDecimal,

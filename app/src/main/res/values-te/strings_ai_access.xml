@@ -2,12 +2,9 @@
 <resources>
     <string name="ai_access_settings_title">Claude / ChatGPT ని కనెక్ట్ చేయండి</string>
     <string name="ai_access_settings_subtitle">మీరు అనుమతించినంత వరకు AI యాప్‌లు మీ డేటాను చదవనివ్వండి</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · మీరు అనుమతించినంత వరకు AI యాప్‌లు మీ డేటాను చదవనివ్వండి</string>
     <string name="ai_access_title">AI యాక్సెస్</string>
     <string name="ai_access_back">వెనుకకు</string>
     <string name="ai_access_intro">మీ ఖర్చుల గురించి Claude, ChatGPT లేదా మరో AI యాప్‌ను అడగండి, లేదా కంప్యూటర్‌లో డ్యాష్‌బోర్డ్‌ను తెరవండి. AI సెషన్ ఆన్‌లో ఉన్నప్పుడు మాత్రమే అవి మీ లావాదేవీలు, బ్యాలెన్స్‌లు మరియు సబ్‌స్క్రిప్షన్‌లను చదవగలవు. అవి దేన్నీ మార్చలేవు.</string>
-    <string name="ai_access_pro_only">AI యాక్సెస్ ఒక Pro ఫీచర్.</string>
-    <string name="ai_access_unlock">Pro తో అన్‌లాక్ చేయండి</string>
     <string name="ai_access_session_title">AI సెషన్</string>
     <string name="ai_access_session_off">ఆఫ్‌లో ఉంది. అడిగే ముందు ఒకటి ప్రారంభించండి, లేదా క్విక్ సెట్టింగ్‌లలోని PennyWise AI టైల్‌ను ఉపయోగించండి.</string>
     <string name="ai_access_session_minutes">%d నిమి</string>

@@ -1845,3 +1845,13 @@ Rule: upstream behaviour wins, Cashiro visuals win.
 - **Categories:** swipe-delete resets the row, so it stays in place while the impact is reviewed.
 - **Backup:** `exportBackupBytes` is re-added for cloud backup, because upstream's exporter only streams to a file.
 - **Windows gate note:** `SupportedBanksDocTest` and `BankSamplesDocTest` fail on a Windows checkout (`autocrlf` line endings; `CBEBANK` vs `COMMERCIALBANK` sample, most likely file walk order). Parser and doc content match upstream.
+
+## All features free, 2026-11-04
+
+- **Decision:** PennyWise Pro is gone from the app. Every feature is free for every user on both flavors, including cloud auto-backup.
+- **Removed:** entitlement gates and free-tier limits, the upgrade sheet and license key dialog, Play Billing and its permission, Dodo license validation, Pro strings in every locale.
+- **Backups:** `license_key` and `license_instance_id` are no longer written. Old backups that carry them still restore, because unknown keys are ignored.
+- **Home:** the avatar has no membership ring and always opens the personal dashboard.
+- **Kept:** the F-Droid "Support development" UPI tip jar, without its "buy a Pro key" link.
+- **Not changed:** `pennywise-web` still has its Pro pages, and old changelogs still mention Pro.
+- **Next upstream merge:** upstream keeps Pro, so its gates will come back as conflicts. Keep them out.

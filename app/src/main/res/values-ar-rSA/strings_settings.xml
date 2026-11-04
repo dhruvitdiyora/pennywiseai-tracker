@@ -7,12 +7,6 @@
     <string name="settings_action_cancel">إلغاء</string>
     <string name="settings_action_ok">موافق</string>
     <string name="settings_action_done">تم</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">الترقية إلى PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">نشط · فتح جميع ميزات الطاقة</string>
-    <string name="settings_pro_subtitle_upgrade">القواعد والبيانات والصادرات وغير المحدودة والمزيد</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">التخصيص</string>
     <string name="settings_appearance_title">المظهر</string>
@@ -102,7 +96,6 @@
     <string name="settings_export_data_subtitle">النسخ الاحتياطي لجميع البيانات إلى ملف</string>
     <string name="settings_folder_backup_title">النسخ الاحتياطي التلقائي للمجلد</string>
     <string name="settings_folder_backup_subtitle_enabled">النسخ الاحتياطي اليومي عند 2:00 صباحا للمجلد الذي اخترته</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · حفظ نسخة احتياطية في مجلد كل يوم في الثانية صباحا</string>
     <string name="settings_folder_backup_subtitle_disabled">حفظ نسخة احتياطية إلى مجلد كل يوم في الثانية صباحا</string>
     <string name="settings_export_include_receipts_title">تضمين صور الإيصالات</string>
     <string name="settings_export_include_receipts_subtitle">إضافة صور الإيصالات المرفقة إلى النسخ الاحتياطية المُصدَّرة (حجم ملف أكبر)</string>
@@ -288,7 +281,6 @@
     <string name="settings_developer_mode_subtitle">عرض المعلومات التقنية في الدردشة</string>
     <string name="settings_webhooks_title">خطافات الويب (Webhooks)</string>
     <string name="settings_webhooks_subtitle">إرسال البيانات المختارة إلى نقطة النهاية الخاصة بك</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · إرسال البيانات المختارة إلى نقطة النهاية الخاصة بك</string>
     <!-- Support & Community -->
     <string name="settings_support_section">دعم &amp; المجتمع</string>
     <string name="settings_help_faq_title">المساعدة &amp; أسئلة متكررة</string>
@@ -339,8 +331,6 @@
     <string name="webhooks_title_edit">تعديل Webhook</string>
     <string name="webhooks_title_history">سجل الإرسال</string>
     <string name="webhooks_back">الرجوع</string>
-    <string name="webhooks_pro_body">مزامنة Webhook ميزة متاحة في Pro. أرسل بياناتك المالية المختارة إلى نقطة النهاية الخاصة بك تلقائيًا.</string>
-    <string name="webhooks_unlock_pro">افتح مع Pro</string>
     <string name="webhooks_intro">ترسل Webhooks بياناتك المالية المختارة خارج هذا الجهاز إلى نقطة نهاية تختارها. فعّل فقط نقاط النهاية التي تثق بها، واستخدم HTTPS لحماية البيانات وبيانات الاعتماد.</string>
     <string name="webhooks_add">إضافة Webhook</string>
     <string name="webhooks_interval_label">فترة المزامنة بالساعات</string>

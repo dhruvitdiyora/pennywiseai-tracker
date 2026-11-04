@@ -13,7 +13,6 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
-import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.ui.components.cards.SafeToSpendCard
 import com.pennywiseai.tracker.ui.components.cards.SafeToSpendSheet
 import android.view.HapticFeedbackConstants
@@ -38,12 +37,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -104,9 +98,7 @@ import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
-import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
-import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
@@ -146,7 +138,6 @@ import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.icons.iconax.Search
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -182,9 +173,7 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val isProEntitled by viewModel.isProEntitled.collectAsState()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsState()
-    var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val groupSummaries by viewModel.groupSummaries.collectAsState()
@@ -321,16 +310,6 @@ fun HomeScreen(
         }
     }
     
-    // Avatar tap, shared by the compact bar: free users get the upgrade sheet
-    // (the ring is their "tap to unlock" cue), Pro members their dashboard.
-    val onAvatarClick: () -> Unit = {
-        if (isProEntitled) {
-            onNavigateToPersonalDashboard()
-        } else {
-            showUpgradeSheet = true
-        }
-    }
-
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -350,24 +329,22 @@ fun HomeScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 hazeState = hazeState,
                 blurEffects = blurEffects,
-                // Compact bar, leading: the avatar with its Pro ring. Same tap
-                // behaviour as the expanded greeting row — free users get the
-                // upgrade sheet, Pro members their dashboard.
+                // Compact bar, leading: the avatar. Same tap behaviour as the
+                // expanded greeting row.
                 navigationContent = {
                     ProfileAvatar(
                         userName = uiState.userName,
                         profileImageUri = uiState.profileImageUri,
                         profileBackgroundColor = uiState.profileBackgroundColor,
-                        isProEntitled = isProEntitled,
-                        onClick = onAvatarClick,
+                        onClick = onNavigateToPersonalDashboard,
                         // The bar already insets its icons by 4dp; this brings the
                         // avatar to the 16dp screen gutter the cards below use.
                         modifier = Modifier.padding(start = Spacing.smd),
                         size = Dimensions.Component.iconButton
                     )
                 },
-                // Compact bar, trailing: just Cashiro's "…" menu. The Pro chip and
-                // the profile switcher live in the expanded greeting row, so the
+                // Compact bar, trailing: just Cashiro's "…" menu. The profile
+                // switcher lives in the expanded greeting row, so the
                 // centred title never has to share the bar with them.
                 actionContent = {
                     val containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -396,8 +373,6 @@ fun HomeScreen(
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                        isProEntitled = isProEntitled,
-                        onUpgradeClick = { showUpgradeSheet = true },
                         cycleEnd = currentCycleWindow.second
                     )
                 }
@@ -1276,13 +1251,6 @@ fun HomeScreen(
         }
     }
 
-    // Pro upgrade sheet — triggered from the subtle ✨ chip in the top bar
-    // for free users; reuses the same composable Settings uses.
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

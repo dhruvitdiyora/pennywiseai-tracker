@@ -9,7 +9,6 @@ import android.util.Log
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
-import com.pennywiseai.tracker.billing.license.LicenseManager
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -17,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.decodeFromStream
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Locale
 import javax.inject.Inject
@@ -28,7 +26,6 @@ class BackupImporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PennyWiseDatabase,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val licenseManager: LicenseManager,
     private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     
@@ -1138,17 +1135,9 @@ class BackupImporter @Inject constructor(
         // dismissed on this device.
         userPreferencesRepository.addDismissedRecurringSuggestions(preferences.app.dismissedRecurringSuggestions)
 
-        // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
+        // Fills in a missing UPI ID, never replaces one set here (#346).
         preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->
             if (userPreferencesRepository.upiId.first() == null) userPreferencesRepository.setUpiId(id)
-        }
-
-        // A license in the backup only overrides when this install has none —
-        // never clobber a key the user already activated here.
-        preferences.app.licenseKey?.let { key ->
-            if (userPreferencesRepository.storedLicense.first() == null) {
-                licenseManager.restore(key, preferences.app.licenseInstanceId)
-            }
         }
     }
 }

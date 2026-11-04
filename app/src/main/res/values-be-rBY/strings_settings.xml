@@ -6,10 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Скасаваць</string>
     <string name="settings_action_done">Гатова</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_title_upgrade">Перайсці на PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Актыўна · усе пашыраныя функцыі адкрыты</string>
-    <string name="settings_pro_subtitle_upgrade">Неабмежаваныя правілы, выпіскі, экспарт і іншае</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">Персаналізацыя</string>
     <string name="settings_appearance_title">Знешні выгляд</string>
@@ -95,7 +91,6 @@
     <string name="settings_export_data_subtitle">Захаваць рэзервовую копію ўсіх даных у файл</string>
     <string name="settings_folder_backup_title">Аўтаматычная копія ў папку</string>
     <string name="settings_folder_backup_subtitle_enabled">Штодня ў 2:00 у абраную папку</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · Захоўваць рэзервовую копію ў папку штодня ў 2:00</string>
     <string name="settings_folder_backup_subtitle_disabled">Захоўваць рэзервовую копію ў папку штодня ў 2:00</string>
     <string name="settings_export_include_receipts_title">Уключаць фота чэкаў</string>
     <string name="settings_export_include_receipts_subtitle">Дадаваць прымацаваныя фота чэкаў у экспартаваныя копіі (файл будзе большы)</string>
@@ -253,7 +248,6 @@
     <string name="settings_developer_mode_subtitle">Паказваць тэхнічную інфармацыю ў чаце</string>
     <string name="settings_webhooks_title">Вэбхукі</string>
     <string name="settings_webhooks_subtitle">Адпраўляць абраныя даныя на ваш сервер</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · Адпраўляць абраныя даныя на ваш сервер</string>
     <!-- Support & Community -->
     <string name="settings_support_section">Падтрымка і супольнасць</string>
     <string name="settings_help_faq_title">Даведка і FAQ</string>
@@ -303,8 +297,6 @@
     <string name="webhooks_title_edit">Змяніць вэбхук</string>
     <string name="webhooks_title_history">Гісторыя адправак</string>
     <string name="webhooks_back">Назад</string>
-    <string name="webhooks_pro_body">Сінхранізацыя праз вэбхукі — функцыя Pro. Аўтаматычна адпраўляйце абраныя фінансавыя даныя на свой сервер.</string>
-    <string name="webhooks_unlock_pro">Адкрыць з Pro</string>
     <string name="webhooks_intro">Вэбхукі адпраўляюць абраныя фінансавыя даныя за межы гэтай прылады на адрас, які вы выбіраеце. Уключайце толькі адрасы, якім давяраеце. Выкарыстоўвайце HTTPS, каб абараніць даныя і ўліковыя даныя.</string>
     <string name="webhooks_add">Дадаць вэбхук</string>
     <string name="webhooks_interval_label">Інтэрвал сінхранізацыі ў гадзінах</string>

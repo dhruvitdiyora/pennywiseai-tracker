@@ -7,10 +7,6 @@
     <string name="settings_action_cancel">रद्द गर्नुहोस्</string>
     <string name="settings_action_ok">ठीक छ</string>
     <string name="settings_action_done">समाप्त</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_title_upgrade">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
-    <string name="settings_pro_subtitle_active">सक्रिय · सबै सुविधाहरू खुला</string>
-    <string name="settings_pro_subtitle_upgrade">असीमित नियम, स्टेटमेन्ट, निर्यात र अझै धेरै</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">आफ्नो अनुसार</string>
     <string name="settings_appearance_title">रुपरेखा</string>
@@ -92,7 +88,6 @@
     <string name="settings_export_data_subtitle">सबै डेटा फाइलमा ब्याकअप गर्नुहोस्</string>
     <string name="settings_folder_backup_title">स्वचालित फोल्डर ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">तपाईंले छानेको फोल्डरमा हरेक दिन बिहान 2:00 बजे ब्याकअप</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · हरेक दिन बिहान 2:00 बजे फोल्डरमा ब्याकअप सुरक्षित गर्नुहोस्</string>
     <string name="settings_folder_backup_subtitle_disabled">हरेक दिन बिहान 2:00 बजे फोल्डरमा ब्याकअप सुरक्षित गर्नुहोस्</string>
     <string name="settings_export_include_receipts_title">रसिदका फोटो समावेश गर्नुहोस्</string>
     <string name="settings_export_include_receipts_subtitle">निर्यात गरिएका ब्याकअपमा संलग्न रसिदका फोटो थप्नुहोस् (फाइल ठूलो हुन्छ)</string>
@@ -235,7 +230,6 @@
     <string name="settings_developer_mode_subtitle">च्याटमा प्राविधिक जानकारी प्रदर्शन गर्नुहोस्</string>
     <string name="settings_webhooks_title">वेबहुक</string>
     <string name="settings_webhooks_subtitle">छानिएको डेटा आफ्नो इन्डपोइन्टमा पठाउनुहोस्</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · छानिएको डेटा आफ्नो इन्डपोइन्टमा पठाउनुहोस्</string>
     <!-- Support & Community -->
     <string name="settings_support_section">सहयोग र समुदाय</string>
     <string name="settings_help_faq_title">मद्दत र FAQ</string>
@@ -285,8 +279,6 @@
     <string name="webhooks_title_edit">वेबहुक सम्पादन गर्नुहोस्</string>
     <string name="webhooks_title_history">पठाएको इतिहास</string>
     <string name="webhooks_back">पछाडि</string>
-    <string name="webhooks_pro_body">वेबहुक सिंक Pro सुविधा हो। छानिएको आर्थिक डेटा आफ्नै इन्डपोइन्टमा आफैं पठाउनुहोस्।</string>
-    <string name="webhooks_unlock_pro">Pro बाट खोल्नुहोस्</string>
     <string name="webhooks_intro">वेबहुकले तपाईंले छानेको आर्थिक डेटा यो डिभाइसबाहिर तपाईंले रोजेको इन्डपोइन्टमा पठाउँछ। भरोसा भएका इन्डपोइन्टमात्र सक्रिय गर्नुहोस्। डेटा र क्रेडेन्सियल सुरक्षित राख्न HTTPS प्रयोग गर्नुहोस्।</string>
     <string name="webhooks_add">वेबहुक थप्नुहोस्</string>
     <string name="webhooks_interval_label">घण्टामा सिंक अन्तराल</string>

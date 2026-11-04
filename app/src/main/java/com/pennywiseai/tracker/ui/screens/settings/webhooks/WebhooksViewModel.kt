@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings.webhooks
 
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.ui.UiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -46,10 +45,8 @@ class WebhooksViewModel @Inject constructor(
     private val repository: WebhookRepository,
     private val scheduler: WebhookSyncScheduler,
     private val preferences: WebhookPreferences,
-    private val entitlementGate: EntitlementGate,
     private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
-    val isProEntitled = entitlementGate.isProEntitled
     private val _state = MutableStateFlow(WebhooksUiState())
     val state = _state.asStateFlow()
     private var historyJob: Job? = null
@@ -64,7 +61,6 @@ class WebhooksViewModel @Inject constructor(
     }
 
     fun newProfile() {
-        if (!isProEntitled.value) return
         viewModelScope.launch {
             val currency = userPreferencesRepository.baseCurrency.first()
             // An Edit opened while the preference was loading wins over this Add.
@@ -79,7 +75,6 @@ class WebhooksViewModel @Inject constructor(
         _state.update { it.copy(editor = it.editor?.let(change), message = null) }
 
     fun edit(profile: WebhookProfileEntity) = _state.update {
-        if (!isProEntitled.value) return@update it
         it.copy(editor = WebhookEditorState(profile.id, profile.name, profile.url, profile.currency,
             profile.enabled, repository.decodeDataTypes(profile.dataTypes), profile.rangePreset,
             profile.customStart?.toLocalDate()?.toString().orEmpty(),
@@ -117,7 +112,7 @@ class WebhooksViewModel @Inject constructor(
         message(UiText.Res(R.string.webhooks_msg_sync_queued))
     }
     fun setEnabled(id: String, enabled: Boolean) = action { repository.setEnabled(id, enabled) }
-    fun delete(id: String) = action(requiresPro = false) {
+    fun delete(id: String) = action {
         repository.delete(id)
         if (_state.value.historyId == id) closeHistory()
         message(UiText.Res(R.string.webhooks_msg_deleted))
@@ -135,11 +130,11 @@ class WebhooksViewModel @Inject constructor(
         _state.update { it.copy(historyId = null, logs = emptyList(), message = null) }
     }
     private fun message(value: UiText) = _state.update { it.copy(message = value) }
-    private fun action(requiresPro: Boolean = true, block: suspend () -> Unit) {
-        if (_state.value.busy || (requiresPro && !isProEntitled.value)) return
+    private fun action(block: suspend () -> Unit) {
+        if (_state.value.busy) return
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
-            try { if (!requiresPro || isProEntitled.value) block() }
+            try { block() }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { message(UiText.Res(R.string.webhooks_msg_action_failed)) }
             finally { _state.update { it.copy(busy = false) } }

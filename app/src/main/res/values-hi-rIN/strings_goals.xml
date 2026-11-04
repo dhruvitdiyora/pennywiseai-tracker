@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">लक्ष्य</string>
-    <string name="upgrade_feature_goals">अनलिमिटेड लक्ष्य</string>
     <string name="goals_new">नया लक्ष्य</string>
     <string name="goals_empty_title">किसी चीज़ के लिए बचत करें</string>
     <string name="goals_empty_body">एक लक्ष्य राशि और तय तारीख चुनें, और देखें कि हर महीने कितना अलग रखना है।</string>

@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.aiaccess
 
-import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -25,12 +24,8 @@ class AiTools @Inject constructor(
     private val transactions: TransactionRepository,
     private val balances: AccountBalanceRepository,
     private val subscriptions: SubscriptionRepository,
-    private val entitlementGate: EntitlementGate,
 ) {
     suspend fun call(name: String, args: JsonObject): JsonObject {
-        if (!entitlementGate.isProEntitled.value) {
-            return error("AI access is part of PennyWise Pro, which isn't active on this phone. Renew Pro in PennyWise to continue.")
-        }
         return try {
             val body = when (name) {
                 "search_transactions" -> AiToolLogic.searchTransactions(

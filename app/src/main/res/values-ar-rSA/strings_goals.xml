@@ -3,7 +3,6 @@
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
     <string name="goals_section_title">الأهداف</string>
-    <string name="upgrade_feature_goals">أهداف غير محدودة</string>
     <string name="goals_new">هدف جديد</string>
     <string name="goals_empty_title">ادّخر لشيء ما</string>
     <string name="goals_empty_body">اختر مبلغًا مستهدفًا وتاريخ استحقاق، واعرف كم تحتاج أن تدّخر كل شهر.</string>

@@ -2,13 +2,9 @@ package com.pennywiseai.tracker.ui.screens.settings
 
 import com.pennywiseai.tracker.utils.AppDates
 
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,12 +12,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -30,11 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -44,12 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
@@ -57,7 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
-import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
@@ -65,7 +51,6 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.icons.iconax.Edit2
 import com.pennywiseai.tracker.ui.icons.iconax.Iconax
 import com.pennywiseai.tracker.ui.screens.profile.EditProfileSheet
@@ -100,7 +85,6 @@ import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.data.preferences.DateFormatStyle
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -127,14 +111,11 @@ fun SettingsScreen(
     onNavigateToAdvanced: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val userPreferences by settingsViewModel.userPreferences.collectAsStateWithLifecycle()
     val transactionCount by settingsViewModel.transactionCount.collectAsStateWithLifecycle(initialValue = 0)
-    var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     var showEditProfile by rememberSaveable { mutableStateOf(false) }
-    // F-Droid builds have no Play billing, so they show a "Support development"
-    // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
+    // F-Droid builds show a "Support development" tip jar at the top of Settings.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
     val context = LocalContext.current
     var showLanguageSheet by rememberSaveable { mutableStateOf(false) }
@@ -190,13 +171,9 @@ fun SettingsScreen(
                 onEditClick = { showEditProfile = true }
             )
 
-            // ── PennyWise Pro / Support development ──
-            // Top of Settings on purpose: highest-discoverability slot.
-            // F-Droid builds have no Play billing (everything is already
-            // unlocked), so instead of an un-buyable Pro upsell they get a
-            // "Support development" tip jar. Play builds keep the Pro upgrade.
-            SettingsGroup {
-                if (isFdroidBuild) {
+            // ── Support development ──
+            if (isFdroidBuild) {
+                SettingsGroup {
                     SettingsNavItem(
                         icon = Icons.Default.Favorite,
                         iconBgColor = yellow_light,
@@ -204,22 +181,6 @@ fun SettingsScreen(
                         title = stringResource(R.string.support_title),
                         subtitle = stringResource(R.string.support_subtitle),
                         onClick = { showSupportDialog = true },
-                        position = ListItemPosition.Single,
-                    )
-                } else {
-                    // Paid users see "Active" so the row reads as status,
-                    // free users see "Upgrade" so it reads as a call-to-action.
-                    SettingsNavItem(
-                        icon = Icons.Default.AutoAwesome,
-                        iconBgColor = yellow_light,
-                        iconTint = yellow_dark,
-                        title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
-                        subtitle = if (isProEntitled) {
-                            stringResource(R.string.settings_pro_subtitle_active)
-                        } else {
-                            stringResource(R.string.settings_pro_subtitle_upgrade)
-                        },
-                        onClick = { showUpgradeSheet = true },
                         position = ListItemPosition.Single,
                     )
                 }
@@ -374,12 +335,6 @@ fun SettingsScreen(
         }
     }
 
-    if (showUpgradeSheet) {
-        com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false },
-        )
-    }
-
     if (showSupportDialog) {
         SupportDevelopmentDialog(onDismiss = { showSupportDialog = false })
     }
@@ -476,7 +431,6 @@ internal fun SettingsManageDataGroup(
 internal fun SettingsBackupSections(
     scheduledFolderBackupEnabled: Boolean,
     scheduledFolderBackupLastTimestamp: Long?,
-    isProEntitled: Boolean,
     exportIncludeReceipts: Boolean = true,
     folderBackupIncludeReceipts: Boolean = false,
     smsScanAllTime: Boolean,
@@ -527,8 +481,6 @@ internal fun SettingsBackupSections(
                 title = stringResource(R.string.settings_folder_backup_title),
                 subtitle = if (scheduledFolderBackupEnabled) {
                     stringResource(R.string.settings_folder_backup_subtitle_enabled)
-                } else if (!isProEntitled) {
-                    stringResource(R.string.settings_folder_backup_subtitle_pro)
                 } else {
                     stringResource(R.string.settings_folder_backup_subtitle_disabled)
                 },

@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings.webhooks
 
 import androidx.activity.compose.BackHandler
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -30,8 +29,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 @Composable
 fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
-    var showUpgrade by remember { mutableStateOf(false) }
     val listState = remember(state.editor != null, state.editor?.id, state.historyId) { LazyListState() }
     var deleteProfile by remember { mutableStateOf<WebhookProfileEntity?>(null) }
     val back: () -> Unit = {
@@ -60,10 +57,6 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                 state.message?.let { message -> item { Text(message.asString(), style = MaterialTheme.typography.bodyMedium) } }
             }
             when {
-                !isPro -> {
-                    item { Text(stringResource(R.string.webhooks_pro_body)) }
-                    item { Button(onClick = { showUpgrade = true }) { Text(stringResource(R.string.webhooks_unlock_pro)) } }
-                }
                 state.editor != null -> {
                     item { WebhookEditor(state.editor!!, state.intervalHours, viewModel::updateEditor) }
                     state.message?.let { message -> item { Text(message.asString(), color = MaterialTheme.colorScheme.error) } }
@@ -125,7 +118,6 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
             }
         }
     }
-    if (showUpgrade) com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(onDismiss = { showUpgrade = false })
     deleteProfile?.let { profile ->
         AlertDialog(onDismissRequest = { deleteProfile = null }, title = { Text(stringResource(R.string.webhooks_delete_title)) },
             text = { Text(stringResource(R.string.webhooks_delete_body, profile.name)) },

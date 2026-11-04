@@ -7,12 +7,6 @@
     <string name="settings_action_cancel">Zrušit</string>
     <string name="settings_action_ok">OK</string>
     <string name="settings_action_done">Hotovo</string>
-    <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
-    <string name="settings_pro_title_upgrade">Upgradovat na PennyWise Pro</string>
-    <string name="settings_pro_subtitle_active">Aktivní · odemknuté funkce</string>
-    <string name="settings_pro_subtitle_upgrade">Neomezená pravidla, prohlášení, vývoz a další</string>
     <!-- Personalization -->
     <string name="settings_personalization_section">Přizpůsobení</string>
     <string name="settings_appearance_title">Vzhled</string>
@@ -98,7 +92,6 @@
     <string name="settings_export_data_subtitle">Zálohovat všechna data do souboru</string>
     <string name="settings_folder_backup_title">Automatická záloha složky</string>
     <string name="settings_folder_backup_subtitle_enabled">Denní záloha ve 2:00 do vybrané složky</string>
-    <string name="settings_folder_backup_subtitle_pro">Pro · Uložit zálohu do složky každý den ve 2:00</string>
     <string name="settings_folder_backup_subtitle_disabled">Uložit zálohu do složky každý den ve 2:00 hodin</string>
     <string name="settings_export_include_receipts_title">Zahrnout fotky účtenek</string>
     <string name="settings_export_include_receipts_subtitle">Přidat přiložené fotky účtenek do exportovaných záloh (větší soubor)</string>
@@ -256,7 +249,6 @@
     <string name="settings_developer_mode_subtitle">Zobrazit technické informace v chatu</string>
     <string name="settings_webhooks_title">Webhooky</string>
     <string name="settings_webhooks_subtitle">Odesílat vybraná data na váš endpoint</string>
-    <string name="settings_webhooks_subtitle_pro">Pro · Odesílat vybraná data na váš endpoint</string>
     <!-- Support & Community -->
     <string name="settings_support_section">Podpora &amp; komunita</string>
     <string name="settings_help_faq_title">Pomozte &amp; FAQ</string>
@@ -307,8 +299,6 @@
     <string name="webhooks_title_edit">Upravit webhook</string>
     <string name="webhooks_title_history">Historie doručení</string>
     <string name="webhooks_back">Zpět</string>
-    <string name="webhooks_pro_body">Synchronizace přes webhooky je funkce Pro. Automaticky odesílejte vybraná finanční data na vlastní endpoint.</string>
-    <string name="webhooks_unlock_pro">Odemknout s Pro</string>
     <string name="webhooks_intro">Webhooky odesílají vybraná finanční data mimo toto zařízení na endpoint, který si zvolíte. Zapínejte jen endpointy, kterým důvěřujete. K ochraně dat a přihlašovacích údajů používejte HTTPS.</string>
     <string name="webhooks_add">Přidat webhook</string>
     <string name="webhooks_interval_label">Interval synchronizace v hodinách</string>

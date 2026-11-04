@@ -16,8 +16,6 @@
     <string name="txn_export_total_transactions">إجمالي العمليات:</string>
     <string name="txn_export_date_range">نطاق التاريخ:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_export_free_limit_notice">التصدير المجاني: أول %1$d من صفوف %2$d</string>
-    <string name="txn_export_unlock_all">فتح الكل</string>
     <plurals name="txn_export_success_message">
         <item quantity="zero">تم تصدير %1$d عملية بنجاح</item>
         <item quantity="one">تم تصدير معاملة %1$d بنجاح</item>
@@ -29,7 +27,6 @@
     <string name="txn_export_file_size">الحجم: %1$s</string>
     <string name="txn_export_action_cancel">إلغاء</string>
     <string name="txn_export_action_export">تصدير</string>
-    <string name="txn_export_action_export_first">تصدير أول %1$d</string>
     <string name="txn_export_action_done">تم</string>
     <string name="txn_export_share_subject">تصدير معاملات PennyWise</string>
     <string name="txn_export_share_chooser_title">مشاركة CSV</string>
