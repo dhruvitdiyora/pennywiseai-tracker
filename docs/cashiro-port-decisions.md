@@ -1832,3 +1832,16 @@ record/link repayment, set expected return, reopen, delete) is kept.
 - **Other upstream features** (Group by, Excel/CSV statement import, loan
   account type, goals in Budgets, totals-card grid, split sheet) are rendered
   in the Cashiro components; upstream behaviour wins, this branch's visuals win.
+
+## Upstream merge, 2026-11-04 (upstream/main cd97af25, 84 commits)
+
+Rule: upstream behaviour wins, Cashiro visuals win.
+
+- **Stack:** took upstream's Room 3, Navigation 3, Haze 2, Ktor 3, Coil 3 and Material3 1.5. Our 67→68 People migration keeps its SQL in the Room 3 form; DB stays at v68.
+- **Navigation:** floating stacked FABs stay. Upstream's NavDock pill is not provided, so `LocalNavDock` stays null. Our Settings sub-screens are Nav3 entries.
+- **Home:** no Pro card, Goals card stays. Payday, recurring and safe-to-spend cards use glass. Default layout keeps Cashiro's order, with Safe to spend first and Money in motion before Activity.
+- **Settings:** date format is in Currency & formats, shake to hide in Privacy & security, tracked apps and daily summary in Advanced.
+- **Subscriptions:** swipe right to edit stays alongside upstream's stable `onDismiss`. Totals stay on `expenseSubscriptionTotals`.
+- **Categories:** swipe-delete resets the row, so it stays in place while the impact is reviewed.
+- **Backup:** `exportBackupBytes` is re-added for cloud backup, because upstream's exporter only streams to a file.
+- **Windows gate note:** `SupportedBanksDocTest` and `BankSamplesDocTest` fail on a Windows checkout (`autocrlf` line endings; `CBEBANK` vs `COMMERCIALBANK` sample, most likely file walk order). Parser and doc content match upstream.
