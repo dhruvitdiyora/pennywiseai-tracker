@@ -60,6 +60,7 @@ import com.pennywiseai.tracker.domain.usecase.BatchEditTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.FieldEdit
 import com.pennywiseai.tracker.domain.usecase.TagEdit
 import com.pennywiseai.tracker.domain.usecase.TagEditMode
+import com.pennywiseai.tracker.presentation.people.tonalTextFieldColors
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -277,6 +278,7 @@ internal fun BatchEditTransactionsSheet(
                             allTags = allTags,
                             onAddTag = { name -> tags = tags + name },
                             onRemoveTag = { name -> tags = tags - name },
+                            fieldColors = tonalTextFieldColors(MaterialTheme.colorScheme.surfaceContainerHigh),
                         )
                         if (tagMode == TagEditMode.REPLACE && tags.isEmpty()) {
                             Text(

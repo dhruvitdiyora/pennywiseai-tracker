@@ -5,7 +5,9 @@ import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -69,6 +71,26 @@ fun BalanceChart(
 
     val chartValues = remember(smoothedHistory) {
         smoothedHistory.map { it.balance.toDouble() }
+    }
+
+    // Every point at zero leaves the chart library no value range, and it draws
+    // a stray triangle over the axes instead of a flat line.
+    if (!hasValuesToPlot(chartValues)) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(height.dp)
+                .padding(Spacing.md),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(R.string.analytics_empty_headline),
+                style = MaterialTheme.typography.bodyMedium,
+                color = themeColors.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        return
     }
 
     val labels = remember(smoothedHistory) {
@@ -190,6 +212,9 @@ fun BalanceChart(
         animationMode = AnimationMode.Together(delayBuilder = { it * 200L }),
     )
 }
+
+/** False when every value is zero, which the line chart can't scale. */
+internal fun hasValuesToPlot(values: List<Double>): Boolean = values.any { it != 0.0 }
 
 /** Most x-axis labels the trend chart draws, so a flat "dd MMM" row fits a phone width. */
 private const val MAX_AXIS_LABELS = 5

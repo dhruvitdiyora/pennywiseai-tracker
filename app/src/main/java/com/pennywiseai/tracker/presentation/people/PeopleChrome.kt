@@ -184,13 +184,15 @@ internal fun PeopleExtendedFab(
 
 /** Borderless fields on the card surface: the fill is the only container. */
 @Composable
-internal fun tonalTextFieldColors(): TextFieldColors {
+internal fun tonalTextFieldColors(
+    container: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+): TextFieldColors {
     val scheme = MaterialTheme.colorScheme
     return TextFieldDefaults.colors(
-        focusedContainerColor = scheme.surfaceContainerLow,
-        unfocusedContainerColor = scheme.surfaceContainerLow,
-        disabledContainerColor = scheme.surfaceContainerLow,
-        errorContainerColor = scheme.surfaceContainerLow,
+        focusedContainerColor = container,
+        unfocusedContainerColor = container,
+        disabledContainerColor = container,
+        errorContainerColor = container,
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
         disabledIndicatorColor = Color.Transparent,

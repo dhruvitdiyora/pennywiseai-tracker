@@ -263,7 +263,9 @@ fun TransactionTabContent(
                 selectedTags = uiState.tags,
                 allTags = allTagNames,
                 onAddTag = viewModel::addTransactionTag,
-                onRemoveTag = viewModel::removeTransactionTag
+                onRemoveTag = viewModel::removeTransactionTag,
+                fieldModifier = Modifier.addGlassField(fullShape),
+                fieldColors = addGlassFieldColors()
             )
 
             // ── Budget Impact (INCOME only) ──

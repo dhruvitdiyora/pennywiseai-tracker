@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.presentation.categories.CategoryAvatar
 import com.pennywiseai.tracker.presentation.categories.CategorySearchField
+import com.pennywiseai.tracker.presentation.people.tonalTextFieldColors
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -130,7 +131,8 @@ fun QuickCategoryPickerSheet(
                     start = Dimensions.Padding.dialog,
                     end = Dimensions.Padding.dialog,
                     bottom = Spacing.sm
-                )
+                ),
+                fieldColors = tonalTextFieldColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
             HorizontalDivider(
                 modifier = Modifier.padding(

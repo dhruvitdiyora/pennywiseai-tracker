@@ -1855,3 +1855,9 @@ Rule: upstream behaviour wins, Cashiro visuals win.
 - **Kept:** the F-Droid "Support development" UPI tip jar, without its "buy a Pro key" link.
 - **Not changed:** `pennywise-web` still has its Pro pages, and old changelogs still mention Pro.
 - **Next upstream merge:** upstream keeps Pro, so its gates will come back as conflicts. Keep them out.
+
+## Small gaps, 2026-11-05
+
+- **Trend chart:** when every point is zero, `BalanceChart` shows "Not enough data yet" instead of the chart library's stray triangle.
+- **Tag field:** `TagInputField` is now a borderless rounded field. It uses glass on Add, the tonal fill on Edit, and a stronger tonal fill in the batch edit and quick category sheets, where the default fill matches the sheet.
+- **Open:** on Add, the focused Tags field sits behind the pinned Save bar while the keyboard is up.
