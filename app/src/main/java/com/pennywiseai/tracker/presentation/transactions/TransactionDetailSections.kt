@@ -859,7 +859,7 @@ private fun BalanceAdjustmentSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = ListItemPosition.Single.toShape(),
-                colors = tonalTextFieldColors()
+                colors = tonalTextFieldColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -876,7 +876,7 @@ private fun BalanceAdjustmentSheet(
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     readOnly = true,
                     shape = ListItemPosition.Single.toShape(),
-                    colors = tonalTextFieldColors()
+                    colors = tonalTextFieldColors(MaterialTheme.colorScheme.surfaceContainerHigh)
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,

@@ -729,6 +729,16 @@ internal fun AddSaveBarClearance() {
 }
 
 /**
+ * While the keyboard is up, ends a form's scroll viewport above [AddSaveBar], so
+ * a focused field is brought into view clear of the bar instead of behind it.
+ * Goes before `verticalScroll`, on a form whose Box also lifts the bar.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun Modifier.addSaveBarImeClearance(): Modifier =
+    if (WindowInsets.isImeVisible) padding(bottom = AddSaveBarHeight) else this
+
+/**
  * Sticky Save button pinned to the bottom of the form. A short fade above it
  * dissolves scrolled content into the page background, and the button itself
  * sits on a solid band so a disabled (translucent) button never shows the

@@ -69,6 +69,7 @@ fun SubscriptionTabContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .addSaveBarImeClearance()
                 .overScrollVertical()
                 .verticalScroll(
                     state = scrollState,

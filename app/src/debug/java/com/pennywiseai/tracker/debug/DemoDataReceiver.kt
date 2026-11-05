@@ -96,7 +96,21 @@ class DemoDataReceiver : BroadcastReceiver() {
                 transactionHash = "demo-${now.toLocalDate()}-$index",
             )
         }
-        db.transactionDao().insertTransactions(transactions)
+        // Reports less than the ledger predicts from the newest snapshot, so its
+        // detail screen shows the balance mismatch card and adjustment sheet.
+        val mismatch = TransactionEntity(
+            amount = BigDecimal(500),
+            merchantName = "Balance Mismatch Demo",
+            category = "Others",
+            transactionType = TransactionType.EXPENSE,
+            dateTime = now.plusMinutes(1),
+            bankName = BANK,
+            accountNumber = BANK_LAST4,
+            balanceAfter = BigDecimal(50_000),
+            currency = "INR",
+            transactionHash = "demo-${now.toLocalDate()}-mismatch",
+        )
+        db.transactionDao().insertTransactions(transactions + mismatch)
 
         val subscriptions = db.subscriptionDao()
         listOf("Netflix" to "649", "Spotify" to "119", "YouTube Premium" to "149").forEachIndexed { i, (name, amount) ->

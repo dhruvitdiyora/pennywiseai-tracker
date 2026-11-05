@@ -82,6 +82,7 @@ fun TransactionTabContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .addSaveBarImeClearance()
                 .overScrollVertical()
                 .verticalScroll(
                     state = scrollState,

@@ -1860,4 +1860,5 @@ Rule: upstream behaviour wins, Cashiro visuals win.
 
 - **Trend chart:** when every point is zero, `BalanceChart` shows "Not enough data yet" instead of the chart library's stray triangle.
 - **Tag field:** `TagInputField` is now a borderless rounded field. It uses glass on Add, the tonal fill on Edit, and a stronger tonal fill in the batch edit and quick category sheets, where the default fill matches the sheet.
-- **Open:** on Add, the focused Tags field sits behind the pinned Save bar while the keyboard is up.
+- **Add form keyboard:** with the keyboard up, the scroll viewport of the Add and Subscription forms ends above the Save bar, so a focused field stays visible.
+- **Balance sheet:** its fields use the stronger tonal fill. `SEED_DEMO` adds a "Balance Mismatch Demo" row so the card and sheet can be checked on a device.
